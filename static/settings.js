@@ -40,8 +40,7 @@ window.TDSettings = (() => {
     document.querySelector('#updateAction')?.addEventListener('click', handleUpdateAction);
     document.querySelector('#nSoundMode')?.addEventListener('change', updateNotificationSoundUi);
     document.querySelector('#nSoundFile')?.addEventListener('change', updateNotificationSoundUi);
-    document.querySelector('#previewSound')?.addEventListener('click', previewNotificationSound);
-    document.querySelector('#settingsNotifyPermission')?.addEventListener('click', requestBrowserNotificationPermission);
+    document.querySelector('#testNotification')?.addEventListener('click', testNotification);
     document.querySelector('#addIntegrationSetting')?.addEventListener('click', addIntegration);
     document.querySelector('#addUserSetting')?.addEventListener('click', addUser);
     activate(localStorage.tdSettingsPage || 'general');
@@ -162,42 +161,39 @@ window.TDSettings = (() => {
     return data;
   }
 
-  async function previewNotificationSound() {
+  async function testNotification() {
     const status = document.querySelector('#soundStatus');
-    const mode = document.querySelector('#nSoundMode')?.value || 'default';
-    const file = document.querySelector('#nSoundFile')?.files?.[0];
-    let url = '';
-    let revoke = false;
-    if (mode === 'custom' && file) {
-      url = URL.createObjectURL(file);
-      revoke = true;
-    } else if (mode === 'custom') {
-      url = `/api/notification-sound?ts=${Date.now()}`;
-    } else {
-      url = `/static/default-completion.wav?v=${encodeURIComponent(state.me?.version || '')}`;
-    }
-    try {
-      if (status) { status.className='test-result muted'; status.textContent='Playing Sound…'; }
-      await playSoundUrl(url);
-      if (status) { status.className='test-result ok'; status.textContent='Sound Playback Ready'; }
-    } catch (e) {
-      if (status) { status.className='test-result bad'; status.textContent=e.message || 'Sound Playback Failed'; }
-    } finally {
-      if (revoke) URL.revokeObjectURL(url);
-    }
-  }
-
-  async function requestBrowserNotificationPermission() {
-    const status = document.querySelector('#soundStatus');
-    if (!('Notification' in window)) {
-      if (status) { status.className='test-result bad'; status.textContent='Browser Notifications Are Not Supported'; }
+    const browserEnabled = !!document.querySelector('#nBrowser')?.checked;
+    const soundEnabled = !!document.querySelector('#nSound')?.checked;
+    if (!browserEnabled && !soundEnabled) {
+      if (status) { status.className='test-result bad'; status.textContent='Enable browser notifications or completion sound before testing.'; }
       return;
     }
-    const permission = await Notification.requestPermission();
-    if (status) {
-      status.className = `test-result ${permission === 'granted' ? 'ok' : 'muted'}`;
-      status.textContent = `Browser Notification Permission: ${permission}`;
+    const mode = document.querySelector('#nSoundMode')?.value || 'default';
+    const file = document.querySelector('#nSoundFile')?.files?.[0];
+    let soundUrl = '';
+    let revoke = false;
+    if (soundEnabled) {
+      if (mode === 'custom' && file) { soundUrl=URL.createObjectURL(file); revoke=true; }
+      else if (mode === 'custom') soundUrl=`/api/notification-sound?ts=${Date.now()}`;
+      else soundUrl=`/static/default-completion.wav?v=${encodeURIComponent(state.me?.version || '')}`;
     }
+    try {
+      if (status) { status.className='test-result muted'; status.textContent='Testing notification…'; }
+      const tested=[];
+      if (browserEnabled) {
+        if (!('Notification' in window)) throw new Error('Browser notifications are not supported by this browser.');
+        let permission=Notification.permission;
+        if (permission==='default') permission=await Notification.requestPermission();
+        if (permission!=='granted') throw new Error(permission==='denied' ? "Browser notification permission is blocked. Enable it in this site's browser permissions." : 'Browser notification permission was not granted.');
+        await showBrowserNotification(state.settings?.dashboard?.title || 'Torrent Dashboard',{body:'This is a test notification from Torrent Dashboard.',tag:'torrent-dashboard-test'});
+        tested.push('browser notification');
+      }
+      if (soundEnabled) { await playSoundUrl(soundUrl); tested.push('completion sound'); }
+      if (status) { status.className='test-result ok'; status.textContent=`Test successful: ${tested.join(' and ')}.`; }
+    } catch(e) {
+      if (status) { status.className='test-result bad'; status.textContent=e.message || 'Notification test failed.'; }
+    } finally { if (revoke) URL.revokeObjectURL(soundUrl); }
   }
 
   function updateSourceRepository() {
@@ -374,7 +370,7 @@ window.TDSettings = (() => {
       const display=userName(user);
       const username=user.username||'New User';
       const showUsername=!!user.username && display!==user.username;
-      card.innerHTML=`<button class="accordion-summary" type="button" aria-expanded="${index===0?'true':'false'}"><span><b>${esc(display)}${current?' · You':''}</b>${showUsername?`<small>${esc(username)}</small>`:''}</span><span class="user-group-badge ${user.group==='administrator'?'admin':'standard'}">${esc(group)}</span><span class="accordion-chevron">⌄</span></button><div class="accordion-body ${index===0?'':'hidden'}"><div class="settings-form-grid two-col"><label>Username <span class="required-mark" aria-hidden="true">*</span><input data-user-field="username" value="${esc(user.username||'')}" maxlength="128" autocomplete="off" required></label><label>User Group <span class="required-mark" aria-hidden="true">*</span><select data-user-field="group" required><option value="administrator" ${user.group==='administrator'?'selected':''}>Administrator</option><option value="standard" ${user.group==='standard'?'selected':''}>Standard User</option></select></label><label>First Name<input data-user-field="first_name" value="${esc(user.first_name||'')}" maxlength="128"></label><label>Last Name<input data-user-field="last_name" value="${esc(user.last_name||'')}" maxlength="128"></label><label class="full-field">Email<input data-user-field="email" type="email" value="${esc(user.email||'')}" maxlength="254"></label><label>Password <span class="required-mark" aria-hidden="true">*</span><input data-user-field="password" type="password" autocomplete="new-password" required ${user._new?'placeholder="Create Password"':'class="secret-configured" data-configured-secret="1" value="'+SECRET_MASK+'"'}></label><label>Confirm Password <span class="required-mark" aria-hidden="true">*</span><input data-user-field="password2" type="password" autocomplete="new-password" required ${user._new?'placeholder="Confirm Password"':'class="secret-configured" data-configured-secret="1" value="'+SECRET_MASK+'"'}></label></div><div class="settings-inline-actions"><button class="primary user-save" type="button">Save</button><button class="danger user-delete" type="button" ${current?'disabled':''}>Delete</button></div></div>`;
+      card.innerHTML=`<button class="accordion-summary" type="button" aria-expanded="${index===0?'true':'false'}"><span><b>${esc(display)}${current?' · You':''}</b>${showUsername?`<small>${esc(username)}</small>`:''}</span><span class="user-group-badge ${user.group==='administrator'?'admin':'standard'}">${esc(group)}</span><span class="accordion-chevron">⌄</span></button><div class="accordion-body ${index===0?'':'hidden'}"><div class="settings-form-grid two-col"><label><span class="field-label">Username <span class="required-mark" aria-hidden="true">*</span></span><input data-user-field="username" value="${esc(user.username||'')}" maxlength="128" autocomplete="off" required></label><label><span class="field-label">User Group <span class="required-mark" aria-hidden="true">*</span></span><select class="user-group-select" data-user-field="group" required><option value="administrator" ${user.group==='administrator'?'selected':''}>Administrator</option><option value="standard" ${user.group==='standard'?'selected':''}>Standard User</option></select></label><label>First Name<input data-user-field="first_name" value="${esc(user.first_name||'')}" maxlength="128"></label><label>Last Name<input data-user-field="last_name" value="${esc(user.last_name||'')}" maxlength="128"></label><label class="full-field">Email<input data-user-field="email" type="email" value="${esc(user.email||'')}" maxlength="254"></label><label><span class="field-label">Password <span class="required-mark" aria-hidden="true">*</span></span><input data-user-field="password" type="password" autocomplete="new-password" required ${user._new?'placeholder="Create Password"':'class="secret-configured" data-configured-secret="1" value="'+SECRET_MASK+'"'}></label><label><span class="field-label">Confirm Password <span class="required-mark" aria-hidden="true">*</span></span><input data-user-field="password2" type="password" autocomplete="new-password" required ${user._new?'placeholder="Confirm Password"':'class="secret-configured" data-configured-secret="1" value="'+SECRET_MASK+'"'}></label></div><div class="settings-inline-actions"><button class="primary user-save" type="button">Save</button><button class="danger user-delete" type="button" ${current?'disabled':''}>Delete</button></div></div>`;
       const summary=card.querySelector('.accordion-summary');
       summary.addEventListener('click',()=>{const body=card.querySelector('.accordion-body');const open=body.classList.contains('hidden');body.classList.toggle('hidden',!open);summary.setAttribute('aria-expanded',String(open))});
       card.querySelector('.user-save').addEventListener('click',()=>saveUser(card));

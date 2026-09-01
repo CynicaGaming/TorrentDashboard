@@ -5,8 +5,8 @@
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#0b0d10" name="theme-color"/>
 <link href="/manifest.webmanifest" rel="manifest"/>
-<link href="/static/app.css?v=0.5.22" rel="stylesheet"/>
-<link href="/static/settings.css?v=0.5.22" rel="stylesheet"/>
+<link href="/static/app.css?v=0.5.23" rel="stylesheet"/>
+<link href="/static/settings.css?v=0.5.23" rel="stylesheet"/>
 <title>Torrent Dashboard</title>
 </head>
 <body>
@@ -204,8 +204,8 @@
 <div class="configured-sound" id="nCustomSoundName">No Custom Sound Uploaded</div>
 <div class="field-help">WAV, MP3, or OGG · Maximum 2 MB. Custom sounds are stored in the data directory and preserved during updates.</div>
 </div>
-<div class="settings-inline-actions notification-actions"><button class="secondary" id="previewSound" type="button">Preview Sound</button><button class="secondary" id="settingsNotifyPermission" type="button">Request Browser Permission</button></div>
-<div class="test-result muted" id="soundStatus">Preview the sound once to confirm this browser can play notification audio.</div>
+<div class="settings-inline-actions notification-actions"><button class="secondary" id="testNotification" type="button">Test Notification</button></div>
+<div class="test-result muted" id="soundStatus">Test browser notifications and completion audio. Browser permission is requested during the test when needed.</div>
 </div>
 </div>
 </div>
@@ -228,10 +228,10 @@
 <div class="modal hidden" id="addModal"><div class="modal-backdrop" data-modalclose=""></div><form class="modal-card" id="addForm"><header><h2>Add Torrent</h2><button class="icon-btn" data-modalclose="" type="button">×</button></header><label>Magnet Or Torrent URL<textarea id="addUrls" placeholder="magnet:?xt=…" rows="4"></textarea></label><div class="or">Or</div><label class="file-drop">Choose Torrent File<input accept=".torrent,application/x-bittorrent" id="torrentFile" type="file"/></label><label>Save Path<input id="addPath" placeholder="Optional"/></label><div class="two"><label>Category<input id="addCategory"/></label><label>Tags<input id="addTags"/></label></div><div class="checks"><label><input id="addStopped" type="checkbox"/> Add Paused</label><label><input id="addSequential" type="checkbox"/> Sequential Download</label><label><input id="addFirstLast" type="checkbox"/> First/Last Priority</label></div><button class="primary" type="submit">Add Torrent</button></form></div>
 <div class="modal hidden" id="actionDialogModal"><div class="modal-backdrop" data-action-dialog-cancel=""></div><form class="modal-card action-dialog-card" id="actionDialogForm"><header><div><h2 id="actionDialogTitle">Action</h2><p class="hidden" id="actionDialogMessage"></p></div><button class="icon-btn" data-action-dialog-cancel="" type="button" aria-label="Cancel">×</button></header><div class="action-dialog-content"><label id="actionDialogField"><span id="actionDialogLabel">Value</span><input autocomplete="off" id="actionDialogInput"/></label><div class="field-help hidden" id="actionDialogHelp"></div></div><footer class="action-dialog-actions"><button class="primary action-dialog-confirm" id="actionDialogConfirm" type="submit">Save</button><button class="secondary" data-action-dialog-cancel="" type="button">Cancel</button></footer></form></div>
 <div class="modal hidden" id="removeModal"><div class="modal-backdrop" data-remove-cancel=""></div><form class="modal-card remove-modal-card" id="removeForm"><header><div><h2>Remove torrent(s)</h2><p>Remove torrents from qBitTorrent.</p></div><button class="icon-btn" data-remove-cancel="" type="button" aria-label="Cancel removal">×</button></header><div class="remove-dialog-body"><div class="remove-warning-row"><div class="remove-warning-icon" aria-hidden="true">!</div><div class="remove-warning-copy"><strong id="removePrompt">Are you sure you want to remove this torrent from the transfer list?</strong><p>This action removes the selected torrent from qBitTorrent. Downloaded files are kept unless you choose otherwise below.</p></div></div><div class="remove-target-list hidden" id="removeTargets"></div><label class="remove-files-option"><input id="removeFiles" type="checkbox"/><span>Also delete the downloaded files</span></label></div><footer class="remove-dialog-actions"><button class="danger remove-confirm" type="submit">Remove</button><button class="secondary" data-remove-cancel="" type="button">Cancel</button></footer></form></div>
-<div class="menu hidden" id="menu"><button id="pauseAll">Pause All</button><button id="resumeAll">Resume All</button><button id="altSpeed">Toggle Alternative Limits</button><button id="globalDl">Set Global Download Limit</button><button id="globalUl">Set Global Upload Limit</button><button id="notifyPermission">Enable Browser Notifications</button><button class="hidden" id="installPwa">Install App</button></div>
+<div class="menu hidden" id="menu"><button id="pauseAll">Pause All</button><button id="resumeAll">Resume All</button><button id="altSpeed">Toggle Alternative Limits</button><button id="globalDl">Set Global Download Limit</button><button id="globalUl">Set Global Upload Limit</button><button class="hidden" id="installPwa">Install App</button></div>
 <div class="menu hidden" id="contextMenu"></div>
 <div class="toasts" id="toasts"></div>
-<script src="/static/settings.js?v=0.5.22"></script>
-<script src="/static/app.js?v=0.5.22"></script>
+<script src="/static/settings.js?v=0.5.23"></script>
+<script src="/static/app.js?v=0.5.23"></script>
 </body>
 </html>

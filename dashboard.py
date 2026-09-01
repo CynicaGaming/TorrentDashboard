@@ -42,7 +42,7 @@ UPDATE_DIR = DATA_DIR / "updates"
 UPDATE_STATE_PATH = DATA_DIR / "update-status.json"
 CUSTOM_SOUND_BASENAME = "custom-notification-sound"
 MAX_CUSTOM_SOUND_BYTES = 2 * 1024 * 1024
-VERSION = "0.5.22"
+VERSION = "0.5.23"
 STATUS_REFRESH_SECONDS = 1.0
 DEFAULT_UPDATE_REPOSITORY = "CynicaGaming/TorrentDashboard"
 
@@ -464,9 +464,16 @@ def _parse_windows_interfaces(text):
     return results
 
 
+def _windows_background_process_kwargs():
+    if os.name != "nt":
+        return {}
+    flags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+    return {"creationflags": flags} if flags else {}
+
+
 def _detect_windows_interfaces():
     try:
-        out = subprocess.check_output(["ipconfig"], text=True, errors="replace", timeout=4)
+        out = subprocess.check_output(["ipconfig"], text=True, errors="replace", timeout=4, **_windows_background_process_kwargs())
         return _parse_windows_interfaces(out)
     except Exception:
         return []

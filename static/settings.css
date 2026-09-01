@@ -87,3 +87,12 @@
 
 /* 0.5.22 required-field markers. */
 .required-mark{color:#ff5d6c;font-weight:800;margin-left:3px}
+
+
+/* 0.5.23 user-form alignment and notification test polish. */
+.field-label{display:inline-flex;align-items:baseline;gap:3px;line-height:1.25;min-width:0}
+.required-mark{margin-left:0!important;color:#ff5d6c;font-weight:800}
+.user-group-select{display:block;width:100%;min-width:0}
+@media(min-width:821px){.user-group-badge{min-width:112px;text-align:center}}
+@media(max-width:820px){.user-group-badge{min-width:0;text-align:center}}
+.notification-actions #testNotification{min-width:170px}
