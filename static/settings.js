@@ -8,6 +8,16 @@ window.TDSettings = (() => {
   let currentUserId = '';
 
   const corePages = new Set(['general','access','clients','updates','notifications']);
+  const SECRET_MASK = '••••••••••';
+
+  function configuredSecret(input, configured, emptyPlaceholder='') {
+    if (!input) return;
+    input.value = '';
+    input.placeholder = configured ? SECRET_MASK : emptyPlaceholder;
+    input.classList.toggle('secret-configured', !!configured);
+    if (configured) input.dataset.configuredSecret = '1';
+    else delete input.dataset.configuredSecret;
+  }
 
   function activate(page) {
     page = page || localStorage.tdSettingsPage || 'general';
@@ -78,12 +88,17 @@ window.TDSettings = (() => {
     setValue('sUpdateRepo', s.updates?.repository || 'CynicaGaming/TorrentDashboard');
     setValue('sUpdateToken', '');
     const token = document.querySelector('#sUpdateToken');
-    if (token) token.placeholder = s.updates?.github_token === '<configured>' ? 'Token Configured — Leave Blank To Keep' : 'Fine-grained token with Contents: Read';
+    configuredSecret(token, s.updates?.github_token === '<configured>', 'Fine-grained token with Contents: Read');
     setChecked('sUpdateAutoCheck', s.updates?.auto_check !== false);
     setValue('sUpdateHours', s.updates?.check_hours || 6);
     renderUpdateInfo({configured:!!s.updates?.repository,currentVersion:state.me?.version,state:s.runtime?.updateState||{}});
 
     renderServerSettings(s.servers || []);
+    [...document.querySelectorAll('.server-setting')].forEach((row, index) => {
+      const server = (s.servers || [])[index] || {};
+      configuredSecret(row.querySelector('[data-k="api_key"]'), server.api_key === '<configured>', 'qbt_…');
+      configuredSecret(row.querySelector('[data-k="password"]'), server.password === '<configured>', 'Password');
+    });
     const n = s.notifications || {};
     setChecked('nBrowser', n.browser !== false);
     setChecked('nSound', n.sound);
@@ -152,8 +167,9 @@ window.TDSettings = (() => {
   function fieldHtml(field, value, configured) {
     const secret = !!field.secret;
     const type = secret ? 'password' : (field.input_type || 'text');
-    const placeholder = secret && configured ? 'Configured — Leave Blank To Keep' : (field.placeholder || '');
-    return `<label>${esc(field.label)}<input data-field="${esc(field.key)}" ${secret?'data-secret="1"':''} type="${esc(type)}" autocomplete="off" value="${secret?'':esc(value||'')}" placeholder="${esc(placeholder)}"></label>`;
+    const placeholder = secret && configured ? SECRET_MASK : (field.placeholder || '');
+    const secretClass = secret && configured ? ' class="secret-configured" data-configured-secret="1"' : '';
+    return `<label>${esc(field.label)}<input data-field="${esc(field.key)}" ${secret?'data-secret="1"':''}${secretClass} type="${esc(type)}" autocomplete="off" value="${secret?'':esc(value||'')}" placeholder="${esc(placeholder)}"></label>`;
   }
 
   function integrationLabel(item) {
@@ -284,7 +300,7 @@ window.TDSettings = (() => {
       card.dataset.id=user.id||'';
       const group=user.group==='administrator'?'Administrator':'Standard User';
       const current=user.id && user.id===currentUserId;
-      card.innerHTML=`<button class="accordion-summary" type="button" aria-expanded="${index===0?'true':'false'}"><span><b>${esc(userName(user))}${current?' · You':''}</b><small>${esc(user.username||'New User')} · ${esc(group)}</small></span><span class="user-group-badge ${user.group==='administrator'?'admin':'standard'}">${esc(group)}</span><span class="accordion-chevron">⌄</span></button><div class="accordion-body ${index===0?'':'hidden'}"><div class="settings-form-grid two-col"><label>Username<input data-user-field="username" value="${esc(user.username||'')}" maxlength="128" autocomplete="off"></label><label>User Group<select data-user-field="group"><option value="administrator" ${user.group==='administrator'?'selected':''}>Administrator</option><option value="standard" ${user.group==='standard'?'selected':''}>Standard User</option></select></label><label>First Name <small>(Optional)</small><input data-user-field="first_name" value="${esc(user.first_name||'')}" maxlength="128"></label><label>Last Name <small>(Optional)</small><input data-user-field="last_name" value="${esc(user.last_name||'')}" maxlength="128"></label><label class="full-field">Email <small>(Optional)</small><input data-user-field="email" type="email" value="${esc(user.email||'')}" maxlength="254"></label><label>Password${user._new?'':' <small>(Leave Blank To Keep)</small>'}<input data-user-field="password" type="password" autocomplete="new-password"></label><label>Confirm Password<input data-user-field="password2" type="password" autocomplete="new-password"></label></div><div class="settings-inline-actions"><button class="primary user-save" type="button">Save User</button><button class="danger user-delete" type="button" ${current?'disabled':''}>Delete</button></div><div class="field-help">Standard Users have read-only dashboard access. Administrators can manage torrents, settings, integrations, and users.</div></div>`;
+      card.innerHTML=`<button class="accordion-summary" type="button" aria-expanded="${index===0?'true':'false'}"><span><b>${esc(userName(user))}${current?' · You':''}</b><small>${esc(user.username||'New User')} · ${esc(group)}</small></span><span class="user-group-badge ${user.group==='administrator'?'admin':'standard'}">${esc(group)}</span><span class="accordion-chevron">⌄</span></button><div class="accordion-body ${index===0?'':'hidden'}"><div class="settings-form-grid two-col"><label>Username<input data-user-field="username" value="${esc(user.username||'')}" maxlength="128" autocomplete="off"></label><label>User Group<select data-user-field="group"><option value="administrator" ${user.group==='administrator'?'selected':''}>Administrator</option><option value="standard" ${user.group==='standard'?'selected':''}>Standard User</option></select></label><label>First Name <small>(Optional)</small><input data-user-field="first_name" value="${esc(user.first_name||'')}" maxlength="128"></label><label>Last Name <small>(Optional)</small><input data-user-field="last_name" value="${esc(user.last_name||'')}" maxlength="128"></label><label class="full-field">Email <small>(Optional)</small><input data-user-field="email" type="email" value="${esc(user.email||'')}" maxlength="254"></label><label>Password<input data-user-field="password" type="password" autocomplete="new-password" ${user._new?'placeholder="Create Password"':'class="secret-configured" data-configured-secret="1" placeholder="'+SECRET_MASK+'"'}></label><label>Confirm Password<input data-user-field="password2" type="password" autocomplete="new-password" ${user._new?'placeholder="Confirm Password"':'class="secret-configured" data-configured-secret="1" placeholder="'+SECRET_MASK+'"'}></label></div><div class="settings-inline-actions"><button class="primary user-save" type="button">Save User</button><button class="danger user-delete" type="button" ${current?'disabled':''}>Delete</button></div><div class="field-help">Standard Users have read-only dashboard access. Administrators can manage torrents, settings, integrations, and users.</div></div>`;
       const summary=card.querySelector('.accordion-summary');
       summary.addEventListener('click',()=>{const body=card.querySelector('.accordion-body');const open=body.classList.contains('hidden');body.classList.toggle('hidden',!open);summary.setAttribute('aria-expanded',String(open))});
       card.querySelector('.user-save').addEventListener('click',()=>saveUser(card));
