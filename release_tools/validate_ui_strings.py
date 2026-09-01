@@ -92,6 +92,15 @@ def main():
     assert '/api/update-test' not in dashboard_py
     assert 'github_update_integration' in dashboard_py
     assert 'Only one GitHub integration can be configured' in dashboard_py
+    assert 'id="settingsPageTitle"' not in html
+    assert 'Settings are separated by category' not in html
+    assert 'Save User' not in settings_js
+    assert '<div class="field-help">Standard Users have read-only dashboard access.' not in settings_js
+    assert ' · ${esc(group)}' not in settings_js
+    assert 'function integrationSubtitle' in settings_js
+    assert "#settingsNavToggle')?.addEventListener('click'" in app_js
+    assert '0.5.14 readability pass' in app_css
+    assert '0.5.14 settings de-duplication' in settings_css
     assert 'id="settingsNavGroup"' in html
     assert 'id="settingsSubnav"' in html
     assert 'id="settingsMobilePage"' in html

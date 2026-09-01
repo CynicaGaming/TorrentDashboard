@@ -5,8 +5,8 @@
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#0b0d10" name="theme-color"/>
 <link href="/manifest.webmanifest" rel="manifest"/>
-<link href="/static/app.css?v=0.5.13" rel="stylesheet"/>
-<link href="/static/settings.css?v=0.5.13" rel="stylesheet"/>
+<link href="/static/app.css?v=0.5.14" rel="stylesheet"/>
+<link href="/static/settings.css?v=0.5.14" rel="stylesheet"/>
 <title>Torrent Dashboard</title>
 </head>
 <body>
@@ -151,7 +151,6 @@
 <div class="settings-layout">
 <label class="settings-mobile-picker">Settings category<select id="settingsMobilePage" aria-label="Settings category"><option value="general">General</option><option value="access">Dashboard Access</option><option value="clients">Download Clients</option><option value="updates">Application Updates</option><option value="notifications">Notifications</option><option value="integrations">Integrations</option><option value="users">User Management</option></select></label>
 <div class="settings-content">
-<div class="settings-page-head"><div><h2 id="settingsPageTitle">General</h2><p>Settings are separated by category so additional modules can be added without crowding a single page.</p></div></div>
 <form id="settingsForm">
 <section class="settings-page active" data-settings-section="general">
 <div class="panel settings-card">
@@ -217,7 +216,7 @@
 <div class="panel settings-card"><div class="panel-title">Integrations</div><p class="muted">No integrations are populated by default. Add GitHub, media services, or notification destinations only when you use them, test each connection, and save it independently.</p><div class="integration-add-row"><select id="integrationTypeSelect"><option value="">Choose Integration…</option></select><button class="primary" id="addIntegrationSetting" type="button">＋ Add Integration</button></div><div id="integrationList"></div></div>
 </section>
 <section class="settings-page" data-settings-section="users">
-<div class="panel settings-card"><div class="panel-title">User Management</div><p class="muted">Administrators can manage torrents and settings. Standard Users have read-only dashboard access.</p><div class="settings-inline-actions"><button class="primary" id="addUserSetting" type="button">＋ Add User</button></div><div id="userList"></div></div>
+<div class="panel settings-card"><div class="panel-title">User Management</div><p class="muted user-management-intro">Administrators can manage torrents, settings, integrations, and users. Standard Users can view the dashboard without making changes.</p><div class="settings-inline-actions"><button class="primary" id="addUserSetting" type="button">＋ Add User</button></div><div id="userList"></div></div>
 </section>
 </div>
 </div>
@@ -230,7 +229,7 @@
 <div class="menu hidden" id="menu"><button id="pauseAll">Pause All</button><button id="resumeAll">Resume All</button><button id="altSpeed">Toggle Alternative Limits</button><button id="globalDl">Set Global Download Limit</button><button id="globalUl">Set Global Upload Limit</button><button id="notifyPermission">Enable Browser Notifications</button><button class="hidden" id="installPwa">Install App</button></div>
 <div class="menu hidden" id="contextMenu"></div>
 <div class="toasts" id="toasts"></div>
-<script src="/static/settings.js?v=0.5.13"></script>
-<script src="/static/app.js?v=0.5.13"></script>
+<script src="/static/settings.js?v=0.5.14"></script>
+<script src="/static/app.js?v=0.5.14"></script>
 </body>
 </html>

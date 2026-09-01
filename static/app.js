@@ -181,7 +181,8 @@ async function bootstrap(){
 
 let bound=false;
 function bindUI(){if(bound)return;bound=true;
-  $$('.nav-root,.settings-subnav button,.mobile-nav button').forEach(b=>b.addEventListener('click',()=>setView(b.dataset.view)));
+  $$('.nav-root:not(#settingsNavToggle),.settings-subnav button,.mobile-nav button').forEach(b=>b.addEventListener('click',()=>setView(b.dataset.view)));
+  $('#settingsNavToggle')?.addEventListener('click',()=>{const inSettings=$('#view-settings')?.classList.contains('active');if(inSettings){const expanded=$('#settingsNavToggle').getAttribute('aria-expanded')==='true';setSettingsNavExpanded(!expanded)}else setView('settings')});
   $$('#tabs button').forEach(b=>b.classList.toggle('active',b.dataset.filter===state.filter));$$('#tabs button').forEach(b=>b.addEventListener('click',()=>{state.filter=b.dataset.filter;localStorage.tdFilter=state.filter;$$('#tabs button').forEach(x=>x.classList.toggle('active',x===b));render()}));
   $('#search').value=state.search;$('#search').addEventListener('input',e=>{state.search=e.target.value.trim().toLowerCase();localStorage.tdSearch=state.search;render()});
   $('#categoryFilter').addEventListener('change',e=>{state.category=e.target.value;localStorage.tdCategory=state.category;render()});

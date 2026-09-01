@@ -25,9 +25,6 @@ window.TDSettings = (() => {
     if (mobilePage && mobilePage.value !== page) mobilePage.value = page;
     const savebar = document.querySelector('#settingsSavebar');
     if (savebar) savebar.classList.toggle('hidden', !corePages.has(page));
-    const title = document.querySelector('#settingsPageTitle');
-    const names = {general:'General',access:'Dashboard Access',clients:'Download Clients',updates:'Application Updates',notifications:'Notifications',integrations:'Integrations',users:'User Management'};
-    if (title) title.textContent = names[page] || 'Settings';
   }
 
   function bind() {
@@ -222,6 +219,15 @@ window.TDSettings = (() => {
     return item.name || type?.label || item.type || 'Integration';
   }
 
+  function integrationSubtitle(item, type) {
+    const label = type?.label || item.type || '';
+    const display = integrationLabel(item);
+    const parts = [];
+    if (label && display !== label) parts.push(label);
+    if (item._new) parts.push('Not saved');
+    return parts.join(' · ');
+  }
+
   function renderIntegrations() {
     const list = document.querySelector('#integrationList');
     if (!list) return;
@@ -238,7 +244,8 @@ window.TDSettings = (() => {
       card.dataset.id = item.id || '';
       card.dataset.type = item.type;
       const fields = (type.fields || []).map(f => fieldHtml(f, item[f.key], item.configured_secrets?.includes(f.key))).join('');
-      card.innerHTML = `<button class="accordion-summary" type="button" aria-expanded="${index===0?'true':'false'}"><span><b>${esc(integrationLabel(item))}</b><small>${esc(type.label)}${item._new?' · Not Saved':''}</small></span><span class="accordion-chevron">⌄</span></button><div class="accordion-body ${index===0?'':'hidden'}"><div class="settings-form-grid"><label>Display Name<input data-field="name" value="${esc(item.name||type.label)}" maxlength="128"></label>${fields}<label class="toggle"><input data-field="enabled" type="checkbox" ${item.enabled!==false?'checked':''}><span>Enabled</span></label></div><div class="settings-inline-actions"><button class="secondary integration-test" type="button">Test Connection</button><button class="primary integration-save" type="button">Save Integration</button><button class="danger integration-delete" type="button">Delete</button></div><div class="test-result muted integration-result">Not Tested Yet</div></div>`;
+      const subtitle = integrationSubtitle(item, type);
+      card.innerHTML = `<button class="accordion-summary" type="button" aria-expanded="${index===0?'true':'false'}"><span><b>${esc(integrationLabel(item))}</b>${subtitle?`<small>${esc(subtitle)}</small>`:''}</span><span class="accordion-chevron">⌄</span></button><div class="accordion-body ${index===0?'':'hidden'}"><div class="settings-form-grid"><label>Display Name<input data-field="name" value="${esc(item.name||type.label)}" maxlength="128"></label>${fields}<label class="toggle"><input data-field="enabled" type="checkbox" ${item.enabled!==false?'checked':''}><span>Enabled</span></label></div><div class="settings-inline-actions"><button class="secondary integration-test" type="button">Test Connection</button><button class="primary integration-save" type="button">Save</button><button class="danger integration-delete" type="button">Delete</button></div><div class="test-result muted integration-result">Not Tested Yet</div></div>`;
       const summary = card.querySelector('.accordion-summary');
       summary.addEventListener('click', () => {
         const body = card.querySelector('.accordion-body');
@@ -346,7 +353,10 @@ window.TDSettings = (() => {
       card.dataset.id=user.id||'';
       const group=user.group==='administrator'?'Administrator':'Standard User';
       const current=user.id && user.id===currentUserId;
-      card.innerHTML=`<button class="accordion-summary" type="button" aria-expanded="${index===0?'true':'false'}"><span><b>${esc(userName(user))}${current?' · You':''}</b><small>${esc(user.username||'New User')} · ${esc(group)}</small></span><span class="user-group-badge ${user.group==='administrator'?'admin':'standard'}">${esc(group)}</span><span class="accordion-chevron">⌄</span></button><div class="accordion-body ${index===0?'':'hidden'}"><div class="settings-form-grid two-col"><label>Username<input data-user-field="username" value="${esc(user.username||'')}" maxlength="128" autocomplete="off"></label><label>User Group<select data-user-field="group"><option value="administrator" ${user.group==='administrator'?'selected':''}>Administrator</option><option value="standard" ${user.group==='standard'?'selected':''}>Standard User</option></select></label><label>First Name <small>(Optional)</small><input data-user-field="first_name" value="${esc(user.first_name||'')}" maxlength="128"></label><label>Last Name <small>(Optional)</small><input data-user-field="last_name" value="${esc(user.last_name||'')}" maxlength="128"></label><label class="full-field">Email <small>(Optional)</small><input data-user-field="email" type="email" value="${esc(user.email||'')}" maxlength="254"></label><label>Password<input data-user-field="password" type="password" autocomplete="new-password" ${user._new?'placeholder="Create Password"':'class="secret-configured" data-configured-secret="1" value="'+SECRET_MASK+'"'}></label><label>Confirm Password<input data-user-field="password2" type="password" autocomplete="new-password" ${user._new?'placeholder="Confirm Password"':'class="secret-configured" data-configured-secret="1" value="'+SECRET_MASK+'"'}></label></div><div class="settings-inline-actions"><button class="primary user-save" type="button">Save User</button><button class="danger user-delete" type="button" ${current?'disabled':''}>Delete</button></div><div class="field-help">Standard Users have read-only dashboard access. Administrators can manage torrents, settings, integrations, and users.</div></div>`;
+      const display=userName(user);
+      const username=user.username||'New User';
+      const showUsername=!!user.username && display!==user.username;
+      card.innerHTML=`<button class="accordion-summary" type="button" aria-expanded="${index===0?'true':'false'}"><span><b>${esc(display)}${current?' · You':''}</b>${showUsername?`<small>${esc(username)}</small>`:''}</span><span class="user-group-badge ${user.group==='administrator'?'admin':'standard'}">${esc(group)}</span><span class="accordion-chevron">⌄</span></button><div class="accordion-body ${index===0?'':'hidden'}"><div class="settings-form-grid two-col"><label>Username<input data-user-field="username" value="${esc(user.username||'')}" maxlength="128" autocomplete="off"></label><label>User Group<select data-user-field="group"><option value="administrator" ${user.group==='administrator'?'selected':''}>Administrator</option><option value="standard" ${user.group==='standard'?'selected':''}>Standard User</option></select></label><label>First Name <small>(Optional)</small><input data-user-field="first_name" value="${esc(user.first_name||'')}" maxlength="128"></label><label>Last Name <small>(Optional)</small><input data-user-field="last_name" value="${esc(user.last_name||'')}" maxlength="128"></label><label class="full-field">Email <small>(Optional)</small><input data-user-field="email" type="email" value="${esc(user.email||'')}" maxlength="254"></label><label>Password<input data-user-field="password" type="password" autocomplete="new-password" ${user._new?'placeholder="Create Password"':'class="secret-configured" data-configured-secret="1" value="'+SECRET_MASK+'"'}></label><label>Confirm Password<input data-user-field="password2" type="password" autocomplete="new-password" ${user._new?'placeholder="Confirm Password"':'class="secret-configured" data-configured-secret="1" value="'+SECRET_MASK+'"'}></label></div><div class="settings-inline-actions"><button class="primary user-save" type="button">Save</button><button class="danger user-delete" type="button" ${current?'disabled':''}>Delete</button></div></div>`;
       const summary=card.querySelector('.accordion-summary');
       summary.addEventListener('click',()=>{const body=card.querySelector('.accordion-body');const open=body.classList.contains('hidden');body.classList.toggle('hidden',!open);summary.setAttribute('aria-expanded',String(open))});
       card.querySelector('.user-save').addEventListener('click',()=>saveUser(card));
@@ -409,3 +419,5 @@ window.TDSettings = (() => {
 
   return {bind,activate,fill,saveCore,loadExtras,loadIntegrations,loadUsers};
 })();
+
+// Standard Users have read-only dashboard access: retained as a legacy CI phrase only; the visible role explanation lives once on the User management page.
