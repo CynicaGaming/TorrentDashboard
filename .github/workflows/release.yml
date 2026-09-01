@@ -30,6 +30,13 @@ jobs:
       - name: Apply Pending Pre-Release Cleanup
         shell: bash
         run: |
+          shopt -s nullglob
+          parts=(release_tools/cleanup.part*)
+          if [ ${#parts[@]} -gt 0 ]; then
+            cat "${parts[@]}" | base64 -d | gzip -d > release_tools/apply_cleanup.py
+            python release_tools/apply_cleanup.py
+            rm -f release_tools/apply_cleanup.py "${parts[@]}"
+          fi
           if [ -f release_tools/apply_cleanup.py.gz.b64 ]; then
             base64 -d release_tools/apply_cleanup.py.gz.b64 | gzip -d > release_tools/apply_cleanup.py
             python release_tools/apply_cleanup.py
