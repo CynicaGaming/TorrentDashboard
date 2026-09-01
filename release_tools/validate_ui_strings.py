@@ -94,7 +94,12 @@ def main():
     assert 'id="updateSourceResult"' not in html
     assert 'updateSourceTest' not in settings_js
     assert 'updateSourceResult' not in settings_js
-    assert 'id="updateSourceSave"' in html
+    assert 'id="updateSourceSave"' not in html
+    assert 'Save Settings' not in html
+    assert '<div class="settings-savebar" id="settingsSavebar"><button class="primary" type="submit">Save</button></div>' in html
+    assert "const corePages = new Set(['general','access','clients','updates','notifications']);" in settings_js
+    assert "if (activePage === 'updates') return saveUpdateSource();" in settings_js
+    assert '#updateSourceSave' not in settings_js
     assert 'data-settings-page="updates" type="button">Updates</button>' in html
     assert '<option value="updates">Updates</option>' in html
     assert 'Application Updates' not in html

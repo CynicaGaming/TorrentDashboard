@@ -5,8 +5,8 @@
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#0b0d10" name="theme-color"/>
 <link href="/manifest.webmanifest" rel="manifest"/>
-<link href="/static/app.css?v=0.5.19" rel="stylesheet"/>
-<link href="/static/settings.css?v=0.5.19" rel="stylesheet"/>
+<link href="/static/app.css?v=0.5.20" rel="stylesheet"/>
+<link href="/static/settings.css?v=0.5.20" rel="stylesheet"/>
 <title>Torrent Dashboard</title>
 </head>
 <body>
@@ -184,7 +184,6 @@
 <div class="panel settings-card" id="updateSettingsCard">
 <div class="panel-title">Updates</div>
 <div class="settings-form-grid"><label>GitHub Repository<input id="uRepository" maxlength="255" placeholder="owner/repository"/></label></div>
-<div class="settings-inline-actions"><button class="primary" id="updateSourceSave" type="button">Save</button></div>
 <div class="field-help">Public GitHub repository used as this dashboard's update source. Save changes before checking for updates; Check for updates validates the repository before comparing releases.</div>
 <div class="update-status" id="updateStatus"><div><span>Current Version</span><strong id="updateCurrent">—</strong></div><div><span>Latest Version</span><strong id="updateLatest">Not Checked</strong></div><div><span>Update State</span><strong id="updateState">Idle</strong></div></div>
 <div class="update-actions"><button class="secondary update-action" id="updateAction" type="button">Check For Updates</button></div>
@@ -211,7 +210,7 @@
 </div>
 </div>
 </section>
-<div class="settings-savebar" id="settingsSavebar"><button class="primary" type="submit">Save Settings</button></div>
+<div class="settings-savebar" id="settingsSavebar"><button class="primary" type="submit">Save</button></div>
 </form>
 <section class="settings-page" data-settings-section="integrations">
 <div class="panel settings-card"><div class="panel-title">Integrations</div><p class="muted">No integrations are populated by default. Add media services or notification destinations only when you use them, test each connection, and save it independently.</p><div class="integration-add-row"><select id="integrationTypeSelect"><option value="">Choose Integration…</option></select><button class="primary" id="addIntegrationSetting" type="button">＋ Add Integration</button></div><div id="integrationList"></div></div>
@@ -232,7 +231,7 @@
 <div class="menu hidden" id="menu"><button id="pauseAll">Pause All</button><button id="resumeAll">Resume All</button><button id="altSpeed">Toggle Alternative Limits</button><button id="globalDl">Set Global Download Limit</button><button id="globalUl">Set Global Upload Limit</button><button id="notifyPermission">Enable Browser Notifications</button><button class="hidden" id="installPwa">Install App</button></div>
 <div class="menu hidden" id="contextMenu"></div>
 <div class="toasts" id="toasts"></div>
-<script src="/static/settings.js?v=0.5.19"></script>
-<script src="/static/app.js?v=0.5.19"></script>
+<script src="/static/settings.js?v=0.5.20"></script>
+<script src="/static/app.js?v=0.5.20"></script>
 </body>
 </html>

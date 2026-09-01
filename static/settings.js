@@ -7,7 +7,7 @@ window.TDSettings = (() => {
   let users = [];
   let currentUserId = '';
 
-  const corePages = new Set(['general','access','clients','notifications']);
+  const corePages = new Set(['general','access','clients','updates','notifications']);
   const SECRET_MASK = '••••••••••';
 
   function configuredSecret(input, configured, emptyPlaceholder='') {
@@ -38,7 +38,6 @@ window.TDSettings = (() => {
     document.querySelector('#sRefreshInterfaces')?.addEventListener('click', () => refreshSettingsInterfaces(true).catch(e => toast(e.message,'error')));
     document.querySelector('#addServerSetting')?.addEventListener('click', () => addServerRow());
     document.querySelector('#updateAction')?.addEventListener('click', handleUpdateAction);
-    document.querySelector('#updateSourceSave')?.addEventListener('click', saveUpdateSource);
     document.querySelector('#nSoundMode')?.addEventListener('change', updateNotificationSoundUi);
     document.querySelector('#nSoundFile')?.addEventListener('change', updateNotificationSoundUi);
     document.querySelector('#previewSound')?.addEventListener('click', previewNotificationSound);
@@ -99,6 +98,8 @@ window.TDSettings = (() => {
 
   async function saveCore(e) {
     if (e?.preventDefault) e.preventDefault();
+    const activePage = document.querySelector('.settings-page.active')?.dataset.settingsSection || 'general';
+    if (activePage === 'updates') return saveUpdateSource();
     const servers = [...document.querySelectorAll('.server-setting')].map(serverRowData);
     const payload = {
       dashboard: {
