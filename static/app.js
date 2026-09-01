@@ -185,7 +185,7 @@ async function bootstrap(){
 
 let bound=false;
 function bindUI(){if(bound)return;bound=true;
-  $$('.nav,.mobile-nav button').forEach(b=>b.addEventListener('click',()=>setView(b.dataset.view)));
+  $$('.nav-root,.settings-subnav button,.mobile-nav button').forEach(b=>b.addEventListener('click',()=>setView(b.dataset.view)));
   $$('#tabs button').forEach(b=>b.classList.toggle('active',b.dataset.filter===state.filter));$$('#tabs button').forEach(b=>b.addEventListener('click',()=>{state.filter=b.dataset.filter;localStorage.tdFilter=state.filter;$$('#tabs button').forEach(x=>x.classList.toggle('active',x===b));render()}));
   $('#search').value=state.search;$('#search').addEventListener('input',e=>{state.search=e.target.value.trim().toLowerCase();localStorage.tdSearch=state.search;render()});
   $('#categoryFilter').addEventListener('change',e=>{state.category=e.target.value;localStorage.tdCategory=state.category;render()});
@@ -195,7 +195,7 @@ function bindUI(){if(bound)return;bound=true;
   $('#serverSelect').addEventListener('change',async e=>{state.server=e.target.value;state.selected.clear();await refreshStatus();if(!['all'].includes(state.server))await loadMeta()});
   $('#selectAll').addEventListener('change',e=>{visibleTorrents().forEach(t=>e.target.checked?state.selected.add(keyFor(t)):state.selected.delete(keyFor(t)));render()});
   $('#torrentRows').addEventListener('click',rowClick);$('#torrentRows').addEventListener('change',rowChange);$('#torrentRows').addEventListener('contextmenu',rowContext);
-  $('#bulkbar').addEventListener('click',e=>{const a=e.target.dataset.bulk;if(a)bulkAction(a)});
+  $('#bulkbar').addEventListener('click',e=>{if(e.target.closest('[data-bulk-clear]')){state.selected.clear();render();return}const a=e.target.closest('[data-bulk]')?.dataset.bulk;if(a)bulkAction(a)});
   $('#addBtn').addEventListener('click',()=>$('#addModal').classList.remove('hidden'));$$('[data-modalclose]').forEach(x=>x.addEventListener('click',()=>$('#addModal').classList.add('hidden')));$('#addForm').addEventListener('submit',addTorrent);
   $$('[data-close]').forEach(x=>x.addEventListener('click',closeDrawer));$$('[data-detailtab]').forEach(x=>x.addEventListener('click',()=>{state.detailTab=x.dataset.detailtab;$$('[data-detailtab]').forEach(b=>b.classList.toggle('active',b===x));renderDetail()}));
   $('#moreBtn').addEventListener('click',e=>showMenu($('#menu'),e.currentTarget));document.addEventListener('click',e=>{if(!e.target.closest('.menu')&&!e.target.closest('#moreBtn')&&!e.target.closest('.more-row'))$$('.menu').forEach(m=>m.classList.add('hidden'))});
@@ -203,10 +203,11 @@ function bindUI(){if(bound)return;bound=true;
   $('#notifyPermission').addEventListener('click',async()=>{if('Notification'in window){const p=await Notification.requestPermission();toast(`Notification permission: ${p}`)}});
   $('#historyRange').addEventListener('change',loadHistory);
   if(state.me?.can_manage)TDSettings.bind();
-  window.addEventListener('keydown',e=>{if(e.key==='/'&&!['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName)){e.preventDefault();$('#search').focus()}if(e.key==='Escape'){closeDrawer();$('#addModal').classList.add('hidden')}});
+  window.addEventListener('keydown',e=>{if(e.key==='/'&&!['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName)){e.preventDefault();$('#search').focus()}if(e.key==='Escape'){if(state.selected.size){state.selected.clear();render();return}closeDrawer();$('#addModal').classList.add('hidden')}});
 }
 
-function setView(view){if(view==='settings'&&!state.me?.can_manage){view='dashboard';toast('Administrator Access Is Required','error')}$$('.view').forEach(v=>v.classList.toggle('active',v.id===`view-${view}`));$$('.nav,.mobile-nav button').forEach(b=>b.classList.toggle('active',b.dataset.view===view));$('#pageTitle').textContent=uiText(view==='history'?'transferHistory':view);$('#subtitle').textContent=uiText(view==='dashboard'?'liveTorrentActivity':view==='history'?'transferAndCompletionHistory':'dashboardConfiguration');if(view==='history')loadHistory();if(view==='settings'){loadSettings().then(()=>TDSettings.loadExtras())}}
+function setSettingsNavExpanded(expanded){const group=$('#settingsNavGroup'),submenu=$('#settingsSubnav'),toggle=$('#settingsNavToggle');if(!group||!submenu||!toggle)return;group.classList.toggle('expanded',!!expanded);submenu.classList.toggle('hidden',!expanded);toggle.setAttribute('aria-expanded',String(!!expanded))}
+function setView(view){if(view==='settings'&&!state.me?.can_manage){view='dashboard';toast('Administrator Access Is Required','error')}const settingsView=view==='settings';$$('.view').forEach(v=>v.classList.toggle('active',v.id===`view-${view}`));$$('.nav-root,.mobile-nav button').forEach(b=>b.classList.toggle('active',b.dataset.view===view));setSettingsNavExpanded(settingsView);$('#pageTitle').textContent=uiText(view==='history'?'transferHistory':view);$('#subtitle').textContent=uiText(view==='dashboard'?'liveTorrentActivity':view==='history'?'transferAndCompletionHistory':'dashboardConfiguration');if(view==='history')loadHistory();if(settingsView){TDSettings.activate(localStorage.tdSettingsPage||'general');loadSettings().then(()=>TDSettings.loadExtras())}}
 
 async function loadServers(){const d=await api('/api/servers');const sel=$('#serverSelect');sel.innerHTML='<option value="all">allServers</option>'+d.servers.filter(s=>s.enabled).map(s=>`<option value="${esc(s.id)}">${esc(s.name)}</option>`).join('');sel.value=state.server}
 async function loadSettings(){try{state.settings=await api('/api/settings');state.refreshMs=Math.max(1000,Number(state.settings.dashboard.refresh_seconds||2)*1000);fillSettings()}catch(e){toast(e.message,'error')}}

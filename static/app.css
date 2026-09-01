@@ -87,3 +87,10 @@ button,select,input,textarea{border:1px solid var(--border);background:var(--pan
   #contextMenu .menu-caption{padding:7px 12px 4px;font-size:9px}
   #contextMenu .menu-separator{margin:6px 3px}
 }
+
+
+/* 0.5.12 non-layout-shifting bulk action overlay. */
+.bulkbar{position:fixed!important;top:auto!important;left:calc(50% + 110px);bottom:22px;transform:translateX(-50%);z-index:72;margin:0!important;width:max-content;max-width:calc(100vw - 270px);padding:8px 9px 8px 12px;box-shadow:0 18px 50px rgba(0,0,0,.38);border-radius:14px;background:color-mix(in srgb,var(--panel2) 96%,transparent)}
+.bulkbar .bulk-summary{white-space:nowrap}.bulkbar .bulk-actions{display:flex;gap:6px;align-items:center}.bulkbar .bulk-clear{width:30px;height:30px;padding:0;display:grid;place-items:center;font-size:16px;color:var(--muted);background:transparent}.bulkbar .bulk-clear:hover{color:var(--text)}
+@media(max-width:820px){.bulkbar{left:50%;bottom:calc(72px + env(safe-area-inset-bottom));max-width:calc(100vw - 18px);width:calc(100vw - 18px);justify-content:space-between;overflow-x:auto}.bulkbar .bulk-actions{flex:0 0 auto}.bulkbar button{min-height:34px}}
+@media(max-width:520px){.bulkbar{padding:7px 8px}.bulkbar .bulk-summary{font-size:9px}.bulkbar button{padding:6px 8px;font-size:9px}.bulkbar .bulk-clear{width:29px}}

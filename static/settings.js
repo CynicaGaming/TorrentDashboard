@@ -21,6 +21,8 @@ window.TDSettings = (() => {
     localStorage.tdSettingsPage = page;
     document.querySelectorAll('[data-settings-section]').forEach(el => el.classList.toggle('active', el.dataset.settingsSection === page));
     document.querySelectorAll('[data-settings-page]').forEach(el => el.classList.toggle('active', el.dataset.settingsPage === page));
+    const mobilePage = document.querySelector('#settingsMobilePage');
+    if (mobilePage && mobilePage.value !== page) mobilePage.value = page;
     const savebar = document.querySelector('#settingsSavebar');
     if (savebar) savebar.classList.toggle('hidden', !corePages.has(page));
     const title = document.querySelector('#settingsPageTitle');
@@ -32,6 +34,7 @@ window.TDSettings = (() => {
     if (bound) return;
     bound = true;
     document.querySelectorAll('[data-settings-page]').forEach(btn => btn.addEventListener('click', () => activate(btn.dataset.settingsPage)));
+    document.querySelector('#settingsMobilePage')?.addEventListener('change', e => activate(e.target.value));
     document.querySelector('#settingsForm')?.addEventListener('submit', saveCore);
     document.querySelector('#copyLocalAddress')?.addEventListener('click', () => navigator.clipboard.writeText(document.querySelector('#localDashboardUrl')?.textContent || '').then(() => toast('addressCopied')));
     document.querySelector('#sPort')?.addEventListener('input', updateLocalAddress);

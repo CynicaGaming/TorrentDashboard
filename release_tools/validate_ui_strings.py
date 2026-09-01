@@ -76,6 +76,15 @@ def main():
     assert "openDetail(tr.dataset.server,tr.dataset.hash)" not in app_js
     assert "menu-separator" in app_css and "@media(max-width:700px)" in app_css
     assert "e.target.closest('button[data-a]')" in app_js
+    assert 'id="settingsNavGroup"' in html
+    assert 'id="settingsSubnav"' in html
+    assert 'id="settingsMobilePage"' in html
+    assert 'class="settings-nav"' not in html
+    assert 'data-bulk-clear="1"' in html
+    assert "function setSettingsNavExpanded" in app_js
+    assert "state.selected.clear();render();return" in app_js
+    assert "#settingsMobilePage" in settings_js
+    assert "position:fixed!important" in app_css
     assert '.standard-user .row-actions' not in settings_css
     assert '.standard-user #contextMenu' not in settings_css
 

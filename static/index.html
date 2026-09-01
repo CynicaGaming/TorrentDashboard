@@ -5,8 +5,8 @@
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#0b0d10" name="theme-color"/>
 <link href="/manifest.webmanifest" rel="manifest"/>
-<link href="/static/app.css?v=0.5.11" rel="stylesheet"/>
-<link href="/static/settings.css?v=0.5.11" rel="stylesheet"/>
+<link href="/static/app.css?v=0.5.12" rel="stylesheet"/>
+<link href="/static/settings.css?v=0.5.12" rel="stylesheet"/>
 <title>Torrent Dashboard</title>
 </head>
 <body>
@@ -87,9 +87,20 @@
 <aside class="sidebar">
 <div class="brand"><div class="brand-mark">⇣</div><div><strong id="brandTitle">Torrent Dashboard</strong><small>qBitTorrent Control</small></div></div>
 <nav>
-<button class="nav active" data-view="dashboard">Dashboard</button>
-<button class="nav" data-view="history">Transfer History</button>
-<button class="nav admin-only" data-view="settings">Settings</button>
+<button class="nav nav-root active" data-view="dashboard">Dashboard</button>
+<button class="nav nav-root" data-view="history">Transfer History</button>
+<div class="nav-group admin-only" id="settingsNavGroup">
+<button class="nav nav-root nav-parent" data-view="settings" id="settingsNavToggle" aria-expanded="false"><span>Settings</span><span class="nav-caret" aria-hidden="true">⌄</span></button>
+<div class="settings-subnav hidden" id="settingsSubnav">
+<button data-view="settings" data-settings-page="general" type="button">General</button>
+<button data-view="settings" data-settings-page="access" type="button">Dashboard Access</button>
+<button data-view="settings" data-settings-page="clients" type="button">Download Clients</button>
+<button data-view="settings" data-settings-page="updates" type="button">Application Updates</button>
+<button data-view="settings" data-settings-page="notifications" type="button">Notifications</button>
+<button data-view="settings" data-settings-page="integrations" type="button">Integrations</button>
+<button data-view="settings" data-settings-page="users" type="button">User Management</button>
+</div>
+</div>
 </nav>
 <div class="sidebar-foot"><div class="sidebar-user"><strong id="currentUserName">—</strong><small id="currentUserGroup">—</small></div><small id="version">—</small></div>
 </aside>
@@ -128,7 +139,7 @@
 <select id="sort"><option value="added_desc">Newest</option><option value="name_asc">Name</option><option value="progress_desc">Progress</option><option value="down_desc">Download Speed</option><option value="up_desc">Upload Speed</option><option value="eta_asc">ETA</option><option value="size_desc">Size</option><option value="ratio_desc">Ratio</option></select>
 </div>
 </section>
-<section class="bulkbar hidden" id="bulkbar"><span><b id="selectedCount">0</b> Selected</span><div><button data-bulk="start">Resume</button><button data-bulk="stop">Pause</button><button data-bulk="recheck">Recheck</button><button class="danger" data-bulk="delete">Delete</button></div></section>
+<section class="bulkbar hidden" id="bulkbar" aria-live="polite"><span class="bulk-summary"><b id="selectedCount">0</b> Selected</span><div class="bulk-actions"><button data-bulk="start">Resume</button><button data-bulk="stop">Pause</button><button data-bulk="recheck">Recheck</button><button class="danger" data-bulk="delete">Delete</button><button class="bulk-clear" data-bulk-clear="1" type="button" aria-label="Clear selection" title="Clear selection">×</button></div></section>
 <section class="torrent-panel">
 <div class="table-wrap">
 <table id="torrentTable">
@@ -147,15 +158,7 @@
 </section>
 <section class="view" id="view-settings">
 <div class="settings-layout">
-<nav class="settings-nav" aria-label="Settings Categories">
-<button class="active" data-settings-page="general" type="button">General</button>
-<button data-settings-page="access" type="button">Dashboard Access</button>
-<button data-settings-page="clients" type="button">Download Clients</button>
-<button data-settings-page="updates" type="button">Application Updates</button>
-<button data-settings-page="notifications" type="button">Notifications</button>
-<button data-settings-page="integrations" type="button">Integrations</button>
-<button data-settings-page="users" type="button">User Management</button>
-</nav>
+<label class="settings-mobile-picker">Settings category<select id="settingsMobilePage" aria-label="Settings category"><option value="general">General</option><option value="access">Dashboard Access</option><option value="clients">Download Clients</option><option value="updates">Application Updates</option><option value="notifications">Notifications</option><option value="integrations">Integrations</option><option value="users">User Management</option></select></label>
 <div class="settings-content">
 <div class="settings-page-head"><div><h2 id="settingsPageTitle">General</h2><p>Settings are separated by category so additional modules can be added without crowding a single page.</p></div></div>
 <form id="settingsForm">
@@ -243,7 +246,7 @@
 <div class="menu hidden" id="menu"><button id="pauseAll">Pause All</button><button id="resumeAll">Resume All</button><button id="altSpeed">Toggle Alternative Limits</button><button id="globalDl">Set Global Download Limit</button><button id="globalUl">Set Global Upload Limit</button><button id="notifyPermission">Enable Browser Notifications</button><button class="hidden" id="installPwa">Install App</button></div>
 <div class="menu hidden" id="contextMenu"></div>
 <div class="toasts" id="toasts"></div>
-<script src="/static/settings.js?v=0.5.11"></script>
-<script src="/static/app.js?v=0.5.11"></script>
+<script src="/static/settings.js?v=0.5.12"></script>
+<script src="/static/app.js?v=0.5.12"></script>
 </body>
 </html>
