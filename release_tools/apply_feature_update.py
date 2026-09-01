@@ -42,6 +42,12 @@ app_js = replace_once(
     "",
     "profile menu password binding",
 )
+app_js = replace_once(
+    app_js,
+    "for(const id of ['accountSettingsBtn','accountPasswordBtn']){const el=$('#'+id);if(el)el.disabled=!editable}",
+    "for(const id of ['accountSettingsBtn']){const el=$('#'+id);if(el)el.disabled=!editable}",
+    "profile menu editable controls",
+)
 write("static/app.js", app_js)
 
 sw = read("static/sw.js")
