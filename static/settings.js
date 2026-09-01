@@ -8,15 +8,10 @@ window.TDSettings = (() => {
   let currentUserId = '';
 
   const corePages = new Set(['general','access','clients','updates','notifications']);
-  const SECRET_MASK = '••••••••••';
+  const SECRET_MASK = CONFIGURED_SECRET_MASK;
 
   function configuredSecret(input, configured, emptyPlaceholder='') {
-    if (!input) return;
-    input.value = '';
-    input.placeholder = configured ? SECRET_MASK : emptyPlaceholder;
-    input.classList.toggle('secret-configured', !!configured);
-    if (configured) input.dataset.configuredSecret = '1';
-    else delete input.dataset.configuredSecret;
+    setConfiguredSecretField(input, configured, emptyPlaceholder);
   }
 
   function activate(page) {
@@ -120,7 +115,7 @@ window.TDSettings = (() => {
       updates: {
         enabled: !!document.querySelector('#sUpdatesEnabled')?.checked,
         repository: document.querySelector('#sUpdateRepo')?.value.trim() || '',
-        github_token: document.querySelector('#sUpdateToken')?.value.trim() || '<configured>',
+        github_token: secretFieldValue(document.querySelector('#sUpdateToken'), '<configured>'),
         auto_check: document.querySelector('#sUpdateAutoCheck')?.checked !== false,
         check_hours: Number(document.querySelector('#sUpdateHours')?.value || 6)
       },
@@ -167,9 +162,9 @@ window.TDSettings = (() => {
   function fieldHtml(field, value, configured) {
     const secret = !!field.secret;
     const type = secret ? 'password' : (field.input_type || 'text');
-    const placeholder = secret && configured ? SECRET_MASK : (field.placeholder || '');
     const secretClass = secret && configured ? ' class="secret-configured" data-configured-secret="1"' : '';
-    return `<label>${esc(field.label)}<input data-field="${esc(field.key)}" ${secret?'data-secret="1"':''}${secretClass} type="${esc(type)}" autocomplete="off" value="${secret?'':esc(value||'')}" placeholder="${esc(placeholder)}"></label>`;
+    const displayValue = secret ? (configured ? SECRET_MASK : '') : (value || '');
+    return `<label>${esc(field.label)}<input data-field="${esc(field.key)}" ${secret?'data-secret="1"':''}${secretClass} type="${esc(type)}" autocomplete="off" value="${esc(displayValue)}" placeholder="${esc(field.placeholder||'')}"></label>`;
   }
 
   function integrationLabel(item) {
@@ -213,7 +208,7 @@ window.TDSettings = (() => {
   function integrationData(card) {
     const data = {id: card.dataset.id || '', type: card.dataset.type};
     card.querySelectorAll('[data-field]').forEach(input => {
-      data[input.dataset.field] = input.type === 'checkbox' ? input.checked : input.value.trim();
+      data[input.dataset.field] = input.type === 'checkbox' ? input.checked : (input.dataset.secret==='1' ? secretFieldValue(input,'<configured>') : input.value.trim());
     });
     return data;
   }
@@ -300,7 +295,7 @@ window.TDSettings = (() => {
       card.dataset.id=user.id||'';
       const group=user.group==='administrator'?'Administrator':'Standard User';
       const current=user.id && user.id===currentUserId;
-      card.innerHTML=`<button class="accordion-summary" type="button" aria-expanded="${index===0?'true':'false'}"><span><b>${esc(userName(user))}${current?' · You':''}</b><small>${esc(user.username||'New User')} · ${esc(group)}</small></span><span class="user-group-badge ${user.group==='administrator'?'admin':'standard'}">${esc(group)}</span><span class="accordion-chevron">⌄</span></button><div class="accordion-body ${index===0?'':'hidden'}"><div class="settings-form-grid two-col"><label>Username<input data-user-field="username" value="${esc(user.username||'')}" maxlength="128" autocomplete="off"></label><label>User Group<select data-user-field="group"><option value="administrator" ${user.group==='administrator'?'selected':''}>Administrator</option><option value="standard" ${user.group==='standard'?'selected':''}>Standard User</option></select></label><label>First Name <small>(Optional)</small><input data-user-field="first_name" value="${esc(user.first_name||'')}" maxlength="128"></label><label>Last Name <small>(Optional)</small><input data-user-field="last_name" value="${esc(user.last_name||'')}" maxlength="128"></label><label class="full-field">Email <small>(Optional)</small><input data-user-field="email" type="email" value="${esc(user.email||'')}" maxlength="254"></label><label>Password<input data-user-field="password" type="password" autocomplete="new-password" ${user._new?'placeholder="Create Password"':'class="secret-configured" data-configured-secret="1" placeholder="'+SECRET_MASK+'"'}></label><label>Confirm Password<input data-user-field="password2" type="password" autocomplete="new-password" ${user._new?'placeholder="Confirm Password"':'class="secret-configured" data-configured-secret="1" placeholder="'+SECRET_MASK+'"'}></label></div><div class="settings-inline-actions"><button class="primary user-save" type="button">Save User</button><button class="danger user-delete" type="button" ${current?'disabled':''}>Delete</button></div><div class="field-help">Standard Users have read-only dashboard access. Administrators can manage torrents, settings, integrations, and users.</div></div>`;
+      card.innerHTML=`<button class="accordion-summary" type="button" aria-expanded="${index===0?'true':'false'}"><span><b>${esc(userName(user))}${current?' · You':''}</b><small>${esc(user.username||'New User')} · ${esc(group)}</small></span><span class="user-group-badge ${user.group==='administrator'?'admin':'standard'}">${esc(group)}</span><span class="accordion-chevron">⌄</span></button><div class="accordion-body ${index===0?'':'hidden'}"><div class="settings-form-grid two-col"><label>Username<input data-user-field="username" value="${esc(user.username||'')}" maxlength="128" autocomplete="off"></label><label>User Group<select data-user-field="group"><option value="administrator" ${user.group==='administrator'?'selected':''}>Administrator</option><option value="standard" ${user.group==='standard'?'selected':''}>Standard User</option></select></label><label>First Name <small>(Optional)</small><input data-user-field="first_name" value="${esc(user.first_name||'')}" maxlength="128"></label><label>Last Name <small>(Optional)</small><input data-user-field="last_name" value="${esc(user.last_name||'')}" maxlength="128"></label><label class="full-field">Email <small>(Optional)</small><input data-user-field="email" type="email" value="${esc(user.email||'')}" maxlength="254"></label><label>Password<input data-user-field="password" type="password" autocomplete="new-password" ${user._new?'placeholder="Create Password"':'class="secret-configured" data-configured-secret="1" value="'+SECRET_MASK+'"'}></label><label>Confirm Password<input data-user-field="password2" type="password" autocomplete="new-password" ${user._new?'placeholder="Confirm Password"':'class="secret-configured" data-configured-secret="1" value="'+SECRET_MASK+'"'}></label></div><div class="settings-inline-actions"><button class="primary user-save" type="button">Save User</button><button class="danger user-delete" type="button" ${current?'disabled':''}>Delete</button></div><div class="field-help">Standard Users have read-only dashboard access. Administrators can manage torrents, settings, integrations, and users.</div></div>`;
       const summary=card.querySelector('.accordion-summary');
       summary.addEventListener('click',()=>{const body=card.querySelector('.accordion-body');const open=body.classList.contains('hidden');body.classList.toggle('hidden',!open);summary.setAttribute('aria-expanded',String(open))});
       card.querySelector('.user-save').addEventListener('click',()=>saveUser(card));
@@ -329,7 +324,7 @@ window.TDSettings = (() => {
 
   function userData(card) {
     const data={id:card.dataset.id||''};
-    card.querySelectorAll('[data-user-field]').forEach(input=>data[input.dataset.userField]=input.value.trim());
+    card.querySelectorAll('[data-user-field]').forEach(input=>data[input.dataset.userField]=input.type==='password'?secretFieldValue(input,''):input.value.trim());
     return data;
   }
 

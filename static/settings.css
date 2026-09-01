@@ -29,3 +29,5 @@
 @media(max-width:900px){.settings-layout{grid-template-columns:170px minmax(0,1fr);gap:12px}}
 @media(max-width:820px){.settings-layout{display:block}.settings-page-head{padding-left:2px;padding-right:2px}.settings-nav{gap:5px}.settings-nav button{min-height:38px}}
 @media(max-width:560px){.settings-page-head p{font-size:9px}.settings-nav{margin-left:-2px;margin-right:-2px}.settings-card{border-radius:13px}.settings-savebar{padding:8px}}
+
+.secret-input .secret-toggle:disabled{cursor:default;opacity:.62;color:var(--muted);background:var(--panel2);border-color:var(--border)}.secret-configured{letter-spacing:.08em}

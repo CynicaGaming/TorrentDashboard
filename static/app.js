@@ -10,18 +10,66 @@ function applyTitleCaseUi(root=document){
   els.push(...(root.querySelectorAll?.(selectors)||[]));
   els.forEach(el=>{for(const n of [...el.childNodes]){if(n.nodeType===Node.TEXT_NODE){const raw=n.nodeValue,trim=raw.trim();if(trim&&trim.length<80&&!/[.!?]$/.test(trim)&&/[A-Za-z]/.test(trim)){n.nodeValue=raw.replace(trim,uiText(trim))}}}})
 }
+const CONFIGURED_SECRET_MASK='••••••••••';
+function setConfiguredSecretField(input,configured,emptyPlaceholder=''){
+  if(!input)return;
+  input.placeholder=emptyPlaceholder;
+  input.value=configured?CONFIGURED_SECRET_MASK:'';
+  input.classList.toggle('secret-configured',!!configured);
+  if(configured)input.dataset.configuredSecret='1';else delete input.dataset.configuredSecret;
+  input.setCustomValidity('');
+  syncSecretToggle(input);
+}
+function secretFieldValue(input,preserve='<configured>'){
+  if(!input)return'';
+  const value=input.value.trim();
+  if(input.dataset.configuredSecret==='1'){
+    if(value===CONFIGURED_SECRET_MASK||value==='')return preserve;
+    if(value.includes('•'))throw new Error('Delete The Existing Mask Before Entering A New Secret');
+  }
+  return value;
+}
+function syncSecretToggle(input){
+  const btn=input?.parentElement?.querySelector('.secret-toggle');
+  if(!btn)return;
+  const value=input.value||'';
+  const stored=input.dataset.configuredSecret==='1'&&(value===CONFIGURED_SECRET_MASK||value===''||value.includes('•'));
+  if(stored){
+    input.type='password';
+    btn.disabled=true;
+    btn.textContent='Stored';
+    btn.setAttribute('aria-label','Stored Secret Cannot Be Revealed');
+    btn.title='Stored secrets are not sent back to the browser. Delete the mask and enter a new value to replace it.';
+    return;
+  }
+  btn.disabled=false;
+  btn.removeAttribute('title');
+  const showing=input.type==='text';
+  btn.textContent=showing?'Hide':'Show';
+  btn.setAttribute('aria-label',showing?'Hide Secret':'Show Secret');
+}
 function decorateSecretFields(root=document){
   const fields=[];
   if(root.matches?.('input[type="password"]:not(.autofill-decoy):not([aria-hidden="true"])'))fields.push(root);
   fields.push(...(root.querySelectorAll?.('input[type="password"]:not(.autofill-decoy):not([aria-hidden="true"])')||[]));
   fields.forEach(input=>{
-    if(input.dataset.secretReady==='1')return;
+    if(input.dataset.secretReady==='1'){syncSecretToggle(input);return;}
     input.dataset.secretReady='1';
     const wrap=document.createElement('div');wrap.className='secret-input';
     input.parentNode.insertBefore(wrap,input);wrap.appendChild(input);
     const btn=document.createElement('button');btn.type='button';btn.className='secret-toggle';btn.textContent='Show';btn.setAttribute('aria-label','Show Secret');
-    btn.addEventListener('click',()=>{const showing=input.type==='text';input.type=showing?'password':'text';btn.textContent=showing?'Show':'Hide';btn.setAttribute('aria-label',showing?'Show Secret':'Hide Secret')});
+    btn.addEventListener('click',()=>{if(btn.disabled)return;const showing=input.type==='text';input.type=showing?'password':'text';syncSecretToggle(input)});
+    input.addEventListener('input',()=>{
+      if(input.dataset.configuredSecret==='1'){
+        const value=input.value||'';
+        if(value===CONFIGURED_SECRET_MASK||value==='')input.setCustomValidity('');
+        else if(value.includes('•'))input.setCustomValidity('Delete the existing mask before entering a new secret.');
+        else{delete input.dataset.configuredSecret;input.classList.remove('secret-configured');input.setCustomValidity('')}
+      }
+      syncSecretToggle(input);
+    });
     wrap.appendChild(btn);
+    syncSecretToggle(input);
   });
 }
 const titleObserver=new MutationObserver(records=>{for(const r of records){for(const n of r.addedNodes){if(n.nodeType===Node.ELEMENT_NODE){applyTitleCaseUi(n);decorateSecretFields(n)}}}});
@@ -59,7 +107,7 @@ async function refreshSettingsInterfaces(force=false){const current=selectedInte
 
 function githubAccessSummary(d){const visibility=d.private?'Private Repository':'Public Repository',release=d.latestRelease?`Latest Release ${d.latestRelease}`:'No Release Published Yet',zip=d.latestRelease?(d.clientZipPresent?'Client ZIP Found':'Client ZIP Missing'):'',digest=d.clientZipPresent?(d.sha256Available?'SHA-256 Ready':'SHA-256 Missing'):'';return [d.repository||'GitHub',visibility,release,zip,digest].filter(Boolean).join(' · ')}
 async function testSetupGitHubAccess(){const out=$('#wUpdateResult'),btn=$('#wTestUpdate');out.className='test-result muted';out.textContent='Testing GitHub Connection…';btn.disabled=true;try{const d=await rawJson('/api/setup/test-github',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({setup_code:$('#wSetupCode').value.trim(),repository:$('#wUpdateRepo').value.trim(),github_token:$('#wUpdateToken').value.trim()})});out.className='test-result ok';out.textContent=githubAccessSummary(d);return d}catch(e){out.className='test-result bad';out.textContent=e.message;throw e}finally{btn.disabled=false}}
-async function testGitHubAccess(){const out=$('#updateAccessResult'),btn=$('#testUpdateAccess');out.className='test-result muted update-access-result';out.textContent='Testing GitHub Connection…';btn.disabled=true;try{const d=await post('/api/update-test',{repository:$('#sUpdateRepo').value.trim(),github_token:$('#sUpdateToken').value.trim()});out.className='test-result ok update-access-result';out.textContent=githubAccessSummary(d);return d}catch(e){out.className='test-result bad update-access-result';out.textContent=e.message;throw e}finally{btn.disabled=false}}
+async function testGitHubAccess(){const out=$('#updateAccessResult'),btn=$('#testUpdateAccess');out.className='test-result muted update-access-result';out.textContent='Testing GitHub Connection…';btn.disabled=true;try{const d=await post('/api/update-test',{repository:$('#sUpdateRepo').value.trim(),github_token:secretFieldValue($('#sUpdateToken'),'')});out.className='test-result ok update-access-result';out.textContent=githubAccessSummary(d);return d}catch(e){out.className='test-result bad update-access-result';out.textContent=e.message;throw e}finally{btn.disabled=false}}
 
 
 function updateSetupStep(){const pages=$$('.setup-page'),items=$$('#setupSteps li'),last=pages.length-1;state.setupMaxStep=Math.max(state.setupMaxStep,state.setupStep);pages.forEach((p,i)=>p.classList.toggle('active',i===state.setupStep));items.forEach((x,i)=>{x.classList.toggle('active',i===state.setupStep);x.classList.toggle('done',i<state.setupMaxStep);const b=x.querySelector('[data-setup-step]');if(b){b.setAttribute('aria-current',i===state.setupStep?'step':'false');b.title=uiText(i===state.setupStep?'currentStep':'goToSetupStep')}});$('#wBack').classList.toggle('hidden',state.setupStep===0);$('#wNext').textContent=state.setupStep===last?'Finish':'Next';if(state.setupStep===last)renderSetupReview();$('#setupError').textContent=''}
@@ -177,7 +225,7 @@ function addServerRow(s={id:'',name:'',base_url:'http://127.0.0.1:8080',auth_met
   const sync=()=>{const useApi=d.querySelector('[data-k="auth_method"]').value==='api_key';d.querySelector('.server-auth-api').classList.toggle('hidden',!useApi);d.querySelector('.server-auth-password').classList.toggle('hidden',useApi)};
   d.querySelector('[data-k="auth_method"]').addEventListener('change',sync);sync();d.querySelector('.danger').onclick=()=>d.remove();d.querySelector('.test-server').onclick=()=>testServerRow(d);$('#serverSettings').append(d);applyTitleCaseUi(d);decorateSecretFields(d)
 }
-function serverRowData(r){let o={enabled:true};r.querySelectorAll('[data-k]').forEach(i=>o[i.dataset.k]=i.value);return o}
+function serverRowData(r){let o={enabled:true};r.querySelectorAll('[data-k]').forEach(i=>o[i.dataset.k]=i.type==='password'?secretFieldValue(i,'<configured>'):i.value);return o}
 async function testServerRow(r){const out=r.querySelector('.server-test-result');out.textContent=uiText('testing…');out.className='server-test-result';try{const d=await post('/api/client-test',serverRowData(r));out.textContent=`Connected · qBitTorrent ${d.version||'Unknown'} · Web API ${d.api_version||'Unknown'} · ${serverRowData(r).auth_method==='api_key'?'API Key':'Password'}`;out.className='server-test-result ok'}catch(e){out.textContent=e.message;out.className='server-test-result bad'}}
 async function saveSettings(e){return TDSettings.saveCore(e)}
 
