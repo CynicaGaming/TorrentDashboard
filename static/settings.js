@@ -7,7 +7,6 @@ window.TDSettings = (() => {
   let users = [];
   let currentUserId = '';
   let clientSettingsServerId = '';
-  let clientSettingsAltSpeed = false;
 
   const corePages = new Set(['general','access','clients','updates','notifications']);
   const SECRET_MASK = '••••••••••';
@@ -41,6 +40,10 @@ window.TDSettings = (() => {
     document.querySelector('#addServerSetting')?.addEventListener('click', () => addServerRow());
     document.querySelector('#clientSettingsForm')?.addEventListener('submit', saveClientSettings);
     document.querySelectorAll('[data-client-settings-close]').forEach(el => el.addEventListener('click', closeClientSettings));
+    document.querySelectorAll('[data-client-settings-tab]').forEach(el => el.addEventListener('click', () => activateClientSettingsTab(el.dataset.clientSettingsTab)));
+    document.querySelector('#clientRandomPort')?.addEventListener('change', syncClientSettingsControls);
+    document.querySelector('#clientProxyType')?.addEventListener('change', syncClientSettingsControls);
+    document.querySelector('#clientProxyAuth')?.addEventListener('change', syncClientSettingsControls);
     document.querySelector('#updateAction')?.addEventListener('click', handleUpdateAction);
     document.querySelector('#nSoundMode')?.addEventListener('change', updateNotificationSoundUi);
     document.querySelector('#nSoundFile')?.addEventListener('change', updateNotificationSoundUi);
@@ -57,6 +60,46 @@ window.TDSettings = (() => {
     status.textContent = message;
   }
 
+  function activateClientSettingsTab(tab='speed') {
+    const allowed = new Set(['speed','connection','proxy']);
+    if (!allowed.has(tab)) tab = 'speed';
+    document.querySelectorAll('[data-client-settings-tab]').forEach(el => el.classList.toggle('active', el.dataset.clientSettingsTab === tab));
+    document.querySelectorAll('[data-client-settings-pane]').forEach(el => el.classList.toggle('active', el.dataset.clientSettingsPane === tab));
+  }
+
+  function syncClientSettingsControls() {
+    const randomPort = !!document.querySelector('#clientRandomPort')?.checked;
+    const listenPort = document.querySelector('#clientListenPort');
+    if (listenPort) listenPort.disabled = randomPort;
+    const proxyType = document.querySelector('#clientProxyType')?.value || 'none';
+    const proxyEnabled = proxyType !== 'none';
+    const proxyAuth = proxyEnabled && proxyType !== 'socks4' && !!document.querySelector('#clientProxyAuth')?.checked;
+    for (const id of ['clientProxyHost','clientProxyPort']) { const el=document.querySelector('#'+id); if(el) el.disabled=!proxyEnabled; }
+    const auth = document.querySelector('#clientProxyAuth'); if (auth) auth.disabled = !proxyEnabled || proxyType === 'socks4';
+    const credentials = document.querySelector('#clientProxyCredentials'); if (credentials) credentials.classList.toggle('disabled-fields', !proxyAuth);
+    for (const id of ['clientProxyUsername','clientProxyPassword']) { const el=document.querySelector('#'+id); if(el) el.disabled=!proxyAuth; }
+    for (const id of ['clientProxyLookup','clientProxyBittorrent','clientProxyPeers']) { const el=document.querySelector('#'+id); if(el) el.disabled=!proxyEnabled; }
+    if (proxyType === 'socks4' && auth) auth.checked = false;
+  }
+
+  function fillClientSettings(settings) {
+    const speed=settings?.speed||{}, connection=settings?.connection||{}, proxy=settings?.proxy||{};
+    const setValue=(id,value)=>{const el=document.querySelector('#'+id);if(el)el.value=String(value ?? '');};
+    const setChecked=(id,value)=>{const el=document.querySelector('#'+id);if(el)el.checked=!!value;};
+    setChecked('clientAltSpeed',speed.alternative_enabled);
+    setValue('clientGlobalDl',speed.download_limit_kb ?? 0);setValue('clientGlobalUl',speed.upload_limit_kb ?? 0);
+    setValue('clientAltDl',speed.alternative_download_limit_kb ?? 0);setValue('clientAltUl',speed.alternative_upload_limit_kb ?? 0);
+    setValue('clientListenPort',connection.listen_port || '');setChecked('clientRandomPort',connection.random_port);setChecked('clientUpnp',connection.upnp);
+    setValue('clientMaxConnections',connection.max_connections ?? -1);setValue('clientMaxConnectionsTorrent',connection.max_connections_per_torrent ?? -1);setValue('clientMaxUploads',connection.max_upload_slots ?? -1);setValue('clientMaxUploadsTorrent',connection.max_upload_slots_per_torrent ?? -1);
+    setValue('clientProxyType',proxy.type || 'none');setValue('clientProxyHost',proxy.host || '');setValue('clientProxyPort',proxy.port || '');setChecked('clientProxyAuth',proxy.authentication);setValue('clientProxyUsername',proxy.username || '');
+    configuredSecret(document.querySelector('#clientProxyPassword'), !!proxy.password_configured, 'Password');
+    setChecked('clientProxyLookup',proxy.hostname_lookup);setChecked('clientProxyBittorrent',proxy.bittorrent);setChecked('clientProxyPeers',proxy.peer_connections);
+    document.querySelector('#clientProxyLookupRow')?.classList.toggle('hidden', proxy.hostname_lookup_supported === false);
+    document.querySelector('#clientProxyBittorrentRow')?.classList.toggle('hidden', proxy.bittorrent_supported === false);
+    document.querySelector('#clientProxyPeersRow')?.classList.toggle('hidden', proxy.peer_connections_supported === false);
+    syncClientSettingsControls();
+  }
+
   function closeClientSettings() {
     document.querySelector('#clientSettingsModal')?.classList.add('hidden');
     clientSettingsServerId = '';
@@ -71,39 +114,45 @@ window.TDSettings = (() => {
     const modal = document.querySelector('#clientSettingsModal');
     const name = document.querySelector('#clientSettingsClientName');
     if (name) name.textContent = `${server?.name || serverId} · qBitTorrent`;
+    activateClientSettingsTab('speed');
     modal?.classList.remove('hidden');
     setClientSettingsStatus('Loading client settings…');
     try {
-      const meta = await api(`/api/meta?server=${encodeURIComponent(serverId)}`);
-      if (meta.alt_speed == null || meta.global_dl_limit == null || meta.global_up_limit == null) throw new Error('qBitTorrent did not return the required transfer settings');
-      clientSettingsAltSpeed = Number(meta.alt_speed) === 1;
-      const alt = document.querySelector('#clientAltSpeed');
-      const dl = document.querySelector('#clientGlobalDl');
-      const ul = document.querySelector('#clientGlobalUl');
-      if (alt) alt.checked = clientSettingsAltSpeed;
-      if (dl) dl.value = String(Math.max(0, Math.round(Number(meta.global_dl_limit || 0) / 1024)));
-      if (ul) ul.value = String(Math.max(0, Math.round(Number(meta.global_up_limit || 0) / 1024)));
+      const data = await api(`/api/client-settings?server=${encodeURIComponent(serverId)}`);
+      fillClientSettings(data.settings || {});
       setClientSettingsStatus('Live settings loaded from qBitTorrent.');
     } catch (e) {
       setClientSettingsStatus(e.message || 'Could not load client settings.', 'bad');
     }
   }
 
+  function clientNumber(id, fallback=0) {
+    const value = Number(document.querySelector('#'+id)?.value ?? fallback);
+    return Number.isFinite(value) ? Math.trunc(value) : NaN;
+  }
+
   async function saveClientSettings(e) {
     if (e?.preventDefault) e.preventDefault();
     if (!clientSettingsServerId) return;
-    const dl = Number(document.querySelector('#clientGlobalDl')?.value || 0);
-    const ul = Number(document.querySelector('#clientGlobalUl')?.value || 0);
-    const alt = !!document.querySelector('#clientAltSpeed')?.checked;
-    if (!Number.isFinite(dl) || dl < 0 || !Number.isFinite(ul) || ul < 0) return setClientSettingsStatus('Speed limits must be zero or a positive number.', 'bad');
+    const passwordInput=document.querySelector('#clientProxyPassword');
+    let proxyPassword='';
+    try { proxyPassword=secretFieldValue(passwordInput,'<configured>'); } catch(err) { return setClientSettingsStatus(err.message,'bad'); }
+    const payload={
+      server:clientSettingsServerId,
+      speed:{alternative_enabled:!!document.querySelector('#clientAltSpeed')?.checked,download_limit_kb:clientNumber('clientGlobalDl'),upload_limit_kb:clientNumber('clientGlobalUl'),alternative_download_limit_kb:clientNumber('clientAltDl'),alternative_upload_limit_kb:clientNumber('clientAltUl')},
+      connection:{listen_port:clientNumber('clientListenPort'),random_port:!!document.querySelector('#clientRandomPort')?.checked,upnp:!!document.querySelector('#clientUpnp')?.checked,max_connections:clientNumber('clientMaxConnections'),max_connections_per_torrent:clientNumber('clientMaxConnectionsTorrent'),max_upload_slots:clientNumber('clientMaxUploads'),max_upload_slots_per_torrent:clientNumber('clientMaxUploadsTorrent')},
+      proxy:{type:document.querySelector('#clientProxyType')?.value||'none',host:document.querySelector('#clientProxyHost')?.value.trim()||'',port:clientNumber('clientProxyPort'),authentication:!!document.querySelector('#clientProxyAuth')?.checked,username:document.querySelector('#clientProxyUsername')?.value.trim()||'',password:proxyPassword,hostname_lookup:!!document.querySelector('#clientProxyLookup')?.checked,bittorrent:!!document.querySelector('#clientProxyBittorrent')?.checked,peer_connections:!!document.querySelector('#clientProxyPeers')?.checked}
+    };
+    const numeric=[payload.speed.download_limit_kb,payload.speed.upload_limit_kb,payload.speed.alternative_download_limit_kb,payload.speed.alternative_upload_limit_kb,payload.connection.max_connections,payload.connection.max_connections_per_torrent,payload.connection.max_upload_slots,payload.connection.max_upload_slots_per_torrent];
+    if (!payload.connection.random_port) numeric.push(payload.connection.listen_port);
+    if (payload.proxy.type !== 'none') numeric.push(payload.proxy.port);
+    if (numeric.some(x => Number.isNaN(x))) return setClientSettingsStatus('Enter valid whole numbers for the client limits and ports.', 'bad');
     const button = document.querySelector('#saveClientSettings');
     if (button) button.disabled = true;
     setClientSettingsStatus('Saving client settings…');
     try {
-      await post('/api/action', {server:clientSettingsServerId, action:'global_download_limit', limit:Math.round(dl * 1024)});
-      await post('/api/action', {server:clientSettingsServerId, action:'global_upload_limit', limit:Math.round(ul * 1024)});
-      if (alt !== clientSettingsAltSpeed) await post('/api/action', {server:clientSettingsServerId, action:'toggle_alt_speed'});
-      clientSettingsAltSpeed = alt;
+      const data=await post('/api/client-settings',payload);
+      fillClientSettings(data.settings || {});
       setClientSettingsStatus('Client settings saved.', 'ok');
       toast('clientSettingsSaved');
       if (state.server === clientSettingsServerId) await loadMeta();
@@ -438,7 +487,7 @@ window.TDSettings = (() => {
       const display=userName(user);
       const username=user.username||'New User';
       const showUsername=!!user.username && display!==user.username;
-      card.innerHTML=`<button class="accordion-summary" type="button" aria-expanded="${index===0?'true':'false'}"><span><b>${esc(display)}${current?' · You':''}</b>${showUsername?`<small>${esc(username)}</small>`:''}</span><span class="user-group-badge ${user.group==='administrator'?'admin':'standard'}">${esc(group)}</span><span class="accordion-chevron">⌄</span></button><div class="accordion-body ${index===0?'':'hidden'}"><div class="settings-form-grid two-col"><label><span class="field-label">Username <span class="required-mark" aria-hidden="true">*</span></span><input data-user-field="username" value="${esc(user.username||'')}" maxlength="128" autocomplete="off" required></label><label><span class="field-label">User Group <span class="required-mark" aria-hidden="true">*</span></span><select class="user-group-select" data-user-field="group" required><option value="administrator" ${user.group==='administrator'?'selected':''}>Administrator</option><option value="standard" ${user.group==='standard'?'selected':''}>Standard User</option></select></label><label>First Name<input data-user-field="first_name" value="${esc(user.first_name||'')}" maxlength="128"></label><label>Last Name<input data-user-field="last_name" value="${esc(user.last_name||'')}" maxlength="128"></label><label class="full-field">Email<input data-user-field="email" type="email" value="${esc(user.email||'')}" maxlength="254"></label><label><span class="field-label">Password <span class="required-mark" aria-hidden="true">*</span></span><input data-user-field="password" type="password" autocomplete="new-password" required ${user._new?'placeholder="Create Password"':'class="secret-configured" data-configured-secret="1" value="'+SECRET_MASK+'"'}></label><label><span class="field-label">Confirm Password <span class="required-mark" aria-hidden="true">*</span></span><input data-user-field="password2" type="password" autocomplete="new-password" required ${user._new?'placeholder="Confirm Password"':'class="secret-configured" data-configured-secret="1" value="'+SECRET_MASK+'"'}></label></div><div class="settings-inline-actions"><button class="primary user-save" type="button">Save</button><button class="danger user-delete" type="button" ${current?'disabled':''}>Delete</button></div></div>`;
+      card.innerHTML=`<button class="accordion-summary" type="button" aria-expanded="${index===0?'true':'false'}"><span><span class="user-name-line"><b>${esc(display)}</b>${current?'<span class="current-user-badge">Current user</span>':''}</span>${showUsername?`<small>${esc(username)}</small>`:''}</span><span class="user-group-badge ${user.group==='administrator'?'admin':'standard'}">${esc(group)}</span><span class="accordion-chevron">⌄</span></button><div class="accordion-body ${index===0?'':'hidden'}"><div class="settings-form-grid two-col"><label><span class="field-label">Username <span class="required-mark" aria-hidden="true">*</span></span><input data-user-field="username" value="${esc(user.username||'')}" maxlength="128" autocomplete="off" required></label><label><span class="field-label">User Group <span class="required-mark" aria-hidden="true">*</span></span><select class="user-group-select" data-user-field="group" required><option value="administrator" ${user.group==='administrator'?'selected':''}>Administrator</option><option value="standard" ${user.group==='standard'?'selected':''}>Standard User</option></select></label><label>First Name<input data-user-field="first_name" value="${esc(user.first_name||'')}" maxlength="128"></label><label>Last Name<input data-user-field="last_name" value="${esc(user.last_name||'')}" maxlength="128"></label><label class="full-field">Email<input data-user-field="email" type="email" value="${esc(user.email||'')}" maxlength="254"></label><label><span class="field-label">Password <span class="required-mark" aria-hidden="true">*</span></span><input data-user-field="password" type="password" autocomplete="new-password" required ${user._new?'placeholder="Create Password"':'class="secret-configured" data-configured-secret="1" value="'+SECRET_MASK+'"'}></label><label><span class="field-label">Confirm Password <span class="required-mark" aria-hidden="true">*</span></span><input data-user-field="password2" type="password" autocomplete="new-password" required ${user._new?'placeholder="Confirm Password"':'class="secret-configured" data-configured-secret="1" value="'+SECRET_MASK+'"'}></label></div><div class="settings-inline-actions"><button class="primary user-save" type="button">Save</button><button class="danger user-delete" type="button" ${current?'disabled':''}>Delete</button></div></div>`;
       const summary=card.querySelector('.accordion-summary');
       summary.addEventListener('click',()=>{const body=card.querySelector('.accordion-body');const open=body.classList.contains('hidden');body.classList.toggle('hidden',!open);summary.setAttribute('aria-expanded',String(open))});
       card.querySelector('.user-save').addEventListener('click',()=>saveUser(card));

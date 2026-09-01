@@ -64,7 +64,11 @@ function secretFieldValue(input,preserve='<configured>'){
   }
   return value;
 }
-function setSecretToggleIcon(btn,name){btn.innerHTML=`<span class="material-symbols-outlined" aria-hidden="true">${name}</span>`;btn.dataset.materialSymbol=name}
+function secretToggleSvg(name){
+  if(name==='visibility_lock')return '<svg class="material-symbol-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M11 4.5C6.4 4.5 2.5 7.35 1 11.5c1.5 4.15 5.4 7 10 7 1.05 0 2.06-.15 3-.44V15.8a4.5 4.5 0 1 1 1.36-6.92A5.2 5.2 0 0 1 17 9.1V8.8C15.38 6.17 13.27 4.5 11 4.5Zm0 3A4 4 0 1 0 11 15.5 4 4 0 0 0 11 7.5Zm0 2A2 2 0 1 1 11 13.5 2 2 0 0 1 11 9.5Z"/><path d="M20.5 14h-.5v-1.25a2.5 2.5 0 0 0-5 0V14h-.5a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-4a1 1 0 0 0-1-1Zm-4-1.25a1 1 0 0 1 2 0V14h-2v-1.25Z"/></svg>';
+  return '<svg class="material-symbol-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5C21.27 7.61 17 4.5 12 4.5Zm0 12A4.5 4.5 0 1 1 12 7.5a4.5 4.5 0 0 1 0 9Zm0-7.2a2.7 2.7 0 1 0 0 5.4 2.7 2.7 0 0 0 0-5.4Z"/></svg>';
+}
+function setSecretToggleIcon(btn,name){btn.innerHTML=secretToggleSvg(name);btn.dataset.materialSymbol=name}
 function syncSecretToggle(input){
   const wrap=input?.closest?.('.secret-input');
   const btn=wrap?.querySelector('.secret-toggle');
@@ -200,11 +204,11 @@ function bindUI(){if(bound)return;bound=true;
   $('#addLinkBtn').addEventListener('click',()=>openAddTorrent('link'));$('#addFileBtn').addEventListener('click',()=>openAddTorrent('file'));$$('[data-modalclose]').forEach(x=>x.addEventListener('click',()=>$('#addModal').classList.add('hidden')));$('#addForm').addEventListener('submit',addTorrent);$('#removeForm')?.addEventListener('submit',e=>{e.preventDefault();closeRemoveDialog({deleteFiles:!!$('#removeFiles')?.checked})});$$('[data-remove-cancel]').forEach(x=>x.addEventListener('click',()=>closeRemoveDialog(null)));
   $$('[data-close]').forEach(x=>x.addEventListener('click',closeDrawer));$$('[data-detailtab]').forEach(x=>x.addEventListener('click',()=>{state.detailTab=x.dataset.detailtab;$$('[data-detailtab]').forEach(b=>b.classList.toggle('active',b===x));renderDetail()}));
   $('#profileBtn').addEventListener('click',e=>{showMenu($('#accountMenu'),e.currentTarget);e.currentTarget.setAttribute('aria-expanded','true')});document.addEventListener('click',e=>{if(!e.target.closest('.menu')&&!e.target.closest('#profileBtn')&&!e.target.closest('.more-row')){$$('.menu').forEach(m=>m.classList.add('hidden'));$('#profileBtn')?.setAttribute('aria-expanded','false')}});
-  $('#accountSettingsBtn').addEventListener('click',()=>{hideAccountMenu();openAccountModal('profile')});$('#accountPasswordBtn').addEventListener('click',()=>{hideAccountMenu();openAccountModal('password')});$('#accountAvatarBtn').addEventListener('click',()=>{hideAccountMenu();openAccountModal('avatar')});$('#logoutBtn').addEventListener('click',()=>{hideAccountMenu();signOut()});$$('[data-account-close]').forEach(x=>x.addEventListener('click',closeAccountModal));$('#accountProfileForm').addEventListener('submit',saveOwnProfile);$('#accountPasswordForm').addEventListener('submit',changeOwnPassword);$('#accountChooseAvatar').addEventListener('click',()=>$('#accountAvatarInput').click());$('#accountAvatarInput').addEventListener('change',uploadOwnAvatar);$('#accountRemoveAvatar').addEventListener('click',removeOwnAvatar);
+  $('#accountSettingsBtn').addEventListener('click',()=>{hideAccountMenu();openAccountModal('profile')});$('#accountPasswordBtn').addEventListener('click',()=>{hideAccountMenu();openAccountModal('password')});$('#logoutBtn').addEventListener('click',()=>{hideAccountMenu();signOut()});$$('[data-account-close]').forEach(x=>x.addEventListener('click',closeAccountModal));$('#accountProfileForm').addEventListener('submit',saveOwnProfile);$('#accountPasswordForm').addEventListener('submit',changeOwnPassword);$('#accountChooseAvatar').addEventListener('click',()=>$('#accountAvatarInput').click());$('#accountAvatarInput').addEventListener('change',uploadOwnAvatar);$('#accountRemoveAvatar').addEventListener('click',removeOwnAvatar);bindPasswordConfirmation();
   $('#pauseAllBtn').addEventListener('click',()=>globalAction('stop'));$('#resumeAllBtn').addEventListener('click',()=>globalAction('start'));
   $('#notificationFilter')?.addEventListener('change',renderNotifications);$('#refreshNotifications')?.addEventListener('click',loadNotifications);
   if(state.me?.can_manage)TDSettings.bind();
-  window.addEventListener('keydown',e=>{if(e.key==='/'&&!['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName)){e.preventDefault();$('#search').focus()}if(e.key==='Escape'){if(!$('#clientSettingsModal')?.classList.contains('hidden')){TDSettings.closeClientSettings();return}if(!$('#accountModal')?.classList.contains('hidden')){closeAccountModal();return}if(!$('#accountMenu')?.classList.contains('hidden')){hideAccountMenu();return}if(!$('#actionDialogModal')?.classList.contains('hidden')){closeActionDialog(null);return}if(!$('#removeModal')?.classList.contains('hidden')){closeRemoveDialog(null);return}if(state.selected.size){state.selected.clear();render();return}closeDrawer();$('#addModal').classList.add('hidden')}});
+  window.addEventListener('keydown',e=>{if(e.key==='/'&&!['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName)){e.preventDefault();$('#search').focus()}if(e.key==='Escape'){if(!$('#passwordConfirmModal')?.classList.contains('hidden')){closePasswordConfirmation(null);return}if(!$('#clientSettingsModal')?.classList.contains('hidden')){TDSettings.closeClientSettings();return}if(!$('#accountModal')?.classList.contains('hidden')){closeAccountModal();return}if(!$('#accountMenu')?.classList.contains('hidden')){hideAccountMenu();return}if(!$('#actionDialogModal')?.classList.contains('hidden')){closeActionDialog(null);return}if(!$('#removeModal')?.classList.contains('hidden')){closeRemoveDialog(null);return}if(state.selected.size){state.selected.clear();render();return}closeDrawer();$('#addModal').classList.add('hidden')}});
 }
 
 function setSettingsNavExpanded(expanded){const group=$('#settingsNavGroup'),submenu=$('#settingsSubnav');if(!group||!submenu)return;group.classList.toggle('expanded',!!expanded);submenu.classList.toggle('hidden',!expanded)}
@@ -432,7 +436,7 @@ function syncCurrentUserUi(){
   if($('#accountMenuName'))$('#accountMenuName').textContent=display;
   if($('#accountMenuGroup'))$('#accountMenuGroup').textContent=group;
   const editable=!!state.me?.user_id;
-  for(const id of ['accountSettingsBtn','accountPasswordBtn','accountAvatarBtn']){const el=$('#'+id);if(el)el.disabled=!editable}
+  for(const id of ['accountSettingsBtn','accountPasswordBtn']){const el=$('#'+id);if(el)el.disabled=!editable}
   if($('#accountRemoveAvatar'))$('#accountRemoveAvatar').disabled=!editable||!state.me?.avatar_configured;
   syncAvatarUi();
 }
@@ -441,15 +445,19 @@ function applyAccountUser(user){
   Object.assign(state.me,{username:user.username,display_name:user.display_name,group:user.group,group_label:user.group_label,avatar_configured:!!user.avatar_configured,avatar_version:user.avatar_version||''});
   syncCurrentUserUi();
 }
+let accountProfileSnapshot=null,passwordConfirmationResolve=null,passwordConfirmationBound=false;
+function closePasswordConfirmation(result=null){const modal=$('#passwordConfirmModal');modal?.classList.add('hidden');const input=$('#passwordConfirmInput');if(input){input.value='';input.type='password';syncSecretToggle(input)}const status=$('#passwordConfirmStatus');if(status)status.textContent='';const resolve=passwordConfirmationResolve;passwordConfirmationResolve=null;if(resolve)resolve(result)}
+function bindPasswordConfirmation(){if(passwordConfirmationBound)return;passwordConfirmationBound=true;$('#passwordConfirmForm')?.addEventListener('submit',e=>{e.preventDefault();const input=$('#passwordConfirmInput');if(!input?.reportValidity())return;closePasswordConfirmation(input.value)});$$('[data-password-confirm-cancel]').forEach(x=>x.addEventListener('click',()=>closePasswordConfirmation(null)))}
+function requestPasswordConfirmation(message){bindPasswordConfirmation();if(passwordConfirmationResolve)closePasswordConfirmation(null);const modal=$('#passwordConfirmModal'),input=$('#passwordConfirmInput'),copy=$('#passwordConfirmMessage');if(copy)copy.textContent=message||'Enter your current password to continue with this secure account change.';if(input){input.value='';input.type='password';syncSecretToggle(input)}modal?.classList.remove('hidden');return new Promise(resolve=>{passwordConfirmationResolve=resolve;setTimeout(()=>input?.focus(),0)})}
 async function loadAccount(){
   const d=await api('/api/account');
-  applyAccountUser(d.user);
+  applyAccountUser(d.user);accountProfileSnapshot={...d.user};
   $('#accountUsername').value=d.user?.username||'';
   $('#accountFirstName').value=d.user?.first_name||'';
   $('#accountLastName').value=d.user?.last_name||'';
   $('#accountEmail').value=d.user?.email||'';
   $('#accountGroup').value=d.user?.group_label||uiText(d.user?.group||'standardUser');
-  $('#accountProfilePassword').value='';
+  const current=$('#accountCurrentPassword');if(current)current.required=!!d.user?.password_configured;
   return d.user;
 }
 async function openAccountModal(target='profile'){
@@ -458,17 +466,25 @@ async function openAccountModal(target='profile'){
   const status=$('#accountStatus');status.className='test-result muted';status.textContent='Loading account…';
   try{
     await loadAccount();status.textContent='';
-    const focusId=target==='password'?'accountCurrentPassword':target==='avatar'?'accountChooseAvatar':'accountFirstName';
+    const focusId=target==='password'?'accountCurrentPassword':'accountFirstName';
     setTimeout(()=>$('#'+focusId)?.focus(),0);
   }catch(e){status.className='test-result bad';status.textContent=e.message}
 }
-function closeAccountModal(){$('#accountModal').classList.add('hidden');$('#accountProfileForm')?.reset();$('#accountPasswordForm')?.reset();$('#accountStatus').textContent=''}
+function closeAccountModal(){$('#accountModal').classList.add('hidden');$('#accountProfileForm')?.reset();$('#accountPasswordForm')?.reset();$('#accountStatus').textContent='';accountProfileSnapshot=null}
 async function saveOwnProfile(e){
   e.preventDefault();
-  const status=$('#accountStatus');status.className='test-result muted';status.textContent='Saving profile…';
+  const status=$('#accountStatus');
+  const payload={username:$('#accountUsername').value.trim(),first_name:$('#accountFirstName').value.trim(),last_name:$('#accountLastName').value.trim(),email:$('#accountEmail').value.trim()};
+  const secureChange=!!accountProfileSnapshot&&(payload.username!==String(accountProfileSnapshot.username||'')||payload.email!==String(accountProfileSnapshot.email||''));
   try{
-    const d=await post('/api/account',{username:$('#accountUsername').value.trim(),first_name:$('#accountFirstName').value.trim(),last_name:$('#accountLastName').value.trim(),email:$('#accountEmail').value.trim(),current_password:$('#accountProfilePassword').value});
-    applyAccountUser(d.user);$('#accountProfilePassword').value='';status.className='test-result ok';status.textContent='Profile saved.';toast('profileSaved');
+    if(secureChange&&accountProfileSnapshot?.password_configured){
+      const password=await requestPasswordConfirmation('Confirm your current password to change your username or email address.');
+      if(password===null)return;
+      payload.current_password=password;
+    }
+    status.className='test-result muted';status.textContent='Saving profile…';
+    const d=await post('/api/account',payload);
+    applyAccountUser(d.user);accountProfileSnapshot={...d.user};status.className='test-result ok';status.textContent='Profile saved.';toast('profileSaved');
   }catch(e){status.className='test-result bad';status.textContent=e.message}
 }
 async function changeOwnPassword(e){

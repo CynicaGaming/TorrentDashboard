@@ -226,19 +226,31 @@ def main():
     assert 'currentUserName' not in app_js and 'currentUserGroup' not in app_js
     assert '<div class="sidebar-foot"><small id="version">—</small></div>' in html
 
-    # 0.5.26 qBitTorrent-style toolbar and per-client settings.
+    # 0.5.28 local secret icons, secure account changes, and curated client settings.
     assert 'id="addBtn"' not in html and 'id="moreBtn"' not in html
-    assert 'id="menu"' not in html and 'id="pauseAll"' not in html and 'id="globalDl"' not in html
     assert 'id="addLinkBtn"' in html and 'id="addFileBtn"' in html
-    assert 'id="resumeAllBtn"' in html and 'id="pauseAllBtn"' in html
+    assert 'function secretToggleSvg' in app_js and 'material-symbol-icon' in app_js
+    assert 'visibility_lock' in app_js and "visibility'" in app_js
+    assert 'material-symbols-outlined' not in app_css
+    assert 'fonts.googleapis.com' not in html and 'fonts.gstatic.com' not in dashboard_py
+    assert 'id="loginPass"' in html and 'autocomplete="current-password"' in html
+    assert 'id="accountAvatarBtn"' not in html and 'accountAvatarBtn' not in app_js
+    assert 'id="accountProfilePassword"' not in html and 'accountProfilePassword' not in app_js
+    assert 'id="passwordConfirmModal"' in html and 'requestPasswordConfirmation' in app_js
+    assert 'password_configured' in dashboard_py
+    assert 'Default Torrent Dashboard Sound' not in html and '<option value="default">Default</option>' in html
+    assert ' · You' not in settings_js and 'Current user' in settings_js
     assert 'id="clientSettingsModal"' in html and 'id="clientSettingsForm"' in html
-    assert 'id="clientAltSpeed"' in html and 'id="clientGlobalDl"' in html and 'id="clientGlobalUl"' in html
-    assert 'class="secondary client-settings"' in app_js
-    assert 'TDSettings.openClientSettings' in app_js
-    assert 'async function openClientSettings' in settings_js and 'async function saveClientSettings' in settings_js
-    assert "action:'global_download_limit'" in settings_js and "action:'global_upload_limit'" in settings_js and "action:'toggle_alt_speed'" in settings_js
+    for field in ('clientGlobalDl','clientGlobalUl','clientAltDl','clientAltUl','clientListenPort','clientMaxConnections','clientProxyType','clientProxyHost','clientProxyPort','clientProxyPassword'):
+        assert f'id="{field}"' in html
+    assert 'data-client-settings-tab="speed"' in html and 'data-client-settings-tab="connection"' in html and 'data-client-settings-tab="proxy"' in html
+    assert '/api/client-settings' in dashboard_py and '/api/client-settings' in settings_js
+    assert 'def client_settings(self):' in dashboard_py and 'def update_client_settings(self, data):' in dashboard_py
+    assert '/api/v2/app/setPreferences' in dashboard_py
+    assert 'proxy_password' in dashboard_py and 'password_configured' in dashboard_py
+    assert 'preferences = client.preferences()' in dashboard_py and 'disk_free = disk_free_for(preferences)' in dashboard_py
     assert '0.5.26 qBitTorrent-style torrent toolbar' in app_css
-    assert '0.5.27 client settings facelift' in settings_css
+    assert '0.5.28 advanced per-client qBitTorrent settings' in settings_css
 
     print("UI string audit passed")
 

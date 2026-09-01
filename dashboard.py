@@ -45,7 +45,7 @@ MAX_CUSTOM_SOUND_BYTES = 2 * 1024 * 1024
 AVATAR_DIR = DATA_DIR / "avatars"
 MAX_AVATAR_BYTES = 4 * 1024 * 1024
 PROFILE_AVATAR_TYPES = {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp"}
-VERSION = "0.5.27"
+VERSION = "0.5.28"
 STATUS_REFRESH_SECONDS = 1.0
 DEFAULT_UPDATE_REPOSITORY = "CynicaGaming/TorrentDashboard"
 
@@ -774,6 +774,7 @@ def public_user(user):
         "display_name": user_display_name(user),
         "avatar_configured": bool(avatar_path),
         "avatar_version": str(user.get("avatar_version") or ""),
+        "password_configured": bool(user.get("password_hash")),
     }
 
 
@@ -859,16 +860,20 @@ def save_current_user_profile(cfg, user_id, data):
     if not existing:
         raise RuntimeError("This session is not linked to a user account")
     requested_username = str(data.get("username") if data.get("username") is not None else existing.get("username") or "").strip()
-    if requested_username != str(existing.get("username") or ""):
-        encoded = str(existing.get("password_hash") or "")
-        if encoded and not verify_password(str(data.get("current_password") or ""), encoded):
-            raise RuntimeError("Current password is required to change your username")
+    requested_email = str(data.get("email") if data.get("email") is not None else existing.get("email") or "").strip()
+    secure_change = (
+        requested_username != str(existing.get("username") or "")
+        or requested_email != str(existing.get("email") or "")
+    )
+    encoded = str(existing.get("password_hash") or "")
+    if secure_change and encoded and not verify_password(str(data.get("current_password") or ""), encoded):
+        raise RuntimeError("Current password is required to change your username or email")
     item = normalize_user({
         "id": existing.get("id"),
         "username": requested_username,
         "first_name": data.get("first_name"),
         "last_name": data.get("last_name"),
-        "email": data.get("email"),
+        "email": requested_email,
         "group": existing.get("group"),
     }, existing)
     duplicate = next((u for u in users if str(u.get("id") or "") != item["id"] and str(u.get("username") or "").casefold() == item["username"].casefold()), None)
@@ -1151,6 +1156,57 @@ def test_server_connection(server):
     }
 
 
+QBIT_PROXY_TYPES = {"none", "http", "socks5", "socks4"}
+
+
+def normalize_qbittorrent_proxy_type(value):
+    if isinstance(value, str):
+        normalized = value.strip().lower().replace("_", "")
+        return {"none": "none", "http": "http", "socks5": "socks5", "socks4": "socks4"}.get(normalized, "none")
+    try:
+        numeric = int(value)
+    except (TypeError, ValueError):
+        return "none"
+    return {-1: "none", 0: "none", 1: "http", 2: "socks5", 3: "http", 4: "socks5", 5: "socks4"}.get(numeric, "none")
+
+
+def encode_qbittorrent_proxy_type(proxy_type, auth_enabled, current_value):
+    proxy_type = str(proxy_type or "none").strip().lower()
+    if proxy_type not in QBIT_PROXY_TYPES:
+        raise RuntimeError("Unsupported proxy type")
+    if isinstance(current_value, str):
+        return {"none": "None", "http": "HTTP", "socks5": "SOCKS5", "socks4": "SOCKS4"}[proxy_type]
+    if proxy_type == "none":
+        return 0 if current_value == 0 else -1
+    if proxy_type == "http":
+        return 3 if auth_enabled else 1
+    if proxy_type == "socks5":
+        return 4 if auth_enabled else 2
+    return 5
+
+
+def _qbit_rate_to_kb(value):
+    try:
+        return max(0, round(int(value or 0) / 1024))
+    except (TypeError, ValueError):
+        return 0
+
+
+def _qbit_int(value, label, minimum, maximum):
+    try:
+        number = int(value)
+    except (TypeError, ValueError) as exc:
+        raise RuntimeError(f"{label} must be a whole number") from exc
+    if number < minimum or number > maximum:
+        raise RuntimeError(f"{label} must be between {minimum} and {maximum}")
+    return number
+
+
+def _qbit_rate_from_kb(value, label):
+    kb = _qbit_int(value, label, 0, 2_000_000_000)
+    return kb * 1024
+
+
 class QBitClient:
     def __init__(self, server):
         self.server = server
@@ -1293,21 +1349,126 @@ class QBitClient:
             api_version = None
         return torrents, transfer, app_version, api_version
 
+    def preferences(self):
+        return self.get_json("/api/v2/app/preferences") or {}
+
     def metadata(self):
+        # Browser-facing metadata intentionally excludes app/preferences. qBitTorrent
+        # preferences can contain proxy, mail, Web UI, and certificate secrets.
         out = {}
         for key, path in {
             "categories": "/api/v2/torrents/categories",
             "tags": "/api/v2/torrents/tags",
-            "preferences": "/api/v2/app/preferences",
             "alt_speed": "/api/v2/transfer/speedLimitsMode",
             "global_dl_limit": "/api/v2/transfer/downloadLimit",
             "global_up_limit": "/api/v2/transfer/uploadLimit",
         }.items():
             try:
                 out[key] = self.get_json(path)
-            except Exception as e:
+            except Exception:
                 out[key] = None
         return out
+
+    def client_settings(self):
+        prefs = self.preferences()
+        try:
+            alt_speed = int(self.get_json("/api/v2/transfer/speedLimitsMode") or 0) == 1
+        except Exception:
+            alt_speed = False
+        raw_proxy_type = prefs.get("proxy_type")
+        proxy_type = normalize_qbittorrent_proxy_type(raw_proxy_type)
+        legacy_auth = raw_proxy_type in (3, 4)
+        return {
+            "speed": {
+                "alternative_enabled": alt_speed,
+                "download_limit_kb": _qbit_rate_to_kb(prefs.get("dl_limit", 0)),
+                "upload_limit_kb": _qbit_rate_to_kb(prefs.get("up_limit", 0)),
+                "alternative_download_limit_kb": _qbit_rate_to_kb(prefs.get("alt_dl_limit", 0)),
+                "alternative_upload_limit_kb": _qbit_rate_to_kb(prefs.get("alt_up_limit", 0)),
+            },
+            "connection": {
+                "listen_port": int(prefs.get("listen_port", 0) or 0),
+                "random_port": bool(prefs.get("random_port", False) or int(prefs.get("listen_port", 0) or 0) == 0),
+                "upnp": bool(prefs.get("upnp", False)),
+                "max_connections": int(prefs.get("max_connec", -1) or 0),
+                "max_connections_per_torrent": int(prefs.get("max_connec_per_torrent", -1) or 0),
+                "max_upload_slots": int(prefs.get("max_uploads", -1) or 0),
+                "max_upload_slots_per_torrent": int(prefs.get("max_uploads_per_torrent", -1) or 0),
+            },
+            "proxy": {
+                "type": proxy_type,
+                "host": str(prefs.get("proxy_ip") or ""),
+                "port": int(prefs.get("proxy_port", 0) or 0),
+                "authentication": bool(prefs.get("proxy_auth_enabled", legacy_auth)),
+                "username": str(prefs.get("proxy_username") or ""),
+                "password_configured": bool(prefs.get("proxy_password")),
+                "hostname_lookup": bool(prefs.get("proxy_hostname_lookup", False)),
+                "hostname_lookup_supported": "proxy_hostname_lookup" in prefs,
+                "bittorrent": bool(prefs.get("proxy_bittorrent", True)),
+                "bittorrent_supported": "proxy_bittorrent" in prefs,
+                "peer_connections": bool(prefs.get("proxy_peer_connections", False)),
+                "peer_connections_supported": "proxy_peer_connections" in prefs,
+            },
+        }
+
+    def update_client_settings(self, data):
+        if not isinstance(data, dict):
+            raise RuntimeError("Client settings payload must be an object")
+        speed = data.get("speed") or {}
+        connection = data.get("connection") or {}
+        proxy = data.get("proxy") or {}
+        if not all(isinstance(x, dict) for x in (speed, connection, proxy)):
+            raise RuntimeError("Client settings sections must be objects")
+
+        current = self.preferences()
+        update = {
+            "dl_limit": _qbit_rate_from_kb(speed.get("download_limit_kb", 0), "Download limit"),
+            "up_limit": _qbit_rate_from_kb(speed.get("upload_limit_kb", 0), "Upload limit"),
+            "alt_dl_limit": _qbit_rate_from_kb(speed.get("alternative_download_limit_kb", 0), "Alternative download limit"),
+            "alt_up_limit": _qbit_rate_from_kb(speed.get("alternative_upload_limit_kb", 0), "Alternative upload limit"),
+            "upnp": bool(connection.get("upnp", False)),
+            "max_connec": _qbit_int(connection.get("max_connections", -1), "Global connection limit", -1, 1_000_000),
+            "max_connec_per_torrent": _qbit_int(connection.get("max_connections_per_torrent", -1), "Per-torrent connection limit", -1, 1_000_000),
+            "max_uploads": _qbit_int(connection.get("max_upload_slots", -1), "Global upload slot limit", -1, 1_000_000),
+            "max_uploads_per_torrent": _qbit_int(connection.get("max_upload_slots_per_torrent", -1), "Per-torrent upload slot limit", -1, 1_000_000),
+        }
+
+        random_port = bool(connection.get("random_port", False))
+        update["random_port"] = random_port
+        if not random_port:
+            update["listen_port"] = _qbit_int(connection.get("listen_port", 0), "Listening port", 1, 65535)
+
+        proxy_type = str(proxy.get("type") or "none").strip().lower()
+        proxy_auth = bool(proxy.get("authentication", False)) and proxy_type not in ("none", "socks4")
+        update["proxy_type"] = encode_qbittorrent_proxy_type(proxy_type, proxy_auth, current.get("proxy_type"))
+        if "proxy_auth_enabled" in current:
+            update["proxy_auth_enabled"] = proxy_auth
+        if proxy_type != "none":
+            host = str(proxy.get("host") or "").strip()
+            if not host:
+                raise RuntimeError("Proxy host is required when a proxy is enabled")
+            update["proxy_ip"] = host[:1024]
+            update["proxy_port"] = _qbit_int(proxy.get("port", 0), "Proxy port", 1, 65535)
+            update["proxy_username"] = str(proxy.get("username") or "")[:512] if proxy_auth else ""
+            password = proxy.get("password")
+            if proxy_auth and password not in (None, "", "<configured>") and "•" not in str(password):
+                update["proxy_password"] = str(password)[:4096]
+        if "proxy_hostname_lookup" in current:
+            update["proxy_hostname_lookup"] = bool(proxy.get("hostname_lookup", False))
+        if "proxy_bittorrent" in current:
+            update["proxy_bittorrent"] = bool(proxy.get("bittorrent", True))
+        if "proxy_peer_connections" in current:
+            update["proxy_peer_connections"] = bool(proxy.get("peer_connections", False))
+
+        self.post("/api/v2/app/setPreferences", {"json": json.dumps(update, separators=(",", ":"))})
+        try:
+            current_alt = int(self.get_json("/api/v2/transfer/speedLimitsMode") or 0) == 1
+        except Exception:
+            current_alt = False
+        requested_alt = bool(speed.get("alternative_enabled", False))
+        if requested_alt != current_alt:
+            self.post("/api/v2/transfer/toggleSpeedLimitsMode", {})
+        return self.client_settings()
 
     def detail(self, hash_):
         paths = {
@@ -1589,8 +1750,9 @@ def collector_loop(stop_event):
             try:
                 client = get_client(cfg, sid)
                 torrents, transfer, app_version, api_version = client.info()
+                preferences = client.preferences()
                 meta = client.metadata()
-                disk_free = disk_free_for(meta.get("preferences") or {})
+                disk_free = disk_free_for(preferences)
                 with CACHE_LOCK:
                     previous = CACHE.get(sid, {}).get("torrents", [])
                     prev_completed = {t.get("hash") for t in previous if float(t.get("progress",0) or 0) >= .999999}
@@ -2048,7 +2210,7 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("Referrer-Policy", "same-origin")
         self.send_header("X-Frame-Options", "DENY")
-        self.send_header("Content-Security-Policy", "default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; script-src 'self'; connect-src 'self'; img-src 'self' data:; manifest-src 'self'; worker-src 'self'; object-src 'none'; frame-ancestors 'none'")
+        self.send_header("Content-Security-Policy", "default-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; script-src 'self'; connect-src 'self'; img-src 'self' data:; manifest-src 'self'; worker-src 'self'; object-src 'none'; frame-ancestors 'none'")
         if cookie_token:
             secure = "; Secure" if load_config()["dashboard"].get("https_enabled") else ""
             self.send_header("Set-Cookie", f"td_session={cookie_token}; Path=/; HttpOnly; SameSite=Lax{secure}")
@@ -2119,7 +2281,7 @@ class Handler(BaseHTTPRequestHandler):
             if not avatar_path:
                 return self.send_json(404,{"error":"No profile picture is configured"},new_cookie)
             return self.send_bytes(200,avatar_path.read_bytes(),avatar_mime,new_cookie)
-        if path in ("/api/settings","/api/integrations","/api/users","/api/network/interfaces") and not session_is_admin(sess):
+        if path in ("/api/settings","/api/integrations","/api/users","/api/network/interfaces","/api/client-settings") and not session_is_admin(sess):
             return self.send_json(403,{"error":"Administrator access is required"},new_cookie)
 
         if path=="/api/status":
@@ -2158,6 +2320,10 @@ class Handler(BaseHTTPRequestHandler):
         if path=="/api/meta":
             sid=qs.get("server",["local"])[0]
             try: return self.send_json(200,get_client(cfg,sid).metadata(),new_cookie)
+            except Exception as e: return self.send_json(502,{"error":str(e)},new_cookie)
+        if path=="/api/client-settings":
+            sid=qs.get("server",["local"])[0]
+            try: return self.send_json(200,{"settings":get_client(cfg,sid).client_settings()},new_cookie)
             except Exception as e: return self.send_json(502,{"error":str(e)},new_cookie)
 
         if path=="/api/history":
@@ -2217,6 +2383,10 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send_json(200,{"ok":True,"user":public_user(user)},new_cookie)
             if not session_is_admin(sess):
                 return self.send_json(403,{"error":"Administrator access is required"},new_cookie)
+            if path=="/api/client-settings":
+                data=parse_json_body(self,50000); sid=str(data.pop("server","local")); settings=get_client(cfg,sid).update_client_settings(data)
+                HISTORY.event(sid,"client_settings_changed",sess.get("username",""),"",{"client_ip":self.client_ip()})
+                return self.send_json(200,{"ok":True,"settings":settings},new_cookie)
             if path=="/api/action":
                 data=parse_json_body(self); sid=data.pop("server","local"); action=data.pop("action"); result=get_client(cfg,sid).action(action,data)
                 HISTORY.event(sid, "action:"+action, sess.get("username",""), data.get("hash") or "", {"client_ip": self.client_ip()})
