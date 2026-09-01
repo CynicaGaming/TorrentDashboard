@@ -238,7 +238,7 @@ def main():
     assert 'async function openClientSettings' in settings_js and 'async function saveClientSettings' in settings_js
     assert "action:'global_download_limit'" in settings_js and "action:'global_upload_limit'" in settings_js and "action:'toggle_alt_speed'" in settings_js
     assert '0.5.26 qBitTorrent-style torrent toolbar' in app_css
-    assert '0.5.26 per-client qBitTorrent settings' in settings_css
+    assert '0.5.27 client settings facelift' in settings_css
 
     print("UI string audit passed")
 
