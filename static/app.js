@@ -64,24 +64,26 @@ function secretFieldValue(input,preserve='<configured>'){
   }
   return value;
 }
+function setSecretToggleIcon(btn,name){btn.innerHTML=`<span class="material-symbols-outlined" aria-hidden="true">${name}</span>`;btn.dataset.materialSymbol=name}
 function syncSecretToggle(input){
-  const btn=input?.parentElement?.querySelector('.secret-toggle');
+  const wrap=input?.closest?.('.secret-input');
+  const btn=wrap?.querySelector('.secret-toggle');
   if(!btn)return;
   const value=input.value||'';
   const stored=input.dataset.configuredSecret==='1'&&(value===CONFIGURED_SECRET_MASK||value===''||value.includes('•'));
+  wrap.classList.toggle('stored-secret',stored);
+  btn.hidden=stored;
   if(stored){
     input.type='password';
-    btn.disabled=true;
-    btn.textContent='Stored';
-    btn.setAttribute('aria-label','Stored secret cannot be revealed');
-    btn.title='Stored secrets are not sent back to the browser. Delete the mask and enter a new value to replace it.';
+    btn.innerHTML='';
+    btn.removeAttribute('aria-label');
+    btn.removeAttribute('title');
     return;
   }
-  btn.disabled=false;
-  btn.removeAttribute('title');
   const showing=input.type==='text';
-  btn.textContent=showing?'Hide':'Show';
+  setSecretToggleIcon(btn,showing?'visibility_lock':'visibility');
   btn.setAttribute('aria-label',showing?'Hide secret':'Show secret');
+  btn.title=showing?'Hide secret':'Show secret';
 }
 function decorateSecretFields(root=document){
   const fields=[];
@@ -92,8 +94,8 @@ function decorateSecretFields(root=document){
     input.dataset.secretReady='1';
     const wrap=document.createElement('div');wrap.className='secret-input';
     input.parentNode.insertBefore(wrap,input);wrap.appendChild(input);
-    const btn=document.createElement('button');btn.type='button';btn.className='secret-toggle';btn.textContent='Show';btn.setAttribute('aria-label','Show secret');
-    btn.addEventListener('click',()=>{if(btn.disabled)return;const showing=input.type==='text';input.type=showing?'password':'text';syncSecretToggle(input)});
+    const btn=document.createElement('button');btn.type='button';btn.className='secret-toggle';setSecretToggleIcon(btn,'visibility');btn.setAttribute('aria-label','Show secret');
+    btn.addEventListener('click',()=>{const showing=input.type==='text';input.type=showing?'password':'text';syncSecretToggle(input)});
     input.addEventListener('input',()=>{
       if(input.dataset.configuredSecret==='1'){
         const value=input.value||'';
@@ -396,7 +398,7 @@ async function loadNotifications(){try{const d=await api('/api/events?limit=200'
 function renderServerSettings(servers){$('#serverSettings').innerHTML='';servers.forEach(s=>addServerRow(s))}
 function addServerRow(s={id:'',name:'',base_url:'http://127.0.0.1:8080',auth_method:'api_key',api_key:'',username:'',password:'',enabled:true}){
   const d=document.createElement('div');d.className='server-setting';const method=s.auth_method||((s.api_key&&s.api_key!=='')?'api_key':'password');
-  d.innerHTML=`<label>Display Name<input data-k="name" placeholder="Desktop" value="${esc(s.name||'')}"></label><label class="server-url">Web UI URL<input data-k="base_url" placeholder="http://127.0.0.1:8080" value="${esc(s.base_url||'')}"></label><label>Authentication<select data-k="auth_method"><option value="api_key" ${method==='api_key'?'selected':''}>API Key</option><option value="password" ${method==='password'?'selected':''}>Username And Password</option></select></label><div class="server-auth-api"><label>API Key<input data-k="api_key" type="password" autocomplete="off" placeholder="${s.api_key==='<configured>'?'API Key Configured':'qbt_…'}"></label><small>qBitTorrent 5.2+ · Bearer Authentication</small></div><div class="server-auth-password two"><label>Username<input data-k="username" autocomplete="off" value="${esc(s.username||'')}"></label><label>Password<input data-k="password" type="password" autocomplete="off" placeholder="${s.password==='<configured>'?'Password Configured':'Password'}"></label></div><div class="server-setting-actions"><button type="button" class="test-server">Test</button><button type="button" class="secondary client-settings" ${s.id?'':'disabled'}>Client Settings</button><button type="button" class="danger">Remove</button></div><input type="hidden" data-k="id" value="${esc(s.id||'')}"><small class="server-test-result"></small>`;
+  d.innerHTML=`<label>Display Name<input data-k="name" placeholder="Desktop" value="${esc(s.name||'')}"></label><label class="server-url">Web UI URL<input data-k="base_url" placeholder="http://127.0.0.1:8080" value="${esc(s.base_url||'')}"></label><label>Authentication<select data-k="auth_method"><option value="api_key" ${method==='api_key'?'selected':''}>API Key</option><option value="password" ${method==='password'?'selected':''}>Username And Password</option></select></label><div class="server-auth-api"><label>API Key<input data-k="api_key" type="password" autocomplete="off" placeholder="${s.api_key==='<configured>'?'API Key Configured':'qbt_…'}"></label><small>qBitTorrent 5.2+ · Bearer Authentication</small></div><div class="server-auth-password two"><label>Username<input data-k="username" autocomplete="off" value="${esc(s.username||'')}"></label><label>Password<input data-k="password" type="password" autocomplete="off" placeholder="${s.password==='<configured>'?'Password Configured':'Password'}"></label></div><div class="server-setting-actions"><button type="button" class="test-server">Test</button><button type="button" class="secondary client-settings" ${s.id?'':'disabled'}>Settings</button><button type="button" class="danger">Remove</button></div><input type="hidden" data-k="id" value="${esc(s.id||'')}"><small class="server-test-result"></small>`;
   const sync=()=>{const useApi=d.querySelector('[data-k="auth_method"]').value==='api_key';d.querySelector('.server-auth-api').classList.toggle('hidden',!useApi);d.querySelector('.server-auth-password').classList.toggle('hidden',useApi)};
   d.querySelector('[data-k="auth_method"]').addEventListener('change',sync);sync();d.querySelector('.danger').onclick=()=>d.remove();d.querySelector('.test-server').onclick=()=>testServerRow(d);d.querySelector('.client-settings').onclick=()=>TDSettings.openClientSettings(d.querySelector('[data-k="id"]').value);$('#serverSettings').append(d);applySentenceCaseUi(d);decorateSecretFields(d)
 }

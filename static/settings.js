@@ -53,7 +53,7 @@ window.TDSettings = (() => {
   function setClientSettingsStatus(message='', tone='muted') {
     const status = document.querySelector('#clientSettingsStatus');
     if (!status) return;
-    status.className = `test-result ${tone}`;
+    status.className = `client-settings-status ${tone}`;
     status.textContent = message;
   }
 
@@ -70,7 +70,7 @@ window.TDSettings = (() => {
     clientSettingsServerId = serverId;
     const modal = document.querySelector('#clientSettingsModal');
     const name = document.querySelector('#clientSettingsClientName');
-    if (name) name.textContent = server?.name || serverId;
+    if (name) name.textContent = `${server?.name || serverId} · qBitTorrent`;
     modal?.classList.remove('hidden');
     setClientSettingsStatus('Loading client settings…');
     try {

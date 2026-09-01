@@ -45,7 +45,7 @@ MAX_CUSTOM_SOUND_BYTES = 2 * 1024 * 1024
 AVATAR_DIR = DATA_DIR / "avatars"
 MAX_AVATAR_BYTES = 4 * 1024 * 1024
 PROFILE_AVATAR_TYPES = {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp"}
-VERSION = "0.5.26"
+VERSION = "0.5.27"
 STATUS_REFRESH_SECONDS = 1.0
 DEFAULT_UPDATE_REPOSITORY = "CynicaGaming/TorrentDashboard"
 
@@ -2048,7 +2048,7 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("Referrer-Policy", "same-origin")
         self.send_header("X-Frame-Options", "DENY")
-        self.send_header("Content-Security-Policy", "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; img-src 'self' data:; manifest-src 'self'; worker-src 'self'; object-src 'none'; frame-ancestors 'none'")
+        self.send_header("Content-Security-Policy", "default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; script-src 'self'; connect-src 'self'; img-src 'self' data:; manifest-src 'self'; worker-src 'self'; object-src 'none'; frame-ancestors 'none'")
         if cookie_token:
             secure = "; Secure" if load_config()["dashboard"].get("https_enabled") else ""
             self.send_header("Set-Cookie", f"td_session={cookie_token}; Path=/; HttpOnly; SameSite=Lax{secure}")
