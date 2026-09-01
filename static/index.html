@@ -5,8 +5,8 @@
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#0b0d10" name="theme-color"/>
 <link href="/manifest.webmanifest" rel="manifest"/>
-<link href="/static/app.css?v=0.5.14" rel="stylesheet"/>
-<link href="/static/settings.css?v=0.5.14" rel="stylesheet"/>
+<link href="/static/app.css?v=0.5.15" rel="stylesheet"/>
+<link href="/static/settings.css?v=0.5.15" rel="stylesheet"/>
 <title>Torrent Dashboard</title>
 </head>
 <body>
@@ -79,9 +79,9 @@
 <div class="brand"><div class="brand-mark">⇣</div><div><strong id="brandTitle">Torrent Dashboard</strong><small>qBitTorrent Control</small></div></div>
 <nav>
 <button class="nav nav-root active" data-view="dashboard">Dashboard</button>
-<button class="nav nav-root" data-view="history">Transfer History</button>
+<button class="nav nav-root" data-view="notifications">Notifications</button>
 <div class="nav-group admin-only" id="settingsNavGroup">
-<button class="nav nav-root nav-parent" data-view="settings" id="settingsNavToggle" aria-expanded="false"><span>Settings</span><span class="nav-caret" aria-hidden="true">⌄</span></button>
+<button class="nav nav-root nav-parent" data-view="settings" id="settingsNavToggle"><span>Settings</span></button>
 <div class="settings-subnav hidden" id="settingsSubnav">
 <button data-view="settings" data-settings-page="general" type="button">General</button>
 <button data-view="settings" data-settings-page="access" type="button">Dashboard Access</button>
@@ -141,11 +141,11 @@
 <div class="empty hidden" id="empty"><strong>No Torrents Match This View</strong><span>Change the filter or search query.</span></div>
 </section>
 </section>
-<section class="view" id="view-history">
-<div class="history-head"><div><h2>Transfer History</h2><p>Persistent dashboard samples and completion events.</p></div><select id="historyRange"><option value="60">1 Hour</option><option value="360">6 Hours</option><option value="1440">24 Hours</option><option value="10080">7 Days</option></select></div>
-<section class="metrics compact"><article><span>Seven Day Average</span><strong id="aAvg">—</strong></article><article><span>Seven Day Peak</span><strong id="aPeak">—</strong></article><article><span>Known Torrents</span><strong id="aKnown">—</strong></article><article><span>Completed</span><strong id="aComplete">—</strong></article></section>
-<section class="panel chart-panel"><canvas height="220" id="speedChart"></canvas></section>
-<section class="panel"><div class="panel-title">Recent Events</div><div class="event-list" id="eventList"></div></section>
+<section class="view" id="view-notifications">
+<section class="panel notification-center">
+<div class="notification-toolbar"><div><strong>Recent activity</strong><span>Torrent completions, account activity, updates, integrations, and dashboard events.</span></div><div class="notification-toolbar-actions"><select id="notificationFilter" aria-label="Notification category"><option value="all">All activity</option><option value="torrents">Torrents</option><option value="system">System</option><option value="security">Security</option><option value="updates">Updates</option></select><button class="secondary" id="refreshNotifications" type="button">Refresh</button></div></div>
+<div class="notification-list" id="notificationList"></div>
+</section>
 </section>
 <section class="view" id="view-settings">
 <div class="settings-layout">
@@ -222,14 +222,15 @@
 </div>
 </section>
 </main>
-<nav class="mobile-nav"><button class="active" data-view="dashboard">Dashboard</button><button data-view="history">Transfer History</button><button class="admin-only" data-view="settings">Settings</button></nav>
+<nav class="mobile-nav"><button class="active" data-view="dashboard">Dashboard</button><button data-view="notifications">Notifications</button><button class="admin-only" data-view="settings">Settings</button></nav>
 </div>
 <div class="drawer hidden" id="drawer"><div class="drawer-backdrop" data-close=""></div><section class="drawer-sheet"><header><div><h2 id="detailName">Torrent</h2><p id="detailMeta">—</p></div><button class="icon-btn" data-close="">×</button></header><div class="detail-actions" id="detailActions"></div><div class="detail-tabs"><button class="active" data-detailtab="overview">Overview</button><button data-detailtab="files">Files</button><button data-detailtab="peers">Peers</button><button data-detailtab="trackers">Trackers</button><button data-detailtab="pieces">Pieces</button></div><div class="detail-body" id="detailBody"></div></section></div>
 <div class="modal hidden" id="addModal"><div class="modal-backdrop" data-modalclose=""></div><form class="modal-card" id="addForm"><header><h2>Add Torrent</h2><button class="icon-btn" data-modalclose="" type="button">×</button></header><label>Magnet Or Torrent URL<textarea id="addUrls" placeholder="magnet:?xt=…" rows="4"></textarea></label><div class="or">Or</div><label class="file-drop">Choose Torrent File<input accept=".torrent,application/x-bittorrent" id="torrentFile" type="file"/></label><label>Save Path<input id="addPath" placeholder="Optional"/></label><div class="two"><label>Category<input id="addCategory"/></label><label>Tags<input id="addTags"/></label></div><div class="checks"><label><input id="addStopped" type="checkbox"/> Add Paused</label><label><input id="addSequential" type="checkbox"/> Sequential Download</label><label><input id="addFirstLast" type="checkbox"/> First/Last Priority</label></div><button class="primary" type="submit">Add Torrent</button></form></div>
+<div class="modal hidden" id="removeModal"><div class="modal-backdrop" data-remove-cancel=""></div><form class="modal-card remove-modal-card" id="removeForm"><header><div><h2>Remove torrent(s)</h2><p>Remove torrents from qBitTorrent.</p></div><button class="icon-btn" data-remove-cancel="" type="button" aria-label="Cancel removal">×</button></header><div class="remove-dialog-body"><div class="remove-warning-row"><div class="remove-warning-icon" aria-hidden="true">!</div><div class="remove-warning-copy"><strong id="removePrompt">Are you sure you want to remove this torrent from the transfer list?</strong><p>This action removes the selected torrent from qBitTorrent. Downloaded files are kept unless you choose otherwise below.</p></div></div><div class="remove-target-list hidden" id="removeTargets"></div><label class="remove-files-option"><input id="removeFiles" type="checkbox"/><span>Also delete the downloaded files</span></label></div><footer class="remove-dialog-actions"><button class="danger remove-confirm" type="submit">Remove</button><button class="secondary" data-remove-cancel="" type="button">Cancel</button></footer></form></div>
 <div class="menu hidden" id="menu"><button id="pauseAll">Pause All</button><button id="resumeAll">Resume All</button><button id="altSpeed">Toggle Alternative Limits</button><button id="globalDl">Set Global Download Limit</button><button id="globalUl">Set Global Upload Limit</button><button id="notifyPermission">Enable Browser Notifications</button><button class="hidden" id="installPwa">Install App</button></div>
 <div class="menu hidden" id="contextMenu"></div>
 <div class="toasts" id="toasts"></div>
-<script src="/static/settings.js?v=0.5.14"></script>
-<script src="/static/app.js?v=0.5.14"></script>
+<script src="/static/settings.js?v=0.5.15"></script>
+<script src="/static/app.js?v=0.5.15"></script>
 </body>
 </html>

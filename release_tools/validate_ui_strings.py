@@ -98,9 +98,25 @@ def main():
     assert '<div class="field-help">Standard Users have read-only dashboard access.' not in settings_js
     assert ' · ${esc(group)}' not in settings_js
     assert 'function integrationSubtitle' in settings_js
-    assert "#settingsNavToggle')?.addEventListener('click'" in app_js
     assert '0.5.14 readability pass' in app_css
     assert '0.5.14 settings de-duplication' in settings_css
+    assert 'data-view="history"' not in html
+    assert 'Transfer History' not in html
+    assert 'data-view="notifications"' in html
+    assert 'id="view-notifications"' in html
+    assert 'id="notificationList"' in html
+    assert 'async function loadNotifications' in app_js
+    assert 'async function loadHistory' not in app_js
+    assert 'id="removeModal"' in html
+    assert 'id="removeFiles"' in html
+    assert 'Also delete the downloaded files' in html
+    assert 'async function removeTorrentTargets' in app_js
+    assert "confirm('Also delete downloaded files?" not in app_js
+    assert "confirm('Delete downloaded files too?')" not in app_js
+    assert 'nav-caret' not in html
+    assert 'setSettingsNavExpanded(!expanded)' not in app_js
+    assert "$$('.nav-root,.settings-subnav button,.mobile-nav button')" in app_js
+    assert '0.5.15 removal dialog and notification center' in app_css
     assert 'id="settingsNavGroup"' in html
     assert 'id="settingsSubnav"' in html
     assert 'id="settingsMobilePage"' in html
