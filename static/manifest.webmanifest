@@ -1,8 +1,9 @@
 {
-  "name": "Torrent Desk",
-  "short_name": "Torrent Desk",
+  "name": "Torrent Dashboard",
+  "short_name": "Torrent Dashboard",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0b0d10",
-  "theme_color": "#0b0d10"
+  "background_color": "#0a0d11",
+  "theme_color": "#0a0d11",
+  "icons": []
 }

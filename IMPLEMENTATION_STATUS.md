@@ -1,15 +1,9 @@
-# Torrent Desk 3.4.0 Prerelease
+# Torrent Dashboard Pre-Release
 
-## Current Cleanup
-
-- Title Case is the UI naming convention.
-- All password/API Key/token fields have Show/Hide controls.
-- Setup uses Next on intermediate stages and Finish only on Review.
-- qBittorrent setup verification is retained.
-- QR-code support and optional dependency installation have been removed.
-- LAN URL is part of Dashboard Access; the separate Remote Access card has been removed.
-- Setup and Settings include Test GitHub Connection for repository/token validation.
-- The service worker cache is versioned and deletes older Torrent Desk caches on activation.
-- Non-core BAT, Docker, service, tray, startup, and EXE-builder helpers are removed.
-- GitHub private-repository updates, checksum verification, rollback, and config/data preservation remain enabled.
-- `v3.4.0` is temporarily replaced in place as a prerelease while the application is being stabilized.
+- Current prerelease version: 0.4.0
+- Release title: Torrent Dashboard Pre-Release
+- Release assets: client ZIP only
+- Update verification: GitHub Release asset SHA-256 digest
+- GitHub Actions: checkout@v7 and setup-python@v7 (Node 24)
+- Dashboard network UI: Local IP Address and Port are shown separately
+- qBitTorrent test connection normalizer regression fixed and covered by validation

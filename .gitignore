@@ -1,5 +1,8 @@
 config.json
+data/*.sqlite3
 __pycache__/
-data/
+build/
 dist/
+*.spec
+data/
 *.pyc
