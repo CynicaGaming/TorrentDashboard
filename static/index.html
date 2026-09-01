@@ -5,7 +5,7 @@
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#0b0d10" name="theme-color"/>
 <link href="/manifest.webmanifest" rel="manifest"/>
-<link href="/static/app.css" rel="stylesheet"/>
+<link href="/static/app.css?v=3.4.0-cleanup1" rel="stylesheet"/>
 <title>Torrent Desk</title>
 </head>
 <body>
@@ -38,7 +38,7 @@
 <div class="setup-note">Loopback access on the host is always trusted. Interface selections follow the actual subnet assigned to each NIC, so DHCP address changes do not require editing the whitelist. The manual list accepts a single IP or a CIDR on each line.</div>
 </section>
 <section class="setup-page" data-step="2">
-<span class="eyebrow">Step 3 Of 5</span><h1>Add Your Download Client</h1><p class="setup-copy">Torrent Desk connects to qBittorrent through its Web API. API-key authentication is preferred on qBittorrent 5.2+; username/password remains available for older versions.</p>
+<span class="eyebrow">Step 3 Of 5</span><h1>Add Your Download Client</h1><p class="setup-copy">Torrent Desk connects to qBittorrent through its Web API. API Key authentication is preferred on qBittorrent 5.2+; Username and password remain available for older versions.</p>
 <label>Client Type<select id="wClientType"><option value="qbittorrent">qBittorrent</option></select></label>
 <label>Display Name<input id="wClientName" placeholder="Desktop, NAS, Seedbox…" value="desktop"/></label>
 <label>qBittorrent Web UI URL<input id="wClientUrl" placeholder="http://127.0.0.1:8080" value="http://127.0.0.1:8080"/></label>
@@ -50,21 +50,21 @@
 <div class="setup-note">If qBittorrent runs on the same PC as Torrent Desk, keep <code>127.0.0.1:8080</code>. Remote users connect to Torrent Desk on port 8765; qBittorrent itself does not need to be exposed to the LAN.</div>
 </section>
 <section class="setup-page" data-step="3">
-<span class="eyebrow">Step 4 Of 5</span><h1>Install Optional Features</h1><p class="setup-copy">Optional Python packages enable QR codes and Windows helper features. You can install only QR support or all supported optional dependencies directly from setup.</p>
+<span class="eyebrow">Step 4 Of 5</span><h1>Install Optional Features</h1><p class="setup-copy">Optional Python packages enable QR codes and optional dashboard features. QR Code support can be installed directly during setup. You can also install it later from Settings.</p>
 <div class="dependency-list" id="wDependencyList"></div>
-<div class="dependency-actions"><button class="secondary" id="wInstallQr" type="button">Install QR Support</button><button class="secondary" id="wInstallAll" type="button">Install All Optional</button></div>
+<div class="dependency-actions"><button class="secondary" id="wInstallQr" type="button">Install QR Code Support</button></div>
 <div class="test-result muted" id="wDependencyResult">Dependency Status Loading…</div>
 <div class="settings-section-title">Application Updates</div>
 <label class="toggle"><input checked="" id="wUpdatesEnabled" type="checkbox"/><span>Enable GitHub Updates</span></label>
 <label>GitHub Repository <small>(optional)</small><input autocomplete="off" id="wUpdateRepo" placeholder="owner/repository" value="CynicaGaming/TorrentDashboard"/></label><label>GitHub Update Token <small>(required for private repositories)</small><input autocomplete="off" id="wUpdateToken" placeholder="Fine-grained token with Contents: Read" type="password"/></label>
 <label class="toggle"><input checked="" id="wUpdateAutoCheck" type="checkbox"/><span>Check Automatically</span></label>
-<div class="setup-note">After the first manual install, GitHub Releases can deliver future Torrent Desk versions directly from the dashboard. The repository can also be configured later under settings.</div>
+<div class="setup-note">After the first manual install, GitHub Releases can deliver future Torrent Desk versions directly from the dashboard. The repository can also be configured later under Settings.</div>
 <div class="setup-note">Dependency installation runs <code>pip</code> with an internal allowlist. No arbitrary package name is accepted. If this Python installation does not permit package installation, the error output will tell you what to run manually.</div>
 </section>
 <section class="setup-page" data-step="4">
 <span class="eyebrow">Step 5 Of 5</span><h1>Review And Finish</h1><p class="setup-copy">Torrent Desk will re-test qBittorrent once more, save the settings, and start collecting torrent status.</p>
 <div class="review-grid" id="wReview"></div>
-<div class="setup-note">You can add additional qBittorrent instances, notifications, integrations, themes, trusted interfaces, and whitelist entries later under settings.</div>
+<div class="setup-note">You can add additional qBittorrent instances, notifications, integrations, themes, trusted interfaces, and whitelist entries later under Settings.</div>
 </section>
 <div class="form-error" id="setupError"></div>
 <footer class="setup-actions"><button class="secondary hidden" id="wBack" type="button">Back</button><div></div><button class="primary" id="wNext" type="button">Next</button></footer>
@@ -152,7 +152,7 @@
 <label class="toggle"><input id="sReadOnly" type="checkbox"/><span>Read Only Mode</span></label>
 <button class="primary" type="submit">Save Settings</button>
 </form>
-<div class="panel settings-card"><div class="panel-title">Remote Access</div><p class="muted">LAN URL</p><code id="lanUrl">—</code><img alt="lanUrlQrCode" class="qr hidden" id="qr"/><div class="dependency-inline hidden" id="qrFallback"><b>QR Support Unavailable</b><small>Install the optional QR dependencies to enable this code.</small><button class="secondary" id="installQrSettings" type="button">Install QR Support</button></div><button id="copyLan">Copy LAN URL</button><p class="warning">If authentication is disabled while listening on 0.0.0.0, anyone who can reach the dashboard can control qBittorrent unless read-only mode is enabled.</p></div>
+<div class="panel settings-card"><div class="panel-title">Remote Access</div><p class="muted">LAN URL</p><code id="lanUrl">—</code><img alt="LAN URL QR Code" class="qr hidden" id="qr"/><div class="dependency-inline hidden" id="qrFallback"><b>QR Code Support Unavailable</b><small>Install the optional QR dependencies to enable this code.</small><button class="secondary" id="installQrSettings" type="button">Install QR Code Support</button></div><button id="copyLan">Copy LAN URL</button><p class="warning">If authentication is disabled while listening on 0.0.0.0, anyone who can reach the dashboard can control qBittorrent unless read-only mode is enabled.</p></div>
 <div class="panel settings-card span2" id="updateSettingsCard">
 <div class="panel-title">Application Updates</div>
 <div class="update-config">
@@ -190,10 +190,10 @@
 <nav class="mobile-nav"><button class="active" data-view="dashboard">Dashboard</button><button data-view="history">Transfer History</button><button data-view="settings">Settings</button></nav>
 </div>
 <div class="drawer hidden" id="drawer"><div class="drawer-backdrop" data-close=""></div><section class="drawer-sheet"><header><div><h2 id="detailName">Torrent</h2><p id="detailMeta">—</p></div><button class="icon-btn" data-close="">×</button></header><div class="detail-actions" id="detailActions"></div><div class="detail-tabs"><button class="active" data-detailtab="overview">Overview</button><button data-detailtab="files">Files</button><button data-detailtab="peers">Peers</button><button data-detailtab="trackers">Trackers</button><button data-detailtab="pieces">Pieces</button></div><div class="detail-body" id="detailBody"></div></section></div>
-<div class="modal hidden" id="addModal"><div class="modal-backdrop" data-modalclose=""></div><form class="modal-card" id="addForm"><header><h2>Add Torrent</h2><button class="icon-btn" data-modalclose="" type="button">×</button></header><label>Magnet Or Torrent URL<textarea id="addUrls" placeholder="magnet:?xt=…" rows="4"></textarea></label><div class="or">Or</div><label class="file-drop">Choose Torrent File<input accept=".torrent,application/x-bittorrent" id="torrentFile" type="file"/></label><label>Save Path<input id="addPath" placeholder="Optional"/></label><div class="two"><label>Category<input id="addCategory"/></label><label>Tags<input id="addTags"/></label></div><div class="checks"><label><input id="addStopped" type="checkbox"/> Add Paused</label><label><input id="addSequential" type="checkbox"/> Sequential Download</label><label><input id="addFirstLast" type="checkbox"/> First Last Priority</label></div><button class="primary" type="submit">Add Torrent</button></form></div>
+<div class="modal hidden" id="addModal"><div class="modal-backdrop" data-modalclose=""></div><form class="modal-card" id="addForm"><header><h2>Add Torrent</h2><button class="icon-btn" data-modalclose="" type="button">×</button></header><label>Magnet Or Torrent URL<textarea id="addUrls" placeholder="magnet:?xt=…" rows="4"></textarea></label><div class="or">Or</div><label class="file-drop">Choose Torrent File<input accept=".torrent,application/x-bittorrent" id="torrentFile" type="file"/></label><label>Save Path<input id="addPath" placeholder="Optional"/></label><div class="two"><label>Category<input id="addCategory"/></label><label>Tags<input id="addTags"/></label></div><div class="checks"><label><input id="addStopped" type="checkbox"/> Add Paused</label><label><input id="addSequential" type="checkbox"/> Sequential Download</label><label><input id="addFirstLast" type="checkbox"/> First/Last Priority</label></div><button class="primary" type="submit">Add Torrent</button></form></div>
 <div class="menu hidden" id="menu"><button id="pauseAll">Pause All</button><button id="resumeAll">Resume All</button><button id="altSpeed">Toggle Alternative Limits</button><button id="globalDl">Set Global Download Limit</button><button id="globalUl">Set Global Upload Limit</button><button id="notifyPermission">Enable Browser Notifications</button><button class="hidden" id="installPwa">Install App</button></div>
 <div class="menu hidden" id="contextMenu"></div>
 <div class="toasts" id="toasts"></div>
-<script src="/static/app.js"></script>
+<script src="/static/app.js?v=3.4.0-cleanup1"></script>
 </body>
 </html>

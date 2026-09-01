@@ -1,7 +1,2 @@
-qrcode
-Pillow
-pystray
-# Windows only:
-# pywin32
-# Build helper:
-# pyinstaller
+qrcode>=7.4
+Pillow>=10
