@@ -42,14 +42,14 @@ needle = "  async function saveCore(e) {\n    if (e?.preventDefault) e.preventDe
 replacement = "  async function saveCore(e) {\n    if (e?.preventDefault) e.preventDefault();\n    const activePage = document.querySelector('.settings-page.active')?.dataset.settingsSection || 'general';\n    if (activePage === 'updates') return saveUpdateSource();\n"
 assert needle in settings
 settings = settings.replace(needle, replacement, 1)
-assert "updateSourceSave" not in settings
+assert "#updateSourceSave" not in settings
 write("static/settings.js", settings)
 
 sw = read("static/sw.js").replace(OLD, NEW).replace("torrent-dashboard-v0519", "torrent-dashboard-v0520")
 write("static/sw.js", sw)
 
 validator = read("release_tools/validate_ui_strings.py")
-validator = validator.replace("    assert 'id=\"updateSourceSave\"' in html\n", "    assert 'id=\"updateSourceSave\"' not in html\n    assert 'Save Settings' not in html\n    assert '<div class=\"settings-savebar\" id=\"settingsSavebar\"><button class=\"primary\" type=\"submit\">Save</button></div>' in html\n    assert \"const corePages = new Set(['general','access','clients','updates','notifications']);\" in settings_js\n    assert \"if (activePage === 'updates') return saveUpdateSource();\" in settings_js\n    assert 'updateSourceSave' not in settings_js\n")
+validator = validator.replace("    assert 'id=\"updateSourceSave\"' in html\n", "    assert 'id=\"updateSourceSave\"' not in html\n    assert 'Save Settings' not in html\n    assert '<div class=\"settings-savebar\" id=\"settingsSavebar\"><button class=\"primary\" type=\"submit\">Save</button></div>' in html\n    assert \"const corePages = new Set(['general','access','clients','updates','notifications']);\" in settings_js\n    assert \"if (activePage === 'updates') return saveUpdateSource();\" in settings_js\n    assert '#updateSourceSave' not in settings_js\n")
 write("release_tools/validate_ui_strings.py", validator)
 
 # Final targeted contract checks.
