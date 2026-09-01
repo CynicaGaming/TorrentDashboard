@@ -31,12 +31,10 @@ def validate_javascript(name: str, text: str):
         raise SystemExit(f"{name}: obsolete applyTitleCaseUi reference remains")
 
     offenders = []
-    # Direct textContent assignments bypassing uiText must already be human-readable.
     for value in re.findall(r"textContent\s*=\s*['\"]([^'\"]+)['\"]", text):
         if has_camel_leak(value):
             offenders.append(f"textContent={value!r}")
 
-    # Static user-facing attributes embedded in JS-generated markup.
     for value in re.findall(r'(?:placeholder|title|aria-label)=\\?["\']([^"\']*)', text):
         if has_camel_leak(value):
             offenders.append(f"attribute={value!r}")
@@ -50,6 +48,8 @@ def main():
     app_js = (ROOT / "static" / "app.js").read_text(encoding="utf-8")
     settings_js = (ROOT / "static" / "settings.js").read_text(encoding="utf-8")
     app_css = (ROOT / "static" / "app.css").read_text(encoding="utf-8")
+    settings_css = (ROOT / "static" / "settings.css").read_text(encoding="utf-8")
+    dashboard_py = (ROOT / "dashboard.py").read_text(encoding="utf-8")
 
     validate_html_attributes(html)
     validate_javascript("static/app.js", app_js)
@@ -65,17 +65,20 @@ def main():
     assert "function normalizeUiAttributes" in app_js
     assert "attributeFilter:['placeholder','title','aria-label']" in app_js
     assert "applySentenceCaseUi(card)" in settings_js
+
+    # Torrent interaction contract: explicit context menu rather than row-click
+    # navigation, with qBitTorrent-inspired grouping and no automatic management.
     assert "Torrent details" in app_js
     assert "Torrent options…" not in app_js
     assert "Automatic torrent management" not in app_js
     assert "set_auto_management" not in app_js
+    assert "set_auto_management" not in dashboard_py
     assert "openDetail(tr.dataset.server,tr.dataset.hash)" not in app_js
-    # qBitTorrent-inspired torrent menu must remain functional and mobile friendly.
-    assert "Torrent options…" in app_js
-    assert "Automatic torrent management" in app_js
-    assert "set_auto_management" in (ROOT / "dashboard.py").read_text(encoding="utf-8")
     assert "menu-separator" in app_css and "@media(max-width:700px)" in app_css
     assert "e.target.closest('button[data-a]')" in app_js
+    assert '.standard-user .row-actions' not in settings_css
+    assert '.standard-user #contextMenu' not in settings_css
+
     print("UI string audit passed")
 
 
