@@ -104,7 +104,9 @@ jobs:
           html = pathlib.Path('static/index.html').read_text(encoding='utf-8')
           js = pathlib.Path('static/settings.js').read_text(encoding='utf-8')
           app_js = pathlib.Path('static/app.js').read_text(encoding='utf-8')
+          app_css = pathlib.Path('static/app.css').read_text(encoding='utf-8')
           css = pathlib.Path('static/settings.css').read_text(encoding='utf-8')
+          dashboard_source = pathlib.Path('dashboard.py').read_text(encoding='utf-8')
           sw = pathlib.Path('static/sw.js').read_text(encoding='utf-8')
           sound = pathlib.Path('static/default-completion.wav')
 
@@ -125,11 +127,21 @@ jobs:
           assert "const SECRET_MASK = '••••••••••';" in js
           assert "const CONFIGURED_SECRET_MASK='••••••••••';" in app_js
           assert "input.value=configured?CONFIGURED_SECRET_MASK:''" in app_js
-          assert "btn.textContent='Stored'" in app_js
+          assert "btn.hidden=stored" in app_js
+          assert "visibility_lock" in app_js and "visibility'" in app_js
+          assert 'material-symbols-outlined' in app_css
+          assert '.secret-input.stored-secret' in app_css
+          assert '.secret-toggle:disabled' not in css
+          assert 'fonts.googleapis.com' in html
+          assert 'fonts.gstatic.com' in dashboard_source
+          assert '<h2>Settings</h2><p id="clientSettingsClientName">qBitTorrent</p>' in html
+          assert 'class="client-switch"' in html
+          assert '>Save</button><button class="secondary" data-client-settings-close' in html
+          assert '>Client Settings</button>' not in app_js
+          assert '>Settings</button>' in app_js
           assert 'Configured — Leave Blank To Keep' not in js
           assert 'Token Configured — Leave Blank To Keep' not in js
           assert '.settings-page .settings-card{max-width:none;width:100%}' in css
-          assert '.secret-toggle:disabled' in css
           assert 'id="updateAction"' in html
           assert 'id="checkUpdate"' not in html
           assert 'id="downloadUpdate"' not in html
@@ -151,7 +163,7 @@ jobs:
           assert 'async function testNotification()' in js
           assert 'Notification.requestPermission()' in js
           assert 'async function showBrowserNotification' in app_js
-          assert 'CREATE_NO_WINDOW' in pathlib.Path('dashboard.py').read_text(encoding='utf-8')
+          assert 'CREATE_NO_WINDOW' in dashboard_source
           assert 'uploadNotificationSoundIfNeeded' in js
           assert 'playCompletionSound' in app_js
           assert 'function beep()' not in app_js
