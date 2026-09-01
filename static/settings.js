@@ -266,7 +266,7 @@ window.TDSettings = (() => {
       card.querySelector('.integration-delete').addEventListener('click', () => deleteIntegration(card, item));
       list.appendChild(card);
       decorateSecretFields(card);
-      applyTitleCaseUi(card);
+      applySentenceCaseUi(card);
     });
   }
 
@@ -367,7 +367,7 @@ window.TDSettings = (() => {
       card.querySelector('.user-delete').addEventListener('click',()=>deleteUser(card,user));
       list.appendChild(card);
       decorateSecretFields(card);
-      applyTitleCaseUi(card);
+      applySentenceCaseUi(card);
     });
   }
 
