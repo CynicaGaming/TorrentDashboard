@@ -1,0 +1,9 @@
+services:
+  torrent-desk:
+    build: .
+    ports:
+      - "8765:8765"
+    volumes:
+      - ./config.json:/app/config.json
+      - ./data:/app/data
+    restart: unless-stopped

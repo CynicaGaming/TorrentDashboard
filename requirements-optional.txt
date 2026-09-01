@@ -1,0 +1,7 @@
+qrcode
+Pillow
+pystray
+# Windows only:
+# pywin32
+# Build helper:
+# pyinstaller

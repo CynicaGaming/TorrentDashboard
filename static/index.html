@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
+<meta content="#0b0d10" name="theme-color"/>
+<link href="/manifest.webmanifest" rel="manifest"/>
+<link href="/static/app.css" rel="stylesheet"/>
+<title>Torrent Desk</title>
+</head>
+<body>
+<div class="setup-shell hidden" id="setup">
+<div class="setup-card">
+<aside class="setup-rail">
+<div class="brand-mark">⇣</div>
+<div><strong>Torrent Desk</strong><small>First Run Setup</small></div>
+<ol id="setupSteps"><li class="active"><button data-setup-step="0" type="button">Dashboard</button></li><li><button data-setup-step="1" type="button">Access Control</button></li><li><button data-setup-step="2" type="button">Download Client</button></li><li><button data-setup-step="3" type="button">Optional Features</button></li><li><button data-setup-step="4" type="button">Review</button></li></ol>
+<p>Nothing is written until the final connection test succeeds.</p>
+</aside>
+<form autocomplete="off" class="setup-main" id="setupForm">
+<section class="setup-page active" data-step="0">
+<span class="eyebrow">Step 1 Of 5</span><h1>Set Up Your Dashboard</h1><p class="setup-copy">Choose the basic dashboard behavior. Torrent Desk listens on <code>0.0.0.0</code> so it can be reached from your network.</p>
+<label>Dashboard Name<input id="wTitle" maxlength="128" value="Torrent Desk"/></label>
+<label>Refresh Interval<select id="wRefresh"><option value="1">1 Second</option><option selected="" value="2">2 Seconds</option><option value="5">5 Seconds</option><option value="10">10 Seconds</option></select></label>
+<label class="toggle"><input id="wReadOnly" type="checkbox"/><span>Start In Read Only Mode</span></label>
+<div class="setup-code hidden" id="setupCodeWrap"><label>Remote Setup Code<input autocomplete="one-time-code" id="wSetupCode" maxlength="16" placeholder="Shown In Console"/></label><small>This is required only when the first setup is being performed from another device.</small></div>
+</section>
+<section class="setup-page" data-step="1">
+<span class="eyebrow">Step 2 Of 5</span><h1>Protect Dashboard Access</h1><p class="setup-copy">Choose which network adapters are trusted. Every selected adapter contributes its current subnet, and you can add individual IP addresses or CIDRs to the whitelist.</p>
+<label>Authentication Mode<select id="wAuthMode"><option selected="" value="lan_bypass">Bypass Password For Trusted Addresses</option><option value="required">Require Password Everywhere</option><option value="disabled">Disable Dashboard Authentication</option></select></label>
+<div class="dashboard-account" id="wizardAccount"><label>Dashboard Username<input autocomplete="off" id="wDashUser" value="admin"/></label><div class="two"><label>Dashboard Password<input autocomplete="new-password" id="wDashPass" placeholder="Create Password" type="password"/></label><label>Confirm Password<input autocomplete="new-password" id="wDashPass2" type="password"/></label></div></div>
+<div id="wLanTrust">
+<div class="field-row"><div><b>Trusted Network Interfaces</b><small>Select one or more network interface cards. Their current subnets are trusted automatically.</small></div><button class="secondary small-btn" id="wRefreshInterfaces" type="button">Refresh Interfaces</button></div>
+<div class="interface-list" id="wInterfaceList"><span class="muted">Detecting Network Interfaces…</span></div>
+<label>IP Address Whitelist <small>(optional)</small><textarea id="wTrustedIps" placeholder="10.0.0.25
+10.20.0.0/24" rows="3"></textarea></label>
+</div>
+<div class="setup-note">Loopback access on the host is always trusted. Interface selections follow the actual subnet assigned to each NIC, so DHCP address changes do not require editing the whitelist. The manual list accepts a single IP or a CIDR on each line.</div>
+</section>
+<section class="setup-page" data-step="2">
+<span class="eyebrow">Step 3 Of 5</span><h1>Add Your Download Client</h1><p class="setup-copy">Torrent Desk connects to qBittorrent through its Web API. API-key authentication is preferred on qBittorrent 5.2+; username/password remains available for older versions.</p>
+<label>Client Type<select id="wClientType"><option value="qbittorrent">qBittorrent</option></select></label>
+<label>Display Name<input id="wClientName" placeholder="Desktop, NAS, Seedbox…" value="desktop"/></label>
+<label>qBittorrent Web UI URL<input id="wClientUrl" placeholder="http://127.0.0.1:8080" value="http://127.0.0.1:8080"/></label>
+<label>qBittorrent Authentication<select id="wClientAuth"><option selected="" value="api_key">API Key(qBittorrent 5.2+)</option><option value="password">Username And Password</option></select></label>
+<div id="wClientApiWrap"><label>qBittorrent API Key<input autocomplete="off" id="wClientApiKey" placeholder="qbt_…" type="password"/></label><div class="field-help">Generate it in qBittorrent → Preferences → Web UI → API Key.</div></div>
+<div class="two hidden" id="wClientPasswordWrap"><label>qBittorrent Username<input autocomplete="off" id="wClientUser"/></label><label>qBittorrent Password<input autocomplete="off" id="wClientPass" type="password"/></label></div>
+<button class="secondary" id="wTestClient" type="button">Test qBittorrent Connection</button>
+<div class="test-result muted" id="wClientResult">Not Tested Yet</div>
+<div class="setup-note">If qBittorrent runs on the same PC as Torrent Desk, keep <code>127.0.0.1:8080</code>. Remote users connect to Torrent Desk on port 8765; qBittorrent itself does not need to be exposed to the LAN.</div>
+</section>
+<section class="setup-page" data-step="3">
+<span class="eyebrow">Step 4 Of 5</span><h1>Install Optional Features</h1><p class="setup-copy">Optional Python packages enable QR codes and Windows helper features. You can install only QR support or all supported optional dependencies directly from setup.</p>
+<div class="dependency-list" id="wDependencyList"></div>
+<div class="dependency-actions"><button class="secondary" id="wInstallQr" type="button">Install QR Support</button><button class="secondary" id="wInstallAll" type="button">Install All Optional</button></div>
+<div class="test-result muted" id="wDependencyResult">Dependency Status Loading…</div>
+<div class="settings-section-title">Application Updates</div>
+<label class="toggle"><input checked="" id="wUpdatesEnabled" type="checkbox"/><span>Enable GitHub Updates</span></label>
+<label>GitHub Repository <small>(optional)</small><input autocomplete="off" id="wUpdateRepo" placeholder="owner/repository" value="CynicaGaming/TorrentDashboard"/></label><label>GitHub Update Token <small>(required for private repositories)</small><input autocomplete="off" id="wUpdateToken" placeholder="Fine-grained token with Contents: Read" type="password"/></label>
+<label class="toggle"><input checked="" id="wUpdateAutoCheck" type="checkbox"/><span>Check Automatically</span></label>
+<div class="setup-note">After the first manual install, GitHub Releases can deliver future Torrent Desk versions directly from the dashboard. The repository can also be configured later under settings.</div>
+<div class="setup-note">Dependency installation runs <code>pip</code> with an internal allowlist. No arbitrary package name is accepted. If this Python installation does not permit package installation, the error output will tell you what to run manually.</div>
+</section>
+<section class="setup-page" data-step="4">
+<span class="eyebrow">Step 5 Of 5</span><h1>Review And Finish</h1><p class="setup-copy">Torrent Desk will re-test qBittorrent once more, save the settings, and start collecting torrent status.</p>
+<div class="review-grid" id="wReview"></div>
+<div class="setup-note">You can add additional qBittorrent instances, notifications, integrations, themes, trusted interfaces, and whitelist entries later under settings.</div>
+</section>
+<div class="form-error" id="setupError"></div>
+<footer class="setup-actions"><button class="secondary hidden" id="wBack" type="button">Back</button><div></div><button class="primary" id="wNext" type="button">Next</button></footer>
+</form>
+</div>
+</div>
+<div class="login-shell hidden" id="login">
+<form autocomplete="off" class="login-card" id="loginForm">
+<div class="brand-mark">⇣</div>
+<h1>Torrent Desk</h1><p>Sign In To Dashboard</p>
+<input aria-hidden="true" autocomplete="username" class="autofill-decoy" tabindex="-1" type="text"/>
+<input aria-hidden="true" autocomplete="current-password" class="autofill-decoy" tabindex="-1" type="password"/>
+<input autocapitalize="none" autocomplete="off" data-1p-ignore="" data-lpignore="true" id="loginUser" name="tdUser" placeholder="Username" spellcheck="false"/>
+<input autocomplete="new-password" data-1p-ignore="" data-lpignore="true" id="loginPass" name="tdPass" placeholder="Password" type="password"/>
+<button class="primary" type="submit">Sign In</button>
+<div class="form-error" id="loginError"></div>
+</form>
+</div>
+<div class="app hidden" id="app">
+<aside class="sidebar">
+<div class="brand"><div class="brand-mark">⇣</div><div><strong id="brandTitle">Torrent Desk</strong><small>qBittorrent Control</small></div></div>
+<nav>
+<button class="nav active" data-view="dashboard">Dashboard</button>
+<button class="nav" data-view="history">Transfer History</button>
+<button class="nav" data-view="settings">Settings</button>
+</nav>
+<div class="sidebar-foot"><small id="version">—</small></div>
+</aside>
+<main class="main">
+<header class="topbar">
+<div><h1 id="pageTitle">Dashboard</h1><p id="subtitle">Live Torrent Activity</p></div>
+<div class="top-actions">
+<select id="serverSelect"></select>
+<button class="primary" id="addBtn">＋ Add</button>
+<button class="icon-btn" id="moreBtn">•••</button>
+</div>
+</header>
+<section class="view active" id="view-dashboard">
+<div class="error-banner hidden" id="errorBanner"></div>
+<section class="metrics">
+<article><span>Download</span><strong id="mDown">—</strong><small id="mDownTotal">—</small></article>
+<article><span>Upload</span><strong id="mUp">—</strong><small id="mUpTotal">—</small></article>
+<article><span>Active</span><strong id="mActive">—</strong><small id="mQueue">—</small></article>
+<article><span>Remaining</span><strong id="mRemain">—</strong><small id="mEta">—</small></article>
+<article><span>Disk Free</span><strong id="mDisk">—</strong><small id="mDiskWarn">—</small></article>
+<article><span>Last Updated</span><strong id="mUpdated">—</strong><small id="mHealth">—</small></article>
+</section>
+<section class="panel torrent-panel">
+<div class="filters">
+<div class="tabs" id="tabs"><button class="active" data-filter="all">All <em id="countAll">0</em></button><button data-filter="active">Downloading <em id="countActive">0</em></button><button data-filter="completed">Completed <em id="countCompleted">0</em></button><button data-filter="paused">Paused <em id="countPaused">0</em></button></div>
+<input id="search" placeholder="Search Torrents…"/>
+<select id="category"><option value="">All Categories</option></select><select id="tag"><option value="">All Tags</option></select><select id="tracker"><option value="">All Trackers</option></select>
+<select id="sort"><option value="added_desc">Newest</option><option value="added_asc">Oldest</option><option value="name_asc">Name A–Z</option><option value="name_desc">Name Z–A</option><option value="progress_desc">Progress</option><option value="dlspeed_desc">Download Speed</option><option value="upspeed_desc">Upload Speed</option><option value="eta_asc">ETA</option><option value="size_desc">Size</option><option value="ratio_desc">Ratio</option></select>
+<select id="savedView"><option value="">Saved Views</option></select><button id="saveView">Save View</button>
+</div>
+<div class="selection-bar hidden" id="selectionBar"><span id="selectedCount">0 Selected</span><button id="bulkPause">Pause</button><button id="bulkResume">Resume</button><button class="danger" id="bulkDelete">Delete</button><button id="clearSelection">Clear</button></div>
+<div class="table-wrap"><table id="torrentTable"><thead><tr><th class="check-col"><input id="selectAll" type="checkbox"/></th><th class="name-col">Torrent</th><th data-col="progress">Progress</th><th data-col="state">Status</th><th data-col="down">Download</th><th data-col="up">Upload</th><th data-col="eta">ETA</th><th data-col="ratio">Ratio</th></tr></thead><tbody id="rows"></tbody></table><div class="empty hidden" id="empty">No Torrents Match This View</div></div>
+<div class="mobile-cards" id="mobileCards"></div>
+</section>
+</section>
+<section class="view" id="view-history">
+<div class="history-head"><div><h2>Transfer History</h2><p>Persistent dashboard samples and completion events.</p></div><select id="historyRange"><option value="60">1 Hour</option><option value="360">6 Hours</option><option value="1440">24 Hours</option><option value="10080">7 Days</option></select></div>
+<section class="metrics compact"><article><span>Seven Day Average</span><strong id="aAvg">—</strong></article><article><span>Seven Day Peak</span><strong id="aPeak">—</strong></article><article><span>Known Torrents</span><strong id="aKnown">—</strong></article><article><span>Completed</span><strong id="aComplete">—</strong></article></section>
+<section class="panel chart-panel"><canvas height="220" id="speedChart"></canvas></section>
+<section class="panel"><div class="panel-title">Recent Events</div><div class="event-list" id="eventList"></div></section>
+</section>
+<section class="view" id="view-settings">
+<div class="settings-grid">
+<form class="panel settings-card" id="settingsForm">
+<div class="panel-title">Dashboard Settings</div>
+<label>Dashboard Title<input id="sTitle"/></label>
+<label>Refresh Interval Seconds<input id="sRefresh" max="60" min="1" type="number"/></label>
+<label>Theme<select id="sTheme"><option value="dark">Dark</option><option value="light">Light</option><option value="system">System</option></select></label>
+<label>Density<select id="sDensity"><option value="comfortable">Comfortable</option><option value="compact">Compact</option></select></label>
+<label>Accent Color<input id="sAccent" type="color" value="#72a9ff"/></label>
+<fieldset class="column-prefs"><legend>Visible Desktop Columns</legend><label><input checked="" data-column="progress" type="checkbox"/> Progress</label><label><input checked="" data-column="state" type="checkbox"/> Status</label><label><input checked="" data-column="down" type="checkbox"/> Download</label><label><input checked="" data-column="up" type="checkbox"/> Upload</label><label><input checked="" data-column="eta" type="checkbox"/> ETA</label><label><input checked="" data-column="ratio" type="checkbox"/> Ratio</label></fieldset>
+<div class="settings-section-title">Dashboard Access</div>
+<label class="full-field">Dashboard Username<input autocomplete="username" id="sUsername"/></label>
+<div class="two"><label>New Dashboard Password<input autocomplete="new-password" id="sPassword" placeholder="Leave blank to keep current" type="password"/></label><label>Confirm New Password<input autocomplete="new-password" id="sPassword2" placeholder="Repeat new password" type="password"/></label></div>
+<label>Authentication Mode<select id="sAuth"><option value="required">Required Everywhere</option><option value="lan_bypass">Bypass For Trusted Addresses</option><option value="disabled">Disabled</option></select></label>
+<div class="field-row"><div><b>Trusted Network Interfaces</b><small>Select one or more NICs whose current subnet should bypass dashboard authentication.</small></div><button class="secondary small-btn" id="sRefreshInterfaces" type="button">Refresh Interfaces</button></div>
+<div class="interface-list" id="sInterfaceList"></div>
+<label>IP Address Whitelist<textarea id="sTrustedIps" placeholder="10.0.0.25
+10.20.0.0/24" rows="3"></textarea></label>
+<label class="toggle"><input id="sReadOnly" type="checkbox"/><span>Read Only Mode</span></label>
+<button class="primary" type="submit">Save Settings</button>
+</form>
+<div class="panel settings-card"><div class="panel-title">Remote Access</div><p class="muted">LAN URL</p><code id="lanUrl">—</code><img alt="lanUrlQrCode" class="qr hidden" id="qr"/><div class="dependency-inline hidden" id="qrFallback"><b>QR Support Unavailable</b><small>Install the optional QR dependencies to enable this code.</small><button class="secondary" id="installQrSettings" type="button">Install QR Support</button></div><button id="copyLan">Copy LAN URL</button><p class="warning">If authentication is disabled while listening on 0.0.0.0, anyone who can reach the dashboard can control qBittorrent unless read-only mode is enabled.</p></div>
+<div class="panel settings-card span2" id="updateSettingsCard">
+<div class="panel-title">Application Updates</div>
+<div class="update-config">
+<label class="toggle"><input id="sUpdatesEnabled" type="checkbox"/><span>Enable GitHub Updates</span></label>
+<label class="full-field">GitHub Repository<input autocomplete="off" id="sUpdateRepo" placeholder="owner/repository or https://github.com/owner/repository"/></label><label class="full-field">GitHub Update Token <small>(required for private repositories)</small><input autocomplete="off" id="sUpdateToken" placeholder="Leave blank to keep current token" type="password"/></label>
+<label class="toggle"><input id="sUpdateAutoCheck" type="checkbox"/><span>Check Automatically</span></label>
+<label>Check Interval Hours<input id="sUpdateHours" max="168" min="1" type="number" value="6"/></label>
+</div>
+<div class="update-status" id="updateStatus">
+<div><span>Current Version</span><strong id="updateCurrent">—</strong></div>
+<div><span>Latest Version</span><strong id="updateLatest">Not Checked</strong></div>
+<div><span>Update State</span><strong id="updateState">Idle</strong></div>
+</div>
+<div class="update-actions">
+<button class="secondary" id="checkUpdate" type="button">Check For Updates</button>
+<button class="secondary" disabled="" id="downloadUpdate" type="button">Download Update</button>
+<button class="primary" disabled="" id="installUpdate" type="button">Install And Restart</button>
+</div>
+<div class="muted update-message" id="updateMessage">Configure the GitHub repository and, for a private repository, a token with <code>Contents: Read</code>. Releases are then checked and installed directly from Torrent Desk.</div>
+</div>
+<div class="panel settings-card span2"><div class="panel-title">qBittorrent Servers</div><div id="serverSettings"></div><button id="addServerSetting">＋ Add Server</button></div>
+<div class="panel settings-card span2"><div class="panel-title">Notifications And Integrations</div>
+<div class="integration-config">
+<label>Generic Webhook<input id="nWebhook" placeholder="https://…"/></label><label>Discord Webhook<input id="nDiscord" placeholder="https://discord.com/api/webhooks/…"/></label><label>ntfy Topic URL<input id="nNtfy" placeholder="https://ntfy.sh/topic"/></label>
+<label>Sonarr URL<input id="iSonarrUrl" placeholder="http://host:8989"/></label><label>Sonarr API Key<input id="iSonarrKey" type="password"/></label>
+<label>Radarr URL<input id="iRadarrUrl" placeholder="http://host:7878"/></label><label>Radarr API Key<input id="iRadarrKey" type="password"/></label>
+<label>Lidarr URL<input id="iLidarrUrl" placeholder="http://host:8686"/></label><label>Lidarr API Key<input id="iLidarrKey" type="password"/></label>
+<label>Prowlarr URL<input id="iProwlarrUrl" placeholder="http://host:9696"/></label><label>Prowlarr API Key<input id="iProwlarrKey" type="password"/></label>
+<label>Jellyfin URL<input id="iJellyfinUrl" placeholder="http://host:8096"/></label><label>Jellyfin API Key<input id="iJellyfinKey" type="password"/></label>
+<label>Plex URL<input id="iPlexUrl" placeholder="http://host:32400"/></label><label>Plex Token<input id="iPlexToken" type="password"/></label>
+</div><div class="integration-grid" id="integrationStatus"></div><button id="testNotify">Send Test Notification</button></div>
+</div>
+</section>
+</main>
+<nav class="mobile-nav"><button class="active" data-view="dashboard">Dashboard</button><button data-view="history">Transfer History</button><button data-view="settings">Settings</button></nav>
+</div>
+<div class="drawer hidden" id="drawer"><div class="drawer-backdrop" data-close=""></div><section class="drawer-sheet"><header><div><h2 id="detailName">Torrent</h2><p id="detailMeta">—</p></div><button class="icon-btn" data-close="">×</button></header><div class="detail-actions" id="detailActions"></div><div class="detail-tabs"><button class="active" data-detailtab="overview">Overview</button><button data-detailtab="files">Files</button><button data-detailtab="peers">Peers</button><button data-detailtab="trackers">Trackers</button><button data-detailtab="pieces">Pieces</button></div><div class="detail-body" id="detailBody"></div></section></div>
+<div class="modal hidden" id="addModal"><div class="modal-backdrop" data-modalclose=""></div><form class="modal-card" id="addForm"><header><h2>Add Torrent</h2><button class="icon-btn" data-modalclose="" type="button">×</button></header><label>Magnet Or Torrent URL<textarea id="addUrls" placeholder="magnet:?xt=…" rows="4"></textarea></label><div class="or">Or</div><label class="file-drop">Choose Torrent File<input accept=".torrent,application/x-bittorrent" id="torrentFile" type="file"/></label><label>Save Path<input id="addPath" placeholder="Optional"/></label><div class="two"><label>Category<input id="addCategory"/></label><label>Tags<input id="addTags"/></label></div><div class="checks"><label><input id="addStopped" type="checkbox"/> Add Paused</label><label><input id="addSequential" type="checkbox"/> Sequential Download</label><label><input id="addFirstLast" type="checkbox"/> First Last Priority</label></div><button class="primary" type="submit">Add Torrent</button></form></div>
+<div class="menu hidden" id="menu"><button id="pauseAll">Pause All</button><button id="resumeAll">Resume All</button><button id="altSpeed">Toggle Alternative Limits</button><button id="globalDl">Set Global Download Limit</button><button id="globalUl">Set Global Upload Limit</button><button id="notifyPermission">Enable Browser Notifications</button><button class="hidden" id="installPwa">Install App</button></div>
+<div class="menu hidden" id="contextMenu"></div>
+<div class="toasts" id="toasts"></div>
+<script src="/static/app.js"></script>
+</body>
+</html>

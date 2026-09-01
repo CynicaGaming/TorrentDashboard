@@ -1,0 +1,76 @@
+{
+  "dashboard": {
+    "title": "Torrent Desk",
+    "bind_host": "0.0.0.0",
+    "port": 8765,
+    "open_browser": true,
+    "refresh_seconds": 2,
+    "history_retention_days": 30,
+    "history_sample_seconds": 10,
+    "low_disk_gb": 20,
+    "read_only": false,
+    "update_manifest_url": "",
+    "https_enabled": false,
+    "https_cert": "",
+    "https_key": ""
+  },
+  "auth": {
+    "mode": "lan_bypass",
+    "username": "admin",
+    "password_hash": "",
+    "session_hours": 24,
+    "max_login_attempts_per_10m": 20,
+    "trusted_interfaces": [],
+    "trusted_ips": []
+  },
+  "servers": [],
+  "notifications": {
+    "browser": true,
+    "sound": false,
+    "webhook_url": "",
+    "discord_webhook": "",
+    "ntfy_url": "",
+    "gotify_url": "",
+    "gotify_token": "",
+    "telegram_bot_token": "",
+    "telegram_chat_id": ""
+  },
+  "integrations": {
+    "sonarr": {
+      "url": "",
+      "api_key": ""
+    },
+    "radarr": {
+      "url": "",
+      "api_key": ""
+    },
+    "lidarr": {
+      "url": "",
+      "api_key": ""
+    },
+    "prowlarr": {
+      "url": "",
+      "api_key": ""
+    },
+    "jellyfin": {
+      "url": "",
+      "api_key": ""
+    },
+    "plex": {
+      "url": "",
+      "token": ""
+    },
+    "home_assistant_webhook": ""
+  },
+  "setup": {
+    "complete": false
+  },
+  "updates": {
+    "enabled": true,
+    "repository": "CynicaGaming/TorrentDashboard",
+    "github_token": "",
+    "manifest_url": "",
+    "auto_check": true,
+    "check_hours": 6
+  }
+}
