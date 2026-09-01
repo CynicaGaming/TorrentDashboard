@@ -42,7 +42,7 @@ UPDATE_DIR = DATA_DIR / "updates"
 UPDATE_STATE_PATH = DATA_DIR / "update-status.json"
 CUSTOM_SOUND_BASENAME = "custom-notification-sound"
 MAX_CUSTOM_SOUND_BYTES = 2 * 1024 * 1024
-VERSION = "0.5.9"
+VERSION = "0.5.10"
 
 
 class SingleInstanceLock:
@@ -1201,6 +1201,8 @@ class QBitClient:
             return self.post("/api/v2/torrents/delete", {"hashes": hashes, "deleteFiles": str(bool(payload.get("delete_files"))).lower()})
         if action == "force_start":
             return self.post("/api/v2/torrents/setForceStart", {"hashes": hashes, "value": str(bool(payload.get("value"))).lower()})
+        if action == "set_auto_management":
+            return self.post("/api/v2/torrents/setAutoManagement", {"hashes": hashes, "enable": str(bool(payload.get("value"))).lower()})
         if action == "set_location":
             return self.post("/api/v2/torrents/setLocation", {"hashes": hashes, "location": str(payload.get("location", ""))[:2048]})
         if action == "rename":

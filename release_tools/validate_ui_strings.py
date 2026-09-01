@@ -49,6 +49,7 @@ def main():
     html = (ROOT / "static" / "index.html").read_text(encoding="utf-8")
     app_js = (ROOT / "static" / "app.js").read_text(encoding="utf-8")
     settings_js = (ROOT / "static" / "settings.js").read_text(encoding="utf-8")
+    app_css = (ROOT / "static" / "app.css").read_text(encoding="utf-8")
 
     validate_html_attributes(html)
     validate_javascript("static/app.js", app_js)
@@ -64,6 +65,12 @@ def main():
     assert "function normalizeUiAttributes" in app_js
     assert "attributeFilter:['placeholder','title','aria-label']" in app_js
     assert "applySentenceCaseUi(card)" in settings_js
+    # qBitTorrent-inspired torrent menu must remain functional and mobile friendly.
+    assert "Torrent options…" in app_js
+    assert "Automatic torrent management" in app_js
+    assert "set_auto_management" in (ROOT / "dashboard.py").read_text(encoding="utf-8")
+    assert "menu-separator" in app_css and "@media(max-width:700px)" in app_css
+    assert "e.target.closest('button[data-a]')" in app_js
     print("UI string audit passed")
 
 

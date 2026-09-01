@@ -264,50 +264,107 @@ function showTorrentMenu(tr,anchor,context=false){
   const t=state.torrents.find(x=>(x._server_id||state.server)===sid&&x.hash===h);
   if(!t)return;
   const admin=!!state.me?.can_manage;
-  const items=[
-    '<button data-a="details">Details</button>',
-    admin?`<button data-a="${isPaused(t)?'start':'stop'}">${isPaused(t)?'Resume':'Pause'}</button>`:'',
-    admin?'<button data-a="recheck">Recheck</button>':'',
-    admin?'<button data-a="reannounce">Reannounce</button>':'',
-    admin?`<button data-a="force_start">${t.force_start?'Disable force start':'Enable force start'}</button>`:'',
-    admin?'<button data-a="toggle_sequential">Toggle sequential download</button>':'',
-    admin?'<button data-a="toggle_first_last">Toggle first/last priority</button>':'',
-    admin?'<button data-a="top_priority">Move to top</button>':'',
-    admin?'<button data-a="increase_priority">Move up</button>':'',
-    admin?'<button data-a="decrease_priority">Move down</button>':'',
-    admin?'<button data-a="bottom_priority">Move to bottom</button>':'',
-    admin?'<button data-a="set_category">Set category…</button>':'',
-    admin?'<button data-a="add_tags">Add tags…</button>':'',
-    '<button data-a="copy_hash">Copy hash</button>',
-    admin?'<button data-a="delete" class="danger">Delete…</button>':''
-  ].filter(Boolean);
+  const icon=(glyph)=>`<span class="menu-icon" aria-hidden="true">${glyph}</span>`;
+  const item=(action,label,glyph='',cls='')=>`<button type="button" data-a="${action}"${cls?` class="${cls}"`:''}>${icon(glyph)}<span>${label}</span></button>`;
+  const sep='<div class="menu-separator" role="separator"></div>';
+  const items=[];
+
+  if(admin){
+    items.push(item(isPaused(t)?'start':'stop',isPaused(t)?'Resume':'Pause',isPaused(t)?'▶':'Ⅱ'));
+    items.push(item('force_start',t.force_start?'Disable force start':'Force start','»'));
+    items.push(item('delete','Remove…','×','danger'));
+    items.push(sep);
+    items.push(item('set_location','Set location…','⌖'));
+    items.push(item('rename','Rename…','✎'));
+    items.push(item('set_category','Category…','≡'));
+    items.push(item('tags','Tags…','#'));
+    items.push(item('set_auto_management','Automatic torrent management',t.auto_tmm?'✓':'□'));
+    items.push(sep);
+  }
+
+  items.push(item('details','Torrent options…','ⓘ'));
+
+  if(admin){
+    items.push(sep);
+    items.push(item('toggle_sequential','Download in sequential order',t.seq_dl?'✓':'□'));
+    items.push(item('toggle_first_last','Download first and last pieces first',t.f_l_piece_prio?'✓':'□'));
+    items.push(sep);
+    items.push(item('recheck','Force recheck','↻'));
+    items.push(item('reannounce','Force reannounce','⟳'));
+    items.push(sep);
+    items.push('<div class="menu-caption">Queue position</div>');
+    items.push(item('top_priority','Move to top','⇈'));
+    items.push(item('increase_priority','Move up','↑'));
+    items.push(item('decrease_priority','Move down','↓'));
+    items.push(item('bottom_priority','Move to bottom','⇊'));
+  }
+
+  items.push(sep);
+  if(t.magnet_uri)items.push(item('copy_magnet','Copy magnet link','⧉'));
+  items.push(item('copy_hash','Copy hash','⧉'));
+
   m.innerHTML=items.join('');
-  applySentenceCaseUi(m);
+  $$('.menu').forEach(x=>{if(x!==m)x.classList.add('hidden')});
   m.onclick=async e=>{
     const button=e.target.closest('button[data-a]'),a=button?.dataset.a;
     if(!a)return;
     m.classList.add('hidden');
     if(a==='details')return openDetail(sid,h);
     if(a==='copy_hash')return navigator.clipboard.writeText(h).then(()=>toast('Hash copied'));
+    if(a==='copy_magnet')return navigator.clipboard.writeText(t.magnet_uri||'').then(()=>toast('Magnet link copied'));
     if(!state.me?.can_manage)return toast('Administrator access is required','error');
     if(a==='delete'){
       const files=confirm('Also delete downloaded files?\nCancel = keep files.');
-      if(!confirm(`Delete ${t.name}?`))return;
+      if(!confirm(`Remove ${t.name} from Torrent Dashboard?`))return;
       return doAction('delete',{server:sid,hashes:[h],delete_files:files});
     }
     if(a==='force_start')return doAction('force_start',{server:sid,hashes:[h],value:!t.force_start});
-    if(a==='set_category'){const v=prompt('Category name:');if(v!==null)return doAction(a,{server:sid,hashes:[h],category:v})}
-    if(a==='add_tags'){const v=prompt('Comma-separated tags:');if(v)return doAction(a,{server:sid,hashes:[h],tags:v})}
+    if(a==='set_auto_management')return doAction('set_auto_management',{server:sid,hashes:[h],value:!t.auto_tmm});
+    if(a==='set_location'){
+      const v=prompt('New save location:',t.save_path||'');
+      if(v!==null&&v.trim())return doAction('set_location',{server:sid,hashes:[h],location:v.trim()});
+      return;
+    }
+    if(a==='rename'){
+      const v=prompt('New torrent name:',t.name||'');
+      if(v!==null&&v.trim())return doAction('rename',{server:sid,hash:h,hashes:[h],name:v.trim()});
+      return;
+    }
+    if(a==='set_category'){
+      const v=prompt('Category:',t.category||'');
+      if(v!==null)return doAction('set_category',{server:sid,hashes:[h],category:v.trim()});
+      return;
+    }
+    if(a==='tags'){
+      const current=String(t.tags||'').split(',').map(x=>x.trim()).filter(Boolean);
+      const v=prompt('Tags (comma-separated):',current.join(', '));
+      if(v===null)return;
+      const next=v.split(',').map(x=>x.trim()).filter(Boolean);
+      const remove=current.filter(x=>!next.includes(x));
+      const add=next.filter(x=>!current.includes(x));
+      if(remove.length)await doAction('remove_tags',{server:sid,hashes:[h],tags:remove.join(',')});
+      if(add.length)await doAction('add_tags',{server:sid,hashes:[h],tags:add.join(',')});
+      return;
+    }
     return doAction(a,{server:sid,hashes:[h]});
   };
+
   if(context){
-    const r=anchor.getBoundingClientRect();
-    m.style.left=Math.max(8,Math.min(innerWidth-205,r.left))+'px';
-    m.style.top=Math.max(8,Math.min(innerHeight-360,r.top))+'px';
     m.classList.remove('hidden');
+    const r=anchor.getBoundingClientRect(),rect=m.getBoundingClientRect();
+    m.style.left=Math.max(8,Math.min(innerWidth-rect.width-8,r.left))+'px';
+    m.style.top=Math.max(8,Math.min(innerHeight-rect.height-8,r.top))+'px';
   }else showMenu(m,anchor);
 }
-function showMenu(m,anchor){let r=anchor.getBoundingClientRect();m.style.left=Math.max(8,Math.min(innerWidth-205,r.right-190))+'px';m.style.top=Math.min(innerHeight-280,r.bottom+5)+'px';m.classList.remove('hidden')}
+function showMenu(m,anchor){
+  $$('.menu').forEach(x=>{if(x!==m)x.classList.add('hidden')});
+  m.classList.remove('hidden');
+  const r=anchor.getBoundingClientRect(),rect=m.getBoundingClientRect();
+  const left=Math.max(8,Math.min(innerWidth-rect.width-8,r.right-rect.width));
+  let top=r.bottom+5;
+  if(top+rect.height>innerHeight-8)top=Math.max(8,r.top-rect.height-5);
+  m.style.left=left+'px';m.style.top=top+'px';
+}
 
 async function doAction(action,payload={}){if(!state.me?.can_manage)return toast('Administrator access is required','error');try{let server=payload.server||state.server;if(server==='all')throw new Error('chooseSpecificServerForAction');await post('/api/action',{server,action,...payload});toast('actionSent');setTimeout(refreshStatus,300)}catch(e){toast(e.message,'error')}}
 async function globalAction(a){if(state.server==='all'){for(const s of [...new Set(state.torrents.map(t=>t._server_id).filter(Boolean))])await doAction(a,{server:s,hashes:['all']})}else await doAction(a,{hashes:['all']})}

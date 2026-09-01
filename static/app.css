@@ -68,3 +68,22 @@ button,select,input,textarea{border:1px solid var(--border);background:var(--pan
 /* Dashboard access and GitHub connection testing */
 .dashboard-settings-card{align-self:start}.lan-access-block{display:grid;gap:8px;margin:14px 0;padding:12px;border:1px solid var(--border);border-radius:12px;background:var(--panel3)}.lan-access-block>div:first-child{display:grid;gap:3px}.lan-access-block b{font-size:10px;color:var(--text)}.lan-access-block small{font-size:8px;color:var(--muted);line-height:1.4}.lan-url-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center}.lan-url-row code{margin:0;min-width:0}.lan-url-row button{white-space:nowrap}.connection-test-row{display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px;align-items:center;margin:4px 0 12px}.connection-test-row .test-result,.update-access-result{margin:0}.update-access-result{margin-top:10px}.update-actions{flex-wrap:wrap}
 @media(max-width:620px){.lan-url-row,.connection-test-row{grid-template-columns:1fr}.lan-url-row button,.connection-test-row button{width:100%}}
+
+
+/* 0.5.10 qBitTorrent-inspired torrent action menu. */
+#contextMenu{min-width:250px;max-width:min(292px,calc(100vw - 16px));max-height:calc(100vh - 16px);overflow-y:auto;overscroll-behavior:contain;padding:6px;scrollbar-width:thin}
+#contextMenu button{display:flex;align-items:center;gap:9px;min-height:34px;padding:7px 10px;border-radius:8px;white-space:nowrap}
+#contextMenu button:hover{background:var(--panel3)}
+#contextMenu .menu-icon{display:inline-grid;place-items:center;flex:0 0 17px;width:17px;color:var(--muted);font-size:12px;font-weight:700}
+#contextMenu button:hover .menu-icon{color:var(--accent)}
+#contextMenu .menu-separator{height:1px;background:color-mix(in srgb,var(--border) 78%,transparent);margin:5px 2px}
+#contextMenu .menu-caption{padding:5px 10px 3px;color:var(--muted);font-size:8px;text-transform:uppercase;letter-spacing:.08em}
+#contextMenu button.danger{color:var(--bad)!important;background:transparent!important;border:0!important}
+#contextMenu button.danger:hover{background:color-mix(in srgb,var(--bad) 9%,transparent)!important}
+@media(max-width:700px){
+  #contextMenu{left:8px!important;right:8px!important;top:auto!important;bottom:calc(68px + env(safe-area-inset-bottom));min-width:0;max-width:none;max-height:min(68vh,560px);padding:8px;border-radius:16px}
+  #contextMenu button{min-height:44px;padding:10px 12px;font-size:12px;border-radius:10px}
+  #contextMenu .menu-icon{flex-basis:20px;width:20px;font-size:14px}
+  #contextMenu .menu-caption{padding:7px 12px 4px;font-size:9px}
+  #contextMenu .menu-separator{margin:6px 3px}
+}
