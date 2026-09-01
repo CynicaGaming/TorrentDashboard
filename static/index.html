@@ -5,8 +5,8 @@
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#0b0d10" name="theme-color"/>
 <link href="/manifest.webmanifest" rel="manifest"/>
-<link href="/static/app.css?v=0.5.20" rel="stylesheet"/>
-<link href="/static/settings.css?v=0.5.20" rel="stylesheet"/>
+<link href="/static/app.css?v=0.5.21" rel="stylesheet"/>
+<link href="/static/settings.css?v=0.5.21" rel="stylesheet"/>
 <title>Torrent Dashboard</title>
 </head>
 <body>
@@ -83,12 +83,12 @@
 <button class="nav nav-root nav-parent" data-view="settings" id="settingsNavToggle"><span>Settings</span></button>
 <div class="settings-subnav hidden" id="settingsSubnav">
 <button data-view="settings" data-settings-page="general" type="button">General</button>
-<button data-view="settings" data-settings-page="access" type="button">Dashboard Access</button>
-<button data-view="settings" data-settings-page="clients" type="button">Download Clients</button>
+<button data-view="settings" data-settings-page="access" type="button">Access</button>
+<button data-view="settings" data-settings-page="clients" type="button">Clients</button>
 <button data-view="settings" data-settings-page="updates" type="button">Updates</button>
 <button data-view="settings" data-settings-page="notifications" type="button">Notifications</button>
 <button data-view="settings" data-settings-page="integrations" type="button">Integrations</button>
-<button data-view="settings" data-settings-page="users" type="button">User Management</button>
+<button data-view="settings" data-settings-page="users" type="button">Users</button>
 </div>
 </div>
 </nav>
@@ -148,7 +148,7 @@
 </section>
 <section class="view" id="view-settings">
 <div class="settings-layout">
-<label class="settings-mobile-picker">Settings category<select id="settingsMobilePage" aria-label="Settings category"><option value="general">General</option><option value="access">Dashboard Access</option><option value="clients">Download Clients</option><option value="updates">Updates</option><option value="notifications">Notifications</option><option value="integrations">Integrations</option><option value="users">User Management</option></select></label>
+<label class="settings-mobile-picker">Settings category<select id="settingsMobilePage" aria-label="Settings category"><option value="general">General</option><option value="access">Access</option><option value="clients">Clients</option><option value="updates">Updates</option><option value="notifications">Notifications</option><option value="integrations">Integrations</option><option value="users">Users</option></select></label>
 <div class="settings-content">
 <form id="settingsForm">
 <section class="settings-page active" data-settings-section="general">
@@ -231,7 +231,7 @@
 <div class="menu hidden" id="menu"><button id="pauseAll">Pause All</button><button id="resumeAll">Resume All</button><button id="altSpeed">Toggle Alternative Limits</button><button id="globalDl">Set Global Download Limit</button><button id="globalUl">Set Global Upload Limit</button><button id="notifyPermission">Enable Browser Notifications</button><button class="hidden" id="installPwa">Install App</button></div>
 <div class="menu hidden" id="contextMenu"></div>
 <div class="toasts" id="toasts"></div>
-<script src="/static/settings.js?v=0.5.20"></script>
-<script src="/static/app.js?v=0.5.20"></script>
+<script src="/static/settings.js?v=0.5.21"></script>
+<script src="/static/app.js?v=0.5.21"></script>
 </body>
 </html>

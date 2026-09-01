@@ -101,6 +101,15 @@ def main():
     assert "if (activePage === 'updates') return saveUpdateSource();" in settings_js
     assert '#updateSourceSave' not in settings_js
     assert 'data-settings-page="updates" type="button">Updates</button>' in html
+    assert 'data-settings-page="access" type="button">Access</button>' in html
+    assert 'data-settings-page="clients" type="button">Clients</button>' in html
+    assert 'data-settings-page="users" type="button">Users</button>' in html
+    assert '<option value="access">Access</option>' in html
+    assert '<option value="clients">Clients</option>' in html
+    assert '<option value="users">Users</option>' in html
+    assert 'data-settings-page="access" type="button">Dashboard Access</button>' not in html
+    assert 'data-settings-page="clients" type="button">Download Clients</button>' not in html
+    assert 'data-settings-page="users" type="button">User Management</button>' not in html
     assert '<option value="updates">Updates</option>' in html
     assert 'Application Updates' not in html
     assert "x.type === 'github'" not in settings_js
