@@ -42,7 +42,10 @@ UPDATE_DIR = DATA_DIR / "updates"
 UPDATE_STATE_PATH = DATA_DIR / "update-status.json"
 CUSTOM_SOUND_BASENAME = "custom-notification-sound"
 MAX_CUSTOM_SOUND_BYTES = 2 * 1024 * 1024
-VERSION = "0.5.23"
+AVATAR_DIR = DATA_DIR / "avatars"
+MAX_AVATAR_BYTES = 4 * 1024 * 1024
+PROFILE_AVATAR_TYPES = {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp"}
+VERSION = "0.5.24"
 STATUS_REFRESH_SECONDS = 1.0
 DEFAULT_UPDATE_REPOSITORY = "CynicaGaming/TorrentDashboard"
 
@@ -363,6 +366,13 @@ class SessionStore:
         uid = str(user_id or "")
         with self.lock:
             doomed = [token for token, item in self.sessions.items() if item.get("user_id") == uid]
+            for token in doomed:
+                self.sessions.pop(token, None)
+
+    def remove_user_except(self, user_id, keep_token):
+        uid = str(user_id or "")
+        with self.lock:
+            doomed = [token for token, item in self.sessions.items() if item.get("user_id") == uid and token != keep_token]
             for token in doomed:
                 self.sessions.pop(token, None)
 
@@ -745,11 +755,14 @@ def normalize_user(data, existing=None, require_password=False):
         "first_name": str(data.get("first_name") if data.get("first_name") is not None else existing.get("first_name") or "").strip()[:128],
         "last_name": str(data.get("last_name") if data.get("last_name") is not None else existing.get("last_name") or "").strip()[:128],
         "email": email,
+        "avatar_file": Path(str(data.get("avatar_file") if data.get("avatar_file") is not None else existing.get("avatar_file") or "")).name[:255],
+        "avatar_version": str(data.get("avatar_version") if data.get("avatar_version") is not None else existing.get("avatar_version") or "")[:64],
         "group": group,
     }
 
 
 def public_user(user):
+    avatar_path, _ = configured_user_avatar(user)
     return {
         "id": str(user.get("id") or ""),
         "username": str(user.get("username") or ""),
@@ -759,7 +772,127 @@ def public_user(user):
         "group": "administrator" if user.get("group") == "administrator" else "standard",
         "group_label": USER_GROUPS.get(user.get("group"), "Standard User"),
         "display_name": user_display_name(user),
+        "avatar_configured": bool(avatar_path),
+        "avatar_version": str(user.get("avatar_version") or ""),
     }
+
+
+def _profile_avatar_stem(user_id):
+    return "profile-" + hashlib.sha256(str(user_id or "").encode("utf-8")).hexdigest()[:24]
+
+
+def configured_user_avatar(user):
+    user_id = str((user or {}).get("id") or "")
+    filename = Path(str((user or {}).get("avatar_file") or "")).name
+    if not user_id or not filename:
+        return None, None
+    ext = Path(filename).suffix.lower()
+    mime = PROFILE_AVATAR_TYPES.get(ext)
+    if not mime or filename != _profile_avatar_stem(user_id) + ext:
+        return None, None
+    path = AVATAR_DIR / filename
+    if not path.exists() or not path.is_file():
+        return None, None
+    return path, mime
+
+
+def _validate_profile_avatar(filename, content):
+    filename = Path(str(filename or "profile")).name
+    ext = Path(filename).suffix.lower()
+    mime = PROFILE_AVATAR_TYPES.get(ext)
+    if not mime:
+        raise RuntimeError("Profile picture must be a PNG, JPG, or WebP image")
+    if not content or len(content) > MAX_AVATAR_BYTES:
+        raise RuntimeError("Profile picture must be between 1 byte and 4 MB")
+    if ext == ".png" and not content.startswith(b"\x89PNG\r\n\x1a\n"):
+        raise RuntimeError("The selected PNG file is not valid")
+    if ext in (".jpg", ".jpeg") and not content.startswith(b"\xff\xd8\xff"):
+        raise RuntimeError("The selected JPG file is not valid")
+    if ext == ".webp" and not (len(content) >= 12 and content[:4] == b"RIFF" and content[8:12] == b"WEBP"):
+        raise RuntimeError("The selected WebP file is not valid")
+    return ext, mime
+
+
+def delete_user_avatar_files(user_id):
+    if not user_id:
+        return
+    stem = _profile_avatar_stem(user_id)
+    for ext in PROFILE_AVATAR_TYPES:
+        try:
+            (AVATAR_DIR / f"{stem}{ext}").unlink(missing_ok=True)
+        except Exception:
+            pass
+
+
+def store_user_avatar(cfg, user_id, filename, content):
+    out = json.loads(json.dumps(cfg))
+    user = user_by_id(out, user_id)
+    if not user:
+        raise RuntimeError("This session is not linked to a user account")
+    ext, _ = _validate_profile_avatar(filename, content)
+    AVATAR_DIR.mkdir(parents=True, exist_ok=True)
+    delete_user_avatar_files(user_id)
+    dest = AVATAR_DIR / f"{_profile_avatar_stem(user_id)}{ext}"
+    dest.write_bytes(content)
+    user["avatar_file"] = dest.name
+    user["avatar_version"] = secrets.token_hex(8)
+    sync_legacy_auth(out)
+    return out, user
+
+
+def remove_user_avatar(cfg, user_id):
+    out = json.loads(json.dumps(cfg))
+    user = user_by_id(out, user_id)
+    if not user:
+        raise RuntimeError("This session is not linked to a user account")
+    delete_user_avatar_files(user_id)
+    user["avatar_file"] = ""
+    user["avatar_version"] = secrets.token_hex(8)
+    sync_legacy_auth(out)
+    return out, user
+
+
+def save_current_user_profile(cfg, user_id, data):
+    out = json.loads(json.dumps(cfg))
+    users = out.setdefault("users", [])
+    existing = user_by_id(out, user_id)
+    if not existing:
+        raise RuntimeError("This session is not linked to a user account")
+    requested_username = str(data.get("username") if data.get("username") is not None else existing.get("username") or "").strip()
+    if requested_username != str(existing.get("username") or ""):
+        encoded = str(existing.get("password_hash") or "")
+        if encoded and not verify_password(str(data.get("current_password") or ""), encoded):
+            raise RuntimeError("Current password is required to change your username")
+    item = normalize_user({
+        "id": existing.get("id"),
+        "username": requested_username,
+        "first_name": data.get("first_name"),
+        "last_name": data.get("last_name"),
+        "email": data.get("email"),
+        "group": existing.get("group"),
+    }, existing)
+    duplicate = next((u for u in users if str(u.get("id") or "") != item["id"] and str(u.get("username") or "").casefold() == item["username"].casefold()), None)
+    if duplicate:
+        raise RuntimeError("That username is already in use")
+    users[users.index(existing)] = item
+    sync_legacy_auth(out)
+    return out, item
+
+
+def change_current_user_password(cfg, user_id, current_password, new_password):
+    out = json.loads(json.dumps(cfg))
+    user = user_by_id(out, user_id)
+    if not user:
+        raise RuntimeError("This session is not linked to a user account")
+    encoded = str(user.get("password_hash") or "")
+    if encoded and not verify_password(str(current_password or ""), encoded):
+        raise RuntimeError("Current password is incorrect")
+    new_password = str(new_password or "")
+    if len(new_password) < 8:
+        raise RuntimeError("New password must be at least 8 characters")
+    user["password_hash"] = hash_password(new_password)
+    sync_legacy_auth(out)
+    return out, user
 
 
 def user_by_username(cfg, username):
@@ -1973,6 +2106,19 @@ class Handler(BaseHTTPRequestHandler):
         ctx=self.require_auth(False)
         if not ctx: return
         cfg,token,sess,new_cookie=ctx
+        if path=="/api/account":
+            user=user_by_id(cfg,sess.get("user_id",""))
+            if not user:
+                return self.send_json(404,{"error":"This session is not linked to a user account"},new_cookie)
+            return self.send_json(200,{"user":public_user(user)},new_cookie)
+        if path=="/api/account/avatar":
+            user=user_by_id(cfg,sess.get("user_id",""))
+            if not user:
+                return self.send_json(404,{"error":"This session is not linked to a user account"},new_cookie)
+            avatar_path, avatar_mime = configured_user_avatar(user)
+            if not avatar_path:
+                return self.send_json(404,{"error":"No profile picture is configured"},new_cookie)
+            return self.send_bytes(200,avatar_path.read_bytes(),avatar_mime,new_cookie)
         if path in ("/api/settings","/api/integrations","/api/users","/api/network/interfaces") and not session_is_admin(sess):
             return self.send_json(403,{"error":"Administrator access is required"},new_cookie)
 
@@ -2042,9 +2188,35 @@ class Handler(BaseHTTPRequestHandler):
         ctx=self.require_auth(True)
         if not ctx: return
         cfg,token,sess,new_cookie=ctx
-        if not session_is_admin(sess):
-            return self.send_json(403,{"error":"Administrator access is required"},new_cookie)
         try:
+            if path=="/api/account":
+                data=parse_json_body(self,20000)
+                updated,user=save_current_user_profile(cfg,sess.get("user_id",""),data)
+                save_config(updated); SESSIONS.update_user(user)
+                HISTORY.event("dashboard","account_profile_changed",user.get("username",""),"",{"client_ip":self.client_ip()})
+                return self.send_json(200,{"ok":True,"user":public_user(user)},new_cookie)
+            if path=="/api/account/password":
+                data=parse_json_body(self,20000)
+                updated,user=change_current_user_password(cfg,sess.get("user_id",""),data.get("current_password"),data.get("new_password"))
+                save_config(updated); SESSIONS.remove_user_except(user.get("id",""),token)
+                HISTORY.event("dashboard","account_password_changed",user.get("username",""),"",{"client_ip":self.client_ip()})
+                return self.send_json(200,{"ok":True},new_cookie)
+            if path=="/api/account/avatar":
+                fields,files=parse_multipart(self,max_bytes=MAX_AVATAR_BYTES+256000)
+                if not files:
+                    raise RuntimeError("Choose a profile picture")
+                _,filename,content=files[0]
+                updated,user=store_user_avatar(cfg,sess.get("user_id",""),filename,content)
+                save_config(updated)
+                HISTORY.event("dashboard","account_avatar_changed",user.get("username",""),"",{"client_ip":self.client_ip()})
+                return self.send_json(200,{"ok":True,"user":public_user(user)},new_cookie)
+            if path=="/api/account/avatar/delete":
+                updated,user=remove_user_avatar(cfg,sess.get("user_id",""))
+                save_config(updated)
+                HISTORY.event("dashboard","account_avatar_removed",user.get("username",""),"",{"client_ip":self.client_ip()})
+                return self.send_json(200,{"ok":True,"user":public_user(user)},new_cookie)
+            if not session_is_admin(sess):
+                return self.send_json(403,{"error":"Administrator access is required"},new_cookie)
             if path=="/api/action":
                 data=parse_json_body(self); sid=data.pop("server","local"); action=data.pop("action"); result=get_client(cfg,sid).action(action,data)
                 HISTORY.event(sid, "action:"+action, sess.get("username",""), data.get("hash") or "", {"client_ip": self.client_ip()})
@@ -2079,7 +2251,7 @@ class Handler(BaseHTTPRequestHandler):
                 HISTORY.event("dashboard","user_saved",user.get("username",""),"",{"client_ip":self.client_ip(),"group":user.get("group")})
                 return self.send_json(200,{"ok":True,"user":public_user(user)},new_cookie)
             if path=="/api/users/delete":
-                data=parse_json_body(self,10000); uid=str(data.get("id") or ""); updated=delete_user(cfg,uid,sess.get("user_id","")); save_config(updated); SESSIONS.remove_user(uid)
+                data=parse_json_body(self,10000); uid=str(data.get("id") or ""); updated=delete_user(cfg,uid,sess.get("user_id","")); save_config(updated); delete_user_avatar_files(uid); SESSIONS.remove_user(uid)
                 HISTORY.event("dashboard","user_deleted",uid,"",{"client_ip":self.client_ip()})
                 return self.send_json(200,{"ok":True},new_cookie)
             if path=="/api/settings":

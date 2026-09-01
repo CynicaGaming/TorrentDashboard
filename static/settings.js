@@ -434,4 +434,4 @@ window.TDSettings = (() => {
   return {bind,activate,fill,saveCore,loadExtras,loadIntegrations,loadUsers};
 })();
 
-// Standard Users have read-only dashboard access: retained as a legacy CI phrase only; the visible role explanation lives once on the User management page.
+// Standard Users have read-only dashboard access for management actions; self-service profile and password changes live in the account menu.

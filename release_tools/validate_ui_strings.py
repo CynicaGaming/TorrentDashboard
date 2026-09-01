@@ -197,6 +197,29 @@ def main():
     assert '.standard-user .row-actions' not in settings_css
     assert '.standard-user #contextMenu' not in settings_css
 
+    # Self-service account/profile contract. Standard Users must reach these
+    # routes before the Administrator-only mutation barrier.
+    assert 'id="profileBtn"' in html
+    assert 'id="accountMenu"' in html and 'id="accountModal"' in html
+    assert 'id="accountProfileForm"' in html and 'id="accountPasswordForm"' in html
+    assert 'id="accountAvatarInput"' in html and 'data-avatar-default' in html
+    assert 'function syncCurrentUserUi' in app_js
+    assert 'function hideAccountMenu' in app_js
+    assert 'async function openAccountModal' in app_js
+    assert "await post('/api/account/password'" in app_js
+    assert "await api('/api/account/avatar',{method:'POST'" in app_js
+    assert '0.5.24 self-service account menu' in app_css
+    assert 'MAX_AVATAR_BYTES = 4 * 1024 * 1024' in dashboard_py
+    assert 'def save_current_user_profile' in dashboard_py
+    assert 'def change_current_user_password' in dashboard_py
+    assert 'def store_user_avatar' in dashboard_py
+    assert 'def remove_user_except(self, user_id, keep_token)' in dashboard_py
+    assert 'if path=="/api/account/avatar":' in dashboard_py
+    post_section = dashboard_py.split('    def do_POST(self):', 1)[1]
+    assert post_section.index('if path=="/api/account":') < post_section.index('if not session_is_admin(sess):')
+    assert post_section.index('if path=="/api/account/password":') < post_section.index('if not session_is_admin(sess):')
+    assert post_section.index('if path=="/api/account/avatar":') < post_section.index('if not session_is_admin(sess):')
+
     print("UI string audit passed")
 
 

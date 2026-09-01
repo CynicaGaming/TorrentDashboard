@@ -173,8 +173,8 @@ async function bootstrap(){
     state.me=await api('/api/me');state.csrf=state.me.csrf;showApp();
     document.body.classList.toggle('standard-user',!state.me.can_manage);
     $('#brandTitle').textContent=state.me.title;document.title=state.me.title;$('#version').textContent=`v${state.me.version}`;
-    const display=state.me.display_name||state.me.username||'User',group=state.me.group_label||uiText(state.me.group||'standardUser');
-    if($('#currentUserName'))$('#currentUserName').textContent=display;if($('#currentUserGroup'))$('#currentUserGroup').textContent=group;if($('#mobileAccount'))$('#mobileAccount').textContent=group;
+    if(state.me.user_id){try{const account=await api('/api/account');applyAccountUser(account.user)}catch{}}
+    syncCurrentUserUi();
     if(state.me.can_manage){await loadSettings()}else{state.settings={dashboard:{low_disk_gb:20},notifications:{browser:false,sound:false}}}
     await loadServers();bindUI();applyPrefs();await refreshStatus();scheduleRefresh();registerPwa();
   }
@@ -196,11 +196,12 @@ function bindUI(){if(bound)return;bound=true;
   $('#bulkbar').addEventListener('click',e=>{if(e.target.closest('[data-bulk-clear]')){state.selected.clear();render();return}const a=e.target.closest('[data-bulk]')?.dataset.bulk;if(a)bulkAction(a)});
   $('#addBtn').addEventListener('click',()=>$('#addModal').classList.remove('hidden'));$$('[data-modalclose]').forEach(x=>x.addEventListener('click',()=>$('#addModal').classList.add('hidden')));$('#addForm').addEventListener('submit',addTorrent);$('#removeForm')?.addEventListener('submit',e=>{e.preventDefault();closeRemoveDialog({deleteFiles:!!$('#removeFiles')?.checked})});$$('[data-remove-cancel]').forEach(x=>x.addEventListener('click',()=>closeRemoveDialog(null)));
   $$('[data-close]').forEach(x=>x.addEventListener('click',closeDrawer));$$('[data-detailtab]').forEach(x=>x.addEventListener('click',()=>{state.detailTab=x.dataset.detailtab;$$('[data-detailtab]').forEach(b=>b.classList.toggle('active',b===x));renderDetail()}));
-  $('#moreBtn').addEventListener('click',e=>showMenu($('#menu'),e.currentTarget));document.addEventListener('click',e=>{if(!e.target.closest('.menu')&&!e.target.closest('#moreBtn')&&!e.target.closest('.more-row'))$$('.menu').forEach(m=>m.classList.add('hidden'))});
+  $('#moreBtn').addEventListener('click',e=>showMenu($('#menu'),e.currentTarget));$('#profileBtn').addEventListener('click',e=>{showMenu($('#accountMenu'),e.currentTarget);e.currentTarget.setAttribute('aria-expanded','true')});document.addEventListener('click',e=>{if(!e.target.closest('.menu')&&!e.target.closest('#moreBtn')&&!e.target.closest('#profileBtn')&&!e.target.closest('.more-row')){$$('.menu').forEach(m=>m.classList.add('hidden'));$('#profileBtn')?.setAttribute('aria-expanded','false')}});
+  $('#accountSettingsBtn').addEventListener('click',()=>{hideAccountMenu();openAccountModal('profile')});$('#accountPasswordBtn').addEventListener('click',()=>{hideAccountMenu();openAccountModal('password')});$('#accountAvatarBtn').addEventListener('click',()=>{hideAccountMenu();openAccountModal('avatar')});$('#logoutBtn').addEventListener('click',()=>{hideAccountMenu();signOut()});$$('[data-account-close]').forEach(x=>x.addEventListener('click',closeAccountModal));$('#accountProfileForm').addEventListener('submit',saveOwnProfile);$('#accountPasswordForm').addEventListener('submit',changeOwnPassword);$('#accountChooseAvatar').addEventListener('click',()=>$('#accountAvatarInput').click());$('#accountAvatarInput').addEventListener('change',uploadOwnAvatar);$('#accountRemoveAvatar').addEventListener('click',removeOwnAvatar);
   $('#pauseAll').addEventListener('click',()=>globalAction('stop'));$('#resumeAll').addEventListener('click',()=>globalAction('start'));$('#altSpeed').addEventListener('click',()=>doAction('toggle_alt_speed',{}));$('#globalDl').addEventListener('click',()=>globalLimit('global_download_limit'));$('#globalUl').addEventListener('click',()=>globalLimit('global_upload_limit'));
   $('#notificationFilter')?.addEventListener('change',renderNotifications);$('#refreshNotifications')?.addEventListener('click',loadNotifications);
   if(state.me?.can_manage)TDSettings.bind();
-  window.addEventListener('keydown',e=>{if(e.key==='/'&&!['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName)){e.preventDefault();$('#search').focus()}if(e.key==='Escape'){if(!$('#actionDialogModal')?.classList.contains('hidden')){closeActionDialog(null);return}if(!$('#removeModal')?.classList.contains('hidden')){closeRemoveDialog(null);return}if(state.selected.size){state.selected.clear();render();return}closeDrawer();$('#addModal').classList.add('hidden')}});
+  window.addEventListener('keydown',e=>{if(e.key==='/'&&!['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName)){e.preventDefault();$('#search').focus()}if(e.key==='Escape'){if(!$('#accountModal')?.classList.contains('hidden')){closeAccountModal();return}if(!$('#accountMenu')?.classList.contains('hidden')){hideAccountMenu();return}if(!$('#actionDialogModal')?.classList.contains('hidden')){closeActionDialog(null);return}if(!$('#removeModal')?.classList.contains('hidden')){closeRemoveDialog(null);return}if(state.selected.size){state.selected.clear();render();return}closeDrawer();$('#addModal').classList.add('hidden')}});
 }
 
 function setSettingsNavExpanded(expanded){const group=$('#settingsNavGroup'),submenu=$('#settingsSubnav');if(!group||!submenu)return;group.classList.toggle('expanded',!!expanded);submenu.classList.toggle('hidden',!expanded)}
@@ -386,8 +387,8 @@ function renderPieces(a){$('#detailBody').innerHTML=`<p class="muted">${a.length
 
 async function addTorrent(e){e.preventDefault();if(state.server==='all')return toast('chooseSpecificServerFirst','error');try{const f=$('#torrentFile').files[0];if(f){let fd=new FormData();fd.append('server',state.server);fd.append('savepath',$('#addPath').value);fd.append('category',$('#addCategory').value);fd.append('tags',$('#addTags').value);fd.append('stopped',String($('#addStopped').checked));fd.append('sequentialDownload',String($('#addSequential').checked));fd.append('firstLastPiecePrio',String($('#addFirstLast').checked));fd.append('torrents',f);await api('/api/upload',{method:'POST',headers:{'X-CSRF-Token':state.csrf},body:fd})}else{if(!$('#addUrls').value.trim())throw new Error('pasteMagnetUrlOrChooseTorrentFile');await post('/api/action',{server:state.server,action:'add_magnet',urls:$('#addUrls').value.trim(),savepath:$('#addPath').value,category:$('#addCategory').value,tags:$('#addTags').value,stopped:$('#addStopped').checked,sequential:$('#addSequential').checked,first_last:$('#addFirstLast').checked})}$('#addModal').classList.add('hidden');$('#addForm').reset();toast('torrentAdded');setTimeout(refreshStatus,500)}catch(err){toast(err.message,'error')}}
 
-function notificationCategory(item){const event=String(item?.event||'').toLowerCase();if(event==='completed'||event==='torrent_upload'||event.startsWith('action:'))return'torrents';if(event.startsWith('login_')||event.startsWith('user_')||event==='setup_completed')return'security';if(event.startsWith('update_'))return'updates';return'system'}
-function notificationPresentation(item){const event=String(item?.event||'').toLowerCase(),category=notificationCategory(item);let title='',message='',tone='neutral';if(event==='completed'){title='Torrent completed';message=`${item.name||'Torrent'} finished downloading${item.server_id&&item.server_id!=='dashboard'?` on ${item.server_id}`:''}.`;tone='good'}else if(event==='torrent_upload'){title='Torrent added';message=item.name?`${item.name} was added to ${item.server_id||'qBitTorrent'}.`:'A torrent was added.';tone='good'}else if(event.startsWith('action:')){const action=event.split(':',2)[1]||'action';const labels={delete:'Torrent removed',start:'Torrent resumed',stop:'Torrent paused',recheck:'Torrent rechecked',reannounce:'Torrent reannounced',rename:'Torrent renamed',set_location:'Torrent location changed',set_category:'Torrent category changed'};title=labels[action]||uiText(`torrent ${action}`);message=`Action sent${item.server_id&&item.server_id!=='dashboard'?` to ${item.server_id}`:''}${item.name?` by ${item.name}`:''}.`;tone=action==='delete'?'warn':'neutral'}else if(event==='login_failed'){title='Failed sign-in';message=`A sign-in attempt failed${item.name?` for ${item.name}`:''}.`;tone='bad'}else if(event==='login_success'){title='Signed in';message=`${item.name||'A user'} signed in to Torrent Dashboard.`;tone='good'}else if(event==='setup_completed'){title='Setup completed';message='Torrent Dashboard first-run setup was completed.';tone='good'}else if(event==='user_saved'){title='User saved';message=`${item.name||'A user account'} was updated.`}else if(event==='user_deleted'){title='User deleted';message='A dashboard user was removed.';tone='warn'}else if(event==='integration_saved'){title='Integration saved';message=`${item.name||'An integration'} was updated.`}else if(event==='integration_deleted'){title='Integration deleted';message='An integration was removed.';tone='warn'}else if(event==='settings_changed'){title='Settings changed';message=`Dashboard settings were updated${item.name?` by ${item.name}`:''}.`}else if(event==='update_downloaded'){title='Update downloaded';message=item.name?`Version ${item.name} is ready to install.`:'An application update was downloaded.';tone='good'}else if(event==='update_install_started'){title='Update installation started';message=item.name?`Torrent Dashboard is installing version ${item.name}.`:'Torrent Dashboard is installing an update.';tone='good'}else if(event==='notification_sound_changed'){title='Notification sound changed';message=item.name?`${item.name} is now configured.`:'The custom notification sound was changed.'}else{title=uiText(event||'dashboardEvent');message=[item.server_id&&item.server_id!=='dashboard'?item.server_id:'',item.name||''].filter(Boolean).join(' · ')||'Torrent Dashboard recorded an event.'}return{category,title,message,tone}}
+function notificationCategory(item){const event=String(item?.event||'').toLowerCase();if(event==='completed'||event==='torrent_upload'||event.startsWith('action:'))return'torrents';if(event.startsWith('login_')||event.startsWith('user_')||event.startsWith('account_')||event==='setup_completed')return'security';if(event.startsWith('update_'))return'updates';return'system'}
+function notificationPresentation(item){const event=String(item?.event||'').toLowerCase(),category=notificationCategory(item);let title='',message='',tone='neutral';if(event==='completed'){title='Torrent completed';message=`${item.name||'Torrent'} finished downloading${item.server_id&&item.server_id!=='dashboard'?` on ${item.server_id}`:''}.`;tone='good'}else if(event==='torrent_upload'){title='Torrent added';message=item.name?`${item.name} was added to ${item.server_id||'qBitTorrent'}.`:'A torrent was added.';tone='good'}else if(event.startsWith('action:')){const action=event.split(':',2)[1]||'action';const labels={delete:'Torrent removed',start:'Torrent resumed',stop:'Torrent paused',recheck:'Torrent rechecked',reannounce:'Torrent reannounced',rename:'Torrent renamed',set_location:'Torrent location changed',set_category:'Torrent category changed'};title=labels[action]||uiText(`torrent ${action}`);message=`Action sent${item.server_id&&item.server_id!=='dashboard'?` to ${item.server_id}`:''}${item.name?` by ${item.name}`:''}.`;tone=action==='delete'?'warn':'neutral'}else if(event==='login_failed'){title='Failed sign-in';message=`A sign-in attempt failed${item.name?` for ${item.name}`:''}.`;tone='bad'}else if(event==='login_success'){title='Signed in';message=`${item.name||'A user'} signed in to Torrent Dashboard.`;tone='good'}else if(event==='account_profile_changed'){title='Account updated';message=`${item.name||'A user'} updated their profile.`;tone='good'}else if(event==='account_password_changed'){title='Password changed';message=`${item.name||'A user'} changed their password.`;tone='good'}else if(event==='account_avatar_changed'){title='Profile picture changed';message=`${item.name||'A user'} updated their profile picture.`;tone='good'}else if(event==='account_avatar_removed'){title='Profile picture removed';message=`${item.name||'A user'} removed their profile picture.`}else if(event==='setup_completed'){title='Setup completed';message='Torrent Dashboard first-run setup was completed.';tone='good'}else if(event==='user_saved'){title='User saved';message=`${item.name||'A user account'} was updated.`}else if(event==='user_deleted'){title='User deleted';message='A dashboard user was removed.';tone='warn'}else if(event==='integration_saved'){title='Integration saved';message=`${item.name||'An integration'} was updated.`}else if(event==='integration_deleted'){title='Integration deleted';message='An integration was removed.';tone='warn'}else if(event==='settings_changed'){title='Settings changed';message=`Dashboard settings were updated${item.name?` by ${item.name}`:''}.`}else if(event==='update_downloaded'){title='Update downloaded';message=item.name?`Version ${item.name} is ready to install.`:'An application update was downloaded.';tone='good'}else if(event==='update_install_started'){title='Update installation started';message=item.name?`Torrent Dashboard is installing version ${item.name}.`:'Torrent Dashboard is installing an update.';tone='good'}else if(event==='notification_sound_changed'){title='Notification sound changed';message=item.name?`${item.name} is now configured.`:'The custom notification sound was changed.'}else{title=uiText(event||'dashboardEvent');message=[item.server_id&&item.server_id!=='dashboard'?item.server_id:'',item.name||''].filter(Boolean).join(' · ')||'Torrent Dashboard recorded an event.'}return{category,title,message,tone}}
 function renderNotifications(){const list=$('#notificationList');if(!list)return;const filter=$('#notificationFilter')?.value||'all';let items=(state.notificationEvents||[]).filter(x=>state.server==='all'||x.server_id===state.server||x.server_id==='dashboard');if(filter!=='all')items=items.filter(x=>notificationCategory(x)===filter);if(!items.length){list.innerHTML=`<div class="empty"><strong>${uiText('noNotificationsYet')}</strong><span>${uiText('dashboardActivityWillAppearHere')}</span></div>`;return}list.innerHTML=items.map(item=>{const view=notificationPresentation(item);return`<article class="notification-item ${esc(view.tone)}"><span class="notification-dot" aria-hidden="true"></span><div class="notification-copy"><div class="notification-title"><b>${esc(view.title)}</b><span>${esc(uiText(view.category))}</span></div><p>${esc(view.message)}</p></div><time title="${esc(when(item.ts))}">${esc(rel(item.ts))}</time></article>`}).join('')}
 async function loadNotifications(){try{const d=await api('/api/events?limit=200');state.notificationEvents=d.events||[];renderNotifications()}catch(err){toast(err.message,'error')}}
 
@@ -407,6 +408,96 @@ async function loadIntegrations(){return TDSettings.loadIntegrations()}
 async function globalLimit(action){if(state.server==='all')return toast('chooseSpecificServerFirst','error');const kb=await showActionDialog({title:action==='global_download_limit'?'Set global download limit':'Set global upload limit',label:'Limit (KB/s)',value:'0',type:'number',min:0,step:1,confirmLabel:'Apply',help:'Use 0 for unlimited.'});if(kb!==null)await doAction(action,{limit:Number(kb)*1024})}
 
 function applyColumnPrefs(){let cols=JSON.parse(localStorage.tdColumns||'{}');for(const k of ['progress','state','down','up','eta','ratio'])$('#torrentTable')?.classList.toggle('hide-col-'+k,cols[k]===false)}
+
+function hideAccountMenu(){const menu=$('#accountMenu');if(menu)menu.classList.add('hidden');$('#profileBtn')?.setAttribute('aria-expanded','false')}
+function syncAvatarUi(){
+  const configured=!!state.me?.avatar_configured&&!!state.me?.user_id;
+  const src=configured?`/api/account/avatar?v=${encodeURIComponent(state.me.avatar_version||'1')}`:'';
+  $$('[data-avatar-image]').forEach(img=>{
+    const fallback=img.parentElement?.querySelector('[data-avatar-default]');
+    if(configured){
+      img.onerror=()=>{img.classList.add('hidden');fallback?.classList.remove('hidden')};
+      img.src=src;img.classList.remove('hidden');fallback?.classList.add('hidden');
+    }else{
+      img.removeAttribute('src');img.classList.add('hidden');fallback?.classList.remove('hidden');
+    }
+  });
+}
+function syncCurrentUserUi(){
+  const display=state.me?.display_name||state.me?.username||'User',group=state.me?.group_label||uiText(state.me?.group||'standardUser');
+  if($('#currentUserName'))$('#currentUserName').textContent=display;
+  if($('#currentUserGroup'))$('#currentUserGroup').textContent=group;
+  if($('#mobileAccount'))$('#mobileAccount').textContent=group;
+  if($('#profileButtonName'))$('#profileButtonName').textContent=display;
+  if($('#profileButtonGroup'))$('#profileButtonGroup').textContent=group;
+  if($('#accountMenuName'))$('#accountMenuName').textContent=display;
+  if($('#accountMenuGroup'))$('#accountMenuGroup').textContent=group;
+  const editable=!!state.me?.user_id;
+  for(const id of ['accountSettingsBtn','accountPasswordBtn','accountAvatarBtn']){const el=$('#'+id);if(el)el.disabled=!editable}
+  if($('#accountRemoveAvatar'))$('#accountRemoveAvatar').disabled=!editable||!state.me?.avatar_configured;
+  syncAvatarUi();
+}
+function applyAccountUser(user){
+  if(!user||!state.me)return;
+  Object.assign(state.me,{username:user.username,display_name:user.display_name,group:user.group,group_label:user.group_label,avatar_configured:!!user.avatar_configured,avatar_version:user.avatar_version||''});
+  syncCurrentUserUi();
+}
+async function loadAccount(){
+  const d=await api('/api/account');
+  applyAccountUser(d.user);
+  $('#accountUsername').value=d.user?.username||'';
+  $('#accountFirstName').value=d.user?.first_name||'';
+  $('#accountLastName').value=d.user?.last_name||'';
+  $('#accountEmail').value=d.user?.email||'';
+  $('#accountGroup').value=d.user?.group_label||uiText(d.user?.group||'standardUser');
+  $('#accountProfilePassword').value='';
+  return d.user;
+}
+async function openAccountModal(target='profile'){
+  if(!state.me?.user_id)return toast('This session is not linked to a user account','error');
+  $('#accountModal').classList.remove('hidden');
+  const status=$('#accountStatus');status.className='test-result muted';status.textContent='Loading account…';
+  try{
+    await loadAccount();status.textContent='';
+    const focusId=target==='password'?'accountCurrentPassword':target==='avatar'?'accountChooseAvatar':'accountFirstName';
+    setTimeout(()=>$('#'+focusId)?.focus(),0);
+  }catch(e){status.className='test-result bad';status.textContent=e.message}
+}
+function closeAccountModal(){$('#accountModal').classList.add('hidden');$('#accountProfileForm')?.reset();$('#accountPasswordForm')?.reset();$('#accountStatus').textContent=''}
+async function saveOwnProfile(e){
+  e.preventDefault();
+  const status=$('#accountStatus');status.className='test-result muted';status.textContent='Saving profile…';
+  try{
+    const d=await post('/api/account',{username:$('#accountUsername').value.trim(),first_name:$('#accountFirstName').value.trim(),last_name:$('#accountLastName').value.trim(),email:$('#accountEmail').value.trim(),current_password:$('#accountProfilePassword').value});
+    applyAccountUser(d.user);$('#accountProfilePassword').value='';status.className='test-result ok';status.textContent='Profile saved.';toast('profileSaved');
+  }catch(e){status.className='test-result bad';status.textContent=e.message}
+}
+async function changeOwnPassword(e){
+  e.preventDefault();
+  const current=$('#accountCurrentPassword').value,next=$('#accountNewPassword').value,confirmPassword=$('#accountConfirmPassword').value,status=$('#accountStatus');
+  if(next!==confirmPassword){status.className='test-result bad';status.textContent='New passwords do not match.';return}
+  status.className='test-result muted';status.textContent='Changing password…';
+  try{
+    await post('/api/account/password',{current_password:current,new_password:next});
+    $('#accountPasswordForm').reset();status.className='test-result ok';status.textContent='Password changed.';toast('passwordChanged');
+  }catch(e){status.className='test-result bad';status.textContent=e.message}
+}
+async function uploadOwnAvatar(){
+  const input=$('#accountAvatarInput'),file=input?.files?.[0],status=$('#accountStatus');
+  if(!file)return;
+  if(file.size>4*1024*1024){status.className='test-result bad';status.textContent='Profile picture must be 4 MB or smaller.';input.value='';return}
+  const form=new FormData();form.append('avatar',file,file.name);
+  status.className='test-result muted';status.textContent='Uploading profile picture…';
+  try{
+    const d=await api('/api/account/avatar',{method:'POST',body:form});applyAccountUser(d.user);status.className='test-result ok';status.textContent='Profile picture updated.';toast('profilePictureUpdated');
+  }catch(e){status.className='test-result bad';status.textContent=e.message}
+  finally{input.value=''}
+}
+async function removeOwnAvatar(){
+  const status=$('#accountStatus');status.className='test-result muted';status.textContent='Removing profile picture…';
+  try{const d=await post('/api/account/avatar/delete',{});applyAccountUser(d.user);status.className='test-result ok';status.textContent='Profile picture removed.';toast('profilePictureRemoved')}catch(e){status.className='test-result bad';status.textContent=e.message}
+}
+async function signOut(){try{await post('/api/logout',{})}catch{}location.reload()}
 
 function registerPwa(){if('serviceWorker'in navigator){navigator.serviceWorker.register('/sw.js',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(sessionStorage.getItem('tdSwReloaded')!=='1'){sessionStorage.setItem('tdSwReloaded','1');location.reload()}})}window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();state.deferredPrompt=e;$('#installPwa').classList.remove('hidden')});$('#installPwa').onclick=async()=>{if(state.deferredPrompt){state.deferredPrompt.prompt();await state.deferredPrompt.userChoice;state.deferredPrompt=null;$('#installPwa').classList.add('hidden')}}}
 

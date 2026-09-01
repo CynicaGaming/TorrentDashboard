@@ -24,7 +24,7 @@ Torrent Dashboard provides a modern browser interface for monitoring and managin
 - Responsive desktop and mobile interface
 - qBitTorrent-style torrent context actions and details
 - Multiple qBitTorrent client support
-- Administrator and Standard User dashboard roles
+- Administrator and Standard User dashboard roles with self-service account profiles
 - Trusted network-interface and IP/CIDR access controls
 - Modular media-service and notification integrations
 - Browser notifications and configurable completion sounds
