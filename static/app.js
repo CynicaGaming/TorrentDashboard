@@ -257,7 +257,7 @@ function updateFilters(){
   syncFilterSelect($('#trackerFilter'),trackers,state.tracker,'All trackers');
 }
 function rowChange(e){if(!e.target.classList.contains('rowcheck'))return;const tr=e.target.closest('tr'),k=tr.dataset.key;e.target.checked?state.selected.add(k):state.selected.delete(k);render()}
-function rowClick(e){const tr=e.target.closest('tr');if(!tr)return;if(e.target.closest('.rowcheck'))return;if(e.target.closest('.more-row')){e.stopPropagation();showTorrentMenu(tr,e.target.closest('.more-row'));return}openDetail(tr.dataset.server,tr.dataset.hash)}
+function rowClick(e){const tr=e.target.closest('tr');if(!tr)return;if(e.target.closest('.rowcheck'))return;if(e.target.closest('.more-row')){e.stopPropagation();showTorrentMenu(tr,e.target.closest('.more-row'));return}}
 function rowContext(e){const tr=e.target.closest('tr');if(!tr)return;e.preventDefault();showTorrentMenu(tr,{getBoundingClientRect:()=>({left:e.clientX,top:e.clientY,bottom:e.clientY,right:e.clientX})},true)}
 function showTorrentMenu(tr,anchor,context=false){
   const m=$('#contextMenu'),sid=tr.dataset.server,h=tr.dataset.hash;
@@ -278,11 +278,10 @@ function showTorrentMenu(tr,anchor,context=false){
     items.push(item('rename','Rename…','✎'));
     items.push(item('set_category','Category…','≡'));
     items.push(item('tags','Tags…','#'));
-    items.push(item('set_auto_management','Automatic torrent management',t.auto_tmm?'✓':'□'));
     items.push(sep);
   }
 
-  items.push(item('details','Torrent options…','ⓘ'));
+  items.push(item('details','Torrent details','ⓘ'));
 
   if(admin){
     items.push(sep);
@@ -319,7 +318,6 @@ function showTorrentMenu(tr,anchor,context=false){
       return doAction('delete',{server:sid,hashes:[h],delete_files:files});
     }
     if(a==='force_start')return doAction('force_start',{server:sid,hashes:[h],value:!t.force_start});
-    if(a==='set_auto_management')return doAction('set_auto_management',{server:sid,hashes:[h],value:!t.auto_tmm});
     if(a==='set_location'){
       const v=prompt('New save location:',t.save_path||'');
       if(v!==null&&v.trim())return doAction('set_location',{server:sid,hashes:[h],location:v.trim()});

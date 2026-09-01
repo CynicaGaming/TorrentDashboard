@@ -65,6 +65,11 @@ def main():
     assert "function normalizeUiAttributes" in app_js
     assert "attributeFilter:['placeholder','title','aria-label']" in app_js
     assert "applySentenceCaseUi(card)" in settings_js
+    assert "Torrent details" in app_js
+    assert "Torrent options…" not in app_js
+    assert "Automatic torrent management" not in app_js
+    assert "set_auto_management" not in app_js
+    assert "openDetail(tr.dataset.server,tr.dataset.hash)" not in app_js
     # qBitTorrent-inspired torrent menu must remain functional and mobile friendly.
     assert "Torrent options…" in app_js
     assert "Automatic torrent management" in app_js
