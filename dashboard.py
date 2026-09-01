@@ -38,7 +38,9 @@ CONFIG_PATH = APP_DIR / "config.json"
 DB_PATH = DATA_DIR / "torrent_desk.sqlite3"
 UPDATE_DIR = DATA_DIR / "updates"
 UPDATE_STATE_PATH = DATA_DIR / "update-status.json"
-VERSION = "0.5.4"
+CUSTOM_SOUND_BASENAME = "custom-notification-sound"
+MAX_CUSTOM_SOUND_BYTES = 2 * 1024 * 1024
+VERSION = "0.5.5"
 
 DEFAULT_CONFIG = {
     "setup": {"complete": False},
@@ -74,13 +76,10 @@ DEFAULT_CONFIG = {
     "notifications": {
         "browser": True,
         "sound": False,
-        "webhook_url": "",
-        "discord_webhook": "",
-        "ntfy_url": "",
-        "gotify_url": "",
-        "gotify_token": "",
-        "telegram_bot_token": "",
-        "telegram_chat_id": ""
+        "sound_mode": "default",
+        "custom_sound_file": "",
+        "custom_sound_name": "",
+        "custom_sound_mime": ""
     },
     "integrations": []
 }
@@ -182,6 +181,28 @@ def load_config():
         merged["integrations"] = migrated
     else:
         merged["integrations"] = []
+
+    # Notification delivery endpoints moved into Integrations in 0.5.5.
+    # Preserve existing configured destinations without exposing legacy fields
+    # on the Notifications page.
+    legacy_notifications = raw.get("notifications", {}) if isinstance(raw.get("notifications"), dict) else {}
+    legacy_destinations = [
+        ("generic_webhook", "webhook_url", str(legacy_notifications.get("webhook_url") or "").strip()),
+        ("discord", "webhook_url", str(legacy_notifications.get("discord_webhook") or "").strip()),
+        ("ntfy", "topic_url", str(legacy_notifications.get("ntfy_url") or "").strip()),
+    ]
+    for provider, field, value in legacy_destinations:
+        if not value:
+            continue
+        if any(item.get("type") == provider and item.get(field) == value for item in merged.get("integrations", [])):
+            continue
+        payload = {"id": stable_record_id("integration", provider, value), "type": provider, "name": INTEGRATION_TYPES[provider]["label"], field: value, "enabled": True}
+        try:
+            merged.setdefault("integrations", []).append(normalize_integration(payload, payload))
+        except Exception:
+            pass
+    for legacy_key in ("webhook_url", "discord_webhook", "ntfy_url"):
+        merged.setdefault("notifications", {}).pop(legacy_key, None)
 
     sync_legacy_auth(merged)
     return merged
@@ -575,6 +596,25 @@ INTEGRATION_TYPES = {
             {"key": "token", "label": "Token", "secret": True, "required": True},
         ],
     },
+    "discord": {
+        "label": "Discord",
+        "fields": [
+            {"key": "webhook_url", "label": "Webhook URL", "placeholder": "https://discord.com/api/webhooks/...", "secret": True, "required": True},
+        ],
+    },
+    "ntfy": {
+        "label": "ntfy",
+        "fields": [
+            {"key": "topic_url", "label": "Topic URL", "placeholder": "https://ntfy.sh/topic", "required": True},
+            {"key": "access_token", "label": "Access Token", "secret": True, "required": False},
+        ],
+    },
+    "generic_webhook": {
+        "label": "Generic Webhook",
+        "fields": [
+            {"key": "webhook_url", "label": "Webhook URL", "placeholder": "https://example.com/webhook", "secret": True, "required": True},
+        ],
+    },
     "home_assistant": {
         "label": "Home Assistant",
         "fields": [
@@ -779,6 +819,26 @@ def test_integration_connection(item):
             version = str(data.get("Version") or data.get("ProductVersion") or "").strip()
         elif provider == "plex":
             req = urllib.request.Request(item["url"].rstrip("/") + "/identity", headers={"X-Plex-Token": item["token"]})
+            with urllib.request.urlopen(req, timeout=7) as resp:
+                resp.read(200000)
+            version = ""
+        elif provider == "discord":
+            body = json.dumps({"content": "Torrent Dashboard integration connection test"}).encode("utf-8")
+            req = urllib.request.Request(item["webhook_url"], data=body, headers={"Content-Type": "application/json"}, method="POST")
+            with urllib.request.urlopen(req, timeout=7) as resp:
+                resp.read(200000)
+            version = ""
+        elif provider == "ntfy":
+            headers = {"Title": "Torrent Dashboard Test"}
+            if item.get("access_token"):
+                headers["Authorization"] = f"Bearer {item['access_token']}"
+            req = urllib.request.Request(item["topic_url"], data=b"Integration connection test", headers=headers, method="POST")
+            with urllib.request.urlopen(req, timeout=7) as resp:
+                resp.read(200000)
+            version = ""
+        elif provider == "generic_webhook":
+            body = json.dumps({"title": "Torrent Dashboard Test", "message": "Integration connection test"}).encode("utf-8")
+            req = urllib.request.Request(item["webhook_url"], data=body, headers={"Content-Type": "application/json"}, method="POST")
             with urllib.request.urlopen(req, timeout=7) as resp:
                 resp.read(200000)
             version = ""
@@ -1261,36 +1321,47 @@ def get_client(cfg, server_id):
 
 
 def send_notification(cfg, title, message):
-    n = cfg.get("notifications", {})
-    jobs = []
-    if n.get("webhook_url"):
-        jobs.append((n["webhook_url"], {"title": title, "message": message}))
-    if n.get("discord_webhook"):
-        jobs.append((n["discord_webhook"], {"content": f"**{title}**\n{message}"}))
-    if n.get("ntfy_url"):
+    for integration in cfg.get("integrations", []):
+        if not integration.get("enabled", True):
+            continue
+        provider = integration.get("type")
         try:
-            req = urllib.request.Request(n["ntfy_url"], data=message.encode(), headers={"Title": title}, method="POST")
-            urllib.request.urlopen(req, timeout=5).read()
-        except Exception: pass
-    if n.get("gotify_url") and n.get("gotify_token"):
-        url = n["gotify_url"].rstrip("/") + "/message?token=" + urllib.parse.quote(n["gotify_token"])
-        jobs.append((url, {"title": title, "message": message, "priority": 5}))
-    if n.get("telegram_bot_token") and n.get("telegram_chat_id"):
-        url = f"https://api.telegram.org/bot{n['telegram_bot_token']}/sendMessage"
-        jobs.append((url, {"chat_id": n["telegram_chat_id"], "text": f"{title}\n{message}"}))
-    for url, payload in jobs:
-        try:
-            data = json.dumps(payload).encode()
-            req = urllib.request.Request(url, data=data, headers={"Content-Type":"application/json"}, method="POST")
-            urllib.request.urlopen(req, timeout=5).read()
+            if provider == "generic_webhook" and integration.get("webhook_url"):
+                data = json.dumps({"title": title, "message": message}).encode("utf-8")
+                req = urllib.request.Request(integration["webhook_url"], data=data, headers={"Content-Type": "application/json"}, method="POST")
+                urllib.request.urlopen(req, timeout=5).read()
+            elif provider == "discord" and integration.get("webhook_url"):
+                data = json.dumps({"content": f"**{title}**\n{message}"}).encode("utf-8")
+                req = urllib.request.Request(integration["webhook_url"], data=data, headers={"Content-Type": "application/json"}, method="POST")
+                urllib.request.urlopen(req, timeout=5).read()
+            elif provider == "ntfy" and integration.get("topic_url"):
+                headers = {"Title": title.encode("ascii", "ignore").decode() or "Torrent Dashboard"}
+                if integration.get("access_token"):
+                    headers["Authorization"] = f"Bearer {integration['access_token']}"
+                req = urllib.request.Request(integration["topic_url"], data=message.encode("utf-8"), headers=headers, method="POST")
+                urllib.request.urlopen(req, timeout=5).read()
+            elif provider == "home_assistant" and integration.get("webhook_url"):
+                data = json.dumps({"title": title, "message": message}).encode("utf-8")
+                req = urllib.request.Request(integration["webhook_url"], data=data, headers={"Content-Type": "application/json"}, method="POST")
+                urllib.request.urlopen(req, timeout=5).read()
         except Exception:
             pass
-    for integration in cfg.get("integrations", []):
-        if integration.get("type") != "home_assistant" or not integration.get("enabled", True) or not integration.get("webhook_url"):
-            continue
+
+    # Keep manually configured legacy Gotify/Telegram delivery working until
+    # those destinations are promoted into the modular Integrations catalog.
+    n = cfg.get("notifications", {})
+    if n.get("gotify_url") and n.get("gotify_token"):
         try:
-            data = json.dumps({"title":title,"message":message}).encode()
-            urllib.request.urlopen(urllib.request.Request(integration["webhook_url"],data=data,headers={"Content-Type":"application/json"},method="POST"),timeout=5).read()
+            url = n["gotify_url"].rstrip("/") + "/message?token=" + urllib.parse.quote(n["gotify_token"])
+            data = json.dumps({"title": title, "message": message, "priority": 5}).encode("utf-8")
+            urllib.request.urlopen(urllib.request.Request(url, data=data, headers={"Content-Type": "application/json"}, method="POST"), timeout=5).read()
+        except Exception:
+            pass
+    if n.get("telegram_bot_token") and n.get("telegram_chat_id"):
+        try:
+            url = f"https://api.telegram.org/bot{n['telegram_bot_token']}/sendMessage"
+            data = json.dumps({"chat_id": n["telegram_chat_id"], "text": f"{title}\n{message}"}).encode("utf-8")
+            urllib.request.urlopen(urllib.request.Request(url, data=data, headers={"Content-Type": "application/json"}, method="POST"), timeout=5).read()
         except Exception:
             pass
 
@@ -1403,6 +1474,50 @@ def parse_multipart(handler, max_bytes=50_000_000):
         else: fields[name]=data.decode(errors="replace")
     return fields, files
 
+
+
+SOUND_MIME_TYPES = {".wav": "audio/wav", ".mp3": "audio/mpeg", ".ogg": "audio/ogg"}
+
+
+def store_custom_notification_sound(cfg, filename, content):
+    filename = Path(str(filename or "sound")).name
+    ext = Path(filename).suffix.lower()
+    if ext not in SOUND_MIME_TYPES:
+        raise RuntimeError("Custom sound must be a WAV, MP3, or OGG file")
+    if not content or len(content) > MAX_CUSTOM_SOUND_BYTES:
+        raise RuntimeError("Custom sound must be between 1 byte and 2 MB")
+    if ext == ".wav" and not (content.startswith(b"RIFF") and content[8:12] == b"WAVE"):
+        raise RuntimeError("The selected WAV file is not valid")
+    if ext == ".ogg" and not content.startswith(b"OggS"):
+        raise RuntimeError("The selected OGG file is not valid")
+    if ext == ".mp3" and not (content.startswith(b"ID3") or (len(content) > 1 and content[0] == 0xFF and (content[1] & 0xE0) == 0xE0)):
+        raise RuntimeError("The selected MP3 file is not valid")
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+    for old_ext in SOUND_MIME_TYPES:
+        old = DATA_DIR / f"{CUSTOM_SOUND_BASENAME}{old_ext}"
+        if old.exists():
+            try: old.unlink()
+            except Exception: pass
+    dest = DATA_DIR / f"{CUSTOM_SOUND_BASENAME}{ext}"
+    dest.write_bytes(content)
+    out = json.loads(json.dumps(cfg))
+    n = out.setdefault("notifications", {})
+    n["custom_sound_file"] = dest.name
+    n["custom_sound_name"] = filename[:255]
+    n["custom_sound_mime"] = SOUND_MIME_TYPES[ext]
+    return out, {"name": n["custom_sound_name"], "mime": n["custom_sound_mime"]}
+
+
+def configured_notification_sound(cfg):
+    n = cfg.get("notifications", {})
+    name = Path(str(n.get("custom_sound_file") or "")).name
+    if not name.startswith(CUSTOM_SOUND_BASENAME):
+        return None, None
+    path = DATA_DIR / name
+    if not path.exists() or not path.is_file():
+        return None, None
+    mime = str(n.get("custom_sound_mime") or mimetypes.guess_type(path.name)[0] or "application/octet-stream")
+    return path, mime
 
 
 def normalize_github_repository(value: str) -> str:
@@ -1849,6 +1964,11 @@ class Handler(BaseHTTPRequestHandler):
         if path=="/api/users": return self.send_json(200,{"users":[public_user(u) for u in cfg.get("users",[])],"current_user_id":sess.get("user_id","")},new_cookie)
         if path=="/api/settings": return self.send_json(200,redacted_config(cfg),new_cookie)
         if path=="/api/network/interfaces": return self.send_json(200,{"interfaces":detect_network_interfaces(qs.get("refresh",["0"])[0]=="1")},new_cookie)
+        if path=="/api/notification-sound":
+            sound_path, sound_mime = configured_notification_sound(cfg)
+            if not sound_path:
+                return self.send_json(404,{"error":"No custom notification sound is configured"},new_cookie)
+            return self.send_bytes(200,sound_path.read_bytes(),sound_mime,new_cookie)
         if path=="/api/update-check": return self.update_check(cfg,new_cookie)
         if path=="/api/update-status": return self.send_json(200,update_state(),new_cookie)
         return self.send_json(404,{"error":"Not found"},new_cookie)
@@ -1925,6 +2045,15 @@ class Handler(BaseHTTPRequestHandler):
                 result=launch_update_installer(self,cfg,data.get("version"))
                 HISTORY.event("dashboard","update_install_started",str(result.get("version") or ""),"",{"client_ip":self.client_ip()})
                 return self.send_json(200,result,new_cookie)
+            if path=="/api/notification-sound":
+                fields, files = parse_multipart(self, max_bytes=MAX_CUSTOM_SOUND_BYTES + 256000)
+                if not files:
+                    raise RuntimeError("Choose a custom sound file")
+                _, filename, content = files[0]
+                updated, info = store_custom_notification_sound(cfg, filename, content)
+                save_config(updated)
+                HISTORY.event("dashboard","notification_sound_changed",info.get("name", ""),"",{"client_ip":self.client_ip()})
+                return self.send_json(200,{"ok":True,**info},new_cookie)
             if path=="/api/notification-test":
                 send_notification(cfg,"Torrent Dashboard Test","Notifications are configured correctly.")
                 return self.send_json(200,{"ok":True},new_cookie)

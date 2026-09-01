@@ -43,7 +43,10 @@ window.TDSettings = (() => {
       if (out) { out.className='test-result muted update-access-result'; out.textContent='Not Tested Yet'; }
     }));
     document.querySelector('#updateAction')?.addEventListener('click', handleUpdateAction);
-    document.querySelector('#testNotify')?.addEventListener('click', () => post('/api/notification-test',{}).then(() => toast('testNotificationSent')).catch(e => toast(e.message,'error')));
+    document.querySelector('#nSoundMode')?.addEventListener('change', updateNotificationSoundUi);
+    document.querySelector('#nSoundFile')?.addEventListener('change', updateNotificationSoundUi);
+    document.querySelector('#previewSound')?.addEventListener('click', previewNotificationSound);
+    document.querySelector('#settingsNotifyPermission')?.addEventListener('click', requestBrowserNotificationPermission);
     document.querySelector('#addIntegrationSetting')?.addEventListener('click', addIntegration);
     document.querySelector('#addUserSetting')?.addEventListener('click', addUser);
     activate(localStorage.tdSettingsPage || 'general');
@@ -95,9 +98,12 @@ window.TDSettings = (() => {
     const n = s.notifications || {};
     setChecked('nBrowser', n.browser !== false);
     setChecked('nSound', n.sound);
-    setValue('nWebhook', n.webhook_url || '');
-    setValue('nDiscord', n.discord_webhook || '');
-    setValue('nNtfy', n.ntfy_url || '');
+    setValue('nSoundMode', n.sound_mode || 'default');
+    const soundFile = document.querySelector('#nSoundFile');
+    if (soundFile) soundFile.value = '';
+    const soundName = document.querySelector('#nCustomSoundName');
+    if (soundName) soundName.textContent = n.custom_sound_name || 'No Custom Sound Uploaded';
+    updateNotificationSoundUi();
     activate(localStorage.tdSettingsPage || 'general');
   }
 
@@ -126,12 +132,11 @@ window.TDSettings = (() => {
       notifications: {
         browser: document.querySelector('#nBrowser')?.checked !== false,
         sound: !!document.querySelector('#nSound')?.checked,
-        webhook_url: document.querySelector('#nWebhook')?.value || '',
-        discord_webhook: document.querySelector('#nDiscord')?.value || '',
-        ntfy_url: document.querySelector('#nNtfy')?.value || ''
+        sound_mode: document.querySelector('#nSoundMode')?.value || 'default'
       }
     };
     try {
+      await uploadNotificationSoundIfNeeded();
       const d = await post('/api/settings', payload);
       state.settings = d.settings;
       localStorage.tdTheme = document.querySelector('#sTheme')?.value || 'dark';
@@ -149,6 +154,68 @@ window.TDSettings = (() => {
       await refreshStatus();
     } catch (err) {
       toast(err.message,'error');
+    }
+  }
+
+  function updateNotificationSoundUi() {
+    const mode = document.querySelector('#nSoundMode')?.value || 'default';
+    const wrap = document.querySelector('#nCustomSoundWrap');
+    if (wrap) wrap.classList.toggle('hidden', mode !== 'custom');
+    const file = document.querySelector('#nSoundFile')?.files?.[0];
+    const name = document.querySelector('#nCustomSoundName');
+    if (name && file) name.textContent = file.name;
+  }
+
+  async function uploadNotificationSoundIfNeeded() {
+    const mode = document.querySelector('#nSoundMode')?.value || 'default';
+    const input = document.querySelector('#nSoundFile');
+    const file = input?.files?.[0];
+    if (mode !== 'custom' || !file) return null;
+    const form = new FormData();
+    form.append('sound', file, file.name);
+    const response = await fetch('/api/notification-sound', {method:'POST', headers:{'X-CSRF-Token':state.csrf}, body:form});
+    const data = await response.json().catch(()=>({}));
+    if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`);
+    const name = document.querySelector('#nCustomSoundName');
+    if (name) name.textContent = data.name || file.name;
+    return data;
+  }
+
+  async function previewNotificationSound() {
+    const status = document.querySelector('#soundStatus');
+    const mode = document.querySelector('#nSoundMode')?.value || 'default';
+    const file = document.querySelector('#nSoundFile')?.files?.[0];
+    let url = '';
+    let revoke = false;
+    if (mode === 'custom' && file) {
+      url = URL.createObjectURL(file);
+      revoke = true;
+    } else if (mode === 'custom') {
+      url = `/api/notification-sound?ts=${Date.now()}`;
+    } else {
+      url = `/static/default-completion.wav?v=${encodeURIComponent(state.me?.version || '')}`;
+    }
+    try {
+      if (status) { status.className='test-result muted'; status.textContent='Playing Sound…'; }
+      await playSoundUrl(url);
+      if (status) { status.className='test-result ok'; status.textContent='Sound Playback Ready'; }
+    } catch (e) {
+      if (status) { status.className='test-result bad'; status.textContent=e.message || 'Sound Playback Failed'; }
+    } finally {
+      if (revoke) URL.revokeObjectURL(url);
+    }
+  }
+
+  async function requestBrowserNotificationPermission() {
+    const status = document.querySelector('#soundStatus');
+    if (!('Notification' in window)) {
+      if (status) { status.className='test-result bad'; status.textContent='Browser Notifications Are Not Supported'; }
+      return;
+    }
+    const permission = await Notification.requestPermission();
+    if (status) {
+      status.className = `test-result ${permission === 'granted' ? 'ok' : 'muted'}`;
+      status.textContent = `Browser Notification Permission: ${permission}`;
     }
   }
 

@@ -34,7 +34,22 @@
 
 
 /* 0.5.3 settings navigation and update-action alignment. */
-@media(min-width:821px){.settings-nav{margin-top:52px}}
+@media(min-width:821px){.settings-nav{margin-top:0}}
 .update-actions .update-action{min-width:170px}
 @media(max-width:820px){.settings-nav{margin-top:0}.update-actions .update-action{flex:1 1 160px}}
 @media(max-width:560px){.update-actions{display:grid;grid-template-columns:1fr}.update-actions button{width:100%}}
+
+/* 0.5.5 settings alignment and notification sound controls. */
+.local-address-heading{margin:0 0 8px}
+.notification-settings-card .notification-intro{margin:0 0 16px;padding:0 13px}
+.notification-options{display:grid;gap:10px;padding:0 13px 13px}
+.notification-options>.toggle{margin:0}
+.notification-sound-config{display:grid;gap:10px;padding:12px;border:1px solid var(--border);border-radius:12px;background:var(--panel3)}
+.notification-sound-config label{margin:0}
+.custom-sound-wrap{display:grid;gap:8px}
+.custom-sound-wrap input[type=file]{width:100%;padding:8px;background:var(--panel2);border:1px solid var(--border);border-radius:10px;color:var(--text)}
+.configured-sound{font-size:9px;color:var(--muted);overflow-wrap:anywhere}
+.notification-actions{margin:2px 0 0}
+.notification-actions button{min-width:170px}
+@media(max-width:820px){.notification-settings-card .notification-intro{padding:0 11px}.notification-options{padding:0 11px 11px}.notification-sound-config{padding:11px}}
+@media(max-width:560px){.notification-actions{display:grid;grid-template-columns:1fr}.notification-actions button{width:100%;min-width:0}.network-address-fields{grid-template-columns:1fr 1fr}}
