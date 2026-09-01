@@ -27,17 +27,32 @@ jobs:
         with:
           python-version: '3.13'
 
+      - name: Apply Pending Feature Update
+        shell: bash
+        run: |
+          if [ -f release_tools/apply_feature_update.py ]; then
+            python release_tools/apply_feature_update.py
+            rm -f release_tools/apply_feature_update.py
+          fi
+
       - name: Validate Source
         shell: bash
         run: |
           python -m py_compile dashboard.py updater.py release_tools/build_release.py
           node --check static/app.js
+          node --check static/settings.js
           python - <<'PY'
           import pathlib
           import dashboard
 
           assert dashboard.VERSION.startswith('0.')
+          assert dashboard.VERSION == '0.5.0'
           assert callable(dashboard.normalize_qbittorrent_server)
+          assert callable(dashboard.normalize_integration)
+          assert callable(dashboard.normalize_user)
+          assert dashboard.DEFAULT_CONFIG.get('integrations') == []
+          assert dashboard.DEFAULT_CONFIG.get('users') == []
+
           sample = dashboard.normalize_qbittorrent_server({
               'base_url': 'http://127.0.0.1:8080',
               'auth_method': 'api_key',
@@ -46,15 +61,50 @@ jobs:
           })
           assert sample['name'] == 'Desktop'
 
+          user = dashboard.normalize_user({
+              'username': 'admin2',
+              'password': 'test-password',
+              'group': 'administrator',
+          }, require_password=True)
+          assert user['group'] == 'administrator' and user['password_hash']
+
+          integ = dashboard.normalize_integration({
+              'type': 'sonarr',
+              'name': 'Sonarr',
+              'url': 'http://127.0.0.1:8989',
+              'api_key': 'abc123',
+          })
+          assert integ['type'] == 'sonarr'
+
           html = pathlib.Path('static/index.html').read_text(encoding='utf-8')
+          js = pathlib.Path('static/settings.js').read_text(encoding='utf-8')
           assert 'Local IP Address' in html
           assert 'API Key (qBitTorrent 5.2+)' in html
+          assert 'User Management' in html
+          assert 'integrationTypeSelect' in html
+          assert '/static/settings.js?v=0.5.0' in html
+          assert 'Read Only Mode' not in html
+          assert 'iSonarrUrl' not in html
+          assert 'Standard Users have read-only dashboard access' in js
           assert 'update-manifest.json' not in html
 
           leftovers = list(pathlib.Path('release_tools').glob('cleanup.part*'))
           assert not leftovers, f'Temporary cleanup files remain: {leftovers}'
           assert not pathlib.Path('release_tools/update-manifest.example.json').exists()
           PY
+
+      - name: Commit Applied Feature Update
+        id: source
+        shell: bash
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add -A
+            git commit -m "Add modular settings, integrations, and user management"
+            git push origin HEAD:main
+          fi
+          echo "release_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Determine Version
         id: version
@@ -98,20 +148,24 @@ jobs:
               names=[n for n in z.namelist() if not n.endswith('/')]
           assert not any('cleanup.part' in n for n in names)
           assert not any(n.endswith('update-manifest.json') or n.endswith('update-manifest.example.json') for n in names)
+          assert not any(n.endswith('apply_feature_update.py') for n in names)
           assert any(n.endswith('/dashboard.py') for n in names)
           assert any(n.endswith('/static/index.html') for n in names)
+          assert any(n.endswith('/static/settings.js') for n in names)
+          assert any(n.endswith('/static/settings.css') for n in names)
           PY
 
       - name: Publish GitHub Pre-Release
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.version.outputs.tag }}
+          RELEASE_SHA: ${{ steps.source.outputs.release_sha }}
         shell: bash
         run: |
           ZIP="dist/Torrent-Dashboard-${{ steps.version.outputs.version }}.zip"
           gh release create "$TAG" \
             "$ZIP" \
-            --target "$GITHUB_SHA" \
+            --target "$RELEASE_SHA" \
             --title "Torrent Dashboard Pre-Release" \
             --notes "Development prerelease. Version: $TAG" \
             --prerelease
