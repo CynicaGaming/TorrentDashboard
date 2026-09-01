@@ -237,7 +237,7 @@ def main():
     assert 'id="accountAvatarBtn"' not in html and 'accountAvatarBtn' not in app_js
     assert 'id="accountPasswordBtn"' not in html and 'accountPasswordBtn' not in app_js
     assert 'id="accountCurrentPassword"' not in html and 'accountCurrentPassword' not in app_js
-    assert '<label>Role<input aria-readonly="true" id="accountGroup" readonly tabindex="-1"/></label>' in html
+    assert 'id="accountGroup"' not in html and 'accountGroup' not in app_js
     profile_update_js = app_js.split('async function saveOwnProfile(e){', 1)[1].split('async function changeOwnPassword(e){', 1)[0]
     assert 'accountGroup' not in profile_update_js
     assert '"group": existing.get("group"),' in dashboard_py

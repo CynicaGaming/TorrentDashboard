@@ -456,7 +456,6 @@ async function loadAccount(){
   $('#accountFirstName').value=d.user?.first_name||'';
   $('#accountLastName').value=d.user?.last_name||'';
   $('#accountEmail').value=d.user?.email||'';
-  $('#accountGroup').value=d.user?.group_label||uiText(d.user?.group||'standardUser');
   return d.user;
 }
 async function openAccountModal(target='profile'){
