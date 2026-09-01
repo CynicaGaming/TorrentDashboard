@@ -27,26 +27,9 @@ jobs:
         with:
           python-version: '3.13'
 
-      - name: Apply Pending Pre-Release Payload
+      - name: Apply Pending Pre-Release Cleanup
         shell: bash
         run: |
-          if [ -f release_tools/prerelease_payload.zip.b64 ]; then
-            base64 -d release_tools/prerelease_payload.zip.b64 > /tmp/torrent-dashboard-payload.zip
-            python - <<'PY'
-          from pathlib import Path
-          import zipfile
-          root = Path.cwd().resolve()
-          archive = Path('/tmp/torrent-dashboard-payload.zip')
-          with zipfile.ZipFile(archive) as z:
-              for info in z.infolist():
-                  target = (root / info.filename).resolve()
-                  if root != target and root not in target.parents:
-                      raise SystemExit(f'Unsafe payload path: {info.filename}')
-              z.extractall(root)
-          PY
-            rm -f /tmp/torrent-dashboard-payload.zip release_tools/prerelease_payload.zip.b64
-            rm -f release_tools/update-manifest.example.json
-          fi
           if [ -f release_tools/apply_cleanup.py.gz.b64 ]; then
             base64 -d release_tools/apply_cleanup.py.gz.b64 | gzip -d > release_tools/apply_cleanup.py
             python release_tools/apply_cleanup.py
@@ -71,7 +54,7 @@ jobs:
           assert sample['name'] == 'Desktop'
           PY
 
-      - name: Commit Pre-Release Payload
+      - name: Commit Pre-Release Cleanup
         id: source
         shell: bash
         run: |
@@ -79,7 +62,7 @@ jobs:
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git add -A
-            git commit -m "Apply Torrent Dashboard 0.x prerelease payload"
+            git commit -m "Apply Torrent Dashboard 0.x prerelease cleanup"
             git push origin HEAD:main
           fi
           echo "release_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
