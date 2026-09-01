@@ -42,7 +42,8 @@ UPDATE_DIR = DATA_DIR / "updates"
 UPDATE_STATE_PATH = DATA_DIR / "update-status.json"
 CUSTOM_SOUND_BASENAME = "custom-notification-sound"
 MAX_CUSTOM_SOUND_BYTES = 2 * 1024 * 1024
-VERSION = "0.5.15"
+VERSION = "0.5.16"
+STATUS_REFRESH_SECONDS = 1.0
 
 
 class SingleInstanceLock:
@@ -108,7 +109,6 @@ DEFAULT_CONFIG = {
         "bind_host": "0.0.0.0",
         "port": 8765,
         "open_browser": True,
-        "refresh_seconds": 2,
         "history_retention_days": 30,
         "history_sample_seconds": 10,
         "low_disk_gb": 20,
@@ -175,6 +175,9 @@ def load_config():
                 pass
 
     merged = deep_merge(DEFAULT_CONFIG, raw)
+    # 0.5.16 makes status collection a fixed one-second application behavior.
+    # Ignore and retire any refresh_seconds value left by an older install.
+    merged.setdefault("dashboard", {}).pop("refresh_seconds", None)
     # Read-only mode is replaced by per-user roles in 0.5.0. Standard Users
     # are read-only; Administrators retain management access.
     merged.setdefault("dashboard", {}).pop("read_only", None)
@@ -1487,7 +1490,7 @@ def collector_loop(stop_event):
         try:
             HISTORY.cleanup(cfg["dashboard"].get("history_retention_days",30))
         except Exception: pass
-        stop_event.wait(max(1, float(cfg["dashboard"].get("refresh_seconds", 2))))
+        stop_event.wait(STATUS_REFRESH_SECONDS)
 
 
 def integration_request(url, api_key=None, token=None, path="/api/v3/system/status"):
@@ -2006,7 +2009,7 @@ class Handler(BaseHTTPRequestHandler):
             cfg,token,sess,new_cookie=self.auth()
             if not sess:
                 return self.send_json(401,{"authenticated":False,"auth_mode":cfg["auth"].get("mode")})
-            safe={"authenticated":True,"username":sess["username"],"display_name":sess.get("display_name") or sess["username"],"user_id":sess.get("user_id","") ,"group":sess.get("group","standard"),"group_label":USER_GROUPS.get(sess.get("group"),"Standard User"),"can_manage":session_is_admin(sess),"auth_kind":sess["auth_kind"],"csrf":sess["csrf"],"auth_mode":cfg["auth"].get("mode"),"title":cfg["dashboard"].get("title"),"version":VERSION,"refresh_seconds":cfg["dashboard"].get("refresh_seconds",2),"lan_ip":local_lan_ip(),"port":cfg["dashboard"].get("port",8765),"scheme":"https" if cfg["dashboard"].get("https_enabled") else "http"}
+            safe={"authenticated":True,"username":sess["username"],"display_name":sess.get("display_name") or sess["username"],"user_id":sess.get("user_id","") ,"group":sess.get("group","standard"),"group_label":USER_GROUPS.get(sess.get("group"),"Standard User"),"can_manage":session_is_admin(sess),"auth_kind":sess["auth_kind"],"csrf":sess["csrf"],"auth_mode":cfg["auth"].get("mode"),"title":cfg["dashboard"].get("title"),"version":VERSION,"lan_ip":local_lan_ip(),"port":cfg["dashboard"].get("port",8765),"scheme":"https" if cfg["dashboard"].get("https_enabled") else "http"}
             return self.send_json(200,safe,new_cookie)
 
         ctx=self.require_auth(False)
@@ -2202,7 +2205,6 @@ class Handler(BaseHTTPRequestHandler):
             out["dashboard"]["title"]=str(dashboard.get("title") or "Torrent Dashboard")[:128]
             out["dashboard"]["bind_host"]="0.0.0.0"
             out["dashboard"]["port"]=int(dashboard.get("port") or 8765)
-            out["dashboard"]["refresh_seconds"]=max(1,min(60,int(dashboard.get("refresh_seconds") or 2)))
             out["auth"]["mode"]=mode
             out["auth"]["trusted_interfaces"]=trusted_interfaces
             out["auth"]["trusted_ips"]=trusted_ips
@@ -2290,9 +2292,10 @@ def apply_settings_update(cfg,data):
     # Core settings are intentionally separate from user and integration CRUD.
     out=json.loads(json.dumps(cfg))
     dash=data.get("dashboard",{})
-    for k in ("title","port","refresh_seconds","history_retention_days","history_sample_seconds","low_disk_gb","https_enabled","https_cert","https_key"):
+    for k in ("title","port","history_retention_days","history_sample_seconds","low_disk_gb","https_enabled","https_cert","https_key"): 
         if k in dash: out["dashboard"][k]=dash[k]
     out.setdefault("dashboard",{}).pop("read_only",None)
+    out["dashboard"].pop("refresh_seconds",None)
     if "port" in dash:
         out["dashboard"]["port"]=max(1,min(65535,int(dash.get("port") or 8765)))
     auth=data.get("auth",{})

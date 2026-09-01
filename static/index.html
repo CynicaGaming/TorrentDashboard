@@ -5,8 +5,8 @@
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#0b0d10" name="theme-color"/>
 <link href="/manifest.webmanifest" rel="manifest"/>
-<link href="/static/app.css?v=0.5.15" rel="stylesheet"/>
-<link href="/static/settings.css?v=0.5.15" rel="stylesheet"/>
+<link href="/static/app.css?v=0.5.16" rel="stylesheet"/>
+<link href="/static/settings.css?v=0.5.16" rel="stylesheet"/>
 <title>Torrent Dashboard</title>
 </head>
 <body>
@@ -25,7 +25,6 @@
 <div class="field-row local-address-heading"><div><b>Local Dashboard Address</b><small>Address used to reach Torrent Dashboard from your network.</small></div></div>
 <div class="two network-address-fields"><label>IP Address<input id="wLocalIp" readonly value="Detecting…"/></label><label>Port<input id="wPort" max="65535" min="1" type="number" value="8765"/></label></div>
 <div class="field-help">The local IP address is detected from this PC. Port changes take effect the next time Torrent Dashboard starts.</div>
-<label>Refresh Interval<select id="wRefresh"><option value="1">1 Second</option><option selected="" value="2">2 Seconds</option><option value="5">5 Seconds</option><option value="10">10 Seconds</option></select></label>
 <div class="setup-code hidden" id="setupCodeWrap"><label>Remote Setup Code<input autocomplete="one-time-code" id="wSetupCode" maxlength="16" placeholder="Shown In Console"/></label><small>This is required only when the first setup is being performed from another device.</small></div>
 </section>
 <section class="setup-page" data-step="1">
@@ -156,7 +155,6 @@
 <div class="panel settings-card">
 <div class="panel-title">General Dashboard Settings</div>
 <label>Dashboard Title<input id="sTitle"/></label>
-<label>Refresh Interval Seconds<input id="sRefresh" max="60" min="1" type="number"/></label>
 <label>Theme<select id="sTheme"><option value="dark">Dark</option><option value="light">Light</option><option value="system">System</option></select></label>
 <label>Density<select id="sDensity"><option value="comfortable">Comfortable</option><option value="compact">Compact</option></select></label>
 <label>Accent Color<input id="sAccent" type="color" value="#72a9ff"/></label>
@@ -226,11 +224,12 @@
 </div>
 <div class="drawer hidden" id="drawer"><div class="drawer-backdrop" data-close=""></div><section class="drawer-sheet"><header><div><h2 id="detailName">Torrent</h2><p id="detailMeta">—</p></div><button class="icon-btn" data-close="">×</button></header><div class="detail-actions" id="detailActions"></div><div class="detail-tabs"><button class="active" data-detailtab="overview">Overview</button><button data-detailtab="files">Files</button><button data-detailtab="peers">Peers</button><button data-detailtab="trackers">Trackers</button><button data-detailtab="pieces">Pieces</button></div><div class="detail-body" id="detailBody"></div></section></div>
 <div class="modal hidden" id="addModal"><div class="modal-backdrop" data-modalclose=""></div><form class="modal-card" id="addForm"><header><h2>Add Torrent</h2><button class="icon-btn" data-modalclose="" type="button">×</button></header><label>Magnet Or Torrent URL<textarea id="addUrls" placeholder="magnet:?xt=…" rows="4"></textarea></label><div class="or">Or</div><label class="file-drop">Choose Torrent File<input accept=".torrent,application/x-bittorrent" id="torrentFile" type="file"/></label><label>Save Path<input id="addPath" placeholder="Optional"/></label><div class="two"><label>Category<input id="addCategory"/></label><label>Tags<input id="addTags"/></label></div><div class="checks"><label><input id="addStopped" type="checkbox"/> Add Paused</label><label><input id="addSequential" type="checkbox"/> Sequential Download</label><label><input id="addFirstLast" type="checkbox"/> First/Last Priority</label></div><button class="primary" type="submit">Add Torrent</button></form></div>
+<div class="modal hidden" id="actionDialogModal"><div class="modal-backdrop" data-action-dialog-cancel=""></div><form class="modal-card action-dialog-card" id="actionDialogForm"><header><div><h2 id="actionDialogTitle">Action</h2><p class="hidden" id="actionDialogMessage"></p></div><button class="icon-btn" data-action-dialog-cancel="" type="button" aria-label="Cancel">×</button></header><div class="action-dialog-content"><label id="actionDialogField"><span id="actionDialogLabel">Value</span><input autocomplete="off" id="actionDialogInput"/></label><div class="field-help hidden" id="actionDialogHelp"></div></div><footer class="action-dialog-actions"><button class="primary action-dialog-confirm" id="actionDialogConfirm" type="submit">Save</button><button class="secondary" data-action-dialog-cancel="" type="button">Cancel</button></footer></form></div>
 <div class="modal hidden" id="removeModal"><div class="modal-backdrop" data-remove-cancel=""></div><form class="modal-card remove-modal-card" id="removeForm"><header><div><h2>Remove torrent(s)</h2><p>Remove torrents from qBitTorrent.</p></div><button class="icon-btn" data-remove-cancel="" type="button" aria-label="Cancel removal">×</button></header><div class="remove-dialog-body"><div class="remove-warning-row"><div class="remove-warning-icon" aria-hidden="true">!</div><div class="remove-warning-copy"><strong id="removePrompt">Are you sure you want to remove this torrent from the transfer list?</strong><p>This action removes the selected torrent from qBitTorrent. Downloaded files are kept unless you choose otherwise below.</p></div></div><div class="remove-target-list hidden" id="removeTargets"></div><label class="remove-files-option"><input id="removeFiles" type="checkbox"/><span>Also delete the downloaded files</span></label></div><footer class="remove-dialog-actions"><button class="danger remove-confirm" type="submit">Remove</button><button class="secondary" data-remove-cancel="" type="button">Cancel</button></footer></form></div>
 <div class="menu hidden" id="menu"><button id="pauseAll">Pause All</button><button id="resumeAll">Resume All</button><button id="altSpeed">Toggle Alternative Limits</button><button id="globalDl">Set Global Download Limit</button><button id="globalUl">Set Global Upload Limit</button><button id="notifyPermission">Enable Browser Notifications</button><button class="hidden" id="installPwa">Install App</button></div>
 <div class="menu hidden" id="contextMenu"></div>
 <div class="toasts" id="toasts"></div>
-<script src="/static/settings.js?v=0.5.15"></script>
-<script src="/static/app.js?v=0.5.15"></script>
+<script src="/static/settings.js?v=0.5.16"></script>
+<script src="/static/app.js?v=0.5.16"></script>
 </body>
 </html>

@@ -60,7 +60,6 @@ window.TDSettings = (() => {
     const setValue = (id, value) => { const el=document.querySelector('#'+id); if(el) el.value=value ?? ''; };
     const setChecked = (id, value) => { const el=document.querySelector('#'+id); if(el) el.checked=!!value; };
     setValue('sTitle', s.dashboard?.title || 'Torrent Dashboard');
-    setValue('sRefresh', s.dashboard?.refresh_seconds || 2);
     setValue('sLocalIp', s.runtime?.local_ip || state.me?.lan_ip || '127.0.0.1');
     setValue('sPort', s.dashboard?.port || state.me?.port || 8765);
     updateLocalAddress();
@@ -102,8 +101,7 @@ window.TDSettings = (() => {
     const payload = {
       dashboard: {
         title: document.querySelector('#sTitle')?.value || 'Torrent Dashboard',
-        port: Number(document.querySelector('#sPort')?.value || 8765),
-        refresh_seconds: Number(document.querySelector('#sRefresh')?.value || 2)
+        port: Number(document.querySelector('#sPort')?.value || 8765)
       },
       auth: {
         mode: document.querySelector('#sAuth')?.value || 'required',
@@ -128,8 +126,6 @@ window.TDSettings = (() => {
       document.querySelectorAll('[data-column]').forEach(x => cols[x.dataset.column] = x.checked);
       localStorage.tdColumns = JSON.stringify(cols);
       applyPrefs();
-      state.refreshMs = Math.max(1000, Number(state.settings.dashboard.refresh_seconds || 2) * 1000);
-      scheduleRefresh();
       fill(state.settings);
       toast('settingsSaved');
       await loadServers();

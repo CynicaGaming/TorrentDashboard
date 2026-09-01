@@ -100,6 +100,15 @@ def main():
     assert 'function integrationSubtitle' in settings_js
     assert '0.5.14 readability pass' in app_css
     assert '0.5.14 settings de-duplication' in settings_css
+    assert 'id="wRefresh"' not in html and 'id="sRefresh"' not in html
+    assert 'id="actionDialogModal"' in html and 'id="actionDialogForm"' in html
+    assert 'LIVE_REFRESH_MS=1000' in app_js
+    assert 'refreshMs' not in app_js and 'refresh_seconds' not in app_js and 'refresh_seconds' not in settings_js
+    assert not re.search(r'(?<!\.)\bprompt\s*\(', app_js)
+    assert not re.search(r'\bconfirm\s*\(', app_js)
+    assert 'STATUS_REFRESH_SECONDS = 1.0' in dashboard_py
+    assert 'stop_event.wait(STATUS_REFRESH_SECONDS)' in dashboard_py
+    assert '0.5.16 unified application dialog' in app_css
     assert 'data-view="history"' not in html
     assert 'Transfer History' not in html
     assert 'data-view="notifications"' in html
