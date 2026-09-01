@@ -1,8 +1,30 @@
+# Runtime configuration and application data
 config.json
-data/*.sqlite3
+data/
+*.sqlite
+*.sqlite3
+*.db
+*.log
+
+# Local secrets and certificates
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Python / build output
 __pycache__/
+*.pyc
+.venv/
+venv/
 build/
 dist/
 *.spec
-data/
-*.pyc
+
+# Editor / OS noise
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

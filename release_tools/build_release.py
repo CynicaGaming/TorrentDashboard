@@ -37,6 +37,7 @@ def main():
     ap.add_argument("--output",default="dist")
     args=ap.parse_args()
     runpy.run_path(str(ROOT/"release_tools"/"validate_ui_strings.py"),run_name="__main__")
+    runpy.run_path(str(ROOT/"release_tools"/"validate_public_repo.py"),run_name="__main__")
     version=app_version(); tag_version=args.tag[1:] if args.tag.startswith("v") else args.tag
     if tag_version!=version: raise SystemExit(f"Tag {args.tag} does not match dashboard VERSION {version}")
     out=(ROOT/args.output).resolve();out.mkdir(parents=True,exist_ok=True)

@@ -42,7 +42,7 @@ UPDATE_DIR = DATA_DIR / "updates"
 UPDATE_STATE_PATH = DATA_DIR / "update-status.json"
 CUSTOM_SOUND_BASENAME = "custom-notification-sound"
 MAX_CUSTOM_SOUND_BYTES = 2 * 1024 * 1024
-VERSION = "0.5.16"
+VERSION = "0.5.17"
 STATUS_REFRESH_SECONDS = 1.0
 
 
@@ -254,27 +254,17 @@ def load_config():
     for legacy_key in ("webhook_url", "discord_webhook", "ntfy_url"):
         merged.setdefault("notifications", {}).pop(legacy_key, None)
 
-    # 0.5.13 moves GitHub credentials into the modular Integrations system.
-    # Existing installs are migrated in memory so update access is preserved,
-    # while fresh installs continue to start with an empty integrations list.
+    # GitHub update configuration lives in Integrations. Since 0.5.17 the
+    # default updater supports public repositories only and does not retain
+    # legacy GitHub access tokens.
     legacy_updates = raw.get("updates", {}) if isinstance(raw.get("updates"), dict) else {}
     legacy_repo = str(legacy_updates.get("repository") or "").strip()
-    legacy_token = str(legacy_updates.get("github_token") or "").strip()
     if legacy_repo and not any(item.get("type") == "github" for item in merged.get("integrations", [])):
-        payload = {
-            "id": stable_record_id("integration", "github", legacy_repo),
-            "type": "github",
-            "name": "GitHub",
-            "repository": legacy_repo,
-            "token": legacy_token,
-            "enabled": True,
-        }
+        payload = {"id": stable_record_id("integration", "github", legacy_repo), "type": "github", "name": "GitHub", "repository": legacy_repo, "enabled": True}
         try:
             merged.setdefault("integrations", []).append(normalize_integration(payload, payload))
         except Exception:
             pass
-    # The old update-settings object is deliberately retired. GitHub integration
-    # is now the single source of truth for repository and token configuration.
     merged["updates"] = {}
 
     sync_legacy_auth(merged)
@@ -282,6 +272,10 @@ def load_config():
 
 
 def save_config(cfg):
+    cfg = json.loads(json.dumps(cfg))
+    for integration in cfg.get("integrations", []):
+        if integration.get("type") == "github": integration.pop("token", None)
+    cfg.setdefault("updates", {}).pop("github_token", None)
     tmp = CONFIG_PATH.with_suffix(".tmp")
     tmp.write_text(json.dumps(cfg, indent=2) + "\n", encoding="utf-8")
     tmp.replace(CONFIG_PATH)
@@ -630,8 +624,7 @@ INTEGRATION_TYPES = {
     "github": {
         "label": "GitHub",
         "fields": [
-            {"key": "repository", "label": "Repository", "placeholder": "owner/repository", "required": True},
-            {"key": "token", "label": "Access Token", "placeholder": "Fine-grained token with Contents: Read", "secret": True, "required": False},
+            {"key": "repository", "label": "Repository", "placeholder": "owner/repository (public)", "required": True},
         ],
     },
     "sonarr": {
@@ -890,7 +883,7 @@ def test_integration_connection(item):
     label = spec["label"]
     try:
         if provider == "github":
-            result = test_github_update_access(item["repository"], item.get("token", ""))
+            result = test_github_update_access(item["repository"])
             release = result.get("latestRelease") or "No release published"
             return {**result, "message": f"Connected · GitHub · {result.get('repository', item['repository'])} · {release}"}
         if provider in ("sonarr", "radarr", "lidarr", "prowlarr"):
@@ -1622,16 +1615,12 @@ def normalize_github_repository(value: str) -> str:
     return "/".join(parts)
 
 
-def github_headers(token="", accept="application/vnd.github+json"):
-    headers = {
+def github_headers(accept="application/vnd.github+json"):
+    return {
         "User-Agent": f"TorrentDashboard/{VERSION}",
         "Accept": accept,
         "X-GitHub-Api-Version": "2022-11-28",
     }
-    token = str(token or "").strip()
-    if token and token != "<configured>":
-        headers["Authorization"] = f"Bearer {token}"
-    return headers
 
 
 def github_update_integration(cfg):
@@ -1644,8 +1633,8 @@ def github_update_integration(cfg):
 
 
 def github_update_headers(cfg, accept="application/vnd.github+json"):
-    integration = github_update_integration(cfg)
-    return github_headers(integration.get("token", ""), accept)
+    github_update_integration(cfg)
+    return github_headers(accept)
 
 
 def _urlopen_json(url: str, timeout=10, headers=None):
@@ -1688,13 +1677,10 @@ def _github_releases(cfg, repo: str):
     try:
         releases=_urlopen_json(url, timeout=10, headers=github_update_headers(cfg))
     except urllib.error.HTTPError as exc:
-        token = str(github_update_integration(cfg).get("token") or "").strip()
-        if exc.code in (401,403):
-            raise RuntimeError("GitHub rejected the update token. Verify that it has Contents: Read access to this repository.") from exc
-        if exc.code == 404 and not token:
-            raise RuntimeError("GitHub repository or releases were not found. If this repository is private, add a GitHub Update Token with Contents: Read access.") from exc
+        if exc.code in (401, 403):
+            raise RuntimeError("GitHub denied the request or the unauthenticated API rate limit was reached. Try again later.") from exc
         if exc.code == 404:
-            raise RuntimeError("GitHub repository or releases were not found, or the token cannot access them.") from exc
+            raise RuntimeError("Public GitHub repository or releases were not found. Verify the repository name and published releases.") from exc
         raise
     return [r for r in (releases or []) if not r.get("draft")]
 
@@ -1726,33 +1712,22 @@ def _asset_sha256(asset):
     return digest
 
 
-def test_github_update_access(repository: str, token: str = ""):
+def test_github_update_access(repository: str):
     repo = normalize_github_repository(repository)
-    token = str(token or "").strip()
-    cfg = {"integrations": [{"type": "github", "repository": repo, "token": token, "enabled": True}]}
-    headers = github_headers(token)
+    cfg = {"integrations": [{"type": "github", "repository": repo, "enabled": True}]}
     try:
-        info = _urlopen_json(f"https://api.github.com/repos/{repo}", timeout=10, headers=headers)
+        info = _urlopen_json(f"https://api.github.com/repos/{repo}", timeout=10, headers=github_headers())
     except urllib.error.HTTPError as exc:
         if exc.code in (401, 403):
-            if token:
-                raise RuntimeError("GitHub rejected the token. Verify that it can read this repository.") from exc
-            raise RuntimeError("GitHub denied the connection. Add a token if this is a private repository.") from exc
+            raise RuntimeError("GitHub denied the connection or the unauthenticated API rate limit was reached. Try again later.") from exc
         if exc.code == 404:
-            raise RuntimeError("GitHub repository not found or not accessible. Verify the repository name and token permissions.") from exc
+            raise RuntimeError("Public GitHub repository not found. Verify the owner/repository value.") from exc
         raise RuntimeError(f"GitHub connection failed with HTTP {exc.code}") from exc
     except urllib.error.URLError as exc:
         raise RuntimeError(f"Could not connect to GitHub: {exc.reason}") from exc
-
-    result = {
-        "ok": True,
-        "repository": str(info.get("full_name") or repo),
-        "private": bool(info.get("private", False)),
-        "defaultBranch": str(info.get("default_branch") or ""),
-        "latestRelease": "",
-        "clientZipPresent": False,
-        "sha256Available": False,
-    }
+    if bool(info.get("private", False)):
+        raise RuntimeError("Torrent Dashboard updates require a public GitHub repository")
+    result={"ok":True,"repository":str(info.get("full_name") or repo),"private":False,"defaultBranch":str(info.get("default_branch") or ""),"latestRelease":"","clientZipPresent":False,"sha256Available":False}
     try:
         release=_latest_github_release(cfg,repo)
         result["latestRelease"]=str(release.get("tag_name") or release.get("name") or "")
@@ -1762,12 +1737,9 @@ def test_github_update_access(repository: str, token: str = ""):
             try:
                 _asset_sha256(asset); result["sha256Available"]=True
             except RuntimeError:
-                result["sha256Available"]=False
+                pass
     except RuntimeError as exc:
-        # Repository access is still a successful connection test when no
-        # release exists yet. Surface that explicitly instead of failing auth.
-        if "No GitHub release" not in str(exc):
-            raise
+        if "No GitHub release" not in str(exc): raise
     return result
 
 
