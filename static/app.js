@@ -198,7 +198,7 @@ function bindUI(){if(bound)return;bound=true;
   $('#bulkbar').addEventListener('click',e=>{const a=e.target.dataset.bulk;if(a)bulkAction(a)});
   $('#addBtn').addEventListener('click',()=>$('#addModal').classList.remove('hidden'));$$('[data-modalclose]').forEach(x=>x.addEventListener('click',()=>$('#addModal').classList.add('hidden')));$('#addForm').addEventListener('submit',addTorrent);
   $$('[data-close]').forEach(x=>x.addEventListener('click',closeDrawer));$$('[data-detailtab]').forEach(x=>x.addEventListener('click',()=>{state.detailTab=x.dataset.detailtab;$$('[data-detailtab]').forEach(b=>b.classList.toggle('active',b===x));renderDetail()}));
-  $('#moreBtn').addEventListener('click',e=>showMenu($('#menu'),e.currentTarget));document.addEventListener('click',e=>{if(!e.target.closest('.menu')&&!e.target.closest('#moreBtn'))$$('.menu').forEach(m=>m.classList.add('hidden'))});
+  $('#moreBtn').addEventListener('click',e=>showMenu($('#menu'),e.currentTarget));document.addEventListener('click',e=>{if(!e.target.closest('.menu')&&!e.target.closest('#moreBtn')&&!e.target.closest('.more-row'))$$('.menu').forEach(m=>m.classList.add('hidden'))});
   $('#pauseAll').addEventListener('click',()=>globalAction('stop'));$('#resumeAll').addEventListener('click',()=>globalAction('start'));$('#altSpeed').addEventListener('click',()=>doAction('toggle_alt_speed',{}));$('#globalDl').addEventListener('click',()=>globalLimit('global_download_limit'));$('#globalUl').addEventListener('click',()=>globalLimit('global_upload_limit'));
   $('#notifyPermission').addEventListener('click',async()=>{if('Notification'in window){const p=await Notification.requestPermission();toast(`Notification permission: ${p}`)}});
   $('#historyRange').addEventListener('change',loadHistory);
@@ -257,12 +257,59 @@ function updateFilters(){
   syncFilterSelect($('#trackerFilter'),trackers,state.tracker,'All trackers');
 }
 function rowChange(e){if(!e.target.classList.contains('rowcheck'))return;const tr=e.target.closest('tr'),k=tr.dataset.key;e.target.checked?state.selected.add(k):state.selected.delete(k);render()}
-function rowClick(e){const tr=e.target.closest('tr');if(!tr)return;if(e.target.closest('.rowcheck'))return;if(e.target.closest('.more-row')){showTorrentMenu(tr,e.target);return}openDetail(tr.dataset.server,tr.dataset.hash)}
+function rowClick(e){const tr=e.target.closest('tr');if(!tr)return;if(e.target.closest('.rowcheck'))return;if(e.target.closest('.more-row')){e.stopPropagation();showTorrentMenu(tr,e.target.closest('.more-row'));return}openDetail(tr.dataset.server,tr.dataset.hash)}
 function rowContext(e){const tr=e.target.closest('tr');if(!tr)return;e.preventDefault();showTorrentMenu(tr,{getBoundingClientRect:()=>({left:e.clientX,top:e.clientY,bottom:e.clientY,right:e.clientX})},true)}
-function showTorrentMenu(tr,anchor,context=false){const m=$('#contextMenu'),sid=tr.dataset.server,h=tr.dataset.hash,t=state.torrents.find(x=>(x._server_id||state.server)===sid&&x.hash===h);m.innerHTML=`<button data-a="${isPaused(t)?'start':'stop'}">${isPaused(t)?'resume':'pause'}</button><button data-a="recheck">recheck</button><button data-a="reannounce">reannounce</button><button data-a="toggle_sequential">toggleSequential</button><button data-a="toggle_first_last">toggleFirstLastPriority</button><button data-a="top_priority">moveToTop</button><button data-a="increase_priority">priorityUp</button><button data-a="decrease_priority">priorityDown</button><button data-a="bottom_priority">moveToBottom</button><button data-a="set_category">setCategory…</button><button data-a="add_tags">addTags…</button><button data-a="force_start">${t.force_start?'disableForceStart':'enableForceStart'}</button><button data-a="copy_hash">copyHash</button><button data-a="delete" class="danger">delete…</button>`;applySentenceCaseUi(m);m.onclick=async e=>{const a=e.target.dataset.a;if(!a)return;m.classList.add('hidden');if(a==='copy_hash')return navigator.clipboard.writeText(h).then(()=>toast('hashCopied'));if(a==='delete'){let files=confirm('Also delete downloaded files?\nCancel = keep files.');if(!confirm(`Delete ${t.name}?`))return;return doAction('delete',{server:sid,hashes:[h],delete_files:files})}if(a==='force_start')return doAction('force_start',{server:sid,hashes:[h],value:!t.force_start});if(a==='set_category'){let v=prompt('Category name:');if(v!==null)return doAction(a,{server:sid,hashes:[h],category:v})}if(a==='add_tags'){let v=prompt('Comma-separated tags:');if(v)return doAction(a,{server:sid,hashes:[h],tags:v})}return doAction(a,{server:sid,hashes:[h]})};if(context){m.style.left=Math.min(innerWidth-205,anchor.getBoundingClientRect().left)+'px';m.style.top=Math.min(innerHeight-300,anchor.getBoundingClientRect().top)+'px'}else showMenu(m,anchor)}
+function showTorrentMenu(tr,anchor,context=false){
+  const m=$('#contextMenu'),sid=tr.dataset.server,h=tr.dataset.hash;
+  const t=state.torrents.find(x=>(x._server_id||state.server)===sid&&x.hash===h);
+  if(!t)return;
+  const admin=!!state.me?.can_manage;
+  const items=[
+    '<button data-a="details">Details</button>',
+    admin?`<button data-a="${isPaused(t)?'start':'stop'}">${isPaused(t)?'Resume':'Pause'}</button>`:'',
+    admin?'<button data-a="recheck">Recheck</button>':'',
+    admin?'<button data-a="reannounce">Reannounce</button>':'',
+    admin?`<button data-a="force_start">${t.force_start?'Disable force start':'Enable force start'}</button>`:'',
+    admin?'<button data-a="toggle_sequential">Toggle sequential download</button>':'',
+    admin?'<button data-a="toggle_first_last">Toggle first/last priority</button>':'',
+    admin?'<button data-a="top_priority">Move to top</button>':'',
+    admin?'<button data-a="increase_priority">Move up</button>':'',
+    admin?'<button data-a="decrease_priority">Move down</button>':'',
+    admin?'<button data-a="bottom_priority">Move to bottom</button>':'',
+    admin?'<button data-a="set_category">Set category…</button>':'',
+    admin?'<button data-a="add_tags">Add tags…</button>':'',
+    '<button data-a="copy_hash">Copy hash</button>',
+    admin?'<button data-a="delete" class="danger">Delete…</button>':''
+  ].filter(Boolean);
+  m.innerHTML=items.join('');
+  applySentenceCaseUi(m);
+  m.onclick=async e=>{
+    const button=e.target.closest('button[data-a]'),a=button?.dataset.a;
+    if(!a)return;
+    m.classList.add('hidden');
+    if(a==='details')return openDetail(sid,h);
+    if(a==='copy_hash')return navigator.clipboard.writeText(h).then(()=>toast('Hash copied'));
+    if(!state.me?.can_manage)return toast('Administrator access is required','error');
+    if(a==='delete'){
+      const files=confirm('Also delete downloaded files?\nCancel = keep files.');
+      if(!confirm(`Delete ${t.name}?`))return;
+      return doAction('delete',{server:sid,hashes:[h],delete_files:files});
+    }
+    if(a==='force_start')return doAction('force_start',{server:sid,hashes:[h],value:!t.force_start});
+    if(a==='set_category'){const v=prompt('Category name:');if(v!==null)return doAction(a,{server:sid,hashes:[h],category:v})}
+    if(a==='add_tags'){const v=prompt('Comma-separated tags:');if(v)return doAction(a,{server:sid,hashes:[h],tags:v})}
+    return doAction(a,{server:sid,hashes:[h]});
+  };
+  if(context){
+    const r=anchor.getBoundingClientRect();
+    m.style.left=Math.max(8,Math.min(innerWidth-205,r.left))+'px';
+    m.style.top=Math.max(8,Math.min(innerHeight-360,r.top))+'px';
+    m.classList.remove('hidden');
+  }else showMenu(m,anchor);
+}
 function showMenu(m,anchor){let r=anchor.getBoundingClientRect();m.style.left=Math.max(8,Math.min(innerWidth-205,r.right-190))+'px';m.style.top=Math.min(innerHeight-280,r.bottom+5)+'px';m.classList.remove('hidden')}
 
-async function doAction(action,payload={}){if(state.me.read_only)return toast('dashboardIsReadOnly','error');try{let server=payload.server||state.server;if(server==='all')throw new Error('chooseSpecificServerForAction');await post('/api/action',{server,action,...payload});toast('actionSent');setTimeout(refreshStatus,300)}catch(e){toast(e.message,'error')}}
+async function doAction(action,payload={}){if(!state.me?.can_manage)return toast('Administrator access is required','error');try{let server=payload.server||state.server;if(server==='all')throw new Error('chooseSpecificServerForAction');await post('/api/action',{server,action,...payload});toast('actionSent');setTimeout(refreshStatus,300)}catch(e){toast(e.message,'error')}}
 async function globalAction(a){if(state.server==='all'){for(const s of [...new Set(state.torrents.map(t=>t._server_id).filter(Boolean))])await doAction(a,{server:s,hashes:['all']})}else await doAction(a,{hashes:['all']})}
 async function bulkAction(a){let grouped={};for(const k of state.selected){let [sid,...rest]=k.split(':');(grouped[sid]??=[]).push(rest.join(':'))}if(a==='delete'&&!confirm(`Delete ${state.selected.size} selected torrents? Downloaded files will be kept.`))return;for(const [sid,hashes]of Object.entries(grouped))await doAction(a,{server:sid,hashes,delete_files:false});state.selected.clear();render()}
 
