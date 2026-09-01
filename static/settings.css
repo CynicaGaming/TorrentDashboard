@@ -31,3 +31,10 @@
 @media(max-width:560px){.settings-page-head p{font-size:9px}.settings-nav{margin-left:-2px;margin-right:-2px}.settings-card{border-radius:13px}.settings-savebar{padding:8px}}
 
 .secret-input .secret-toggle:disabled{cursor:default;opacity:.62;color:var(--muted);background:var(--panel2);border-color:var(--border)}.secret-configured{letter-spacing:.08em}
+
+
+/* 0.5.3 settings navigation and update-action alignment. */
+@media(min-width:821px){.settings-nav{margin-top:52px}}
+.update-actions .update-action{min-width:170px}
+@media(max-width:820px){.settings-nav{margin-top:0}.update-actions .update-action{flex:1 1 160px}}
+@media(max-width:560px){.update-actions{display:grid;grid-template-columns:1fr}.update-actions button{width:100%}}

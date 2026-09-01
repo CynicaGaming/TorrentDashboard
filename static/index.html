@@ -5,8 +5,8 @@
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#0b0d10" name="theme-color"/>
 <link href="/manifest.webmanifest" rel="manifest"/>
-<link href="/static/app.css?v=0.5.2" rel="stylesheet"/>
-<link href="/static/settings.css?v=0.5.2" rel="stylesheet"/>
+<link href="/static/app.css?v=0.5.3" rel="stylesheet"/>
+<link href="/static/settings.css?v=0.5.3" rel="stylesheet"/>
 <title>Torrent Dashboard</title>
 </head>
 <body>
@@ -199,7 +199,7 @@
 <label>Check Interval Hours<input id="sUpdateHours" max="168" min="1" type="number" value="6"/></label>
 </div>
 <div class="update-status" id="updateStatus"><div><span>Current Version</span><strong id="updateCurrent">—</strong></div><div><span>Latest Version</span><strong id="updateLatest">Not Checked</strong></div><div><span>Update State</span><strong id="updateState">Idle</strong></div></div>
-<div class="update-actions"><button class="secondary" id="testUpdateAccess" type="button">Test GitHub Connection</button><button class="secondary" id="checkUpdate" type="button">Check For Updates</button><button class="secondary" disabled="" id="downloadUpdate" type="button">Download Update</button><button class="primary" disabled="" id="installUpdate" type="button">Install And Restart</button></div>
+<div class="update-actions"><button class="secondary" id="testUpdateAccess" type="button">Test GitHub Connection</button><button class="secondary update-action" id="updateAction" type="button">Check For Updates</button></div>
 <div class="test-result muted update-access-result" id="updateAccessResult">Not Tested Yet</div>
 <div class="muted update-message" id="updateMessage">Configure the GitHub repository and, for a private repository, a token with <code>Contents: Read</code>. Releases are checked directly through GitHub and verified against the ZIP digest before installation.</div>
 </div>
@@ -233,7 +233,7 @@
 <div class="menu hidden" id="menu"><button id="pauseAll">Pause All</button><button id="resumeAll">Resume All</button><button id="altSpeed">Toggle Alternative Limits</button><button id="globalDl">Set Global Download Limit</button><button id="globalUl">Set Global Upload Limit</button><button id="notifyPermission">Enable Browser Notifications</button><button class="hidden" id="installPwa">Install App</button></div>
 <div class="menu hidden" id="contextMenu"></div>
 <div class="toasts" id="toasts"></div>
-<script src="/static/settings.js?v=0.5.2"></script>
-<script src="/static/app.js?v=0.5.2"></script>
+<script src="/static/settings.js?v=0.5.3"></script>
+<script src="/static/app.js?v=0.5.3"></script>
 </body>
 </html>

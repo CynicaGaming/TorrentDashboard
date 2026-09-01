@@ -38,7 +38,7 @@ CONFIG_PATH = APP_DIR / "config.json"
 DB_PATH = DATA_DIR / "torrent_desk.sqlite3"
 UPDATE_DIR = DATA_DIR / "updates"
 UPDATE_STATE_PATH = DATA_DIR / "update-status.json"
-VERSION = "0.5.2"
+VERSION = "0.5.3"
 
 DEFAULT_CONFIG = {
     "setup": {"complete": False},

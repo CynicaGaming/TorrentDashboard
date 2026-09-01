@@ -8,7 +8,7 @@ window.TDSettings = (() => {
   let currentUserId = '';
 
   const corePages = new Set(['general','access','clients','updates','notifications']);
-  const SECRET_MASK = CONFIGURED_SECRET_MASK;
+  const SECRET_MASK = '••••••••••';
 
   function configuredSecret(input, configured, emptyPlaceholder='') {
     setConfiguredSecretField(input, configured, emptyPlaceholder);
@@ -42,9 +42,7 @@ window.TDSettings = (() => {
       const out = document.querySelector('#updateAccessResult');
       if (out) { out.className='test-result muted update-access-result'; out.textContent='Not Tested Yet'; }
     }));
-    document.querySelector('#checkUpdate')?.addEventListener('click', () => checkForUpdates(false));
-    document.querySelector('#downloadUpdate')?.addEventListener('click', downloadUpdate);
-    document.querySelector('#installUpdate')?.addEventListener('click', installUpdate);
+    document.querySelector('#updateAction')?.addEventListener('click', handleUpdateAction);
     document.querySelector('#testNotify')?.addEventListener('click', () => post('/api/notification-test',{}).then(() => toast('testNotificationSent')).catch(e => toast(e.message,'error')));
     document.querySelector('#addIntegrationSetting')?.addEventListener('click', addIntegration);
     document.querySelector('#addUserSetting')?.addEventListener('click', addUser);
