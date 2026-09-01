@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build Torrent Dashboard GitHub release assets."""
+"""Build Torrent Desk GitHub Release assets and update-manifest.json."""
 from __future__ import annotations
 
 import argparse
@@ -64,11 +64,11 @@ def main():
 
     out = (ROOT / args.output).resolve()
     out.mkdir(parents=True, exist_ok=True)
-    asset_name = f"Torrent-Dashboard-{version}.zip"
+    asset_name = f"Torrent-Desk-{version}.zip"
     asset_path = out / asset_name
 
     with zipfile.ZipFile(asset_path, "w", zipfile.ZIP_DEFLATED) as z:
-        prefix = f"Torrent-Dashboard-{version}"
+        prefix = f"Torrent-Desk-{version}"
         for p in sorted(ROOT.rglob("*")):
             if include(p):
                 z.write(p, arcname=f"{prefix}/{p.relative_to(ROOT)}")

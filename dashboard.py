@@ -38,7 +38,7 @@ CONFIG_PATH = APP_DIR / "config.json"
 DB_PATH = DATA_DIR / "torrent_desk.sqlite3"
 UPDATE_DIR = DATA_DIR / "updates"
 UPDATE_STATE_PATH = DATA_DIR / "update-status.json"
-VERSION = "0.4.0"
+VERSION = "3.4.0"
 
 DEFAULT_CONFIG = {
     "setup": {"complete": False},
@@ -503,63 +503,6 @@ class Store:
 
 STORE = Store(DB_PATH)
 
-
-
-
-def normalize_qbittorrent_server(data, existing=None):
-    existing = existing or {}
-    sid = str(data.get("id") or existing.get("id") or uuid.uuid4().hex[:8])[:64]
-    auth_method = str(data.get("auth_method") or existing.get("auth_method") or ("api_key" if existing.get("api_key") else "password"))
-    if auth_method not in ("api_key", "password"):
-        raise RuntimeError("qBittorrent authentication must be API key or username/password")
-
-    password = data.get("password")
-    if password in (None, "", "<configured>"):
-        password = existing.get("password", "")
-    api_key = data.get("api_key")
-    if api_key in (None, "", "<configured>"):
-        api_key = existing.get("api_key", "")
-
-    item = {
-        "id": sid,
-        "name": str(data.get("name") or existing.get("name") or "qBittorrent")[:128],
-        "type": "qbittorrent",
-        "base_url": str(data.get("base_url") or existing.get("base_url") or "").strip().rstrip("/")[:2048],
-        "auth_method": auth_method,
-        "api_key": str(api_key or ""),
-        "username": str(data.get("username") if data.get("username") is not None else existing.get("username", ""))[:256],
-        "password": str(password or ""),
-        "enabled": bool(data.get("enabled", True)),
-    }
-    if not item["base_url"].startswith(("http://", "https://")):
-        raise RuntimeError("qBittorrent URL must start with http:// or https://")
-    if auth_method == "api_key":
-        if not item["api_key"]:
-            raise RuntimeError("Enter the qBittorrent API key")
-        if not (item["api_key"].startswith("qbt_") and len(item["api_key"]) == 32):
-            raise RuntimeError("qBittorrent API keys must be 32 characters and start with qbt_ (qBittorrent 5.2+)")
-    else:
-        if not item["username"]:
-            raise RuntimeError("Enter the qBittorrent username")
-        if not item["password"]:
-            raise RuntimeError("Enter the qBittorrent password")
-    return item
-
-# Compatibility name used by the current setup/settings routes.
-normalize_server_input = normalize_qbittorrent_server
-
-
-def test_server_connection(server):
-    client = QBitClient(server)
-    client.login()
-    return {
-        "ok": True,
-        "name": server.get("name", "qBittorrent"),
-        "version": client.version(),
-        "api_version": client.api_version(),
-        "base_url": server.get("base_url"),
-        "auth_method": server.get("auth_method", "password"),
-    }
 
 # ---------- qBittorrent client ----------
 
