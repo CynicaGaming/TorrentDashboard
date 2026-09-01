@@ -241,6 +241,6 @@ async function globalLimit(action){if(state.server==='all')return toast('chooseS
 
 function applyColumnPrefs(){let cols=JSON.parse(localStorage.tdColumns||'{}');for(const k of ['progress','state','down','up','eta','ratio'])$('#torrentTable')?.classList.toggle('hide-col-'+k,cols[k]===false)}
 
-function registerPwa(){if('serviceWorker'in navigator)navigator.serviceWorker.register('/sw.js?v=0.5.1').catch(()=>{});window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();state.deferredPrompt=e;$('#installPwa').classList.remove('hidden')});$('#installPwa').onclick=async()=>{if(state.deferredPrompt){state.deferredPrompt.prompt();await state.deferredPrompt.userChoice;state.deferredPrompt=null;$('#installPwa').classList.add('hidden')}}}
+function registerPwa(){if('serviceWorker'in navigator){navigator.serviceWorker.register('/sw.js',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(sessionStorage.getItem('tdSwReloaded')!=='1'){sessionStorage.setItem('tdSwReloaded','1');location.reload()}})}window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();state.deferredPrompt=e;$('#installPwa').classList.remove('hidden')});$('#installPwa').onclick=async()=>{if(state.deferredPrompt){state.deferredPrompt.prompt();await state.deferredPrompt.userChoice;state.deferredPrompt=null;$('#installPwa').classList.add('hidden')}}}
 
 applyTitleCaseUi(document);decorateSecretFields(document);titleObserver.observe(document.body,{childList:true,subtree:true});bootstrap();
