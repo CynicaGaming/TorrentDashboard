@@ -235,6 +235,7 @@ def main():
     assert 'fonts.googleapis.com' not in html and 'fonts.gstatic.com' not in dashboard_py
     assert 'id="loginPass"' in html and 'autocomplete="current-password"' in html
     assert 'id="accountAvatarBtn"' not in html and 'accountAvatarBtn' not in app_js
+    assert 'id="accountPasswordBtn"' not in html and 'accountPasswordBtn' not in app_js
     assert 'id="accountProfilePassword"' not in html and 'accountProfilePassword' not in app_js
     assert 'id="passwordConfirmModal"' in html and 'requestPasswordConfirmation' in app_js
     assert 'password_configured' in dashboard_py
