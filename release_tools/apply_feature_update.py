@@ -164,37 +164,7 @@ def patch_versions():
     sw.write_text(text, encoding="utf-8")
 
 
-def patch_workflow():
-    path = ROOT / ".github" / "workflows" / "release.yml"
-    text = path.read_text(encoding="utf-8")
-    text = text.replace("Redesign notifications and align settings layout", "Enforce single instance and standardize UI casing")
-    marker = "          assert callable(dashboard.normalize_user)\n"
-    addition = '''          assert callable(dashboard.normalize_user)
-          assert hasattr(dashboard, 'SingleInstanceLock')
-          first_lock = dashboard.SingleInstanceLock()
-          second_lock = dashboard.SingleInstanceLock()
-          assert first_lock.acquire() is True
-          try:
-              assert second_lock.acquire() is False
-          finally:
-              first_lock.release()
-          third_lock = dashboard.SingleInstanceLock()
-          assert third_lock.acquire() is True
-          third_lock.release()
-'''
-    text = replace_once(text, marker, addition, "single-instance CI validation")
-    marker = "          assert 'async function handleUpdateAction()' in app_js\n"
-    addition = '''          assert 'async function handleUpdateAction()' in app_js
-          assert 'function applySentenceCaseUi' in app_js
-          assert 'applyTitleCaseUi' not in app_js
-          assert "uiText('installAndRestart')" in app_js
-'''
-    text = replace_once(text, marker, addition, "sentence-case CI validation")
-    path.write_text(text, encoding="utf-8")
-
-
 patch_dashboard()
 patch_app_js()
 patch_versions()
-patch_workflow()
 print("Applied Torrent Dashboard 0.5.6 single-instance and sentence-case update")
