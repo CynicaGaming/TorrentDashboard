@@ -1,4 +1,4 @@
-name: Release Torrent Desk
+name: Torrent Dashboard Pre-Release
 
 on:
   push:
@@ -10,7 +10,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: torrent-desk-release
+  group: torrent-dashboard-prerelease
   cancel-in-progress: false
 
 jobs:
@@ -18,16 +18,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
       - name: Set Up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
-          python-version: '3.11'
+          python-version: '3.13'
 
-      - name: Apply Pending Prerelease Cleanup
+      - name: Apply Pending Pre-Release Cleanup
         shell: bash
         run: |
           if [ -f release_tools/apply_cleanup.py.gz.b64 ]; then
@@ -41,6 +41,10 @@ jobs:
         run: |
           python -m py_compile dashboard.py updater.py
           node --check static/app.js
+          python - <<'PY'
+          import dashboard
+          assert callable(dashboard.normalize_server_input)
+          PY
 
       - name: Commit Cleanup
         id: source
@@ -50,7 +54,7 @@ jobs:
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git add -A
-            git commit -m "Apply Torrent Desk 3.4.0 prerelease cleanup"
+            git commit -m "Apply Torrent Dashboard prerelease cleanup"
             git push origin HEAD:main
           fi
           echo "release_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
@@ -59,40 +63,44 @@ jobs:
         id: version
         shell: bash
         run: |
-          VERSION=$(python - <<'PY2'
+          VERSION=$(python - <<'PY'
           import re
           text=open('dashboard.py', encoding='utf-8').read()
           print(re.search(r'^VERSION\s*=\s*["\']([^"\']+)', text, re.M).group(1))
-          PY2
+          PY
           )
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
 
-      - name: Replace Existing Development Release
+      - name: Replace Existing Pre-Release
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.version.outputs.tag }}
         shell: bash
         run: |
           gh release delete "$TAG" --cleanup-tag --yes >/dev/null 2>&1 || true
+          if [ "$TAG" != "v3.4.0" ]; then
+            gh release delete "v3.4.0" --cleanup-tag --yes >/dev/null 2>&1 || true
+          fi
 
-      - name: Build Release Assets
+      - name: Build Release Package
         env:
           REPO: ${{ github.repository }}
           TAG: ${{ steps.version.outputs.tag }}
         run: python release_tools/build_release.py --repo "$REPO" --tag "$TAG" --output dist
 
-      - name: Publish GitHub Release
+      - name: Publish GitHub Pre-Release
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.version.outputs.tag }}
           RELEASE_SHA: ${{ steps.source.outputs.release_sha }}
+        shell: bash
         run: |
+          ZIP=$(find dist -maxdepth 1 -type f \( -name 'Torrent-Dashboard-*.zip' -o -name 'Torrent-Desk-*.zip' \) | head -n 1)
+          test -n "$ZIP"
           gh release create "$TAG" \
-            dist/Torrent-Desk-*.zip \
-            dist/Torrent-Desk-*.zip.sha256 \
-            dist/update-manifest.json \
+            "$ZIP" \
             --target "$RELEASE_SHA" \
-            --title "Torrent Desk $TAG" \
+            --title "Torrent Dashboard Pre-Release" \
             --generate-notes \
             --prerelease
