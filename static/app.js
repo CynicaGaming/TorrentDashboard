@@ -191,7 +191,7 @@ function bindUI(){if(bound)return;bound=true;
   $('#categoryFilter').addEventListener('change',e=>{state.category=e.target.value;localStorage.tdCategory=state.category;render()});
   $('#tagFilter').addEventListener('change',e=>{state.tag=e.target.value;localStorage.tdTag=state.tag;render()});
   $('#trackerFilter').addEventListener('change',e=>{state.tracker=e.target.value;localStorage.tdTracker=state.tracker;render()});
-  loadSavedViews();$('#saveView').addEventListener('click',saveCurrentView);$('#savedView').addEventListener('change',applySavedView);$('#sort').value=state.sort;$('#sort').addEventListener('change',e=>{state.sort=e.target.value;localStorage.tdSort=state.sort;render()});
+  $('#sort').value=state.sort;$('#sort').addEventListener('change',e=>{state.sort=e.target.value;localStorage.tdSort=state.sort;render()});
   $('#serverSelect').addEventListener('change',async e=>{state.server=e.target.value;state.selected.clear();await refreshStatus();if(!['all'].includes(state.server))await loadMeta()});
   $('#selectAll').addEventListener('change',e=>{visibleTorrents().forEach(t=>e.target.checked?state.selected.add(keyFor(t)):state.selected.delete(keyFor(t)));render()});
   $('#torrentRows').addEventListener('click',rowClick);$('#torrentRows').addEventListener('change',rowChange);$('#torrentRows').addEventListener('contextmenu',rowContext);
@@ -235,7 +235,27 @@ function keyFor(t){return`${t._server_id||state.server}:${t.hash}`}
 function visibleTorrents(){let arr=state.torrents.filter(t=>{if(state.filter==='active'&&!isActive(t))return false;if(state.filter==='completed'&&!isComplete(t))return false;if(state.filter==='paused'&&!isPaused(t))return false;if(state.category&&t.category!==state.category)return false;if(state.tag&&!String(t.tags||'').split(',').map(x=>x.trim()).includes(state.tag))return false;if(state.tracker&&trackerHost(t.tracker)!==state.tracker)return false;if(state.search&&!`${t.name||''} ${t.category||''} ${t.tags||''} ${t.tracker||''}`.toLowerCase().includes(state.search))return false;return true});const [field,dir]=state.sort.split('_');const val=(t)=>({name:String(t.name||'').toLowerCase(),progress:Number(t.progress||0),down:Number(t.dlspeed||0),up:Number(t.upspeed||0),eta:Number(t.eta||9e15),size:Number(t.size||0),ratio:Number(t.ratio||0),added:Number(t.added_on||0)})[field];arr.sort((a,b)=>{let A=val(a),B=val(b);return(A<B?-1:A>B?1:0)*(dir==='desc'?-1:1)});return arr}
 function render(){const list=visibleTorrents();$('#torrentRows').innerHTML=list.map(rowHtml).join('');$('#empty').classList.toggle('hidden',list.length>0);$('#selectedCount').textContent=state.selected.size;$('#bulkbar').classList.toggle('hidden',!state.selected.size);$('#selectAll').checked=!!list.length&&list.every(t=>state.selected.has(keyFor(t)));updateFilters()}
 function rowHtml(t){const pct=Math.max(0,Math.min(100,Number(t.progress||0)*100)),[label,cls]=stateInfo(t),server=t._server_name?`${t._server_name} · `:'';return`<tr data-key="${esc(keyFor(t))}" data-hash="${esc(t.hash)}" data-server="${esc(t._server_id||state.server)}"><td class="check"><input class="rowcheck" type="checkbox" ${state.selected.has(keyFor(t))?'checked':''}></td><td><div class="torrent-name" title="${esc(t.name)}">${esc(t.name)}</div><div class="torrent-sub">${esc(server)}${bytes(t.size)} · ${esc(t.category||'Uncategorized')} · ${Number(t.num_seeds||0)} Seeds</div></td><td class="progress-cell" data-col="progress"><div class="progress-top"><span>${pct.toFixed(1)}%</span><span>${bytes(t.amount_left)} Left</span></div><div class="track"><div class="fill" style="width:${pct}%"></div></div></td><td class="mobile-grid" data-col="state" data-label="Status"><span class="state ${cls}">${esc(uiText(label))}</span></td><td class="mobile-grid" data-col="down" data-label="Download"><span class="mono">${speed(t.dlspeed||0)}</span></td><td class="mobile-grid" data-col="up" data-label="Upload"><span class="mono">${speed(t.upspeed||0)}</span></td><td class="mobile-grid" data-col="eta" data-label="ETA"><span class="mono">${eta(t.eta)}</span></td><td class="mobile-grid" data-col="ratio" data-label="Ratio"><span class="mono">${Number(t.ratio||0).toFixed(2)}</span></td><td class="row-actions"><button class="more-row" aria-label="Actions">•••</button></td></tr>`}
-function updateFilters(){const cats=[...new Set(state.torrents.map(t=>t.category).filter(Boolean))].sort(),tags=[...new Set(state.torrents.flatMap(t=>String(t.tags||'').split(',').map(x=>x.trim()).filter(Boolean)))].sort(),trackers=[...new Set(state.torrents.map(t=>trackerHost(t.tracker)).filter(Boolean))].sort();const c=$('#categoryFilter');c.innerHTML='<option value="">allCategories</option>'+cats.map(x=>`<option>${esc(x)}</option>`).join('');c.value=state.category;const tg=$('#tagFilter');tg.innerHTML='<option value="">allTags</option>'+tags.map(x=>`<option>${esc(x)}</option>`).join('');tg.value=state.tag;const tr=$('#trackerFilter');tr.innerHTML='<option value="">allTrackers</option>'+trackers.map(x=>`<option>${esc(x)}</option>`).join('');tr.value=state.tracker}
+function syncFilterSelect(select,values,selected,emptyLabel){
+  if(!select)return;
+  const signature=JSON.stringify([emptyLabel,...values]);
+  // Native select menus can jump back to the first item if their option DOM is
+  // modified while the menu is open. Leave a focused select completely alone;
+  // the next dashboard refresh will reconcile it after the user closes it.
+  if(document.activeElement===select)return;
+  if(select.dataset.optionsSignature!==signature){
+    select.innerHTML=`<option value="">${esc(emptyLabel)}</option>`+values.map(x=>`<option>${esc(x)}</option>`).join('');
+    select.dataset.optionsSignature=signature;
+  }
+  if(select.value!==selected)select.value=selected;
+}
+function updateFilters(){
+  const cats=[...new Set(state.torrents.map(t=>t.category).filter(Boolean))].sort();
+  const tags=[...new Set(state.torrents.flatMap(t=>String(t.tags||'').split(',').map(x=>x.trim()).filter(Boolean)))].sort();
+  const trackers=[...new Set(state.torrents.map(t=>trackerHost(t.tracker)).filter(Boolean))].sort();
+  syncFilterSelect($('#categoryFilter'),cats,state.category,'All categories');
+  syncFilterSelect($('#tagFilter'),tags,state.tag,'All tags');
+  syncFilterSelect($('#trackerFilter'),trackers,state.tracker,'All trackers');
+}
 function rowChange(e){if(!e.target.classList.contains('rowcheck'))return;const tr=e.target.closest('tr'),k=tr.dataset.key;e.target.checked?state.selected.add(k):state.selected.delete(k);render()}
 function rowClick(e){const tr=e.target.closest('tr');if(!tr)return;if(e.target.closest('.rowcheck'))return;if(e.target.closest('.more-row')){showTorrentMenu(tr,e.target);return}openDetail(tr.dataset.server,tr.dataset.hash)}
 function rowContext(e){const tr=e.target.closest('tr');if(!tr)return;e.preventDefault();showTorrentMenu(tr,{getBoundingClientRect:()=>({left:e.clientX,top:e.clientY,bottom:e.clientY,right:e.clientX})},true)}
@@ -275,9 +295,6 @@ async function saveSettings(e){return TDSettings.saveCore(e)}
 
 async function loadIntegrations(){return TDSettings.loadIntegrations()}
 
-function loadSavedViews(){let views=JSON.parse(localStorage.tdSavedViews||'{}'),sel=$('#savedView');sel.innerHTML=`<option value="">${uiText('Saved Views')}</option>`+Object.keys(views).map(n=>`<option>${esc(n)}</option>`).join('')}
-function saveCurrentView(){let name=prompt('Name This View:');if(!name)return;let views=JSON.parse(localStorage.tdSavedViews||'{}');views[name]={filter:state.filter,search:state.search,category:state.category,tag:state.tag,tracker:state.tracker,sort:state.sort};localStorage.tdSavedViews=JSON.stringify(views);loadSavedViews();toast('viewSaved')}
-function applySavedView(e){let v=JSON.parse(localStorage.tdSavedViews||'{}')[e.target.value];if(!v)return;Object.assign(state,v);localStorage.tdFilter=state.filter;localStorage.tdSearch=state.search;localStorage.tdCategory=state.category;localStorage.tdTag=state.tag;localStorage.tdTracker=state.tracker;localStorage.tdSort=state.sort;$('#search').value=state.search;$('#sort').value=state.sort;$$('#tabs button').forEach(b=>b.classList.toggle('active',b.dataset.filter===state.filter));render()}
 async function globalLimit(action){if(state.server==='all')return toast('chooseSpecificServerFirst','error');let kb=prompt('Limit KB Per Second (0 = Unlimited):','0');if(kb!==null)await doAction(action,{limit:Number(kb)*1024})}
 
 function applyColumnPrefs(){let cols=JSON.parse(localStorage.tdColumns||'{}');for(const k of ['progress','state','down','up','eta','ratio'])$('#torrentTable')?.classList.toggle('hide-col-'+k,cols[k]===false)}

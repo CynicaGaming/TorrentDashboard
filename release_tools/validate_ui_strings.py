@@ -55,7 +55,12 @@ def main():
     validate_javascript("static/settings.js", settings_js)
 
     assert 'placeholder="Search torrents…"' in html
-    assert 'title="Save current filters"' in html
+    assert 'id="savedView"' not in html
+    assert 'id="saveView"' not in html
+    assert 'tdSavedViews' not in app_js
+    assert 'function syncFilterSelect' in app_js
+    assert 'document.activeElement===select' in app_js
+    assert 'optionsSignature' in app_js
     assert "function normalizeUiAttributes" in app_js
     assert "attributeFilter:['placeholder','title','aria-label']" in app_js
     assert "applySentenceCaseUi(card)" in settings_js
