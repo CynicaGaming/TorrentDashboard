@@ -97,6 +97,16 @@ def main():
     assert 'id="updateSourceSave"' not in html
     assert 'Save Settings' not in html
     assert '<div class="settings-savebar" id="settingsSavebar"><button class="primary" type="submit">Save</button></div>' in html
+    # Settings navigation labels and card titles must use the same canonical names.
+    for title in ('General','Access','Clients','Updates','Notifications','Integrations','Users'):
+        assert f'<div class="panel-title">{title}</div>' in html
+    assert '<div class="panel-title">General Dashboard Settings</div>' not in html
+    assert '<div class="panel-title">Dashboard Access</div>' not in html
+    assert '<div class="panel-title">qBitTorrent Servers</div>' not in html
+    assert '<div class="panel-title">User Management</div>' not in html
+    assert '(Optional)' not in settings_js
+    assert settings_js.count('class="required-mark"') >= 4
+    assert '.required-mark{color:#ff5d6c' in settings_css
     assert "const corePages = new Set(['general','access','clients','updates','notifications']);" in settings_js
     assert "if (activePage === 'updates') return saveUpdateSource();" in settings_js
     assert '#updateSourceSave' not in settings_js

@@ -5,8 +5,8 @@
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#0b0d10" name="theme-color"/>
 <link href="/manifest.webmanifest" rel="manifest"/>
-<link href="/static/app.css?v=0.5.21" rel="stylesheet"/>
-<link href="/static/settings.css?v=0.5.21" rel="stylesheet"/>
+<link href="/static/app.css?v=0.5.22" rel="stylesheet"/>
+<link href="/static/settings.css?v=0.5.22" rel="stylesheet"/>
 <title>Torrent Dashboard</title>
 </head>
 <body>
@@ -153,7 +153,7 @@
 <form id="settingsForm">
 <section class="settings-page active" data-settings-section="general">
 <div class="panel settings-card">
-<div class="panel-title">General Dashboard Settings</div>
+<div class="panel-title">General</div>
 <label>Dashboard Title<input id="sTitle"/></label>
 <label>Theme<select id="sTheme"><option value="dark">Dark</option><option value="light">Light</option><option value="system">System</option></select></label>
 <label>Density<select id="sDensity"><option value="comfortable">Comfortable</option><option value="compact">Compact</option></select></label>
@@ -163,7 +163,7 @@
 </section>
 <section class="settings-page" data-settings-section="access">
 <div class="panel settings-card">
-<div class="panel-title">Dashboard Access</div>
+<div class="panel-title">Access</div>
 <label>Authentication Mode<select id="sAuth"><option value="required">Required Everywhere</option><option value="lan_bypass">Bypass For Trusted Addresses</option><option value="disabled">Disabled</option></select></label>
 <div class="field-help">Usernames, passwords, profile information, and access roles are managed under User Management.</div>
 <div class="field-row"><div><b>Trusted Network Interfaces</b><small>Select one or more NICs whose current subnet should bypass dashboard authentication.</small></div><button class="secondary small-btn" id="sRefreshInterfaces" type="button">Refresh Interfaces</button></div>
@@ -178,7 +178,7 @@
 </div>
 </section>
 <section class="settings-page" data-settings-section="clients">
-<div class="panel settings-card"><div class="panel-title">qBitTorrent Servers</div><div id="serverSettings"></div><button id="addServerSetting" type="button">＋ Add Server</button></div>
+<div class="panel settings-card"><div class="panel-title">Clients</div><div id="serverSettings"></div><button id="addServerSetting" type="button">＋ Add Server</button></div>
 </section>
 <section class="settings-page" data-settings-section="updates">
 <div class="panel settings-card" id="updateSettingsCard">
@@ -216,7 +216,7 @@
 <div class="panel settings-card"><div class="panel-title">Integrations</div><p class="muted">No integrations are populated by default. Add media services or notification destinations only when you use them, test each connection, and save it independently.</p><div class="integration-add-row"><select id="integrationTypeSelect"><option value="">Choose Integration…</option></select><button class="primary" id="addIntegrationSetting" type="button">＋ Add Integration</button></div><div id="integrationList"></div></div>
 </section>
 <section class="settings-page" data-settings-section="users">
-<div class="panel settings-card"><div class="panel-title">User Management</div><p class="muted user-management-intro">Administrators can manage torrents, settings, integrations, and users. Standard Users can view the dashboard without making changes.</p><div class="settings-inline-actions"><button class="primary" id="addUserSetting" type="button">＋ Add User</button></div><div id="userList"></div></div>
+<div class="panel settings-card"><div class="panel-title">Users</div><p class="muted user-management-intro">Administrators can manage torrents, settings, integrations, and users. Standard Users can view the dashboard without making changes.</p><div class="settings-inline-actions"><button class="primary" id="addUserSetting" type="button">＋ Add User</button></div><div id="userList"></div></div>
 </section>
 </div>
 </div>
@@ -231,7 +231,7 @@
 <div class="menu hidden" id="menu"><button id="pauseAll">Pause All</button><button id="resumeAll">Resume All</button><button id="altSpeed">Toggle Alternative Limits</button><button id="globalDl">Set Global Download Limit</button><button id="globalUl">Set Global Upload Limit</button><button id="notifyPermission">Enable Browser Notifications</button><button class="hidden" id="installPwa">Install App</button></div>
 <div class="menu hidden" id="contextMenu"></div>
 <div class="toasts" id="toasts"></div>
-<script src="/static/settings.js?v=0.5.21"></script>
-<script src="/static/app.js?v=0.5.21"></script>
+<script src="/static/settings.js?v=0.5.22"></script>
+<script src="/static/app.js?v=0.5.22"></script>
 </body>
 </html>

@@ -84,3 +84,6 @@
   .user-group-badge{font-size:8.5px}
   .user-management-intro{font-size:10.5px}
 }
+
+/* 0.5.22 required-field markers. */
+.required-mark{color:#ff5d6c;font-weight:800;margin-left:3px}
