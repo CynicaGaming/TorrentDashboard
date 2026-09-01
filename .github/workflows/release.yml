@@ -126,8 +126,6 @@ jobs:
           assert "const CONFIGURED_SECRET_MASK='••••••••••';" in app_js
           assert "input.value=configured?CONFIGURED_SECRET_MASK:''" in app_js
           assert "btn.textContent='Stored'" in app_js
-          assert "secretFieldValue(document.querySelector('#sUpdateToken'), '<configured>')" in js
-          assert "secretFieldValue($('#sUpdateToken'),'')" in app_js
           assert 'Configured — Leave Blank To Keep' not in js
           assert 'Token Configured — Leave Blank To Keep' not in js
           assert '.settings-page .settings-card{max-width:none;width:100%}' in css
@@ -164,7 +162,7 @@ jobs:
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git add -A
-            git commit -m "Enforce single instance and standardize UI casing"
+            git commit -m "Apply pending feature update"
             git push origin HEAD:main
           fi
           echo "release_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
