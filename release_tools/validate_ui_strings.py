@@ -226,6 +226,20 @@ def main():
     assert 'currentUserName' not in app_js and 'currentUserGroup' not in app_js
     assert '<div class="sidebar-foot"><small id="version">—</small></div>' in html
 
+    # 0.5.26 qBitTorrent-style toolbar and per-client settings.
+    assert 'id="addBtn"' not in html and 'id="moreBtn"' not in html
+    assert 'id="menu"' not in html and 'id="pauseAll"' not in html and 'id="globalDl"' not in html
+    assert 'id="addLinkBtn"' in html and 'id="addFileBtn"' in html
+    assert 'id="resumeAllBtn"' in html and 'id="pauseAllBtn"' in html
+    assert 'id="clientSettingsModal"' in html and 'id="clientSettingsForm"' in html
+    assert 'id="clientAltSpeed"' in html and 'id="clientGlobalDl"' in html and 'id="clientGlobalUl"' in html
+    assert 'class="secondary client-settings"' in app_js
+    assert 'TDSettings.openClientSettings' in app_js
+    assert 'async function openClientSettings' in settings_js and 'async function saveClientSettings' in settings_js
+    assert "action:'global_download_limit'" in settings_js and "action:'global_upload_limit'" in settings_js and "action:'toggle_alt_speed'" in settings_js
+    assert '0.5.26 qBitTorrent-style torrent toolbar' in app_css
+    assert '0.5.26 per-client qBitTorrent settings' in settings_css
+
     print("UI string audit passed")
 
 

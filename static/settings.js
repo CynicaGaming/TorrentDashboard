@@ -6,6 +6,8 @@ window.TDSettings = (() => {
   let integrations = [];
   let users = [];
   let currentUserId = '';
+  let clientSettingsServerId = '';
+  let clientSettingsAltSpeed = false;
 
   const corePages = new Set(['general','access','clients','updates','notifications']);
   const SECRET_MASK = '••••••••••';
@@ -37,6 +39,8 @@ window.TDSettings = (() => {
     document.querySelector('#sPort')?.addEventListener('input', updateLocalAddress);
     document.querySelector('#sRefreshInterfaces')?.addEventListener('click', () => refreshSettingsInterfaces(true).catch(e => toast(e.message,'error')));
     document.querySelector('#addServerSetting')?.addEventListener('click', () => addServerRow());
+    document.querySelector('#clientSettingsForm')?.addEventListener('submit', saveClientSettings);
+    document.querySelectorAll('[data-client-settings-close]').forEach(el => el.addEventListener('click', closeClientSettings));
     document.querySelector('#updateAction')?.addEventListener('click', handleUpdateAction);
     document.querySelector('#nSoundMode')?.addEventListener('change', updateNotificationSoundUi);
     document.querySelector('#nSoundFile')?.addEventListener('change', updateNotificationSoundUi);
@@ -44,6 +48,70 @@ window.TDSettings = (() => {
     document.querySelector('#addIntegrationSetting')?.addEventListener('click', addIntegration);
     document.querySelector('#addUserSetting')?.addEventListener('click', addUser);
     activate(localStorage.tdSettingsPage || 'general');
+  }
+
+  function setClientSettingsStatus(message='', tone='muted') {
+    const status = document.querySelector('#clientSettingsStatus');
+    if (!status) return;
+    status.className = `test-result ${tone}`;
+    status.textContent = message;
+  }
+
+  function closeClientSettings() {
+    document.querySelector('#clientSettingsModal')?.classList.add('hidden');
+    clientSettingsServerId = '';
+    setClientSettingsStatus('');
+  }
+
+  async function openClientSettings(serverId) {
+    serverId = String(serverId || '').trim();
+    if (!serverId) return toast('Save The Client Before Opening Client Settings','error');
+    const server = (state.settings?.servers || []).find(item => String(item.id || '') === serverId);
+    clientSettingsServerId = serverId;
+    const modal = document.querySelector('#clientSettingsModal');
+    const name = document.querySelector('#clientSettingsClientName');
+    if (name) name.textContent = server?.name || serverId;
+    modal?.classList.remove('hidden');
+    setClientSettingsStatus('Loading client settings…');
+    try {
+      const meta = await api(`/api/meta?server=${encodeURIComponent(serverId)}`);
+      if (meta.alt_speed == null || meta.global_dl_limit == null || meta.global_up_limit == null) throw new Error('qBitTorrent did not return the required transfer settings');
+      clientSettingsAltSpeed = Number(meta.alt_speed) === 1;
+      const alt = document.querySelector('#clientAltSpeed');
+      const dl = document.querySelector('#clientGlobalDl');
+      const ul = document.querySelector('#clientGlobalUl');
+      if (alt) alt.checked = clientSettingsAltSpeed;
+      if (dl) dl.value = String(Math.max(0, Math.round(Number(meta.global_dl_limit || 0) / 1024)));
+      if (ul) ul.value = String(Math.max(0, Math.round(Number(meta.global_up_limit || 0) / 1024)));
+      setClientSettingsStatus('Live settings loaded from qBitTorrent.');
+    } catch (e) {
+      setClientSettingsStatus(e.message || 'Could not load client settings.', 'bad');
+    }
+  }
+
+  async function saveClientSettings(e) {
+    if (e?.preventDefault) e.preventDefault();
+    if (!clientSettingsServerId) return;
+    const dl = Number(document.querySelector('#clientGlobalDl')?.value || 0);
+    const ul = Number(document.querySelector('#clientGlobalUl')?.value || 0);
+    const alt = !!document.querySelector('#clientAltSpeed')?.checked;
+    if (!Number.isFinite(dl) || dl < 0 || !Number.isFinite(ul) || ul < 0) return setClientSettingsStatus('Speed limits must be zero or a positive number.', 'bad');
+    const button = document.querySelector('#saveClientSettings');
+    if (button) button.disabled = true;
+    setClientSettingsStatus('Saving client settings…');
+    try {
+      await post('/api/action', {server:clientSettingsServerId, action:'global_download_limit', limit:Math.round(dl * 1024)});
+      await post('/api/action', {server:clientSettingsServerId, action:'global_upload_limit', limit:Math.round(ul * 1024)});
+      if (alt !== clientSettingsAltSpeed) await post('/api/action', {server:clientSettingsServerId, action:'toggle_alt_speed'});
+      clientSettingsAltSpeed = alt;
+      setClientSettingsStatus('Client settings saved.', 'ok');
+      toast('clientSettingsSaved');
+      if (state.server === clientSettingsServerId) await loadMeta();
+    } catch (err) {
+      setClientSettingsStatus(err.message || 'Could not save client settings.', 'bad');
+    } finally {
+      if (button) button.disabled = false;
+    }
   }
 
   function updateLocalAddress() {
@@ -431,7 +499,7 @@ window.TDSettings = (() => {
     }
   }
 
-  return {bind,activate,fill,saveCore,loadExtras,loadIntegrations,loadUsers};
+  return {bind,activate,fill,saveCore,loadExtras,loadIntegrations,loadUsers,openClientSettings,closeClientSettings};
 })();
 
 // Standard Users have read-only dashboard access for management actions; self-service profile and password changes live in the account menu.
