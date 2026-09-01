@@ -76,7 +76,26 @@ def main():
     assert "openDetail(tr.dataset.server,tr.dataset.hash)" not in app_js
     assert "menu-separator" in app_css and "@media(max-width:700px)" in app_css
     assert "e.target.closest('button[data-a]')" in app_js
-    assert 'github' in dashboard_py
+
+    # Updates owns the public GitHub repository directly. GitHub must not be a
+    # modular integration and update installation remains a reactive button.
+    assert 'DEFAULT_UPDATE_REPOSITORY = "CynicaGaming/TorrentDashboard"' in dashboard_py
+    assert 'def update_repository(cfg):' in dashboard_py
+    assert 'def save_update_source(cfg, repository):' in dashboard_py
+    assert 'github_update_integration' not in dashboard_py
+    assert 'Only one GitHub integration can be configured' not in dashboard_py
+    assert '/api/update-source-test' in dashboard_py
+    assert '/api/update-source' in dashboard_py
+    assert 'id="uRepository"' in html
+    assert 'id="updateSourceTest"' in html
+    assert 'id="updateSourceSave"' in html
+    assert 'data-settings-page="updates" type="button">Updates</button>' in html
+    assert '<option value="updates">Updates</option>' in html
+    assert 'Application Updates' not in html
+    assert "x.type === 'github'" not in settings_js
+    assert "title:'Install update'" not in app_js
+    assert "confirmLabel:'Install and restart'" not in app_js
+
     assert 'id="sUpdateRepo"' not in html
     assert 'id="sUpdateToken"' not in html
     assert 'id="sUpdateAutoCheck"' not in html
@@ -90,8 +109,6 @@ def main():
     assert 'maybeAutoCheckUpdates' not in app_js
     assert 'setup_test_github' not in dashboard_py
     assert '/api/update-test' not in dashboard_py
-    assert 'github_update_integration' in dashboard_py
-    assert 'Only one GitHub integration can be configured' in dashboard_py
     assert 'id="settingsPageTitle"' not in html
     assert 'Settings are separated by category' not in html
     assert 'Save User' not in settings_js
