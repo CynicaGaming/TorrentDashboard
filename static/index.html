@@ -5,7 +5,8 @@
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#0b0d10" name="theme-color"/>
 <link href="/manifest.webmanifest" rel="manifest"/>
-<link href="/static/app.css?v=0.4.0-pre1" rel="stylesheet"/>
+<link href="/static/app.css?v=0.5.0" rel="stylesheet"/>
+<link href="/static/settings.css?v=0.5.0" rel="stylesheet"/>
 <title>Torrent Dashboard</title>
 </head>
 <body>
@@ -24,7 +25,6 @@
 <div class="two network-address-fields"><label>Local IP Address<input id="wLocalIp" readonly value="Detecting…"/></label><label>Port<input id="wPort" max="65535" min="1" type="number" value="8765"/></label></div>
 <div class="field-help">The local IP address is detected from this PC. Port changes take effect the next time Torrent Dashboard starts.</div>
 <label>Refresh Interval<select id="wRefresh"><option value="1">1 Second</option><option selected="" value="2">2 Seconds</option><option value="5">5 Seconds</option><option value="10">10 Seconds</option></select></label>
-<label class="toggle"><input id="wReadOnly" type="checkbox"/><span>Start In Read Only Mode</span></label>
 <div class="setup-code hidden" id="setupCodeWrap"><label>Remote Setup Code<input autocomplete="one-time-code" id="wSetupCode" maxlength="16" placeholder="Shown In Console"/></label><small>This is required only when the first setup is being performed from another device.</small></div>
 </section>
 <section class="setup-page" data-step="1">
@@ -88,17 +88,18 @@
 <nav>
 <button class="nav active" data-view="dashboard">Dashboard</button>
 <button class="nav" data-view="history">Transfer History</button>
-<button class="nav" data-view="settings">Settings</button>
+<button class="nav admin-only" data-view="settings">Settings</button>
 </nav>
-<div class="sidebar-foot"><small id="version">—</small></div>
+<div class="sidebar-foot"><div class="sidebar-user"><strong id="currentUserName">—</strong><small id="currentUserGroup">—</small></div><small id="version">—</small></div>
 </aside>
 <main class="main">
 <header class="topbar">
 <div><h1 id="pageTitle">Dashboard</h1><p id="subtitle">Live Torrent Activity</p></div>
 <div class="top-actions">
+<span class="mobile-account" id="mobileAccount">—</span>
 <select id="serverSelect"></select>
-<button class="primary" id="addBtn">＋ Add</button>
-<button class="icon-btn" id="moreBtn">•••</button>
+<button class="primary admin-only" id="addBtn">＋ Add</button>
+<button class="icon-btn admin-only" id="moreBtn">•••</button>
 </div>
 </header>
 <section class="view active" id="view-dashboard">
@@ -145,19 +146,35 @@
 <section class="panel"><div class="panel-title">Recent Events</div><div class="event-list" id="eventList"></div></section>
 </section>
 <section class="view" id="view-settings">
-<div class="settings-grid">
-<form class="panel settings-card span2 dashboard-settings-card" id="settingsForm">
-<div class="panel-title">Dashboard Settings</div>
+<div class="settings-layout">
+<nav class="settings-nav" aria-label="Settings Categories">
+<button class="active" data-settings-page="general" type="button">General</button>
+<button data-settings-page="access" type="button">Dashboard Access</button>
+<button data-settings-page="clients" type="button">Download Clients</button>
+<button data-settings-page="updates" type="button">Application Updates</button>
+<button data-settings-page="notifications" type="button">Notifications</button>
+<button data-settings-page="integrations" type="button">Integrations</button>
+<button data-settings-page="users" type="button">User Management</button>
+</nav>
+<div class="settings-content">
+<div class="settings-page-head"><div><h2 id="settingsPageTitle">General</h2><p>Settings are separated by category so additional modules can be added without crowding a single page.</p></div></div>
+<form id="settingsForm">
+<section class="settings-page active" data-settings-section="general">
+<div class="panel settings-card">
+<div class="panel-title">General Dashboard Settings</div>
 <label>Dashboard Title<input id="sTitle"/></label>
 <label>Refresh Interval Seconds<input id="sRefresh" max="60" min="1" type="number"/></label>
 <label>Theme<select id="sTheme"><option value="dark">Dark</option><option value="light">Light</option><option value="system">System</option></select></label>
 <label>Density<select id="sDensity"><option value="comfortable">Comfortable</option><option value="compact">Compact</option></select></label>
 <label>Accent Color<input id="sAccent" type="color" value="#72a9ff"/></label>
 <fieldset class="column-prefs"><legend>Visible Desktop Columns</legend><label><input checked="" data-column="progress" type="checkbox"/> Progress</label><label><input checked="" data-column="state" type="checkbox"/> Status</label><label><input checked="" data-column="down" type="checkbox"/> Download</label><label><input checked="" data-column="up" type="checkbox"/> Upload</label><label><input checked="" data-column="eta" type="checkbox"/> ETA</label><label><input checked="" data-column="ratio" type="checkbox"/> Ratio</label></fieldset>
-<div class="settings-section-title">Dashboard Access</div>
-<label class="full-field">Dashboard Username<input autocomplete="username" id="sUsername"/></label>
-<div class="two"><label>New Dashboard Password<input autocomplete="new-password" id="sPassword" placeholder="Leave blank to keep current" type="password"/></label><label>Confirm New Password<input autocomplete="new-password" id="sPassword2" placeholder="Repeat new password" type="password"/></label></div>
+</div>
+</section>
+<section class="settings-page" data-settings-section="access">
+<div class="panel settings-card">
+<div class="panel-title">Dashboard Access</div>
 <label>Authentication Mode<select id="sAuth"><option value="required">Required Everywhere</option><option value="lan_bypass">Bypass For Trusted Addresses</option><option value="disabled">Disabled</option></select></label>
+<div class="field-help">Usernames, passwords, profile information, and access roles are managed under User Management.</div>
 <div class="field-row"><div><b>Trusted Network Interfaces</b><small>Select one or more NICs whose current subnet should bypass dashboard authentication.</small></div><button class="secondary small-btn" id="sRefreshInterfaces" type="button">Refresh Interfaces</button></div>
 <div class="interface-list" id="sInterfaceList"></div>
 <label>IP Address Whitelist<textarea id="sTrustedIps" placeholder="10.0.0.25
@@ -166,54 +183,57 @@
 <div><b>Local Dashboard Address</b><small>Use the local IP address and port from another device on an allowed network.</small></div>
 <div class="two network-address-fields"><label>Local IP Address<input id="sLocalIp" readonly value="—"/></label><label>Port<input id="sPort" max="65535" min="1" type="number"/></label></div>
 <div class="lan-url-row"><code id="localDashboardUrl">—</code><button class="secondary" id="copyLocalAddress" type="button">Copy Address</button></div>
-<p class="warning">If authentication is disabled while listening on 0.0.0.0, anyone who can reach this address can control qBitTorrent unless Read Only Mode is enabled.</p>
 </div>
-<label class="toggle"><input id="sReadOnly" type="checkbox"/><span>Read Only Mode</span></label>
-<button class="primary" type="submit">Save Settings</button>
-</form>
-<div class="panel settings-card span2" id="updateSettingsCard">
+</div>
+</section>
+<section class="settings-page" data-settings-section="clients">
+<div class="panel settings-card"><div class="panel-title">qBitTorrent Servers</div><div id="serverSettings"></div><button id="addServerSetting" type="button">＋ Add Server</button></div>
+</section>
+<section class="settings-page" data-settings-section="updates">
+<div class="panel settings-card" id="updateSettingsCard">
 <div class="panel-title">Application Updates</div>
 <div class="update-config">
 <label class="toggle"><input id="sUpdatesEnabled" type="checkbox"/><span>Enable GitHub Updates</span></label>
-<label class="full-field">GitHub Repository<input autocomplete="off" id="sUpdateRepo" placeholder="owner/repository or https://github.com/owner/repository"/></label><label class="full-field">GitHub Update Token <small>(required for private repositories)</small><input autocomplete="off" id="sUpdateToken" placeholder="Leave blank to keep current token" type="password"/></label>
+<label class="full-field">GitHub Repository<input autocomplete="off" id="sUpdateRepo" placeholder="owner/repository or https://github.com/owner/repository"/></label><label class="full-field">GitHub Update Token <small>(Required For Private Repositories)</small><input autocomplete="off" id="sUpdateToken" placeholder="Leave Blank To Keep Current Token" type="password"/></label>
 <label class="toggle"><input id="sUpdateAutoCheck" type="checkbox"/><span>Check Automatically</span></label>
 <label>Check Interval Hours<input id="sUpdateHours" max="168" min="1" type="number" value="6"/></label>
 </div>
-<div class="update-status" id="updateStatus">
-<div><span>Current Version</span><strong id="updateCurrent">—</strong></div>
-<div><span>Latest Version</span><strong id="updateLatest">Not Checked</strong></div>
-<div><span>Update State</span><strong id="updateState">Idle</strong></div>
-</div>
-<div class="update-actions">
-<button class="secondary" id="testUpdateAccess" type="button">Test GitHub Connection</button>
-<button class="secondary" id="checkUpdate" type="button">Check For Updates</button>
-<button class="secondary" disabled="" id="downloadUpdate" type="button">Download Update</button>
-<button class="primary" disabled="" id="installUpdate" type="button">Install And Restart</button>
-</div>
+<div class="update-status" id="updateStatus"><div><span>Current Version</span><strong id="updateCurrent">—</strong></div><div><span>Latest Version</span><strong id="updateLatest">Not Checked</strong></div><div><span>Update State</span><strong id="updateState">Idle</strong></div></div>
+<div class="update-actions"><button class="secondary" id="testUpdateAccess" type="button">Test GitHub Connection</button><button class="secondary" id="checkUpdate" type="button">Check For Updates</button><button class="secondary" disabled="" id="downloadUpdate" type="button">Download Update</button><button class="primary" disabled="" id="installUpdate" type="button">Install And Restart</button></div>
 <div class="test-result muted update-access-result" id="updateAccessResult">Not Tested Yet</div>
 <div class="muted update-message" id="updateMessage">Configure the GitHub repository and, for a private repository, a token with <code>Contents: Read</code>. Releases are checked directly through GitHub and verified against the ZIP digest before installation.</div>
 </div>
-<div class="panel settings-card span2"><div class="panel-title">qBitTorrent Servers</div><div id="serverSettings"></div><button id="addServerSetting">＋ Add Server</button></div>
-<div class="panel settings-card span2"><div class="panel-title">Notifications And Integrations</div>
-<div class="integration-config">
-<label>Generic Webhook<input id="nWebhook" placeholder="https://…"/></label><label>Discord Webhook<input id="nDiscord" placeholder="https://discord.com/api/webhooks/…"/></label><label>ntfy Topic URL<input id="nNtfy" placeholder="https://ntfy.sh/topic"/></label>
-<label>Sonarr URL<input id="iSonarrUrl" placeholder="http://host:8989"/></label><label>Sonarr API Key<input id="iSonarrKey" type="password"/></label>
-<label>Radarr URL<input id="iRadarrUrl" placeholder="http://host:7878"/></label><label>Radarr API Key<input id="iRadarrKey" type="password"/></label>
-<label>Lidarr URL<input id="iLidarrUrl" placeholder="http://host:8686"/></label><label>Lidarr API Key<input id="iLidarrKey" type="password"/></label>
-<label>Prowlarr URL<input id="iProwlarrUrl" placeholder="http://host:9696"/></label><label>Prowlarr API Key<input id="iProwlarrKey" type="password"/></label>
-<label>Jellyfin URL<input id="iJellyfinUrl" placeholder="http://host:8096"/></label><label>Jellyfin API Key<input id="iJellyfinKey" type="password"/></label>
-<label>Plex URL<input id="iPlexUrl" placeholder="http://host:32400"/></label><label>Plex Token<input id="iPlexToken" type="password"/></label>
-</div><div class="integration-grid" id="integrationStatus"></div><button id="testNotify">Send Test Notification</button></div>
+</section>
+<section class="settings-page" data-settings-section="notifications">
+<div class="panel settings-card"><div class="panel-title">Notifications</div>
+<label class="toggle"><input id="nBrowser" type="checkbox"/><span>Browser Notifications</span></label>
+<label class="toggle"><input id="nSound" type="checkbox"/><span>Completion Sound</span></label>
+<label>Generic Webhook<input id="nWebhook" placeholder="https://…"/></label>
+<label>Discord Webhook<input id="nDiscord" placeholder="https://discord.com/api/webhooks/…"/></label>
+<label>ntfy Topic URL<input id="nNtfy" placeholder="https://ntfy.sh/topic"/></label>
+<button id="testNotify" type="button">Send Test Notification</button>
+</div>
+</section>
+<div class="settings-savebar" id="settingsSavebar"><button class="primary" type="submit">Save Settings</button></div>
+</form>
+<section class="settings-page" data-settings-section="integrations">
+<div class="panel settings-card"><div class="panel-title">Integrations</div><p class="muted">No integrations are populated by default. Add only the services you use, test each connection, and save it independently.</p><div class="integration-add-row"><select id="integrationTypeSelect"><option value="">Choose Integration…</option></select><button class="primary" id="addIntegrationSetting" type="button">＋ Add Integration</button></div><div id="integrationList"></div></div>
+</section>
+<section class="settings-page" data-settings-section="users">
+<div class="panel settings-card"><div class="panel-title">User Management</div><p class="muted">Administrators can manage torrents and settings. Standard Users have read-only dashboard access.</p><div class="settings-inline-actions"><button class="primary" id="addUserSetting" type="button">＋ Add User</button></div><div id="userList"></div></div>
+</section>
+</div>
 </div>
 </section>
 </main>
-<nav class="mobile-nav"><button class="active" data-view="dashboard">Dashboard</button><button data-view="history">Transfer History</button><button data-view="settings">Settings</button></nav>
+<nav class="mobile-nav"><button class="active" data-view="dashboard">Dashboard</button><button data-view="history">Transfer History</button><button class="admin-only" data-view="settings">Settings</button></nav>
 </div>
 <div class="drawer hidden" id="drawer"><div class="drawer-backdrop" data-close=""></div><section class="drawer-sheet"><header><div><h2 id="detailName">Torrent</h2><p id="detailMeta">—</p></div><button class="icon-btn" data-close="">×</button></header><div class="detail-actions" id="detailActions"></div><div class="detail-tabs"><button class="active" data-detailtab="overview">Overview</button><button data-detailtab="files">Files</button><button data-detailtab="peers">Peers</button><button data-detailtab="trackers">Trackers</button><button data-detailtab="pieces">Pieces</button></div><div class="detail-body" id="detailBody"></div></section></div>
 <div class="modal hidden" id="addModal"><div class="modal-backdrop" data-modalclose=""></div><form class="modal-card" id="addForm"><header><h2>Add Torrent</h2><button class="icon-btn" data-modalclose="" type="button">×</button></header><label>Magnet Or Torrent URL<textarea id="addUrls" placeholder="magnet:?xt=…" rows="4"></textarea></label><div class="or">Or</div><label class="file-drop">Choose Torrent File<input accept=".torrent,application/x-bittorrent" id="torrentFile" type="file"/></label><label>Save Path<input id="addPath" placeholder="Optional"/></label><div class="two"><label>Category<input id="addCategory"/></label><label>Tags<input id="addTags"/></label></div><div class="checks"><label><input id="addStopped" type="checkbox"/> Add Paused</label><label><input id="addSequential" type="checkbox"/> Sequential Download</label><label><input id="addFirstLast" type="checkbox"/> First/Last Priority</label></div><button class="primary" type="submit">Add Torrent</button></form></div>
 <div class="menu hidden" id="menu"><button id="pauseAll">Pause All</button><button id="resumeAll">Resume All</button><button id="altSpeed">Toggle Alternative Limits</button><button id="globalDl">Set Global Download Limit</button><button id="globalUl">Set Global Upload Limit</button><button id="notifyPermission">Enable Browser Notifications</button><button class="hidden" id="installPwa">Install App</button></div>
 <div class="menu hidden" id="contextMenu"></div>
 <div class="toasts" id="toasts"></div>
-<script src="/static/app.js?v=0.4.0-pre1"></script>
+<script src="/static/settings.js?v=0.5.0"></script>
+<script src="/static/app.js?v=0.5.0"></script>
 </body>
 </html>

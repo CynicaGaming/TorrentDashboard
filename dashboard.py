@@ -38,7 +38,7 @@ CONFIG_PATH = APP_DIR / "config.json"
 DB_PATH = DATA_DIR / "torrent_desk.sqlite3"
 UPDATE_DIR = DATA_DIR / "updates"
 UPDATE_STATE_PATH = DATA_DIR / "update-status.json"
-VERSION = "0.4.0"
+VERSION = "0.5.0"
 
 DEFAULT_CONFIG = {
     "setup": {"complete": False},
@@ -51,7 +51,6 @@ DEFAULT_CONFIG = {
         "history_retention_days": 30,
         "history_sample_seconds": 10,
         "low_disk_gb": 20,
-        "read_only": False,
         "https_enabled": False,
         "https_cert": "",
         "https_key": ""
@@ -65,13 +64,12 @@ DEFAULT_CONFIG = {
     },
     "auth": {
         "mode": "lan_bypass",
-        "username": "admin",
-        "password_hash": "",
         "trusted_interfaces": [],
         "trusted_ips": [],
         "session_hours": 24,
         "max_login_attempts_per_10m": 20
     },
+    "users": [],
     "servers": [],
     "notifications": {
         "browser": True,
@@ -84,15 +82,7 @@ DEFAULT_CONFIG = {
         "telegram_bot_token": "",
         "telegram_chat_id": ""
     },
-    "integrations": {
-        "sonarr": {"url": "", "api_key": ""},
-        "radarr": {"url": "", "api_key": ""},
-        "lidarr": {"url": "", "api_key": ""},
-        "prowlarr": {"url": "", "api_key": ""},
-        "jellyfin": {"url": "", "api_key": ""},
-        "plex": {"url": "", "token": ""},
-        "home_assistant_webhook": ""
-    }
+    "integrations": []
 }
 
 
@@ -137,7 +127,64 @@ def load_config():
     if legacy_manifest and not updates_raw.get("manifest_url"):
         updates_raw["manifest_url"] = legacy_manifest
         updates_raw["enabled"] = True
-    return deep_merge(DEFAULT_CONFIG, raw)
+
+    merged = deep_merge(DEFAULT_CONFIG, raw)
+    # Read-only mode is replaced by per-user roles in 0.5.0. Standard Users
+    # are read-only; Administrators retain management access.
+    merged.setdefault("dashboard", {}).pop("read_only", None)
+
+    raw_users = raw.get("users")
+    if isinstance(raw_users, list) and raw_users:
+        merged["users"] = [normalize_user(item, item) for item in raw_users if isinstance(item, dict)]
+    else:
+        legacy_auth = raw.get("auth", {}) if isinstance(raw.get("auth"), dict) else {}
+        legacy_hash = str(legacy_auth.get("password_hash") or "")
+        if legacy_hash:
+            username = str(legacy_auth.get("username") or "admin")[:128]
+            merged["users"] = [normalize_user({
+                "id": stable_record_id("user", username),
+                "username": username,
+                "password_hash": legacy_hash,
+                "group": "administrator",
+            }, require_password=True)]
+        else:
+            merged["users"] = []
+
+    raw_integrations = raw.get("integrations")
+    if isinstance(raw_integrations, list):
+        migrated = []
+        for item in raw_integrations:
+            if not isinstance(item, dict):
+                continue
+            try:
+                migrated.append(normalize_integration(item, item))
+            except Exception:
+                continue
+        merged["integrations"] = migrated
+    elif isinstance(raw_integrations, dict):
+        migrated = []
+        for provider in ("sonarr", "radarr", "lidarr", "prowlarr", "jellyfin", "plex"):
+            value = raw_integrations.get(provider) or {}
+            if not isinstance(value, dict) or not value.get("url"):
+                continue
+            payload = {"id": stable_record_id("integration", provider, value.get("url")), "type": provider, "name": INTEGRATION_TYPES[provider]["label"], **value}
+            try:
+                migrated.append(normalize_integration(payload, payload))
+            except Exception:
+                continue
+        webhook = str(raw_integrations.get("home_assistant_webhook") or "").strip()
+        if webhook:
+            payload = {"id": stable_record_id("integration", "home_assistant", webhook), "type": "home_assistant", "name": "Home Assistant", "webhook_url": webhook}
+            try:
+                migrated.append(normalize_integration(payload, payload))
+            except Exception:
+                pass
+        merged["integrations"] = migrated
+    else:
+        merged["integrations"] = []
+
+    sync_legacy_auth(merged)
+    return merged
 
 
 def save_config(cfg):
@@ -175,13 +222,21 @@ class SessionStore:
         self.lock = threading.Lock()
         self.sessions = {}
 
-    def create(self, username, hours, auth_kind):
+    def create(self, username, hours, auth_kind, group="administrator", user_id="", display_name=""):
         token = secrets.token_urlsafe(32)
         csrf = secrets.token_urlsafe(24)
         expires = time.time() + max(1, float(hours)) * 3600
         with self.lock:
-            self.sessions[token] = {"username": username, "csrf": csrf, "expires": expires, "auth_kind": auth_kind}
-        return token, self.sessions[token]
+            self.sessions[token] = {
+                "username": username,
+                "csrf": csrf,
+                "expires": expires,
+                "auth_kind": auth_kind,
+                "group": group,
+                "user_id": user_id,
+                "display_name": display_name or username,
+            }
+        return token, dict(self.sessions[token])
 
     def get(self, token):
         if not token:
@@ -198,6 +253,24 @@ class SessionStore:
     def remove(self, token):
         with self.lock:
             self.sessions.pop(token, None)
+
+    def update_user(self, user):
+        uid = str(user.get("id") or "")
+        if not uid:
+            return
+        with self.lock:
+            for item in self.sessions.values():
+                if item.get("user_id") == uid:
+                    item["username"] = user.get("username", item.get("username", ""))
+                    item["group"] = user.get("group", item.get("group", "standard"))
+                    item["display_name"] = user_display_name(user)
+
+    def remove_user(self, user_id):
+        uid = str(user_id or "")
+        with self.lock:
+            doomed = [token for token, item in self.sessions.items() if item.get("user_id") == uid]
+            for token in doomed:
+                self.sessions.pop(token, None)
 
 
 SESSIONS = SessionStore()
@@ -452,6 +525,303 @@ def is_loopback_ip(ip):
 
 
 SETUP_CODE = secrets.token_urlsafe(6).replace("-", "").replace("_", "")[:8].upper()
+
+
+USER_GROUPS = {
+    "administrator": "Administrator",
+    "standard": "Standard User",
+}
+
+INTEGRATION_TYPES = {
+    "sonarr": {
+        "label": "Sonarr",
+        "fields": [
+            {"key": "url", "label": "URL", "placeholder": "http://host:8989", "required": True},
+            {"key": "api_key", "label": "API Key", "secret": True, "required": True},
+        ],
+    },
+    "radarr": {
+        "label": "Radarr",
+        "fields": [
+            {"key": "url", "label": "URL", "placeholder": "http://host:7878", "required": True},
+            {"key": "api_key", "label": "API Key", "secret": True, "required": True},
+        ],
+    },
+    "lidarr": {
+        "label": "Lidarr",
+        "fields": [
+            {"key": "url", "label": "URL", "placeholder": "http://host:8686", "required": True},
+            {"key": "api_key", "label": "API Key", "secret": True, "required": True},
+        ],
+    },
+    "prowlarr": {
+        "label": "Prowlarr",
+        "fields": [
+            {"key": "url", "label": "URL", "placeholder": "http://host:9696", "required": True},
+            {"key": "api_key", "label": "API Key", "secret": True, "required": True},
+        ],
+    },
+    "jellyfin": {
+        "label": "Jellyfin",
+        "fields": [
+            {"key": "url", "label": "URL", "placeholder": "http://host:8096", "required": True},
+            {"key": "api_key", "label": "API Key", "secret": True, "required": True},
+        ],
+    },
+    "plex": {
+        "label": "Plex",
+        "fields": [
+            {"key": "url", "label": "URL", "placeholder": "http://host:32400", "required": True},
+            {"key": "token", "label": "Token", "secret": True, "required": True},
+        ],
+    },
+    "home_assistant": {
+        "label": "Home Assistant",
+        "fields": [
+            {"key": "webhook_url", "label": "Webhook URL", "placeholder": "https://home-assistant.example/api/webhook/...", "required": True},
+        ],
+    },
+}
+
+
+def stable_record_id(kind, *parts):
+    raw = kind + ":" + ":".join(str(x or "") for x in parts)
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:12]
+
+
+def user_display_name(user):
+    full = " ".join(x for x in (str(user.get("first_name") or "").strip(), str(user.get("last_name") or "").strip()) if x).strip()
+    return full or str(user.get("username") or "User")
+
+
+def normalize_user(data, existing=None, require_password=False):
+    existing = existing or {}
+    uid = str(data.get("id") or existing.get("id") or uuid.uuid4().hex[:12])[:64]
+    username = str(data.get("username") if data.get("username") is not None else existing.get("username") or "").strip()[:128]
+    if not username:
+        raise RuntimeError("Username is required")
+    if not re.fullmatch(r"[A-Za-z0-9_.@-]+", username):
+        raise RuntimeError("Username may contain letters, numbers, dots, underscores, hyphens, and @")
+    group_raw = str(data.get("group") or existing.get("group") or "standard").strip().lower().replace(" ", "_")
+    if group_raw in ("admin", "administrator"):
+        group = "administrator"
+    elif group_raw in ("standard", "standard_user", "user"):
+        group = "standard"
+    else:
+        raise RuntimeError("User group must be Administrator or Standard User")
+    email = str(data.get("email") if data.get("email") is not None else existing.get("email") or "").strip()[:254]
+    if email and ("@" not in email or email.startswith("@") or email.endswith("@")):
+        raise RuntimeError("Enter a valid email address or leave it blank")
+    password_hash = str(data.get("password_hash") or existing.get("password_hash") or "")
+    password = str(data.get("password") or "")
+    if password:
+        password_hash = hash_password(password)
+    if require_password and not password_hash:
+        raise RuntimeError("Password is required for a new user")
+    return {
+        "id": uid,
+        "username": username,
+        "password_hash": password_hash,
+        "first_name": str(data.get("first_name") if data.get("first_name") is not None else existing.get("first_name") or "").strip()[:128],
+        "last_name": str(data.get("last_name") if data.get("last_name") is not None else existing.get("last_name") or "").strip()[:128],
+        "email": email,
+        "group": group,
+    }
+
+
+def public_user(user):
+    return {
+        "id": str(user.get("id") or ""),
+        "username": str(user.get("username") or ""),
+        "first_name": str(user.get("first_name") or ""),
+        "last_name": str(user.get("last_name") or ""),
+        "email": str(user.get("email") or ""),
+        "group": "administrator" if user.get("group") == "administrator" else "standard",
+        "group_label": USER_GROUPS.get(user.get("group"), "Standard User"),
+        "display_name": user_display_name(user),
+    }
+
+
+def user_by_username(cfg, username):
+    wanted = str(username or "").casefold()
+    return next((u for u in cfg.get("users", []) if str(u.get("username") or "").casefold() == wanted), None)
+
+
+def user_by_id(cfg, user_id):
+    wanted = str(user_id or "")
+    return next((u for u in cfg.get("users", []) if str(u.get("id") or "") == wanted), None)
+
+
+def session_is_admin(sess):
+    return bool(sess and sess.get("group") == "administrator")
+
+
+def sync_legacy_auth(cfg):
+    auth = cfg.setdefault("auth", {})
+    admins = [u for u in cfg.get("users", []) if u.get("group") == "administrator"]
+    chosen = admins[0] if admins else (cfg.get("users") or [None])[0]
+    if chosen:
+        auth["username"] = chosen.get("username", "admin")
+        auth["password_hash"] = chosen.get("password_hash", "")
+    else:
+        auth["username"] = "admin"
+        auth["password_hash"] = ""
+    return cfg
+
+
+def save_user(cfg, data):
+    out = json.loads(json.dumps(cfg))
+    users = out.setdefault("users", [])
+    user_id = str(data.get("id") or "")
+    existing = next((u for u in users if str(u.get("id") or "") == user_id), None) if user_id else None
+    item = normalize_user(data, existing, require_password=existing is None)
+    duplicate = next((u for u in users if str(u.get("id") or "") != item["id"] and str(u.get("username") or "").casefold() == item["username"].casefold()), None)
+    if duplicate:
+        raise RuntimeError("That username is already in use")
+    if existing:
+        users[users.index(existing)] = item
+    else:
+        users.append(item)
+    if not any(u.get("group") == "administrator" for u in users):
+        raise RuntimeError("At least one Administrator account is required")
+    sync_legacy_auth(out)
+    return out, item
+
+
+def delete_user(cfg, user_id, current_user_id=""):
+    user_id = str(user_id or "")
+    if not user_id:
+        raise RuntimeError("User ID is required")
+    if current_user_id and user_id == str(current_user_id):
+        raise RuntimeError("You cannot delete the account you are currently using")
+    out = json.loads(json.dumps(cfg))
+    before = len(out.get("users", []))
+    out["users"] = [u for u in out.get("users", []) if str(u.get("id") or "") != user_id]
+    if len(out["users"]) == before:
+        raise RuntimeError("User was not found")
+    if not any(u.get("group") == "administrator" for u in out["users"]):
+        raise RuntimeError("At least one Administrator account is required")
+    sync_legacy_auth(out)
+    return out
+
+
+def integration_catalog():
+    out = []
+    for provider, spec in INTEGRATION_TYPES.items():
+        fields = []
+        for field in spec.get("fields", []):
+            fields.append({k: v for k, v in field.items() if k in ("key", "label", "placeholder", "secret", "required", "input_type")})
+        out.append({"type": provider, "label": spec["label"], "fields": fields})
+    return out
+
+
+def normalize_integration(data, existing=None):
+    existing = existing or {}
+    provider = str(data.get("type") or existing.get("type") or "").strip().lower()
+    spec = INTEGRATION_TYPES.get(provider)
+    if not spec:
+        raise RuntimeError("Unsupported integration type")
+    item = {
+        "id": str(data.get("id") or existing.get("id") or uuid.uuid4().hex[:12])[:64],
+        "type": provider,
+        "name": str(data.get("name") or existing.get("name") or spec["label"]).strip()[:128],
+        "enabled": bool(data.get("enabled", existing.get("enabled", True))),
+    }
+    for field in spec.get("fields", []):
+        key = field["key"]
+        supplied = data.get(key)
+        if field.get("secret") and supplied in (None, "", "<configured>"):
+            value = existing.get(key, "")
+        elif supplied is None:
+            value = existing.get(key, "")
+        else:
+            value = str(supplied).strip()
+        if field.get("required") and not value:
+            raise RuntimeError(f"{field['label']} is required")
+        if key.endswith("url") or key == "url":
+            if value and not str(value).startswith(("http://", "https://")):
+                raise RuntimeError(f"{field['label']} must start with http:// or https://")
+            value = str(value).rstrip("/") if key == "url" else str(value)
+        item[key] = value
+    return item
+
+
+def redacted_integrations(cfg):
+    result = []
+    for source in cfg.get("integrations", []):
+        item = json.loads(json.dumps(source))
+        configured = []
+        spec = INTEGRATION_TYPES.get(item.get("type"), {})
+        for field in spec.get("fields", []):
+            if field.get("secret") and item.get(field["key"]):
+                configured.append(field["key"])
+                item[field["key"]] = "<configured>"
+        item["configured_secrets"] = configured
+        result.append(item)
+    return result
+
+
+def test_integration_connection(item):
+    item = normalize_integration(item, item)
+    provider = item["type"]
+    spec = INTEGRATION_TYPES[provider]
+    label = spec["label"]
+    try:
+        if provider in ("sonarr", "radarr", "lidarr", "prowlarr"):
+            req = urllib.request.Request(item["url"].rstrip("/") + "/api/v3/system/status", headers={"X-Api-Key": item["api_key"], "Accept": "application/json"})
+            with urllib.request.urlopen(req, timeout=7) as resp:
+                data = json.loads(resp.read(200000).decode("utf-8"))
+            version = str(data.get("version") or "").strip()
+        elif provider == "jellyfin":
+            req = urllib.request.Request(item["url"].rstrip("/") + "/System/Info", headers={"X-Emby-Token": item["api_key"], "Accept": "application/json"})
+            with urllib.request.urlopen(req, timeout=7) as resp:
+                data = json.loads(resp.read(200000).decode("utf-8"))
+            version = str(data.get("Version") or data.get("ProductVersion") or "").strip()
+        elif provider == "plex":
+            req = urllib.request.Request(item["url"].rstrip("/") + "/identity", headers={"X-Plex-Token": item["token"]})
+            with urllib.request.urlopen(req, timeout=7) as resp:
+                resp.read(200000)
+            version = ""
+        elif provider == "home_assistant":
+            body = json.dumps({"title": "Torrent Dashboard Test", "message": "Integration connection test"}).encode("utf-8")
+            req = urllib.request.Request(item["webhook_url"], data=body, headers={"Content-Type": "application/json"}, method="POST")
+            with urllib.request.urlopen(req, timeout=7) as resp:
+                resp.read(200000)
+            version = ""
+        else:
+            raise RuntimeError("Unsupported integration type")
+        return {"ok": True, "message": f"Connected · {label}{(' ' + version) if version else ''}"}
+    except urllib.error.HTTPError as exc:
+        raise RuntimeError(f"{label} returned HTTP {exc.code}") from exc
+    except urllib.error.URLError as exc:
+        raise RuntimeError(f"Could not connect to {label}: {exc.reason}") from exc
+    except json.JSONDecodeError as exc:
+        raise RuntimeError(f"{label} returned an invalid response") from exc
+
+
+def save_integration(cfg, data):
+    out = json.loads(json.dumps(cfg))
+    integrations = out.setdefault("integrations", [])
+    item_id = str(data.get("id") or "")
+    existing = next((x for x in integrations if str(x.get("id") or "") == item_id), None) if item_id else None
+    item = normalize_integration(data, existing)
+    if existing:
+        integrations[integrations.index(existing)] = item
+    else:
+        integrations.append(item)
+    return out, item
+
+
+def delete_integration(cfg, integration_id):
+    integration_id = str(integration_id or "")
+    if not integration_id:
+        raise RuntimeError("Integration ID is required")
+    out = json.loads(json.dumps(cfg))
+    before = len(out.get("integrations", []))
+    out["integrations"] = [x for x in out.get("integrations", []) if str(x.get("id") or "") != integration_id]
+    if len(out["integrations"]) == before:
+        raise RuntimeError("Integration was not found")
+    return out
 
 
 def normalize_qbittorrent_server(data, existing=None):
@@ -915,12 +1285,14 @@ def send_notification(cfg, title, message):
             urllib.request.urlopen(req, timeout=5).read()
         except Exception:
             pass
-    ha = cfg.get("integrations", {}).get("home_assistant_webhook")
-    if ha:
+    for integration in cfg.get("integrations", []):
+        if integration.get("type") != "home_assistant" or not integration.get("enabled", True) or not integration.get("webhook_url"):
+            continue
         try:
             data = json.dumps({"title":title,"message":message}).encode()
-            urllib.request.urlopen(urllib.request.Request(ha,data=data,headers={"Content-Type":"application/json"},method="POST"),timeout=5).read()
-        except Exception: pass
+            urllib.request.urlopen(urllib.request.Request(integration["webhook_url"],data=data,headers={"Content-Type":"application/json"},method="POST"),timeout=5).read()
+        except Exception:
+            pass
 
 
 def collector_loop(stop_event):
@@ -978,34 +1350,24 @@ def integration_request(url, api_key=None, token=None, path="/api/v3/system/stat
         return {"configured":True,"ok":False,"error":str(e)}
 
 
-def integrations_status(cfg):
-    ints = cfg.get("integrations", {})
-    out = {}
-    for name in ("sonarr","radarr","lidarr","prowlarr"):
-        v=ints.get(name,{})
-        out[name] = integration_request(v.get("url",""), api_key=v.get("api_key",""))
-    j=ints.get("jellyfin",{})
-    out["jellyfin"] = integration_request(j.get("url",""), api_key=j.get("api_key",""), path="/System/Info/Public")
-    p=ints.get("plex",{})
-    out["plex"] = integration_request(p.get("url",""), token=p.get("token",""), path="/")
-    return out
-
-
 def torrent_integration_matches(cfg, hash_):
     out=[]
-    ints=cfg.get("integrations",{})
-    for name in ("sonarr","radarr","lidarr"):
-        v=ints.get(name,{})
-        if not v.get("url") or not v.get("api_key"): continue
-        url=v["url"].rstrip("/")+"/api/v3/queue?page=1&pageSize=200&includeUnknownSeriesItems=true&includeUnknownMovieItems=true"
+    for integration in cfg.get("integrations", []):
+        name=integration.get("type")
+        if name not in ("sonarr","radarr","lidarr") or not integration.get("enabled",True):
+            continue
+        if not integration.get("url") or not integration.get("api_key"):
+            continue
+        url=integration["url"].rstrip("/")+"/api/v3/queue?page=1&pageSize=200&includeUnknownSeriesItems=true&includeUnknownMovieItems=true"
         try:
-            req=urllib.request.Request(url,headers={"X-Api-Key":v["api_key"]})
+            req=urllib.request.Request(url,headers={"X-Api-Key":integration["api_key"]})
             data=json.loads(urllib.request.urlopen(req,timeout=5).read().decode())
             records=data.get("records",data if isinstance(data,list) else [])
             for rec in records:
                 if str(rec.get("downloadId","")).lower()==hash_.lower():
-                    out.append({"integration":name,"title":rec.get("title") or rec.get("series",{}).get("title") or rec.get("movie",{}).get("title"),"status":rec.get("status"),"trackedDownloadStatus":rec.get("trackedDownloadStatus")})
-        except Exception: pass
+                    out.append({"integration":integration.get("name") or INTEGRATION_TYPES[name]["label"],"title":rec.get("title") or rec.get("series",{}).get("title") or rec.get("movie",{}).get("title"),"status":rec.get("status"),"trackedDownloadStatus":rec.get("trackedDownloadStatus")})
+        except Exception:
+            pass
     return out
 
 
@@ -1364,7 +1726,7 @@ class Handler(BaseHTTPRequestHandler):
         if sess: return cfg,token,sess,None
         bypass = mode=="disabled" or (mode=="lan_bypass" and is_trusted_ip(self.client_ip(),effective_trusted_cidrs(a)))
         if bypass and create_bypass:
-            token,sess=SESSIONS.create("LAN" if mode!="disabled" else "Guest",a.get("session_hours",24),"lan_bypass" if mode!="disabled" else "disabled")
+            token,sess=SESSIONS.create("LAN" if mode!="disabled" else "Guest",a.get("session_hours",24),"lan_bypass" if mode!="disabled" else "disabled",group="administrator",display_name="Trusted Network" if mode!="disabled" else "Guest")
             return cfg,token,sess,token
         return cfg,None,None,None
 
@@ -1432,12 +1794,14 @@ class Handler(BaseHTTPRequestHandler):
             cfg,token,sess,new_cookie=self.auth()
             if not sess:
                 return self.send_json(401,{"authenticated":False,"auth_mode":cfg["auth"].get("mode")})
-            safe={"authenticated":True,"username":sess["username"],"auth_kind":sess["auth_kind"],"csrf":sess["csrf"],"auth_mode":cfg["auth"].get("mode"),"read_only":cfg["dashboard"].get("read_only",False),"title":cfg["dashboard"].get("title"),"version":VERSION,"lan_ip":local_lan_ip(),"port":cfg["dashboard"].get("port",8765),"scheme":"https" if cfg["dashboard"].get("https_enabled") else "http"}
+            safe={"authenticated":True,"username":sess["username"],"display_name":sess.get("display_name") or sess["username"],"user_id":sess.get("user_id","") ,"group":sess.get("group","standard"),"group_label":USER_GROUPS.get(sess.get("group"),"Standard User"),"can_manage":session_is_admin(sess),"auth_kind":sess["auth_kind"],"csrf":sess["csrf"],"auth_mode":cfg["auth"].get("mode"),"title":cfg["dashboard"].get("title"),"version":VERSION,"refresh_seconds":cfg["dashboard"].get("refresh_seconds",2),"lan_ip":local_lan_ip(),"port":cfg["dashboard"].get("port",8765),"scheme":"https" if cfg["dashboard"].get("https_enabled") else "http"}
             return self.send_json(200,safe,new_cookie)
 
         ctx=self.require_auth(False)
         if not ctx: return
         cfg,token,sess,new_cookie=ctx
+        if path in ("/api/settings","/api/integrations","/api/users","/api/network/interfaces") and not session_is_admin(sess):
+            return self.send_json(403,{"error":"Administrator access is required"},new_cookie)
 
         if path=="/api/status":
             sid=qs.get("server",["all"])[0]
@@ -1481,7 +1845,8 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json(200,{"points":HISTORY.history(qs.get("server",["all"])[0],qs.get("minutes",["60"])[0])},new_cookie)
         if path=="/api/events": return self.send_json(200,{"events":HISTORY.events(qs.get("limit",["100"])[0])},new_cookie)
         if path=="/api/analytics": return self.send_json(200,HISTORY.analytics(qs.get("server",["all"])[0]),new_cookie)
-        if path=="/api/integrations": return self.send_json(200,integrations_status(cfg),new_cookie)
+        if path=="/api/integrations": return self.send_json(200,{"types":integration_catalog(),"integrations":redacted_integrations(cfg)},new_cookie)
+        if path=="/api/users": return self.send_json(200,{"users":[public_user(u) for u in cfg.get("users",[])],"current_user_id":sess.get("user_id","")},new_cookie)
         if path=="/api/settings": return self.send_json(200,redacted_config(cfg),new_cookie)
         if path=="/api/network/interfaces": return self.send_json(200,{"interfaces":detect_network_interfaces(qs.get("refresh",["0"])[0]=="1")},new_cookie)
         if path=="/api/update-check": return self.update_check(cfg,new_cookie)
@@ -1500,8 +1865,8 @@ class Handler(BaseHTTPRequestHandler):
         ctx=self.require_auth(True)
         if not ctx: return
         cfg,token,sess,new_cookie=ctx
-        if cfg["dashboard"].get("read_only") and path not in ("/api/settings","/api/update-test","/api/update-download","/api/update-install"):
-            return self.send_json(403,{"error":"Dashboard is in read-only mode"},new_cookie)
+        if not session_is_admin(sess):
+            return self.send_json(403,{"error":"Administrator access is required"},new_cookie)
         try:
             if path=="/api/action":
                 data=parse_json_body(self); sid=data.pop("server","local"); action=data.pop("action"); result=get_client(cfg,sid).action(action,data)
@@ -1519,6 +1884,27 @@ class Handler(BaseHTTPRequestHandler):
                 existing=next((x for x in cfg.get("servers",[]) if x.get("id")==sid),{})
                 server=normalize_qbittorrent_server(data,existing)
                 return self.send_json(200,test_server_connection(server),new_cookie)
+            if path=="/api/integration-test":
+                data=parse_json_body(self,20000); iid=str(data.get("id") or "")
+                existing=next((x for x in cfg.get("integrations",[]) if str(x.get("id") or "")==iid),{})
+                item=normalize_integration(data,existing)
+                return self.send_json(200,test_integration_connection(item),new_cookie)
+            if path=="/api/integrations":
+                data=parse_json_body(self,20000); updated,item=save_integration(cfg,data); save_config(updated)
+                HISTORY.event("dashboard","integration_saved",item.get("name",item.get("type","")),"",{"client_ip":self.client_ip(),"type":item.get("type")})
+                return self.send_json(200,{"ok":True,"integration":redacted_integrations({"integrations":[item]})[0]},new_cookie)
+            if path=="/api/integrations/delete":
+                data=parse_json_body(self,10000); iid=str(data.get("id") or ""); updated=delete_integration(cfg,iid); save_config(updated)
+                HISTORY.event("dashboard","integration_deleted",iid,"",{"client_ip":self.client_ip()})
+                return self.send_json(200,{"ok":True},new_cookie)
+            if path=="/api/users":
+                data=parse_json_body(self,20000); updated,user=save_user(cfg,data); save_config(updated); SESSIONS.update_user(user)
+                HISTORY.event("dashboard","user_saved",user.get("username",""),"",{"client_ip":self.client_ip(),"group":user.get("group")})
+                return self.send_json(200,{"ok":True,"user":public_user(user)},new_cookie)
+            if path=="/api/users/delete":
+                data=parse_json_body(self,10000); uid=str(data.get("id") or ""); updated=delete_user(cfg,uid,sess.get("user_id","")); save_config(updated); SESSIONS.remove_user(uid)
+                HISTORY.event("dashboard","user_deleted",uid,"",{"client_ip":self.client_ip()})
+                return self.send_json(200,{"ok":True},new_cookie)
             if path=="/api/settings":
                 data=parse_json_body(self); updated=apply_settings_update(cfg,data); save_config(updated)
                 HISTORY.event("dashboard", "settings_changed", sess.get("username",""), "", {"client_ip": self.client_ip()})
@@ -1608,7 +1994,6 @@ class Handler(BaseHTTPRequestHandler):
             out["dashboard"]["bind_host"]="0.0.0.0"
             out["dashboard"]["port"]=int(dashboard.get("port") or 8765)
             out["dashboard"]["refresh_seconds"]=max(1,min(60,int(dashboard.get("refresh_seconds") or 2)))
-            out["dashboard"]["read_only"]=bool(dashboard.get("read_only",False))
             update_enabled=bool(updates.get("enabled",False))
             update_repo=str(updates.get("repository") or "").strip()
             if update_enabled and not update_repo:
@@ -1620,10 +2005,12 @@ class Handler(BaseHTTPRequestHandler):
             out["updates"]["auto_check"]=bool(updates.get("auto_check",True))
             out["updates"]["check_hours"]=max(1,min(168,int(updates.get("check_hours") or 6)))
             out["auth"]["mode"]=mode
-            out["auth"]["username"]=username
             out["auth"]["trusted_interfaces"]=trusted_interfaces
             out["auth"]["trusted_ips"]=trusted_ips
-            out["auth"]["password_hash"]=hash_password(password) if password else ""
+            admin_user=normalize_user({"username":username,"password":password,"group":"administrator"},require_password=mode in ("required","lan_bypass"))
+            out["users"]=[admin_user]
+            out["integrations"]=[]
+            sync_legacy_auth(out)
             out["servers"]=normalized
             save_config(out)
             with CACHE_LOCK:
@@ -1633,7 +2020,7 @@ class Handler(BaseHTTPRequestHandler):
             if mode=="disabled": auth_kind="disabled"
             elif mode=="lan_bypass" and is_trusted_ip(self.client_ip(),effective_trusted_cidrs(out["auth"])): auth_kind="lan_bypass"
             else: auth_kind="password"
-            token,sess=SESSIONS.create(username,out["auth"].get("session_hours",24),auth_kind)
+            token,sess=SESSIONS.create(username,out["auth"].get("session_hours",24),auth_kind,group="administrator",user_id=admin_user["id"],display_name=user_display_name(admin_user))
             HISTORY.event("dashboard","setup_completed",username,"",{"client_ip":self.client_ip(),"servers":len(normalized),"auth_mode":mode})
             return self.send_json(200,{"ok":True,"csrf":sess["csrf"],"message":"Setup complete"},token)
         except Exception as e:
@@ -1648,14 +2035,15 @@ class Handler(BaseHTTPRequestHandler):
             q.append(now)
         try: data=parse_json_body(self,10000)
         except Exception as e: return self.send_json(400,{"error":str(e)})
-        encoded=a.get("password_hash","")
-        if not encoded: return self.send_json(403,{"error":"No dashboard password is configured. Open Settings locally or rerun first-time setup to configure one."})
-        if str(data.get("username",""))!=str(a.get("username","admin")) or not verify_password(str(data.get("password","")),encoded):
-            HISTORY.event("dashboard", "login_failed", str(data.get("username",""))[:128], "", {"client_ip": ip})
+        username=str(data.get("username","")).strip()
+        user=user_by_username(cfg,username)
+        encoded=str((user or {}).get("password_hash") or "")
+        if not user or not encoded or not verify_password(str(data.get("password","")),encoded):
+            HISTORY.event("dashboard", "login_failed", username[:128], "", {"client_ip": ip})
             return self.send_json(401,{"error":"Invalid username or password"})
-        token,sess=SESSIONS.create(a.get("username","admin"),a.get("session_hours",24),"password")
-        HISTORY.event("dashboard", "login_success", a.get("username","admin"), "", {"client_ip": ip})
-        return self.send_json(200,{"ok":True,"csrf":sess["csrf"]},token)
+        token,sess=SESSIONS.create(user["username"],a.get("session_hours",24),"password",group=user.get("group","standard"),user_id=user.get("id",""),display_name=user_display_name(user))
+        HISTORY.event("dashboard", "login_success", user["username"], "", {"client_ip": ip,"group":user.get("group")})
+        return self.send_json(200,{"ok":True,"csrf":sess["csrf"],"group":user.get("group")},token)
 
     def serve_static(self,name,content_type=None):
         safe=(STATIC_DIR/name).resolve()
@@ -1677,16 +2065,14 @@ class Handler(BaseHTTPRequestHandler):
 
 def redacted_config(cfg):
     out=json.loads(json.dumps(cfg))
-    out["auth"]["password_hash"]="" if not cfg["auth"].get("password_hash") else "<configured>"
+    out.setdefault("auth",{}).pop("password_hash",None)
+    out.setdefault("auth",{}).pop("username",None)
     if out.get("updates",{}).get("github_token"): out["updates"]["github_token"]="<configured>"
     for s in out.get("servers",[]):
         if s.get("password"): s["password"]="<configured>"
         if s.get("api_key"): s["api_key"]="<configured>"
-    ints=out.get("integrations",{})
-    for k,v in ints.items():
-        if isinstance(v,dict):
-            for secret in ("api_key","token"):
-                if v.get(secret): v[secret]="<configured>"
+    out["users"]=[public_user(u) for u in cfg.get("users",[])]
+    out["integrations"]=redacted_integrations(cfg)
     n=out.get("notifications",{})
     for secret in ("gotify_token","telegram_bot_token"):
         if n.get(secret): n[secret]="<configured>"
@@ -1702,11 +2088,12 @@ def redacted_config(cfg):
 
 
 def apply_settings_update(cfg,data):
-    # Browser settings are intentionally allowlisted and preserve redacted secrets unless new values are supplied.
+    # Core settings are intentionally separate from user and integration CRUD.
     out=json.loads(json.dumps(cfg))
     dash=data.get("dashboard",{})
-    for k in ("title","port","refresh_seconds","history_retention_days","history_sample_seconds","low_disk_gb","read_only","https_enabled","https_cert","https_key"):
+    for k in ("title","port","refresh_seconds","history_retention_days","history_sample_seconds","low_disk_gb","https_enabled","https_cert","https_key"):
         if k in dash: out["dashboard"][k]=dash[k]
+    out.setdefault("dashboard",{}).pop("read_only",None)
     if "port" in dash:
         out["dashboard"]["port"]=max(1,min(65535,int(dash.get("port") or 8765)))
     updates=data.get("updates",{})
@@ -1722,13 +2109,11 @@ def apply_settings_update(cfg,data):
     if out["updates"].get("enabled") and not out["updates"].get("repository"):
         raise RuntimeError("Set a GitHub repository before enabling updates")
     auth=data.get("auth",{})
-    if auth.get("new_password"): out["auth"]["password_hash"]=hash_password(str(auth["new_password"]))
     if "mode" in auth:
         if auth["mode"] not in ("required","lan_bypass","disabled"): raise RuntimeError("Invalid auth mode")
-        if auth["mode"] in ("required","lan_bypass") and not (out["auth"].get("password_hash") or auth.get("new_password")):
-            raise RuntimeError("Set a dashboard password before enabling password-protected access")
+        if auth["mode"] in ("required","lan_bypass") and not any(u.get("password_hash") for u in out.get("users",[])):
+            raise RuntimeError("Set a user password in User Management before enabling password-protected access")
         out["auth"]["mode"]=auth["mode"]
-    if "username" in auth: out["auth"]["username"]=str(auth["username"])[:128]
     if "trusted_interfaces" in auth:
         ids=[str(x) for x in (auth.get("trusted_interfaces") or []) if str(x)]
         detected_ids={x.get("interface_id") for x in detect_network_interfaces()}
@@ -1752,17 +2137,18 @@ def apply_settings_update(cfg,data):
     if "notifications" in data:
         for k,v in data["notifications"].items():
             if k in out["notifications"] and v!="<configured>": out["notifications"][k]=v
-    if "integrations" in data:
-        for name,v in data["integrations"].items():
-            if name=="home_assistant_webhook": out["integrations"][name]=v; continue
-            if name not in out["integrations"] or not isinstance(v,dict): continue
-            for k,val in v.items():
-                if k in out["integrations"][name] and val!="<configured>": out["integrations"][name][k]=val
+    sync_legacy_auth(out)
     return out
 
 
 def set_password_cli(password):
-    cfg=load_config(); cfg["auth"]["password_hash"]=hash_password(password); save_config(cfg)
+    cfg=load_config()
+    admin=next((u for u in cfg.get("users",[]) if u.get("group")=="administrator"),None)
+    if admin:
+        admin["password_hash"]=hash_password(password)
+    else:
+        cfg.setdefault("users",[]).append(normalize_user({"username":cfg.get("auth",{}).get("username") or "admin","password":password,"group":"administrator"},require_password=True))
+    sync_legacy_auth(cfg); save_config(cfg)
     print("Dashboard password updated.")
 
 
