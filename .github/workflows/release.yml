@@ -63,6 +63,17 @@ jobs:
           assert callable(dashboard.normalize_qbittorrent_server)
           assert callable(dashboard.normalize_integration)
           assert callable(dashboard.normalize_user)
+          assert hasattr(dashboard, 'SingleInstanceLock')
+          first_lock = dashboard.SingleInstanceLock()
+          second_lock = dashboard.SingleInstanceLock()
+          assert first_lock.acquire() is True
+          try:
+              assert second_lock.acquire() is False
+          finally:
+              first_lock.release()
+          third_lock = dashboard.SingleInstanceLock()
+          assert third_lock.acquire() is True
+          third_lock.release()
           assert dashboard.DEFAULT_CONFIG.get('integrations') == []
           assert dashboard.DEFAULT_CONFIG.get('users') == []
           assert {'discord','ntfy','generic_webhook'} <= set(dashboard.INTEGRATION_TYPES)
@@ -127,6 +138,9 @@ jobs:
           assert 'id="installUpdate"' not in html
           assert 'function showLogin(reset=false)' in app_js
           assert 'async function handleUpdateAction()' in app_js
+          assert 'function applySentenceCaseUi' in app_js
+          assert 'applyTitleCaseUi' not in app_js
+          assert "uiText('installAndRestart')" in app_js
           assert '@media(min-width:821px){.settings-nav{margin-top:0}}' in css
           assert 'margin-top:52px' not in css
           assert all(old not in html for old in ('id="nWebhook"','id="nDiscord"','id="nNtfy"','id="testNotify"'))
@@ -150,7 +164,7 @@ jobs:
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git add -A
-            git commit -m "Redesign notifications and align settings layout"
+            git commit -m "Enforce single instance and standardize UI casing"
             git push origin HEAD:main
           fi
           echo "release_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
