@@ -5,8 +5,8 @@
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#0b0d10" name="theme-color"/>
 <link href="/manifest.webmanifest" rel="manifest"/>
-<link href="/static/app.css?v=0.5.17" rel="stylesheet"/>
-<link href="/static/settings.css?v=0.5.17" rel="stylesheet"/>
+<link href="/static/app.css?v=0.5.18" rel="stylesheet"/>
+<link href="/static/settings.css?v=0.5.18" rel="stylesheet"/>
 <title>Torrent Dashboard</title>
 </head>
 <body>
@@ -85,7 +85,7 @@
 <button data-view="settings" data-settings-page="general" type="button">General</button>
 <button data-view="settings" data-settings-page="access" type="button">Dashboard Access</button>
 <button data-view="settings" data-settings-page="clients" type="button">Download Clients</button>
-<button data-view="settings" data-settings-page="updates" type="button">Application Updates</button>
+<button data-view="settings" data-settings-page="updates" type="button">Updates</button>
 <button data-view="settings" data-settings-page="notifications" type="button">Notifications</button>
 <button data-view="settings" data-settings-page="integrations" type="button">Integrations</button>
 <button data-view="settings" data-settings-page="users" type="button">User Management</button>
@@ -148,7 +148,7 @@
 </section>
 <section class="view" id="view-settings">
 <div class="settings-layout">
-<label class="settings-mobile-picker">Settings category<select id="settingsMobilePage" aria-label="Settings category"><option value="general">General</option><option value="access">Dashboard Access</option><option value="clients">Download Clients</option><option value="updates">Application Updates</option><option value="notifications">Notifications</option><option value="integrations">Integrations</option><option value="users">User Management</option></select></label>
+<label class="settings-mobile-picker">Settings category<select id="settingsMobilePage" aria-label="Settings category"><option value="general">General</option><option value="access">Dashboard Access</option><option value="clients">Download Clients</option><option value="updates">Updates</option><option value="notifications">Notifications</option><option value="integrations">Integrations</option><option value="users">User Management</option></select></label>
 <div class="settings-content">
 <form id="settingsForm">
 <section class="settings-page active" data-settings-section="general">
@@ -182,10 +182,13 @@
 </section>
 <section class="settings-page" data-settings-section="updates">
 <div class="panel settings-card" id="updateSettingsCard">
-<div class="panel-title">Application Updates</div>
+<div class="panel-title">Updates</div>
+<div class="settings-form-grid"><label>GitHub Repository<input id="uRepository" maxlength="255" placeholder="owner/repository"/></label></div>
+<div class="settings-inline-actions"><button class="secondary" id="updateSourceTest" type="button">Test Connection</button><button class="primary" id="updateSourceSave" type="button">Save</button></div>
+<div class="test-result muted" id="updateSourceResult">Public GitHub repository used as this dashboard's update source.</div>
 <div class="update-status" id="updateStatus"><div><span>Current Version</span><strong id="updateCurrent">—</strong></div><div><span>Latest Version</span><strong id="updateLatest">Not Checked</strong></div><div><span>Update State</span><strong id="updateState">Idle</strong></div></div>
 <div class="update-actions"><button class="secondary update-action" id="updateAction" type="button">Check For Updates</button></div>
-<div class="muted update-message" id="updateMessage">Application updates use the GitHub connection configured under Integrations. Add and test a GitHub integration there before checking for updates.</div>
+<div class="muted update-message" id="updateMessage">Check the configured public repository for a newer Torrent Dashboard release.</div>
 </div>
 </section>
 <section class="settings-page" data-settings-section="notifications">
@@ -211,7 +214,7 @@
 <div class="settings-savebar" id="settingsSavebar"><button class="primary" type="submit">Save Settings</button></div>
 </form>
 <section class="settings-page" data-settings-section="integrations">
-<div class="panel settings-card"><div class="panel-title">Integrations</div><p class="muted">No integrations are populated by default. Add GitHub, media services, or notification destinations only when you use them, test each connection, and save it independently.</p><div class="integration-add-row"><select id="integrationTypeSelect"><option value="">Choose Integration…</option></select><button class="primary" id="addIntegrationSetting" type="button">＋ Add Integration</button></div><div id="integrationList"></div></div>
+<div class="panel settings-card"><div class="panel-title">Integrations</div><p class="muted">No integrations are populated by default. Add media services or notification destinations only when you use them, test each connection, and save it independently.</p><div class="integration-add-row"><select id="integrationTypeSelect"><option value="">Choose Integration…</option></select><button class="primary" id="addIntegrationSetting" type="button">＋ Add Integration</button></div><div id="integrationList"></div></div>
 </section>
 <section class="settings-page" data-settings-section="users">
 <div class="panel settings-card"><div class="panel-title">User Management</div><p class="muted user-management-intro">Administrators can manage torrents, settings, integrations, and users. Standard Users can view the dashboard without making changes.</p><div class="settings-inline-actions"><button class="primary" id="addUserSetting" type="button">＋ Add User</button></div><div id="userList"></div></div>
@@ -229,7 +232,7 @@
 <div class="menu hidden" id="menu"><button id="pauseAll">Pause All</button><button id="resumeAll">Resume All</button><button id="altSpeed">Toggle Alternative Limits</button><button id="globalDl">Set Global Download Limit</button><button id="globalUl">Set Global Upload Limit</button><button id="notifyPermission">Enable Browser Notifications</button><button class="hidden" id="installPwa">Install App</button></div>
 <div class="menu hidden" id="contextMenu"></div>
 <div class="toasts" id="toasts"></div>
-<script src="/static/settings.js?v=0.5.17"></script>
-<script src="/static/app.js?v=0.5.17"></script>
+<script src="/static/settings.js?v=0.5.18"></script>
+<script src="/static/app.js?v=0.5.18"></script>
 </body>
 </html>

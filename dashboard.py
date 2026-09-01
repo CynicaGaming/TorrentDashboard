@@ -42,8 +42,9 @@ UPDATE_DIR = DATA_DIR / "updates"
 UPDATE_STATE_PATH = DATA_DIR / "update-status.json"
 CUSTOM_SOUND_BASENAME = "custom-notification-sound"
 MAX_CUSTOM_SOUND_BYTES = 2 * 1024 * 1024
-VERSION = "0.5.17"
+VERSION = "0.5.18"
 STATUS_REFRESH_SECONDS = 1.0
+DEFAULT_UPDATE_REPOSITORY = "CynicaGaming/TorrentDashboard"
 
 
 class SingleInstanceLock:
@@ -116,7 +117,7 @@ DEFAULT_CONFIG = {
         "https_cert": "",
         "https_key": ""
     },
-    "updates": {},
+    "updates": {"repository": DEFAULT_UPDATE_REPOSITORY},
     "auth": {
         "mode": "lan_bypass",
         "trusted_interfaces": [],
@@ -200,10 +201,15 @@ def load_config():
             merged["users"] = []
 
     raw_integrations = raw.get("integrations")
+    legacy_github_repo = ""
     if isinstance(raw_integrations, list):
         migrated = []
         for item in raw_integrations:
             if not isinstance(item, dict):
+                continue
+            if str(item.get("type") or "").strip().lower() == "github":
+                if not legacy_github_repo:
+                    legacy_github_repo = str(item.get("repository") or "").strip()
                 continue
             try:
                 migrated.append(normalize_integration(item, item))
@@ -254,18 +260,17 @@ def load_config():
     for legacy_key in ("webhook_url", "discord_webhook", "ntfy_url"):
         merged.setdefault("notifications", {}).pop(legacy_key, None)
 
-    # GitHub update configuration lives in Integrations. Since 0.5.17 the
-    # default updater supports public repositories only and does not retain
-    # legacy GitHub access tokens.
+    # Updates owns its public GitHub repository directly. Preserve the saved
+    # repository from either the previous Updates object or the retired GitHub
+    # integration, then remove GitHub from the integration collection.
     legacy_updates = raw.get("updates", {}) if isinstance(raw.get("updates"), dict) else {}
-    legacy_repo = str(legacy_updates.get("repository") or "").strip()
-    if legacy_repo and not any(item.get("type") == "github" for item in merged.get("integrations", [])):
-        payload = {"id": stable_record_id("integration", "github", legacy_repo), "type": "github", "name": "GitHub", "repository": legacy_repo, "enabled": True}
-        try:
-            merged.setdefault("integrations", []).append(normalize_integration(payload, payload))
-        except Exception:
-            pass
-    merged["updates"] = {}
+    update_repo = str(legacy_updates.get("repository") or legacy_github_repo or DEFAULT_UPDATE_REPOSITORY).strip()
+    try:
+        update_repo = normalize_github_repository(update_repo)
+    except Exception:
+        update_repo = DEFAULT_UPDATE_REPOSITORY
+    merged["updates"] = {"repository": update_repo}
+    merged["integrations"] = [x for x in merged.get("integrations", []) if x.get("type") != "github"]
 
     sync_legacy_auth(merged)
     return merged
@@ -273,9 +278,10 @@ def load_config():
 
 def save_config(cfg):
     cfg = json.loads(json.dumps(cfg))
-    for integration in cfg.get("integrations", []):
-        if integration.get("type") == "github": integration.pop("token", None)
-    cfg.setdefault("updates", {}).pop("github_token", None)
+    cfg["integrations"] = [x for x in cfg.get("integrations", []) if x.get("type") != "github"]
+    updates = cfg.setdefault("updates", {})
+    updates["repository"] = normalize_github_repository(updates.get("repository") or DEFAULT_UPDATE_REPOSITORY)
+    updates.pop("github_token", None)
     tmp = CONFIG_PATH.with_suffix(".tmp")
     tmp.write_text(json.dumps(cfg, indent=2) + "\n", encoding="utf-8")
     tmp.replace(CONFIG_PATH)
@@ -621,12 +627,6 @@ USER_GROUPS = {
 }
 
 INTEGRATION_TYPES = {
-    "github": {
-        "label": "GitHub",
-        "fields": [
-            {"key": "repository", "label": "Repository", "placeholder": "owner/repository (public)", "required": True},
-        ],
-    },
     "sonarr": {
         "label": "Sonarr",
         "fields": [
@@ -856,8 +856,6 @@ def normalize_integration(data, existing=None):
                 raise RuntimeError(f"{field['label']} must start with http:// or https://")
             value = str(value).rstrip("/") if key == "url" else str(value)
         item[key] = value
-    if provider == "github":
-        item["repository"] = normalize_github_repository(item.get("repository"))
     return item
 
 
@@ -882,10 +880,6 @@ def test_integration_connection(item):
     spec = INTEGRATION_TYPES[provider]
     label = spec["label"]
     try:
-        if provider == "github":
-            result = test_github_update_access(item["repository"])
-            release = result.get("latestRelease") or "No release published"
-            return {**result, "message": f"Connected · GitHub · {result.get('repository', item['repository'])} · {release}"}
         if provider in ("sonarr", "radarr", "lidarr", "prowlarr"):
             req = urllib.request.Request(item["url"].rstrip("/") + "/api/v3/system/status", headers={"X-Api-Key": item["api_key"], "Accept": "application/json"})
             with urllib.request.urlopen(req, timeout=7) as resp:
@@ -944,10 +938,6 @@ def save_integration(cfg, data):
     item_id = str(data.get("id") or "")
     existing = next((x for x in integrations if str(x.get("id") or "") == item_id), None) if item_id else None
     item = normalize_integration(data, existing)
-    if item.get("type") == "github":
-        duplicate = next((x for x in integrations if x is not existing and str(x.get("id") or "") != item["id"] and x.get("type") == "github"), None)
-        if duplicate:
-            raise RuntimeError("Only one GitHub integration can be configured for application updates")
     if existing:
         integrations[integrations.index(existing)] = item
     else:
@@ -1623,18 +1613,22 @@ def github_headers(accept="application/vnd.github+json"):
     }
 
 
-def github_update_integration(cfg):
-    matches = [x for x in cfg.get("integrations", []) if x.get("type") == "github" and x.get("enabled", True)]
-    if not matches:
-        raise RuntimeError("Add or enable a GitHub integration under Settings → Integrations before checking for updates")
-    if len(matches) > 1:
-        raise RuntimeError("Multiple GitHub integrations are enabled. Keep one enabled as the application update source")
-    return matches[0]
+def update_repository(cfg):
+    updates = cfg.get("updates", {}) if isinstance(cfg.get("updates"), dict) else {}
+    return normalize_github_repository(updates.get("repository") or DEFAULT_UPDATE_REPOSITORY)
 
 
 def github_update_headers(cfg, accept="application/vnd.github+json"):
-    github_update_integration(cfg)
+    update_repository(cfg)
     return github_headers(accept)
+
+
+def save_update_source(cfg, repository):
+    out = json.loads(json.dumps(cfg))
+    repo = normalize_github_repository(repository)
+    out["updates"] = {"repository": repo}
+    out["integrations"] = [x for x in out.get("integrations", []) if x.get("type") != "github"]
+    return out, repo
 
 
 def _urlopen_json(url: str, timeout=10, headers=None):
@@ -1714,7 +1708,7 @@ def _asset_sha256(asset):
 
 def test_github_update_access(repository: str):
     repo = normalize_github_repository(repository)
-    cfg = {"integrations": [{"type": "github", "repository": repo, "enabled": True}]}
+    cfg = {"updates": {"repository": repo}}
     try:
         info = _urlopen_json(f"https://api.github.com/repos/{repo}", timeout=10, headers=github_headers())
     except urllib.error.HTTPError as exc:
@@ -1744,8 +1738,7 @@ def test_github_update_access(repository: str):
 
 
 def fetch_update_release(cfg):
-    source = github_update_integration(cfg)
-    repo = normalize_github_repository(source.get("repository"))
+    repo = update_repository(cfg)
     release=_latest_github_release(cfg,repo)
     tag=str(release.get("tag_name") or "").strip()
     version=tag.lstrip("vV")
@@ -2100,6 +2093,14 @@ class Handler(BaseHTTPRequestHandler):
                 data=parse_json_body(self); updated=apply_settings_update(cfg,data); save_config(updated)
                 HISTORY.event("dashboard", "settings_changed", sess.get("username",""), "", {"client_ip": self.client_ip()})
                 return self.send_json(200,{"ok":True,"settings":redacted_config(updated)},new_cookie)
+            if path=="/api/update-source-test":
+                data=parse_json_body(self,10000); repo=normalize_github_repository(data.get("repository") or "")
+                result=test_github_update_access(repo)
+                return self.send_json(200,result,new_cookie)
+            if path=="/api/update-source":
+                data=parse_json_body(self,10000); updated,repo=save_update_source(cfg,data.get("repository") or ""); save_config(updated)
+                HISTORY.event("dashboard","update_source_changed",repo,"",{"client_ip":self.client_ip()})
+                return self.send_json(200,{"ok":True,"repository":repo,"settings":redacted_config(updated)},new_cookie)
             if path=="/api/update-download":
                 result=stage_update(cfg)
                 HISTORY.event("dashboard","update_downloaded",str(result.get("version") or ""),"",{"client_ip":self.client_ip()})
@@ -2227,14 +2228,14 @@ class Handler(BaseHTTPRequestHandler):
 
     def update_check(self,cfg,new_cookie):
         try:
-            github_update_integration(cfg)
+            repo = update_repository(cfg)
         except Exception as e:
             return self.send_json(200,{"configured":False,"currentVersion":VERSION,"error":str(e),"state":update_state()},new_cookie)
         try:
             manifest=fetch_update_manifest(cfg)
-            return self.send_json(200,{"configured":True,"currentVersion":VERSION,"manifest":manifest,"updateAvailable":manifest.get("updateAvailable",False),"state":update_state()},new_cookie)
+            return self.send_json(200,{"configured":True,"repository":repo,"currentVersion":VERSION,"manifest":manifest,"updateAvailable":manifest.get("updateAvailable",False),"state":update_state()},new_cookie)
         except Exception as e:
-            return self.send_json(502,{"configured":True,"currentVersion":VERSION,"error":str(e),"state":update_state()},new_cookie)
+            return self.send_json(502,{"configured":True,"repository":repo,"currentVersion":VERSION,"error":str(e),"state":update_state()},new_cookie)
 
 
 def redacted_config(cfg):

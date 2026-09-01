@@ -56,12 +56,12 @@ Runtime configuration is stored in `config.json`; databases, uploaded sounds, up
 
 Stored passwords, qBitTorrent API keys, integration secrets, and webhook URLs are redacted before settings data is returned to the browser.
 
-## Application Updates
+## Updates
 
-1. Add a **GitHub** integration under **Settings → Integrations**.
-2. Enter the public repository as `owner/repository`.
-3. Select **Test connection**.
-4. Open **Application updates** and select **Check for updates**.
+1. Open **Settings → Updates**.
+2. Enter the public GitHub repository as `owner/repository`.
+3. Select **Test connection**, then **Save**.
+4. Select **Check for updates**.
 
 No GitHub access token is required or supported by the default updater. Torrent Dashboard reads public GitHub Release metadata, verifies GitHub's SHA-256 digest for the release asset, stages the update, restarts, and rolls back if the new version fails its health check.
 
@@ -79,4 +79,4 @@ If you discover a security issue, do not post credentials or sensitive exploit d
 
 Development releases use semantic versions in the `0.x.x` range. GitHub prereleases are titled **Torrent Dashboard Pre-Release**; the version remains in the Git tag and ZIP name so the updater can order releases safely.
 
-Pull requests and forks are welcome. Fork maintainers can adapt the updater or integration model for their own deployment requirements.
+Pull requests and forks are welcome. Fork maintainers can point **Settings → Updates** at their own public release repository or change `DEFAULT_UPDATE_REPOSITORY` for their build.

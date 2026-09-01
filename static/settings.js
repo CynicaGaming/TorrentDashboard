@@ -38,6 +38,8 @@ window.TDSettings = (() => {
     document.querySelector('#sRefreshInterfaces')?.addEventListener('click', () => refreshSettingsInterfaces(true).catch(e => toast(e.message,'error')));
     document.querySelector('#addServerSetting')?.addEventListener('click', () => addServerRow());
     document.querySelector('#updateAction')?.addEventListener('click', handleUpdateAction);
+    document.querySelector('#updateSourceTest')?.addEventListener('click', testUpdateSource);
+    document.querySelector('#updateSourceSave')?.addEventListener('click', saveUpdateSource);
     document.querySelector('#nSoundMode')?.addEventListener('change', updateNotificationSoundUi);
     document.querySelector('#nSoundFile')?.addEventListener('change', updateNotificationSoundUi);
     document.querySelector('#previewSound')?.addEventListener('click', previewNotificationSound);
@@ -74,8 +76,9 @@ window.TDSettings = (() => {
     let cols = JSON.parse(localStorage.tdColumns || '{}');
     document.querySelectorAll('[data-column]').forEach(x => x.checked = cols[x.dataset.column] !== false);
 
-    const githubConfigured = (s.integrations || []).some(x => x.type === 'github' && x.enabled !== false);
-    renderUpdateInfo({configured:githubConfigured,currentVersion:state.me?.version,state:s.runtime?.updateState||{}});
+    const updateRepository = s.updates?.repository || '';
+    setValue('uRepository', updateRepository);
+    renderUpdateInfo({configured:!!updateRepository,repository:updateRepository,currentVersion:state.me?.version,state:s.runtime?.updateState||{}});
 
     renderServerSettings(s.servers || []);
     [...document.querySelectorAll('.server-setting')].forEach((row, index) => {
@@ -197,6 +200,47 @@ window.TDSettings = (() => {
     }
   }
 
+  function updateSourceRepository() {
+    return document.querySelector('#uRepository')?.value.trim() || '';
+  }
+
+  async function testUpdateSource() {
+    const result = document.querySelector('#updateSourceResult');
+    const repository = updateSourceRepository();
+    if (!repository) return toast('Enter A GitHub Repository','error');
+    if (result) { result.className='test-result muted'; result.textContent='Testing Connection…'; }
+    try {
+      const d = await post('/api/update-source-test', {repository});
+      if (result) {
+        result.className='test-result ok';
+        result.textContent=`Connected · ${d.repository || repository}${d.latestRelease ? ` · ${d.latestRelease}` : ''}`;
+      }
+      return d;
+    } catch (e) {
+      if (result) { result.className='test-result bad'; result.textContent=e.message; }
+      toast(e.message,'error');
+    }
+  }
+
+  async function saveUpdateSource() {
+    const result = document.querySelector('#updateSourceResult');
+    const repository = updateSourceRepository();
+    if (!repository) return toast('Enter A GitHub Repository','error');
+    try {
+      const d = await post('/api/update-source', {repository});
+      state.settings = d.settings;
+      const input = document.querySelector('#uRepository');
+      if (input) input.value = d.repository || repository;
+      renderUpdateInfo({configured:true,repository:d.repository || repository,currentVersion:state.me?.version,state:d.settings?.runtime?.updateState||{}});
+      if (result) { result.className='test-result ok'; result.textContent=`Update source saved · ${d.repository || repository}`; }
+      toast('updateSourceSaved');
+      return d;
+    } catch (e) {
+      if (result) { result.className='test-result bad'; result.textContent=e.message; }
+      toast(e.message,'error');
+    }
+  }
+
   async function loadExtras() {
     if (!state.me?.can_manage) return;
     await Promise.allSettled([loadIntegrations(), loadUsers()]);
@@ -274,7 +318,6 @@ window.TDSettings = (() => {
       const select = document.querySelector('#integrationTypeSelect');
       if (select) select.innerHTML = '<option value="">Choose Integration…</option>' + catalog.map(x => `<option value="${esc(x.type)}">${esc(x.label)}</option>`).join('');
       renderIntegrations();
-      renderUpdateInfo({configured:integrations.some(x => x.type === 'github' && x.enabled !== false),currentVersion:state.me?.version,state:state.settings?.runtime?.updateState||{}});
     } catch (e) {
       toast(e.message,'error');
     }
