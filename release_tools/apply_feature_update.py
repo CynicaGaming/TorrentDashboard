@@ -136,7 +136,7 @@ function applySentenceCaseUi(root=document){
   els.forEach(el=>{for(const n of [...el.childNodes]){if(n.nodeType===Node.TEXT_NODE){const raw=n.nodeValue,trim=raw.trim();if(trim&&trim.length<80&&/[A-Za-z]/.test(trim)){n.nodeValue=raw.replace(trim,uiText(trim))}}}})
 }
 const CONFIGURED_SECRET_MASK='''
-    text, count = pattern.subn(replacement, text, count=1)
+    text, count = pattern.subn(lambda _m: replacement, text, count=1)
     if count != 1:
         raise RuntimeError(f"Expected one UI casing block, replaced {count}")
     text = text.replace("applyTitleCaseUi", "applySentenceCaseUi")
