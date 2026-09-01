@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import atexit
 import base64
 import hashlib
 import hmac
@@ -19,6 +20,7 @@ import ssl
 import sqlite3
 import sys
 import threading
+import tempfile
 import time
 import urllib.error
 import urllib.parse
@@ -40,7 +42,64 @@ UPDATE_DIR = DATA_DIR / "updates"
 UPDATE_STATE_PATH = DATA_DIR / "update-status.json"
 CUSTOM_SOUND_BASENAME = "custom-notification-sound"
 MAX_CUSTOM_SOUND_BYTES = 2 * 1024 * 1024
-VERSION = "0.5.5"
+VERSION = "0.5.6"
+
+
+class SingleInstanceLock:
+    """Machine-level guard that prevents two dashboard processes from running."""
+
+    def __init__(self):
+        self._handle = None
+        self._file = None
+
+    def acquire(self):
+        if os.name == "nt":
+            import ctypes
+            kernel32 = ctypes.windll.kernel32
+            handle = kernel32.CreateMutexW(None, False, "Local\\TorrentDashboard.SingleInstance")
+            if not handle:
+                raise OSError("Could not create the Torrent Dashboard instance mutex")
+            if kernel32.GetLastError() == 183:  # ERROR_ALREADY_EXISTS
+                kernel32.CloseHandle(handle)
+                return False
+            self._handle = handle
+            return True
+
+        import fcntl
+        lock_path = Path(tempfile.gettempdir()) / "torrent-dashboard.lock"
+        lock_file = open(lock_path, "a+", encoding="utf-8")
+        try:
+            fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            lock_file.close()
+            return False
+        lock_file.seek(0)
+        lock_file.truncate()
+        lock_file.write(str(os.getpid()))
+        lock_file.flush()
+        self._file = lock_file
+        return True
+
+    def release(self):
+        if self._handle is not None:
+            try:
+                import ctypes
+                ctypes.windll.kernel32.CloseHandle(self._handle)
+            except Exception:
+                pass
+            self._handle = None
+        if self._file is not None:
+            try:
+                import fcntl
+                fcntl.flock(self._file.fileno(), fcntl.LOCK_UN)
+            except Exception:
+                pass
+            try:
+                self._file.close()
+            except Exception:
+                pass
+            self._file = None
+
 
 DEFAULT_CONFIG = {
     "setup": {"complete": False},
@@ -1879,7 +1938,7 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         path,_,query=self.path.partition("?"); qs=urllib.parse.parse_qs(query)
-        if path=="/health": return self.send_json(200,{"ok":True,"version":VERSION})
+        if path=="/health": return self.send_json(200,{"ok":True,"version":VERSION,"pid":os.getpid(),"application":str(APP_DIR),"python":sys.executable})
         if path=="/manifest.webmanifest": return self.serve_static("manifest.webmanifest")
         if path=="/sw.js": return self.serve_static("sw.js","application/javascript; charset=utf-8")
         if path.startswith("/static/"): return self.serve_static(path[len("/static/"):])
@@ -2286,6 +2345,12 @@ def main():
     parser.add_argument("--no-browser",action="store_true")
     parser.add_argument("--set-password",action="store_true")
     args=parser.parse_args()
+    instance_lock=SingleInstanceLock()
+    if not instance_lock.acquire():
+        print("Torrent Dashboard is already running on this computer.")
+        print("Close the existing dashboard process before starting another instance.")
+        raise SystemExit(3)
+    atexit.register(instance_lock.release)
     if args.set_password:
         import getpass
         p1=getpass.getpass("New dashboard password: "); p2=getpass.getpass("Confirm password: ")
@@ -2300,6 +2365,9 @@ def main():
         if not cert or not key: raise SystemExit("HTTPS is enabled but https_cert/https_key are not configured")
         ctx=ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER); ctx.load_cert_chain(cert,key); server.socket=ctx.wrap_socket(server.socket,server_side=True); scheme="https"
     print(f"Torrent Dashboard {VERSION}")
+    print(f"Process ID: {os.getpid()}")
+    print(f"Application: {APP_DIR}")
+    print(f"Python: {sys.executable}")
     print(f"Listening on {scheme}://{host}:{port}")
     print(f"Local IP Address: {local_lan_ip()}")
     print(f"Port: {port}")
