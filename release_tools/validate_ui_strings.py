@@ -76,6 +76,22 @@ def main():
     assert "openDetail(tr.dataset.server,tr.dataset.hash)" not in app_js
     assert "menu-separator" in app_css and "@media(max-width:700px)" in app_css
     assert "e.target.closest('button[data-a]')" in app_js
+    assert 'github' in dashboard_py
+    assert 'id="sUpdateRepo"' not in html
+    assert 'id="sUpdateToken"' not in html
+    assert 'id="sUpdateAutoCheck"' not in html
+    assert 'id="sUpdateHours"' not in html
+    assert 'id="testUpdateAccess"' not in html
+    assert 'id="wUpdateRepo"' not in html
+    assert 'id="wUpdateToken"' not in html
+    assert 'id="wUpdatesEnabled"' not in html
+    assert 'id="wUpdateAutoCheck"' not in html
+    assert 'Test GitHub Connection' not in html
+    assert 'maybeAutoCheckUpdates' not in app_js
+    assert 'setup_test_github' not in dashboard_py
+    assert '/api/update-test' not in dashboard_py
+    assert 'github_update_integration' in dashboard_py
+    assert 'Only one GitHub integration can be configured' in dashboard_py
     assert 'id="settingsNavGroup"' in html
     assert 'id="settingsSubnav"' in html
     assert 'id="settingsMobilePage"' in html

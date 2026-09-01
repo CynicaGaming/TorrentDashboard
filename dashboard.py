@@ -42,7 +42,7 @@ UPDATE_DIR = DATA_DIR / "updates"
 UPDATE_STATE_PATH = DATA_DIR / "update-status.json"
 CUSTOM_SOUND_BASENAME = "custom-notification-sound"
 MAX_CUSTOM_SOUND_BYTES = 2 * 1024 * 1024
-VERSION = "0.5.12"
+VERSION = "0.5.13"
 
 
 class SingleInstanceLock:
@@ -116,13 +116,7 @@ DEFAULT_CONFIG = {
         "https_cert": "",
         "https_key": ""
     },
-    "updates": {
-        "enabled": True,
-        "repository": "CynicaGaming/TorrentDashboard",
-        "github_token": "",
-        "auto_check": True,
-        "check_hours": 6
-    },
+    "updates": {},
     "auth": {
         "mode": "lan_bypass",
         "trusted_interfaces": [],
@@ -179,12 +173,6 @@ def load_config():
                     auth_raw["trusted_interfaces"] = [default.get("interface_id") or default.get("interface")]
             except Exception:
                 pass
-    updates_raw = raw.setdefault("updates", {})
-    updates_raw.setdefault("github_token", "")
-    legacy_manifest = raw.get("dashboard", {}).get("update_manifest_url", "")
-    if legacy_manifest and not updates_raw.get("manifest_url"):
-        updates_raw["manifest_url"] = legacy_manifest
-        updates_raw["enabled"] = True
 
     merged = deep_merge(DEFAULT_CONFIG, raw)
     # Read-only mode is replaced by per-user roles in 0.5.0. Standard Users
@@ -262,6 +250,29 @@ def load_config():
             pass
     for legacy_key in ("webhook_url", "discord_webhook", "ntfy_url"):
         merged.setdefault("notifications", {}).pop(legacy_key, None)
+
+    # 0.5.13 moves GitHub credentials into the modular Integrations system.
+    # Existing installs are migrated in memory so update access is preserved,
+    # while fresh installs continue to start with an empty integrations list.
+    legacy_updates = raw.get("updates", {}) if isinstance(raw.get("updates"), dict) else {}
+    legacy_repo = str(legacy_updates.get("repository") or "").strip()
+    legacy_token = str(legacy_updates.get("github_token") or "").strip()
+    if legacy_repo and not any(item.get("type") == "github" for item in merged.get("integrations", [])):
+        payload = {
+            "id": stable_record_id("integration", "github", legacy_repo),
+            "type": "github",
+            "name": "GitHub",
+            "repository": legacy_repo,
+            "token": legacy_token,
+            "enabled": True,
+        }
+        try:
+            merged.setdefault("integrations", []).append(normalize_integration(payload, payload))
+        except Exception:
+            pass
+    # The old update-settings object is deliberately retired. GitHub integration
+    # is now the single source of truth for repository and token configuration.
+    merged["updates"] = {}
 
     sync_legacy_auth(merged)
     return merged
@@ -613,6 +624,13 @@ USER_GROUPS = {
 }
 
 INTEGRATION_TYPES = {
+    "github": {
+        "label": "GitHub",
+        "fields": [
+            {"key": "repository", "label": "Repository", "placeholder": "owner/repository", "required": True},
+            {"key": "token", "label": "Access Token", "placeholder": "Fine-grained token with Contents: Read", "secret": True, "required": False},
+        ],
+    },
     "sonarr": {
         "label": "Sonarr",
         "fields": [
@@ -842,6 +860,8 @@ def normalize_integration(data, existing=None):
                 raise RuntimeError(f"{field['label']} must start with http:// or https://")
             value = str(value).rstrip("/") if key == "url" else str(value)
         item[key] = value
+    if provider == "github":
+        item["repository"] = normalize_github_repository(item.get("repository"))
     return item
 
 
@@ -866,6 +886,10 @@ def test_integration_connection(item):
     spec = INTEGRATION_TYPES[provider]
     label = spec["label"]
     try:
+        if provider == "github":
+            result = test_github_update_access(item["repository"], item.get("token", ""))
+            release = result.get("latestRelease") or "No release published"
+            return {**result, "message": f"Connected · GitHub · {result.get('repository', item['repository'])} · {release}"}
         if provider in ("sonarr", "radarr", "lidarr", "prowlarr"):
             req = urllib.request.Request(item["url"].rstrip("/") + "/api/v3/system/status", headers={"X-Api-Key": item["api_key"], "Accept": "application/json"})
             with urllib.request.urlopen(req, timeout=7) as resp:
@@ -924,6 +948,10 @@ def save_integration(cfg, data):
     item_id = str(data.get("id") or "")
     existing = next((x for x in integrations if str(x.get("id") or "") == item_id), None) if item_id else None
     item = normalize_integration(data, existing)
+    if item.get("type") == "github":
+        duplicate = next((x for x in integrations if x is not existing and str(x.get("id") or "") != item["id"] and x.get("type") == "github"), None)
+        if duplicate:
+            raise RuntimeError("Only one GitHub integration can be configured for application updates")
     if existing:
         integrations[integrations.index(existing)] = item
     else:
@@ -1591,16 +1619,30 @@ def normalize_github_repository(value: str) -> str:
     return "/".join(parts)
 
 
-def github_update_headers(cfg, accept="application/vnd.github+json"):
+def github_headers(token="", accept="application/vnd.github+json"):
     headers = {
         "User-Agent": f"TorrentDashboard/{VERSION}",
         "Accept": accept,
         "X-GitHub-Api-Version": "2022-11-28",
     }
-    token = str(cfg.get("updates", {}).get("github_token") or "").strip()
+    token = str(token or "").strip()
     if token and token != "<configured>":
         headers["Authorization"] = f"Bearer {token}"
     return headers
+
+
+def github_update_integration(cfg):
+    matches = [x for x in cfg.get("integrations", []) if x.get("type") == "github" and x.get("enabled", True)]
+    if not matches:
+        raise RuntimeError("Add or enable a GitHub integration under Settings → Integrations before checking for updates")
+    if len(matches) > 1:
+        raise RuntimeError("Multiple GitHub integrations are enabled. Keep one enabled as the application update source")
+    return matches[0]
+
+
+def github_update_headers(cfg, accept="application/vnd.github+json"):
+    integration = github_update_integration(cfg)
+    return github_headers(integration.get("token", ""), accept)
 
 
 def _urlopen_json(url: str, timeout=10, headers=None):
@@ -1643,7 +1685,7 @@ def _github_releases(cfg, repo: str):
     try:
         releases=_urlopen_json(url, timeout=10, headers=github_update_headers(cfg))
     except urllib.error.HTTPError as exc:
-        token = str(cfg.get("updates", {}).get("github_token") or "").strip()
+        token = str(github_update_integration(cfg).get("token") or "").strip()
         if exc.code in (401,403):
             raise RuntimeError("GitHub rejected the update token. Verify that it has Contents: Read access to this repository.") from exc
         if exc.code == 404 and not token:
@@ -1684,8 +1726,8 @@ def _asset_sha256(asset):
 def test_github_update_access(repository: str, token: str = ""):
     repo = normalize_github_repository(repository)
     token = str(token or "").strip()
-    cfg = {"updates": {"github_token": token}}
-    headers = github_update_headers(cfg)
+    cfg = {"integrations": [{"type": "github", "repository": repo, "token": token, "enabled": True}]}
+    headers = github_headers(token)
     try:
         info = _urlopen_json(f"https://api.github.com/repos/{repo}", timeout=10, headers=headers)
     except urllib.error.HTTPError as exc:
@@ -1727,11 +1769,8 @@ def test_github_update_access(repository: str, token: str = ""):
 
 
 def fetch_update_release(cfg):
-    u=cfg.get("updates",{})
-    repo=str(u.get("repository") or "").strip()
-    if not repo:
-        raise RuntimeError("No GitHub update repository is configured")
-    repo=normalize_github_repository(repo)
+    source = github_update_integration(cfg)
+    repo = normalize_github_repository(source.get("repository"))
     release=_latest_github_release(cfg,repo)
     tag=str(release.get("tag_name") or "").strip()
     version=tag.lstrip("vV")
@@ -1959,7 +1998,6 @@ class Handler(BaseHTTPRequestHandler):
                 "network_interfaces": interfaces,
                 "detected_lan": detect_lan_network(),
         "local_ip": local_lan_ip(),
-                "updates": {"enabled": cfg.get("updates",{}).get("enabled",True), "repository": cfg.get("updates",{}).get("repository","CynicaGaming/TorrentDashboard")},
             })
         if path=="/api/setup/network-interfaces":
             return self.send_json(200,{"interfaces":detect_network_interfaces(qs.get("refresh",["0"])[0]=="1")})
@@ -2035,7 +2073,6 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         path=self.path.partition("?")[0]
         if path=="/api/setup/test-client": return self.setup_test_client()
-        if path=="/api/setup/test-github": return self.setup_test_github()
         if path=="/api/setup/complete": return self.setup_complete()
         if path=="/api/login": return self.login_route()
         if path=="/api/logout":
@@ -2088,13 +2125,6 @@ class Handler(BaseHTTPRequestHandler):
                 data=parse_json_body(self); updated=apply_settings_update(cfg,data); save_config(updated)
                 HISTORY.event("dashboard", "settings_changed", sess.get("username",""), "", {"client_ip": self.client_ip()})
                 return self.send_json(200,{"ok":True,"settings":redacted_config(updated)},new_cookie)
-            if path=="/api/update-test":
-                data=parse_json_body(self,20000)
-                repo=str(data.get("repository") or cfg.get("updates",{}).get("repository") or "").strip()
-                supplied=str(data.get("github_token") or "").strip()
-                token_value=supplied or str(cfg.get("updates",{}).get("github_token") or "").strip()
-                result=test_github_update_access(repo,token_value)
-                return self.send_json(200,result,new_cookie)
             if path=="/api/update-download":
                 result=stage_update(cfg)
                 HISTORY.event("dashboard","update_downloaded",str(result.get("version") or ""),"",{"client_ip":self.client_ip()})
@@ -2139,19 +2169,10 @@ class Handler(BaseHTTPRequestHandler):
         except Exception as e:
             return self.send_json(400,{"error":str(e)})
 
-    def setup_test_github(self):
-        try:
-            data=parse_json_body(self,20000); self.setup_authorized(data)
-            repo=str(data.get("repository") or "").strip()
-            token=str(data.get("github_token") or "").strip()
-            return self.send_json(200,test_github_update_access(repo,token))
-        except Exception as e:
-            return self.send_json(400,{"error":str(e)})
-
     def setup_complete(self):
         try:
             data=parse_json_body(self,50000); cfg=self.setup_authorized(data)
-            dashboard=data.get("dashboard") or {}; updates=data.get("updates") or {}; auth=data.get("auth") or {}; servers=data.get("servers") or []
+            dashboard=data.get("dashboard") or {}; auth=data.get("auth") or {}; servers=data.get("servers") or []
             if not servers:
                 raise RuntimeError("Add at least one download client")
             mode=str(auth.get("mode","lan_bypass"))
@@ -2182,16 +2203,6 @@ class Handler(BaseHTTPRequestHandler):
             out["dashboard"]["bind_host"]="0.0.0.0"
             out["dashboard"]["port"]=int(dashboard.get("port") or 8765)
             out["dashboard"]["refresh_seconds"]=max(1,min(60,int(dashboard.get("refresh_seconds") or 2)))
-            update_enabled=bool(updates.get("enabled",False))
-            update_repo=str(updates.get("repository") or "").strip()
-            if update_enabled and not update_repo:
-                raise RuntimeError("Set the GitHub repository before enabling updates")
-            out["updates"]["enabled"]=update_enabled
-            out["updates"]["repository"]=normalize_github_repository(update_repo) if update_repo else ""
-            token=str(updates.get("github_token") or "").strip()
-            if token: out["updates"]["github_token"]=token
-            out["updates"]["auto_check"]=bool(updates.get("auto_check",True))
-            out["updates"]["check_hours"]=max(1,min(168,int(updates.get("check_hours") or 6)))
             out["auth"]["mode"]=mode
             out["auth"]["trusted_interfaces"]=trusted_interfaces
             out["auth"]["trusted_ips"]=trusted_ips
@@ -2241,21 +2252,21 @@ class Handler(BaseHTTPRequestHandler):
         return self.send_bytes(200,safe.read_bytes(),ctype)
 
     def update_check(self,cfg,new_cookie):
-        updates=cfg.get("updates",{})
-        if not updates.get("enabled"):
-            return self.send_json(200,{"configured":False,"enabled":False,"currentVersion":VERSION,"state":update_state()},new_cookie)
+        try:
+            github_update_integration(cfg)
+        except Exception as e:
+            return self.send_json(200,{"configured":False,"currentVersion":VERSION,"error":str(e),"state":update_state()},new_cookie)
         try:
             manifest=fetch_update_manifest(cfg)
-            return self.send_json(200,{"configured":True,"enabled":True,"currentVersion":VERSION,"manifest":manifest,"updateAvailable":manifest.get("updateAvailable",False),"state":update_state()},new_cookie)
+            return self.send_json(200,{"configured":True,"currentVersion":VERSION,"manifest":manifest,"updateAvailable":manifest.get("updateAvailable",False),"state":update_state()},new_cookie)
         except Exception as e:
-            return self.send_json(502,{"configured":True,"enabled":True,"currentVersion":VERSION,"error":str(e),"state":update_state()},new_cookie)
+            return self.send_json(502,{"configured":True,"currentVersion":VERSION,"error":str(e),"state":update_state()},new_cookie)
 
 
 def redacted_config(cfg):
     out=json.loads(json.dumps(cfg))
     out.setdefault("auth",{}).pop("password_hash",None)
     out.setdefault("auth",{}).pop("username",None)
-    if out.get("updates",{}).get("github_token"): out["updates"]["github_token"]="<configured>"
     for s in out.get("servers",[]):
         if s.get("password"): s["password"]="<configured>"
         if s.get("api_key"): s["api_key"]="<configured>"
@@ -2284,18 +2295,6 @@ def apply_settings_update(cfg,data):
     out.setdefault("dashboard",{}).pop("read_only",None)
     if "port" in dash:
         out["dashboard"]["port"]=max(1,min(65535,int(dash.get("port") or 8765)))
-    updates=data.get("updates",{})
-    if "enabled" in updates: out["updates"]["enabled"]=bool(updates.get("enabled"))
-    if "repository" in updates:
-        repo=str(updates.get("repository") or "").strip()
-        out["updates"]["repository"]=normalize_github_repository(repo) if repo else ""
-    if "github_token" in updates:
-        token=str(updates.get("github_token") or "")
-        if token and token != "<configured>": out["updates"]["github_token"]=token.strip()
-    if "auto_check" in updates: out["updates"]["auto_check"]=bool(updates.get("auto_check"))
-    if "check_hours" in updates: out["updates"]["check_hours"]=max(1,min(168,int(updates.get("check_hours") or 6)))
-    if out["updates"].get("enabled") and not out["updates"].get("repository"):
-        raise RuntimeError("Set a GitHub repository before enabling updates")
     auth=data.get("auth",{})
     if "mode" in auth:
         if auth["mode"] not in ("required","lan_bypass","disabled"): raise RuntimeError("Invalid auth mode")

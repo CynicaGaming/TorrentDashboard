@@ -7,7 +7,7 @@ window.TDSettings = (() => {
   let users = [];
   let currentUserId = '';
 
-  const corePages = new Set(['general','access','clients','updates','notifications']);
+  const corePages = new Set(['general','access','clients','notifications']);
   const SECRET_MASK = '••••••••••';
 
   function configuredSecret(input, configured, emptyPlaceholder='') {
@@ -40,11 +40,6 @@ window.TDSettings = (() => {
     document.querySelector('#sPort')?.addEventListener('input', updateLocalAddress);
     document.querySelector('#sRefreshInterfaces')?.addEventListener('click', () => refreshSettingsInterfaces(true).catch(e => toast(e.message,'error')));
     document.querySelector('#addServerSetting')?.addEventListener('click', () => addServerRow());
-    document.querySelector('#testUpdateAccess')?.addEventListener('click', () => testGitHubAccess().catch(() => {}));
-    ['sUpdateRepo','sUpdateToken'].forEach(id => document.querySelector('#'+id)?.addEventListener('input', () => {
-      const out = document.querySelector('#updateAccessResult');
-      if (out) { out.className='test-result muted update-access-result'; out.textContent='Not Tested Yet'; }
-    }));
     document.querySelector('#updateAction')?.addEventListener('click', handleUpdateAction);
     document.querySelector('#nSoundMode')?.addEventListener('change', updateNotificationSoundUi);
     document.querySelector('#nSoundFile')?.addEventListener('change', updateNotificationSoundUi);
@@ -83,14 +78,8 @@ window.TDSettings = (() => {
     let cols = JSON.parse(localStorage.tdColumns || '{}');
     document.querySelectorAll('[data-column]').forEach(x => x.checked = cols[x.dataset.column] !== false);
 
-    setChecked('sUpdatesEnabled', s.updates?.enabled);
-    setValue('sUpdateRepo', s.updates?.repository || 'CynicaGaming/TorrentDashboard');
-    setValue('sUpdateToken', '');
-    const token = document.querySelector('#sUpdateToken');
-    configuredSecret(token, s.updates?.github_token === '<configured>', 'Fine-grained token with Contents: Read');
-    setChecked('sUpdateAutoCheck', s.updates?.auto_check !== false);
-    setValue('sUpdateHours', s.updates?.check_hours || 6);
-    renderUpdateInfo({configured:!!s.updates?.repository,currentVersion:state.me?.version,state:s.runtime?.updateState||{}});
+    const githubConfigured = (s.integrations || []).some(x => x.type === 'github' && x.enabled !== false);
+    renderUpdateInfo({configured:githubConfigured,currentVersion:state.me?.version,state:s.runtime?.updateState||{}});
 
     renderServerSettings(s.servers || []);
     [...document.querySelectorAll('.server-setting')].forEach((row, index) => {
@@ -118,13 +107,6 @@ window.TDSettings = (() => {
         title: document.querySelector('#sTitle')?.value || 'Torrent Dashboard',
         port: Number(document.querySelector('#sPort')?.value || 8765),
         refresh_seconds: Number(document.querySelector('#sRefresh')?.value || 2)
-      },
-      updates: {
-        enabled: !!document.querySelector('#sUpdatesEnabled')?.checked,
-        repository: document.querySelector('#sUpdateRepo')?.value.trim() || '',
-        github_token: secretFieldValue(document.querySelector('#sUpdateToken'), '<configured>'),
-        auto_check: document.querySelector('#sUpdateAutoCheck')?.checked !== false,
-        check_hours: Number(document.querySelector('#sUpdateHours')?.value || 6)
       },
       auth: {
         mode: document.querySelector('#sAuth')?.value || 'required',
@@ -289,6 +271,7 @@ window.TDSettings = (() => {
       const select = document.querySelector('#integrationTypeSelect');
       if (select) select.innerHTML = '<option value="">Choose Integration…</option>' + catalog.map(x => `<option value="${esc(x.type)}">${esc(x.label)}</option>`).join('');
       renderIntegrations();
+      renderUpdateInfo({configured:integrations.some(x => x.type === 'github' && x.enabled !== false),currentVersion:state.me?.version,state:state.settings?.runtime?.updateState||{}});
     } catch (e) {
       toast(e.message,'error');
     }

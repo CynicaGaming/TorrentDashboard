@@ -5,8 +5,8 @@
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#0b0d10" name="theme-color"/>
 <link href="/manifest.webmanifest" rel="manifest"/>
-<link href="/static/app.css?v=0.5.12" rel="stylesheet"/>
-<link href="/static/settings.css?v=0.5.12" rel="stylesheet"/>
+<link href="/static/app.css?v=0.5.13" rel="stylesheet"/>
+<link href="/static/settings.css?v=0.5.13" rel="stylesheet"/>
 <title>Torrent Dashboard</title>
 </head>
 <body>
@@ -15,12 +15,12 @@
 <aside class="setup-rail">
 <div class="brand-mark">⇣</div>
 <div><strong>Torrent Dashboard</strong><small>First Run Setup</small></div>
-<ol id="setupSteps"><li class="active"><button data-setup-step="0" type="button">Dashboard</button></li><li><button data-setup-step="1" type="button">Access Control</button></li><li><button data-setup-step="2" type="button">Download Client</button></li><li><button data-setup-step="3" type="button">Application Updates</button></li><li><button data-setup-step="4" type="button">Review</button></li></ol>
+<ol id="setupSteps"><li class="active"><button data-setup-step="0" type="button">Dashboard</button></li><li><button data-setup-step="1" type="button">Access Control</button></li><li><button data-setup-step="2" type="button">Download Client</button></li><li><button data-setup-step="3" type="button">Review</button></li></ol>
 <p>Nothing is written until the final connection test succeeds.</p>
 </aside>
 <form autocomplete="off" class="setup-main" id="setupForm">
 <section class="setup-page active" data-step="0">
-<span class="eyebrow">Step 1 Of 5</span><h1>Set Up Your Dashboard</h1><p class="setup-copy">Choose the basic dashboard behavior. Torrent Dashboard listens on <code>0.0.0.0</code> so it can be reached from your network.</p>
+<span class="eyebrow">Step 1 Of 4</span><h1>Set Up Your Dashboard</h1><p class="setup-copy">Choose the basic dashboard behavior. Torrent Dashboard listens on <code>0.0.0.0</code> so it can be reached from your network.</p>
 <label>Dashboard Name<input id="wTitle" maxlength="128" value="Torrent Dashboard"/></label>
 <div class="field-row local-address-heading"><div><b>Local Dashboard Address</b><small>Address used to reach Torrent Dashboard from your network.</small></div></div>
 <div class="two network-address-fields"><label>IP Address<input id="wLocalIp" readonly value="Detecting…"/></label><label>Port<input id="wPort" max="65535" min="1" type="number" value="8765"/></label></div>
@@ -29,7 +29,7 @@
 <div class="setup-code hidden" id="setupCodeWrap"><label>Remote Setup Code<input autocomplete="one-time-code" id="wSetupCode" maxlength="16" placeholder="Shown In Console"/></label><small>This is required only when the first setup is being performed from another device.</small></div>
 </section>
 <section class="setup-page" data-step="1">
-<span class="eyebrow">Step 2 Of 5</span><h1>Protect Dashboard Access</h1><p class="setup-copy">Choose which network adapters are trusted. Every selected adapter contributes its current subnet, and you can add individual IP addresses or CIDRs to the whitelist.</p>
+<span class="eyebrow">Step 2 Of 4</span><h1>Protect Dashboard Access</h1><p class="setup-copy">Choose which network adapters are trusted. Every selected adapter contributes its current subnet, and you can add individual IP addresses or CIDRs to the whitelist.</p>
 <label>Authentication Mode<select id="wAuthMode"><option selected="" value="lan_bypass">Bypass Password For Trusted Addresses</option><option value="required">Require Password Everywhere</option><option value="disabled">Disable Dashboard Authentication</option></select></label>
 <div class="dashboard-account" id="wizardAccount"><label>Dashboard Username<input autocomplete="off" id="wDashUser" value="admin"/></label><div class="two"><label>Dashboard Password<input autocomplete="new-password" id="wDashPass" placeholder="Create Password" type="password"/></label><label>Confirm Password<input autocomplete="new-password" id="wDashPass2" type="password"/></label></div></div>
 <div id="wLanTrust">
@@ -41,7 +41,7 @@
 <div class="setup-note">Loopback access on the host is always trusted. Interface selections follow the actual subnet assigned to each NIC, so DHCP address changes do not require editing the whitelist. The manual list accepts a single IP or a CIDR on each line.</div>
 </section>
 <section class="setup-page" data-step="2">
-<span class="eyebrow">Step 3 Of 5</span><h1>Add Your Download Client</h1><p class="setup-copy">Torrent Dashboard connects to qBitTorrent through its Web API. API Key authentication is preferred on qBitTorrent 5.2+; Username and password remain available for older versions.</p>
+<span class="eyebrow">Step 3 Of 4</span><h1>Add Your Download Client</h1><p class="setup-copy">Torrent Dashboard connects to qBitTorrent through its Web API. API Key authentication is preferred on qBitTorrent 5.2+; Username and password remain available for older versions.</p>
 <label>Client Type<select id="wClientType"><option value="qbittorrent">qBitTorrent</option></select></label>
 <label>Display Name<input id="wClientName" placeholder="Desktop, NAS, Seedbox…" value="desktop"/></label>
 <label>qBitTorrent Web UI URL<input id="wClientUrl" placeholder="http://127.0.0.1:8080" value="http://127.0.0.1:8080"/></label>
@@ -53,16 +53,7 @@
 <div class="setup-note">If qBitTorrent runs on the same PC as Torrent Dashboard, keep <code>127.0.0.1:8080</code>. Remote users connect to Torrent Dashboard on port 8765; qBitTorrent itself does not need to be exposed to the LAN.</div>
 </section>
 <section class="setup-page" data-step="3">
-<span class="eyebrow">Step 4 Of 5</span><h1>Configure Application Updates</h1><p class="setup-copy">Connect Torrent Dashboard to its GitHub repository so future versions can be checked, downloaded, verified, and installed from the dashboard.</p>
-<label class="toggle"><input checked="" id="wUpdatesEnabled" type="checkbox"/><span>Enable GitHub Updates</span></label>
-<label>GitHub Repository<input autocomplete="off" id="wUpdateRepo" placeholder="owner/repository" value="CynicaGaming/TorrentDashboard"/></label>
-<label>GitHub Update Token <small>(required for private repositories)</small><input autocomplete="off" id="wUpdateToken" placeholder="Fine-grained token with Contents: Read" type="password"/></label>
-<div class="connection-test-row"><button class="secondary" id="wTestUpdate" type="button">Test GitHub Connection</button><div class="test-result muted" id="wUpdateResult">Not Tested Yet</div></div>
-<label class="toggle"><input checked="" id="wUpdateAutoCheck" type="checkbox"/><span>Check Automatically</span></label>
-<div class="setup-note">Testing verifies that the repository is reachable with the token you entered and checks that the latest release contains a client ZIP with a GitHub SHA-256 digest. Nothing is saved until you select Finish.</div>
-</section>
-<section class="setup-page" data-step="4">
-<span class="eyebrow">Step 5 Of 5</span><h1>Review And Finish</h1><p class="setup-copy">Torrent Dashboard will re-test qBitTorrent once more, save the settings, and start collecting torrent status.</p>
+<span class="eyebrow">Step 4 Of 4</span><h1>Review And Finish</h1><p class="setup-copy">Torrent Dashboard will re-test qBitTorrent once more, save the settings, and start collecting torrent status.</p>
 <div class="review-grid" id="wReview"></div>
 <div class="setup-note">You can add additional qBitTorrent instances, notifications, integrations, themes, trusted interfaces, and whitelist entries later under Settings.</div>
 </section>
@@ -195,16 +186,9 @@
 <section class="settings-page" data-settings-section="updates">
 <div class="panel settings-card" id="updateSettingsCard">
 <div class="panel-title">Application Updates</div>
-<div class="update-config">
-<label class="toggle"><input id="sUpdatesEnabled" type="checkbox"/><span>Enable GitHub Updates</span></label>
-<label class="full-field">GitHub Repository<input autocomplete="off" id="sUpdateRepo" placeholder="owner/repository or https://github.com/owner/repository"/></label><label class="full-field">GitHub Update Token <small>(Required For Private Repositories)</small><input autocomplete="off" id="sUpdateToken" placeholder="Leave Blank To Keep Current Token" type="password"/></label>
-<label class="toggle"><input id="sUpdateAutoCheck" type="checkbox"/><span>Check Automatically</span></label>
-<label>Check Interval Hours<input id="sUpdateHours" max="168" min="1" type="number" value="6"/></label>
-</div>
 <div class="update-status" id="updateStatus"><div><span>Current Version</span><strong id="updateCurrent">—</strong></div><div><span>Latest Version</span><strong id="updateLatest">Not Checked</strong></div><div><span>Update State</span><strong id="updateState">Idle</strong></div></div>
-<div class="update-actions"><button class="secondary" id="testUpdateAccess" type="button">Test GitHub Connection</button><button class="secondary update-action" id="updateAction" type="button">Check For Updates</button></div>
-<div class="test-result muted update-access-result" id="updateAccessResult">Not Tested Yet</div>
-<div class="muted update-message" id="updateMessage">Configure the GitHub repository and, for a private repository, a token with <code>Contents: Read</code>. Releases are checked directly through GitHub and verified against the ZIP digest before installation.</div>
+<div class="update-actions"><button class="secondary update-action" id="updateAction" type="button">Check For Updates</button></div>
+<div class="muted update-message" id="updateMessage">Application updates use the GitHub connection configured under Integrations. Add and test a GitHub integration there before checking for updates.</div>
 </div>
 </section>
 <section class="settings-page" data-settings-section="notifications">
@@ -230,7 +214,7 @@
 <div class="settings-savebar" id="settingsSavebar"><button class="primary" type="submit">Save Settings</button></div>
 </form>
 <section class="settings-page" data-settings-section="integrations">
-<div class="panel settings-card"><div class="panel-title">Integrations</div><p class="muted">No integrations are populated by default. Add media services or notification destinations only when you use them, test each connection, and save it independently.</p><div class="integration-add-row"><select id="integrationTypeSelect"><option value="">Choose Integration…</option></select><button class="primary" id="addIntegrationSetting" type="button">＋ Add Integration</button></div><div id="integrationList"></div></div>
+<div class="panel settings-card"><div class="panel-title">Integrations</div><p class="muted">No integrations are populated by default. Add GitHub, media services, or notification destinations only when you use them, test each connection, and save it independently.</p><div class="integration-add-row"><select id="integrationTypeSelect"><option value="">Choose Integration…</option></select><button class="primary" id="addIntegrationSetting" type="button">＋ Add Integration</button></div><div id="integrationList"></div></div>
 </section>
 <section class="settings-page" data-settings-section="users">
 <div class="panel settings-card"><div class="panel-title">User Management</div><p class="muted">Administrators can manage torrents and settings. Standard Users have read-only dashboard access.</p><div class="settings-inline-actions"><button class="primary" id="addUserSetting" type="button">＋ Add User</button></div><div id="userList"></div></div>
@@ -246,7 +230,7 @@
 <div class="menu hidden" id="menu"><button id="pauseAll">Pause All</button><button id="resumeAll">Resume All</button><button id="altSpeed">Toggle Alternative Limits</button><button id="globalDl">Set Global Download Limit</button><button id="globalUl">Set Global Upload Limit</button><button id="notifyPermission">Enable Browser Notifications</button><button class="hidden" id="installPwa">Install App</button></div>
 <div class="menu hidden" id="contextMenu"></div>
 <div class="toasts" id="toasts"></div>
-<script src="/static/settings.js?v=0.5.12"></script>
-<script src="/static/app.js?v=0.5.12"></script>
+<script src="/static/settings.js?v=0.5.13"></script>
+<script src="/static/app.js?v=0.5.13"></script>
 </body>
 </html>
