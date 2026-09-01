@@ -8,38 +8,28 @@ Torrent Desk is a local qBittorrent dashboard and management UI for desktop and 
 2. Extract the client.
 3. Double-click **Start Dashboard.bat**.
 4. Complete the first-run setup wizard.
-5. Test the qBittorrent connection before selecting **Finish**.
+5. Test the qBittorrent connection and GitHub update access before selecting **Finish**.
 
 Torrent Desk listens on `0.0.0.0:8765` by default and opens `127.0.0.1:8765` on the host PC.
 
-## Authentication
+## Dashboard Access
 
-Dashboard access can be required everywhere, bypassed for selected trusted network interfaces / explicit IP or CIDR whitelist entries, or disabled. qBittorrent 5.2+ can use an API Key; older versions can use username/password.
+Dashboard access can be required everywhere, bypassed for selected trusted network interfaces / explicit IP or CIDR whitelist entries, or disabled. The Settings page shows the current **LAN URL** directly inside **Dashboard Access**, where it can be copied for use on another allowed device.
 
 All password, API Key, and token fields in the browser UI include Show/Hide controls. Credentials remain server-side.
 
-## Optional Dependency
+## qBittorrent Authentication
 
-QR Code support requires `qrcode` and Pillow. It can be installed during setup or later in Settings. The standard client intentionally omits Docker, service/tray, EXE-builder, startup, and password-reset helper files.
+qBittorrent 5.2+ can use an API Key. Older versions can use username/password. Torrent Desk tests the selected authentication method before setup is completed.
 
-## Updates
+## Application Updates
 
-The default update source is `CynicaGaming/TorrentDashboard`. Because the repository is private, use a fine-grained GitHub token restricted to this repository with **Contents: Read** permission. The token is stored only in local `config.json` and is redacted from browser-facing settings.
+The default update repository is `CynicaGaming/TorrentDashboard`. The setup wizard and Settings page both provide **Test GitHub Connection**, which verifies repository/token access without saving the entered values. For private repositories, use a fine-grained token restricted to the repository with **Contents: Read** permission.
 
-During the current prerelease cycle, `v3.4.0` is replaced in place on each completed `main` build. Once the application is declared stable, releases should return to immutable versioned tags.
+The updater verifies the release manifest and SHA-256 package hash, preserves `config.json` and `data/`, creates a pre-update backup, health-checks the restarted application, and rolls back if the new build does not start correctly.
 
-Updates download a manifest and versioned ZIP, verify SHA-256, stage safely, preserve `config.json` and `data/`, restart through `updater.py`, health-check the new version, and roll back application files if startup fails.
+During prerelease stabilization, `v3.4.0` is intentionally replaced in place on each completed `main` build.
 
-## Standard Client Files
+## Client Contents
 
-- `Start Dashboard.bat`
-- `dashboard.py`
-- `updater.py`
-- `static/`
-- `release_tools/`
-- `requirements-optional.txt`
-- `config.example.json`
-- `.gitignore`
-- documentation
-
-Do not share `config.json`; it contains local credentials and secrets.
+The standard client contains the dashboard application, browser UI, updater, release tooling, configuration example, and the single Windows launcher. QR-code support, Docker files, service/tray helpers, startup helpers, EXE-builder helpers, and password-reset BAT files are intentionally omitted.

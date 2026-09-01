@@ -6,7 +6,6 @@ import base64
 import hashlib
 import hmac
 import http.cookiejar
-import importlib.util
 import ipaddress
 import json
 import mimetypes
@@ -401,54 +400,6 @@ def is_trusted_ip(ip, cidrs):
         return any(addr in ipaddress.ip_network(c, strict=False) for c in cidrs)
     except ValueError:
         return False
-
-
-# ---------- optional dependency management ----------
-
-OPTIONAL_DEPENDENCIES = {
-    "qr": {"label": "QR codes", "packages": ["qrcode", "Pillow"], "imports": ["qrcode", "PIL"]},
-    "tray": {"label": "Windows tray", "packages": ["pystray", "Pillow"], "imports": ["pystray", "PIL"], "windows_only": True},
-    "windows_service": {"label": "Windows service", "packages": ["pywin32"], "imports": ["win32serviceutil"], "windows_only": True},
-    "exe_builder": {"label": "EXE builder", "packages": ["pyinstaller"], "imports": ["PyInstaller"]},
-}
-
-
-def dependency_status():
-    out={}
-    for key,spec in OPTIONAL_DEPENDENCIES.items():
-        supported=not spec.get("windows_only") or os.name=="nt"
-        installed=all(importlib.util.find_spec(name) is not None for name in spec["imports"])
-        out_key={"windows_service":"windowsService","exe_builder":"exeBuilder"}.get(key,key)
-        out[out_key]={"label":spec["label"],"installed":bool(installed),"supported":bool(supported),"packages":spec["packages"]}
-    return out
-
-
-def install_optional_dependency(feature):
-    feature=str(feature or "").strip()
-    key={"windowsService":"windows_service","exeBuilder":"exe_builder"}.get(feature,feature)
-    if key=="all":
-        packages=[]
-        for name,spec in OPTIONAL_DEPENDENCIES.items():
-            if spec.get("windows_only") and os.name!="nt": continue
-            for pkg in spec["packages"]:
-                if pkg not in packages: packages.append(pkg)
-    elif key in OPTIONAL_DEPENDENCIES:
-        spec=OPTIONAL_DEPENDENCIES[key]
-        if spec.get("windows_only") and os.name!="nt": raise RuntimeError(f"{spec['label']} is available only on Windows")
-        packages=list(spec["packages"])
-    else:
-        raise RuntimeError("Unsupported optional dependency")
-    if not packages: return {"ok":True,"status":dependency_status(),"output":"Nothing to install."}
-    cmd=[sys.executable,"-m","pip","install","--disable-pip-version-check",*packages]
-    try:
-        cp=subprocess.run(cmd,capture_output=True,text=True,timeout=300,cwd=str(APP_DIR))
-    except subprocess.TimeoutExpired as e:
-        raise RuntimeError("Dependency installation timed out") from e
-    output=(cp.stdout+"\n"+cp.stderr).strip()[-12000:]
-    if cp.returncode!=0:
-        raise RuntimeError(f"pip failed with exit code {cp.returncode}: {output}")
-    importlib.invalidate_caches()
-    return {"ok":True,"status":dependency_status(),"output":output}
 
 
 # ---------- SQLite history ----------
@@ -983,6 +934,46 @@ def github_update_headers(cfg, accept="application/vnd.github+json"):
     return headers
 
 
+def test_github_update_access(repository: str, token: str = ""):
+    repo = normalize_github_repository(repository)
+    token = str(token or "").strip()
+    cfg = {"updates": {"github_token": token}}
+    headers = github_update_headers(cfg)
+    try:
+        info = _urlopen_json(f"https://api.github.com/repos/{repo}", timeout=10, headers=headers)
+    except urllib.error.HTTPError as exc:
+        if exc.code in (401, 403):
+            if token:
+                raise RuntimeError("GitHub rejected the token. Verify that it can read this repository.") from exc
+            raise RuntimeError("GitHub denied the connection. Add a token if this is a private repository.") from exc
+        if exc.code == 404:
+            raise RuntimeError("GitHub repository not found or not accessible. Verify the repository name and token permissions.") from exc
+        raise RuntimeError(f"GitHub connection failed with HTTP {exc.code}") from exc
+    except urllib.error.URLError as exc:
+        raise RuntimeError(f"Could not connect to GitHub: {exc.reason}") from exc
+
+    result = {
+        "ok": True,
+        "repository": str(info.get("full_name") or repo),
+        "private": bool(info.get("private", False)),
+        "defaultBranch": str(info.get("default_branch") or ""),
+        "latestRelease": "",
+        "updateManifestPresent": False,
+    }
+    try:
+        release = _urlopen_json(f"https://api.github.com/repos/{repo}/releases/latest", timeout=10, headers=headers)
+        result["latestRelease"] = str(release.get("tag_name") or release.get("name") or "")
+        result["updateManifestPresent"] = any(str(a.get("name") or "") == "update-manifest.json" for a in (release.get("assets") or []))
+    except urllib.error.HTTPError as exc:
+        if exc.code != 404:
+            if exc.code in (401, 403):
+                raise RuntimeError("Repository access succeeded, but GitHub denied access to release metadata.") from exc
+            raise RuntimeError(f"GitHub release check failed with HTTP {exc.code}") from exc
+    except urllib.error.URLError as exc:
+        raise RuntimeError(f"Repository access succeeded, but the release check failed: {exc.reason}") from exc
+    return result
+
+
 def _version_key(value: str):
     # Stable semantic-version comparison without a third-party dependency.
     raw = str(value or "0").strip().lstrip("vV")
@@ -1307,11 +1298,8 @@ class Handler(BaseHTTPRequestHandler):
                 "effective_trusted_cidrs": effective_trusted_cidrs(cfg["auth"]),
                 "network_interfaces": interfaces,
                 "detected_lan": detect_lan_network(),
-                "dependencies": dependency_status(),
                 "updates": {"enabled": cfg.get("updates",{}).get("enabled",True), "repository": cfg.get("updates",{}).get("repository","CynicaGaming/TorrentDashboard")},
             })
-        if path=="/api/setup/dependencies":
-            return self.send_json(200,{"dependencies":dependency_status()})
         if path=="/api/setup/network-interfaces":
             return self.send_json(200,{"interfaces":detect_network_interfaces(qs.get("refresh",["0"])[0]=="1")})
 
@@ -1343,16 +1331,14 @@ class Handler(BaseHTTPRequestHandler):
             return self.update_check(cfg,new_cookie)
         if path=="/api/detail":
             return self.detail(cfg,qs,new_cookie)
-        if path=="/api/qr":
-            return self.qr(cfg)
         return self.send_json(404,{"error":"Not found"},new_cookie)
 
     def do_POST(self):
         parsed=urllib.parse.urlparse(self.path); path=parsed.path
         if path.startswith("/api/setup/"):
             if path=="/api/setup/client-test": return self.setup_client_test()
+            if path=="/api/setup/test-github": return self.setup_test_github()
             if path=="/api/setup/complete": return self.setup_complete()
-            if path=="/api/setup/install-dependency": return self.setup_install_dependency()
         if path=="/api/login": return self.login()
         ctx=self.require_auth(True)
         if not ctx: return
@@ -1370,8 +1356,12 @@ class Handler(BaseHTTPRequestHandler):
                 data=parse_json_body(self); server=normalize_server_input(data); return self.send_json(200,test_server_connection(server),new_cookie)
             if path=="/api/test-notification":
                 send_notification(cfg,"Torrent Desk test","Notification delivery test from Torrent Desk."); return self.send_json(200,{"ok":True},new_cookie)
-            if path=="/api/install-dependency":
-                data=parse_json_body(self,10000); return self.send_json(200,install_optional_dependency(data.get("feature")),new_cookie)
+            if path=="/api/update-test":
+                data=parse_json_body(self,20000)
+                repo=str(data.get("repository") or cfg.get("updates",{}).get("repository") or "").strip()
+                supplied=str(data.get("github_token") or "").strip()
+                token_value=supplied or str(cfg.get("updates",{}).get("github_token") or "").strip()
+                return self.send_json(200,test_github_update_access(repo,token_value),new_cookie)
             if path=="/api/update-download":
                 return self.send_json(200,stage_update(cfg),new_cookie)
             if path=="/api/update-install":
@@ -1413,10 +1403,13 @@ class Handler(BaseHTTPRequestHandler):
         except Exception as e:
             return self.send_json(400,{"error":str(e)})
 
-    def setup_install_dependency(self):
+
+    def setup_test_github(self):
         try:
-            data=parse_json_body(self,10000);self.setup_authorized(data)
-            return self.send_json(200,install_optional_dependency(data.get("feature")))
+            data=parse_json_body(self,20000); self.setup_authorized(data)
+            repo=str(data.get("repository") or "").strip()
+            token=str(data.get("github_token") or "").strip()
+            return self.send_json(200,test_github_update_access(repo,token))
         except Exception as e:
             return self.send_json(400,{"error":str(e)})
 
@@ -1562,15 +1555,6 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json(200,{"tab":tab,"data":data},cookie)
         except Exception as e:return self.send_json(502,{"error":str(e)},cookie)
 
-    def qr(self,cfg):
-        try:
-            import io, qrcode
-            scheme="https" if cfg["dashboard"].get("https_enabled") else "http"
-            url=f"{scheme}://{local_lan_ip()}:{cfg['dashboard'].get('port',8765)}"
-            img=qrcode.make(url); buf=io.BytesIO(); img.save(buf,format="PNG")
-            return self.send_bytes(200,buf.getvalue(),"image/png")
-        except Exception as e:
-            return self.send_json(501,{"error":f"QR support unavailable: {e}"})
 
     def update_check(self,cfg,new_cookie):
         updates=cfg.get("updates",{})
@@ -1603,7 +1587,6 @@ def redacted_config(cfg):
         "network_interfaces": detect_network_interfaces(),
         "trusted_interface_networks": interface_networks(cfg.get("auth",{}).get("trusted_interfaces",[])),
         "effective_trusted_cidrs": effective_trusted_cidrs(cfg.get("auth",{})),
-        "dependencies": dependency_status(),
         "updateState": update_state(),
     }
     return out

@@ -5,7 +5,7 @@
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#0b0d10" name="theme-color"/>
 <link href="/manifest.webmanifest" rel="manifest"/>
-<link href="/static/app.css?v=3.4.0-cleanup2" rel="stylesheet"/>
+<link href="/static/app.css?v=3.4.0-cleanup4" rel="stylesheet"/>
 <title>Torrent Desk</title>
 </head>
 <body>
@@ -14,7 +14,7 @@
 <aside class="setup-rail">
 <div class="brand-mark">⇣</div>
 <div><strong>Torrent Desk</strong><small>First Run Setup</small></div>
-<ol id="setupSteps"><li class="active"><button data-setup-step="0" type="button">Dashboard</button></li><li><button data-setup-step="1" type="button">Access Control</button></li><li><button data-setup-step="2" type="button">Download Client</button></li><li><button data-setup-step="3" type="button">Optional Features</button></li><li><button data-setup-step="4" type="button">Review</button></li></ol>
+<ol id="setupSteps"><li class="active"><button data-setup-step="0" type="button">Dashboard</button></li><li><button data-setup-step="1" type="button">Access Control</button></li><li><button data-setup-step="2" type="button">Download Client</button></li><li><button data-setup-step="3" type="button">Application Updates</button></li><li><button data-setup-step="4" type="button">Review</button></li></ol>
 <p>Nothing is written until the final connection test succeeds.</p>
 </aside>
 <form autocomplete="off" class="setup-main" id="setupForm">
@@ -50,16 +50,13 @@
 <div class="setup-note">If qBittorrent runs on the same PC as Torrent Desk, keep <code>127.0.0.1:8080</code>. Remote users connect to Torrent Desk on port 8765; qBittorrent itself does not need to be exposed to the LAN.</div>
 </section>
 <section class="setup-page" data-step="3">
-<span class="eyebrow">Step 4 Of 5</span><h1>Install Optional Features</h1><p class="setup-copy">Optional Python packages enable QR codes and optional dashboard features. QR Code support can be installed directly during setup. You can also install it later from Settings.</p>
-<div class="dependency-list" id="wDependencyList"></div>
-<div class="dependency-actions"><button class="secondary" id="wInstallQr" type="button">Install QR Code Support</button></div>
-<div class="test-result muted" id="wDependencyResult">Dependency Status Loading…</div>
-<div class="settings-section-title">Application Updates</div>
+<span class="eyebrow">Step 4 Of 5</span><h1>Configure Application Updates</h1><p class="setup-copy">Connect Torrent Desk to its GitHub repository so future versions can be checked, downloaded, verified, and installed from the dashboard.</p>
 <label class="toggle"><input checked="" id="wUpdatesEnabled" type="checkbox"/><span>Enable GitHub Updates</span></label>
-<label>GitHub Repository <small>(optional)</small><input autocomplete="off" id="wUpdateRepo" placeholder="owner/repository" value="CynicaGaming/TorrentDashboard"/></label><label>GitHub Update Token <small>(required for private repositories)</small><input autocomplete="off" id="wUpdateToken" placeholder="Fine-grained token with Contents: Read" type="password"/></label>
+<label>GitHub Repository<input autocomplete="off" id="wUpdateRepo" placeholder="owner/repository" value="CynicaGaming/TorrentDashboard"/></label>
+<label>GitHub Update Token <small>(required for private repositories)</small><input autocomplete="off" id="wUpdateToken" placeholder="Fine-grained token with Contents: Read" type="password"/></label>
+<div class="connection-test-row"><button class="secondary" id="wTestUpdate" type="button">Test GitHub Connection</button><div class="test-result muted" id="wUpdateResult">Not Tested Yet</div></div>
 <label class="toggle"><input checked="" id="wUpdateAutoCheck" type="checkbox"/><span>Check Automatically</span></label>
-<div class="setup-note">After the first manual install, GitHub Releases can deliver future Torrent Desk versions directly from the dashboard. The repository can also be configured later under Settings.</div>
-<div class="setup-note">Dependency installation runs <code>pip</code> with an internal allowlist. No arbitrary package name is accepted. If this Python installation does not permit package installation, the error output will tell you what to run manually.</div>
+<div class="setup-note">Testing verifies that the repository is reachable with the token you entered and checks whether the latest release contains an update manifest. Nothing is saved until you select Finish.</div>
 </section>
 <section class="setup-page" data-step="4">
 <span class="eyebrow">Step 5 Of 5</span><h1>Review And Finish</h1><p class="setup-copy">Torrent Desk will re-test qBittorrent once more, save the settings, and start collecting torrent status.</p>
@@ -133,7 +130,7 @@
 </section>
 <section class="view" id="view-settings">
 <div class="settings-grid">
-<form class="panel settings-card" id="settingsForm">
+<form class="panel settings-card span2 dashboard-settings-card" id="settingsForm">
 <div class="panel-title">Dashboard Settings</div>
 <label>Dashboard Title<input id="sTitle"/></label>
 <label>Refresh Interval Seconds<input id="sRefresh" max="60" min="1" type="number"/></label>
@@ -149,10 +146,14 @@
 <div class="interface-list" id="sInterfaceList"></div>
 <label>IP Address Whitelist<textarea id="sTrustedIps" placeholder="10.0.0.25
 10.20.0.0/24" rows="3"></textarea></label>
+<div class="lan-access-block">
+<div><b>LAN URL</b><small>Use this address from other devices on an allowed network.</small></div>
+<div class="lan-url-row"><code id="lanUrl">—</code><button class="secondary" id="copyLan" type="button">Copy LAN URL</button></div>
+<p class="warning">If authentication is disabled while listening on 0.0.0.0, anyone who can reach this address can control qBittorrent unless Read Only Mode is enabled.</p>
+</div>
 <label class="toggle"><input id="sReadOnly" type="checkbox"/><span>Read Only Mode</span></label>
 <button class="primary" type="submit">Save Settings</button>
 </form>
-<div class="panel settings-card"><div class="panel-title">Remote Access</div><p class="muted">LAN URL</p><code id="lanUrl">—</code><img alt="LAN URL QR Code" class="qr hidden" id="qr"/><div class="dependency-inline hidden" id="qrFallback"><b>QR Code Support Unavailable</b><small>Install the optional QR dependencies to enable this code.</small><button class="secondary" id="installQrSettings" type="button">Install QR Code Support</button></div><button id="copyLan">Copy LAN URL</button><p class="warning">If authentication is disabled while listening on 0.0.0.0, anyone who can reach the dashboard can control qBittorrent unless read-only mode is enabled.</p></div>
 <div class="panel settings-card span2" id="updateSettingsCard">
 <div class="panel-title">Application Updates</div>
 <div class="update-config">
@@ -167,10 +168,12 @@
 <div><span>Update State</span><strong id="updateState">Idle</strong></div>
 </div>
 <div class="update-actions">
+<button class="secondary" id="testUpdateAccess" type="button">Test GitHub Connection</button>
 <button class="secondary" id="checkUpdate" type="button">Check For Updates</button>
 <button class="secondary" disabled="" id="downloadUpdate" type="button">Download Update</button>
 <button class="primary" disabled="" id="installUpdate" type="button">Install And Restart</button>
 </div>
+<div class="test-result muted update-access-result" id="updateAccessResult">Not Tested Yet</div>
 <div class="muted update-message" id="updateMessage">Configure the GitHub repository and, for a private repository, a token with <code>Contents: Read</code>. Releases are then checked and installed directly from Torrent Desk.</div>
 </div>
 <div class="panel settings-card span2"><div class="panel-title">qBittorrent Servers</div><div id="serverSettings"></div><button id="addServerSetting">＋ Add Server</button></div>
@@ -194,6 +197,6 @@
 <div class="menu hidden" id="menu"><button id="pauseAll">Pause All</button><button id="resumeAll">Resume All</button><button id="altSpeed">Toggle Alternative Limits</button><button id="globalDl">Set Global Download Limit</button><button id="globalUl">Set Global Upload Limit</button><button id="notifyPermission">Enable Browser Notifications</button><button class="hidden" id="installPwa">Install App</button></div>
 <div class="menu hidden" id="contextMenu"></div>
 <div class="toasts" id="toasts"></div>
-<script src="/static/app.js?v=3.4.0-cleanup2"></script>
+<script src="/static/app.js?v=3.4.0-cleanup4"></script>
 </body>
 </html>
