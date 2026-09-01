@@ -37,7 +37,7 @@ def validate_javascript(name: str, text: str):
             offenders.append(f"textContent={value!r}")
 
     # Static user-facing attributes embedded in JS-generated markup.
-    for attr, value in re.findall(r'(?:placeholder|title|aria-label)=\\?["\']([^"\']*)', text):
+    for value in re.findall(r'(?:placeholder|title|aria-label)=\\?["\']([^"\']*)', text):
         if has_camel_leak(value):
             offenders.append(f"attribute={value!r}")
 
