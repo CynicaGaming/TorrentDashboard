@@ -31,6 +31,7 @@ jobs:
         shell: bash
         run: |
           if [ -f release_tools/apply_feature_update.py ]; then
+            sed -i 's/ or "#wRefresh" in js or "#sRefresh" in js//' release_tools/apply_feature_update.py
             python release_tools/apply_feature_update.py
             rm -f release_tools/apply_feature_update.py
           fi
