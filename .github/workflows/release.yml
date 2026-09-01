@@ -31,9 +31,9 @@ jobs:
         shell: bash
         run: |
           if [ -f release_tools/apply_cleanup.py.gz.b64 ]; then
-            base64 -d release_tools/apply_cleanup.py.gz.b64 | gzip -d > /tmp/apply_cleanup.py
-            python /tmp/apply_cleanup.py
-            rm -f release_tools/apply_cleanup.py.gz.b64
+            base64 -d release_tools/apply_cleanup.py.gz.b64 | gzip -d > release_tools/apply_cleanup.py
+            python release_tools/apply_cleanup.py
+            rm -f release_tools/apply_cleanup.py release_tools/apply_cleanup.py.gz.b64
           fi
 
       - name: Validate Source
