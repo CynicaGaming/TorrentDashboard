@@ -220,6 +220,12 @@ def main():
     assert post_section.index('if path=="/api/account/password":') < post_section.index('if not session_is_admin(sess):')
     assert post_section.index('if path=="/api/account/avatar":') < post_section.index('if not session_is_admin(sess):')
 
+    # Account identity now lives only in the top-right profile control.
+    assert 'id="currentUserName"' not in html
+    assert 'id="currentUserGroup"' not in html
+    assert 'currentUserName' not in app_js and 'currentUserGroup' not in app_js
+    assert '<div class="sidebar-foot"><small id="version">—</small></div>' in html
+
     print("UI string audit passed")
 
 

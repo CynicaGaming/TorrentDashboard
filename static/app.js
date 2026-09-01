@@ -425,8 +425,6 @@ function syncAvatarUi(){
 }
 function syncCurrentUserUi(){
   const display=state.me?.display_name||state.me?.username||'User',group=state.me?.group_label||uiText(state.me?.group||'standardUser');
-  if($('#currentUserName'))$('#currentUserName').textContent=display;
-  if($('#currentUserGroup'))$('#currentUserGroup').textContent=group;
   if($('#mobileAccount'))$('#mobileAccount').textContent=group;
   if($('#profileButtonName'))$('#profileButtonName').textContent=display;
   if($('#profileButtonGroup'))$('#profileButtonGroup').textContent=group;
