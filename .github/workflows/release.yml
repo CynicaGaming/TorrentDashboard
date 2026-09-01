@@ -139,7 +139,10 @@ jobs:
           assert 'async function handleUpdateAction()' in app_js
           assert 'function applySentenceCaseUi' in app_js
           assert 'applyTitleCaseUi' not in app_js
-          assert "uiText('installAndRestart')" in app_js
+          assert 'id="actionDialogModal"' in html
+          assert 'showActionDialog' in app_js
+          assert not re.search(r'(?<!\.)\bprompt\s*\(', app_js)
+          assert not re.search(r'\bconfirm\s*\(', app_js)
           assert '@media(min-width:821px){.settings-nav{margin-top:0}}' in css
           assert 'margin-top:52px' not in css
           assert all(old not in html for old in ('id="nWebhook"','id="nDiscord"','id="nNtfy"','id="testNotify"'))
