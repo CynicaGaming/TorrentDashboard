@@ -145,7 +145,13 @@ jobs:
           assert '@media(min-width:821px){.settings-nav{margin-top:0}}' in css
           assert 'margin-top:52px' not in css
           assert all(old not in html for old in ('id="nWebhook"','id="nDiscord"','id="nNtfy"','id="testNotify"'))
-          assert all(new in html for new in ('id="nSoundMode"','id="nSoundFile"','id="previewSound"','id="settingsNotifyPermission"'))
+          assert all(new in html for new in ('id="nSoundMode"','id="nSoundFile"','id="testNotification"'))
+          assert 'settingsNotifyPermission' not in html
+          assert 'id="notifyPermission"' not in html
+          assert 'async function testNotification()' in js
+          assert 'Notification.requestPermission()' in js
+          assert 'async function showBrowserNotification' in app_js
+          assert 'CREATE_NO_WINDOW' in pathlib.Path('dashboard.py').read_text(encoding='utf-8')
           assert 'uploadNotificationSoundIfNeeded' in js
           assert 'playCompletionSound' in app_js
           assert 'function beep()' not in app_js
