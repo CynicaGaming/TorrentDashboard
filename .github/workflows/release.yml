@@ -41,6 +41,18 @@ jobs:
           python -m py_compile dashboard.py updater.py release_tools/build_release.py
           node --check static/app.js
           node --check static/settings.js
+
+          # Syntax alone did not catch the 0.5.2 TDSettings regression. This
+          # verifies that the settings module actually initializes its public API.
+          node - <<'JS'
+          global.window = {};
+          const fs = require('fs');
+          eval(fs.readFileSync('static/settings.js','utf8'));
+          if (!window.TDSettings || typeof window.TDSettings.bind !== 'function' || typeof window.TDSettings.fill !== 'function') {
+            throw new Error('settings.js did not initialize window.TDSettings');
+          }
+          JS
+
           python - <<'PY'
           import pathlib
           import re
@@ -53,6 +65,7 @@ jobs:
           assert callable(dashboard.normalize_user)
           assert dashboard.DEFAULT_CONFIG.get('integrations') == []
           assert dashboard.DEFAULT_CONFIG.get('users') == []
+          assert {'discord','ntfy','generic_webhook'} <= set(dashboard.INTEGRATION_TYPES)
 
           sample = dashboard.normalize_qbittorrent_server({
               'base_url': 'http://127.0.0.1:8080',
@@ -82,10 +95,15 @@ jobs:
           app_js = pathlib.Path('static/app.js').read_text(encoding='utf-8')
           css = pathlib.Path('static/settings.css').read_text(encoding='utf-8')
           sw = pathlib.Path('static/sw.js').read_text(encoding='utf-8')
-          assert 'Local IP Address' in html
+          sound = pathlib.Path('static/default-completion.wav')
+
           assert 'API Key (qBitTorrent 5.2+)' in html
           assert 'User Management' in html
           assert 'integrationTypeSelect' in html
+          assert '<b>Local Dashboard Address</b>' in html
+          assert 'Local IP Address' not in html
+          assert '>IP Address<input id="wLocalIp"' in html
+          assert '<label>IP Address<input id="sLocalIp"' in html
           assert f'/static/settings.js?v={version}' in html
           assert f'/static/settings.css?v={version}' in html
           assert f'/static/app.js?v={version}' in html
@@ -109,7 +127,14 @@ jobs:
           assert 'id="installUpdate"' not in html
           assert 'function showLogin(reset=false)' in app_js
           assert 'async function handleUpdateAction()' in app_js
-          assert '@media(min-width:821px){.settings-nav{margin-top:52px}}' in css
+          assert '@media(min-width:821px){.settings-nav{margin-top:0}}' in css
+          assert 'margin-top:52px' not in css
+          assert all(old not in html for old in ('id="nWebhook"','id="nDiscord"','id="nNtfy"','id="testNotify"'))
+          assert all(new in html for new in ('id="nSoundMode"','id="nSoundFile"','id="previewSound"','id="settingsNotifyPermission"'))
+          assert 'uploadNotificationSoundIfNeeded' in js
+          assert 'playCompletionSound' in app_js
+          assert 'function beep()' not in app_js
+          assert sound.exists() and sound.read_bytes().startswith(b'RIFF') and sound.stat().st_size > 1000
           assert 'update-manifest.json' not in html
 
           leftovers = list(pathlib.Path('release_tools').glob('cleanup.part*'))
@@ -125,7 +150,7 @@ jobs:
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git add -A
-            git commit -m "Improve settings navigation, login, and updater UX"
+            git commit -m "Redesign notifications and align settings layout"
             git push origin HEAD:main
           fi
           echo "release_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
@@ -177,6 +202,7 @@ jobs:
           assert any(n.endswith('/static/index.html') for n in names)
           assert any(n.endswith('/static/settings.js') for n in names)
           assert any(n.endswith('/static/settings.css') for n in names)
+          assert any(n.endswith('/static/default-completion.wav') for n in names)
           PY
 
       - name: Publish GitHub Pre-Release
