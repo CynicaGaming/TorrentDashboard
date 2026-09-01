@@ -35,7 +35,7 @@ jobs:
           shopt -s nullglob
           parts=(release_tools/stage/payload.part*)
           test ${#parts[@]} -eq 15
-          cat "${parts[@]}" | base64 -d > /tmp/torrent-dashboard-0.4.0.tar.gz
+          cat "${parts[@]}" | tr -d '\r\n\t ' | base64 -d > /tmp/torrent-dashboard-0.4.0.tar.gz
           echo "301e86aa2d73cf6c982e125cf5da2e80e58605a841d85e918b9dba284a26d914  /tmp/torrent-dashboard-0.4.0.tar.gz" | sha256sum -c -
           tar -xzf /tmp/torrent-dashboard-0.4.0.tar.gz -C .
           rm -rf release_tools/stage
