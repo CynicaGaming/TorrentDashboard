@@ -236,6 +236,13 @@ def main():
     assert 'id="loginPass"' in html and 'autocomplete="current-password"' in html
     assert 'id="accountAvatarBtn"' not in html and 'accountAvatarBtn' not in app_js
     assert 'id="accountPasswordBtn"' not in html and 'accountPasswordBtn' not in app_js
+    assert 'id="accountCurrentPassword"' not in html and 'accountCurrentPassword' not in app_js
+    assert '<label>Role<input aria-readonly="true" id="accountGroup" readonly tabindex="-1"/></label>' in html
+    profile_update_js = app_js.split('async function saveOwnProfile(e){', 1)[1].split('async function changeOwnPassword(e){', 1)[0]
+    assert 'accountGroup' not in profile_update_js
+    assert '"group": existing.get("group"),' in dashboard_py
+    password_update_js = app_js.split('async function changeOwnPassword(e){', 1)[1].split('async function uploadOwnAvatar(){', 1)[0]
+    assert 'requestPasswordConfirmation' in password_update_js and 'current_password:current' in password_update_js
     assert 'id="accountProfilePassword"' not in html and 'accountProfilePassword' not in app_js
     assert 'id="passwordConfirmModal"' in html and 'requestPasswordConfirmation' in app_js
     assert 'password_configured' in dashboard_py

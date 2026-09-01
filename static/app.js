@@ -457,7 +457,6 @@ async function loadAccount(){
   $('#accountLastName').value=d.user?.last_name||'';
   $('#accountEmail').value=d.user?.email||'';
   $('#accountGroup').value=d.user?.group_label||uiText(d.user?.group||'standardUser');
-  const current=$('#accountCurrentPassword');if(current)current.required=!!d.user?.password_configured;
   return d.user;
 }
 async function openAccountModal(target='profile'){
@@ -466,7 +465,7 @@ async function openAccountModal(target='profile'){
   const status=$('#accountStatus');status.className='test-result muted';status.textContent='Loading account…';
   try{
     await loadAccount();status.textContent='';
-    const focusId=target==='password'?'accountCurrentPassword':'accountFirstName';
+    const focusId=target==='password'?'accountNewPassword':'accountFirstName';
     setTimeout(()=>$('#'+focusId)?.focus(),0);
   }catch(e){status.className='test-result bad';status.textContent=e.message}
 }
@@ -489,10 +488,16 @@ async function saveOwnProfile(e){
 }
 async function changeOwnPassword(e){
   e.preventDefault();
-  const current=$('#accountCurrentPassword').value,next=$('#accountNewPassword').value,confirmPassword=$('#accountConfirmPassword').value,status=$('#accountStatus');
+  const next=$('#accountNewPassword').value,confirmPassword=$('#accountConfirmPassword').value,status=$('#accountStatus');
   if(next!==confirmPassword){status.className='test-result bad';status.textContent='New passwords do not match.';return}
-  status.className='test-result muted';status.textContent='Changing password…';
   try{
+    let current='';
+    if(accountProfileSnapshot?.password_configured){
+      const confirmed=await requestPasswordConfirmation('Confirm your current password to change your password.');
+      if(confirmed===null)return;
+      current=confirmed;
+    }
+    status.className='test-result muted';status.textContent='Changing password…';
     await post('/api/account/password',{current_password:current,new_password:next});
     $('#accountPasswordForm').reset();status.className='test-result ok';status.textContent='Password changed.';toast('passwordChanged');
   }catch(e){status.className='test-result bad';status.textContent=e.message}
