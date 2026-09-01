@@ -46,7 +46,7 @@ jobs:
           import dashboard
 
           assert dashboard.VERSION.startswith('0.')
-          assert dashboard.VERSION == '0.5.0'
+          assert dashboard.VERSION == '0.5.1'
           assert callable(dashboard.normalize_qbittorrent_server)
           assert callable(dashboard.normalize_integration)
           assert callable(dashboard.normalize_user)
@@ -78,14 +78,20 @@ jobs:
 
           html = pathlib.Path('static/index.html').read_text(encoding='utf-8')
           js = pathlib.Path('static/settings.js').read_text(encoding='utf-8')
+          css = pathlib.Path('static/settings.css').read_text(encoding='utf-8')
           assert 'Local IP Address' in html
           assert 'API Key (qBitTorrent 5.2+)' in html
           assert 'User Management' in html
           assert 'integrationTypeSelect' in html
-          assert '/static/settings.js?v=0.5.0' in html
+          assert '/static/settings.js?v=0.5.1' in html
+          assert '/static/settings.css?v=0.5.1' in html
           assert 'Read Only Mode' not in html
           assert 'iSonarrUrl' not in html
           assert 'Standard Users have read-only dashboard access' in js
+          assert "SECRET_MASK = '••••••••••'" in js
+          assert 'Configured — Leave Blank To Keep' not in js
+          assert 'Token Configured — Leave Blank To Keep' not in js
+          assert '.settings-page .settings-card{max-width:none;width:100%}' in css
           assert 'update-manifest.json' not in html
 
           leftovers = list(pathlib.Path('release_tools').glob('cleanup.part*'))
@@ -101,7 +107,7 @@ jobs:
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git add -A
-            git commit -m "Add modular settings, integrations, and user management"
+            git commit -m "Polish settings layout and mask configured secrets"
             git push origin HEAD:main
           fi
           echo "release_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
