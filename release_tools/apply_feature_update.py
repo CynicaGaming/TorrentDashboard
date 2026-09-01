@@ -843,7 +843,7 @@ function interfaceCard'''
 function updateWizardClientAuth'''
     text = sub_once(text, r'function renderSetupReview\(\)\{.*?\n\}\nfunction updateWizardClientAuth', new_review, 'setup review', re.S)
 
-    new_bootstrap = '''async function bootstrap(){
+    new_bootstrap = r'''async function bootstrap(){
   bindPublicUI();
   try{
     state.setup=await rawJson('/api/setup/status');
