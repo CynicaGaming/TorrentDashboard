@@ -34,7 +34,7 @@ html = replace_once(
 )
 html = replace_once(
     html,
-    'Username and email changes require password confirmation. Your role is managed by an Administrator.',
+    'Username and email changes require password confirmation. Your role can only be changed by an Administrator.',
     'Username and email changes require password confirmation.',
     "account profile help",
 )
@@ -71,6 +71,6 @@ assert 'id="accountGroup"' not in final_html
 assert 'accountGroup' not in final_js
 assert '"group": existing.get("group"),' in final_dashboard
 assert 'Username and email changes require password confirmation.' in final_html
-assert 'Your role is managed by an Administrator.' not in final_html
+assert 'Your role can only be changed by an Administrator.' not in final_html
 
 print("Applied 0.5.32 account role cleanup.")
