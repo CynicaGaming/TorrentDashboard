@@ -59,9 +59,8 @@ Stored passwords, qBitTorrent API keys, integration secrets, and webhook URLs ar
 ## Updates
 
 1. Open **Settings → Updates**.
-2. Enter the public GitHub repository as `owner/repository`.
-3. Select **Test connection**, then **Save**.
-4. Select **Check for updates**.
+2. Enter the public GitHub repository as `owner/repository`, then select **Save**.
+3. Select **Check for updates**. Torrent Dashboard validates that the repository is publicly reachable before comparing releases.
 
 No GitHub access token is required or supported by the default updater. Torrent Dashboard reads public GitHub Release metadata, verifies GitHub's SHA-256 digest for the release asset, stages the update, restarts, and rolls back if the new version fails its health check.
 

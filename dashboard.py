@@ -42,7 +42,7 @@ UPDATE_DIR = DATA_DIR / "updates"
 UPDATE_STATE_PATH = DATA_DIR / "update-status.json"
 CUSTOM_SOUND_BASENAME = "custom-notification-sound"
 MAX_CUSTOM_SOUND_BYTES = 2 * 1024 * 1024
-VERSION = "0.5.18"
+VERSION = "0.5.19"
 STATUS_REFRESH_SECONDS = 1.0
 DEFAULT_UPDATE_REPOSITORY = "CynicaGaming/TorrentDashboard"
 
@@ -1706,39 +1706,25 @@ def _asset_sha256(asset):
     return digest
 
 
-def test_github_update_access(repository: str):
+def validate_update_repository(repository: str):
     repo = normalize_github_repository(repository)
-    cfg = {"updates": {"repository": repo}}
     try:
         info = _urlopen_json(f"https://api.github.com/repos/{repo}", timeout=10, headers=github_headers())
     except urllib.error.HTTPError as exc:
-        if exc.code in (401, 403):
-            raise RuntimeError("GitHub denied the connection or the unauthenticated API rate limit was reached. Try again later.") from exc
+        if exc.code == 403:
+            raise RuntimeError("GitHub denied the request or the unauthenticated API rate limit was reached. Try again later.") from exc
         if exc.code == 404:
-            raise RuntimeError("Public GitHub repository not found. Verify the owner/repository value.") from exc
-        raise RuntimeError(f"GitHub connection failed with HTTP {exc.code}") from exc
+            raise RuntimeError("Public GitHub repository not found. Verify owner/repository and make sure the repository is public.") from exc
+        raise RuntimeError(f"GitHub repository check failed with HTTP {exc.code}") from exc
     except urllib.error.URLError as exc:
         raise RuntimeError(f"Could not connect to GitHub: {exc.reason}") from exc
     if bool(info.get("private", False)):
         raise RuntimeError("Torrent Dashboard updates require a public GitHub repository")
-    result={"ok":True,"repository":str(info.get("full_name") or repo),"private":False,"defaultBranch":str(info.get("default_branch") or ""),"latestRelease":"","clientZipPresent":False,"sha256Available":False}
-    try:
-        release=_latest_github_release(cfg,repo)
-        result["latestRelease"]=str(release.get("tag_name") or release.get("name") or "")
-        asset=_find_dashboard_asset(release)
-        result["clientZipPresent"]=bool(asset)
-        if asset:
-            try:
-                _asset_sha256(asset); result["sha256Available"]=True
-            except RuntimeError:
-                pass
-    except RuntimeError as exc:
-        if "No GitHub release" not in str(exc): raise
-    return result
+    return str(info.get("full_name") or repo)
 
 
 def fetch_update_release(cfg):
-    repo = update_repository(cfg)
+    repo = validate_update_repository(update_repository(cfg))
     release=_latest_github_release(cfg,repo)
     tag=str(release.get("tag_name") or "").strip()
     version=tag.lstrip("vV")
@@ -2093,12 +2079,11 @@ class Handler(BaseHTTPRequestHandler):
                 data=parse_json_body(self); updated=apply_settings_update(cfg,data); save_config(updated)
                 HISTORY.event("dashboard", "settings_changed", sess.get("username",""), "", {"client_ip": self.client_ip()})
                 return self.send_json(200,{"ok":True,"settings":redacted_config(updated)},new_cookie)
-            if path=="/api/update-source-test":
-                data=parse_json_body(self,10000); repo=normalize_github_repository(data.get("repository") or "")
-                result=test_github_update_access(repo)
-                return self.send_json(200,result,new_cookie)
             if path=="/api/update-source":
-                data=parse_json_body(self,10000); updated,repo=save_update_source(cfg,data.get("repository") or ""); save_config(updated)
+                data=parse_json_body(self,10000); previous_repo=update_repository(cfg); updated,repo=save_update_source(cfg,data.get("repository") or ""); save_config(updated)
+                if repo != previous_repo:
+                    UPDATE_STATE_PATH.unlink(missing_ok=True)
+                    if UPDATE_DIR.exists(): shutil.rmtree(UPDATE_DIR, ignore_errors=True)
                 HISTORY.event("dashboard","update_source_changed",repo,"",{"client_ip":self.client_ip()})
                 return self.send_json(200,{"ok":True,"repository":repo,"settings":redacted_config(updated)},new_cookie)
             if path=="/api/update-download":

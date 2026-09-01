@@ -38,7 +38,6 @@ window.TDSettings = (() => {
     document.querySelector('#sRefreshInterfaces')?.addEventListener('click', () => refreshSettingsInterfaces(true).catch(e => toast(e.message,'error')));
     document.querySelector('#addServerSetting')?.addEventListener('click', () => addServerRow());
     document.querySelector('#updateAction')?.addEventListener('click', handleUpdateAction);
-    document.querySelector('#updateSourceTest')?.addEventListener('click', testUpdateSource);
     document.querySelector('#updateSourceSave')?.addEventListener('click', saveUpdateSource);
     document.querySelector('#nSoundMode')?.addEventListener('change', updateNotificationSoundUi);
     document.querySelector('#nSoundFile')?.addEventListener('change', updateNotificationSoundUi);
@@ -204,26 +203,7 @@ window.TDSettings = (() => {
     return document.querySelector('#uRepository')?.value.trim() || '';
   }
 
-  async function testUpdateSource() {
-    const result = document.querySelector('#updateSourceResult');
-    const repository = updateSourceRepository();
-    if (!repository) return toast('Enter A GitHub Repository','error');
-    if (result) { result.className='test-result muted'; result.textContent='Testing Connection…'; }
-    try {
-      const d = await post('/api/update-source-test', {repository});
-      if (result) {
-        result.className='test-result ok';
-        result.textContent=`Connected · ${d.repository || repository}${d.latestRelease ? ` · ${d.latestRelease}` : ''}`;
-      }
-      return d;
-    } catch (e) {
-      if (result) { result.className='test-result bad'; result.textContent=e.message; }
-      toast(e.message,'error');
-    }
-  }
-
   async function saveUpdateSource() {
-    const result = document.querySelector('#updateSourceResult');
     const repository = updateSourceRepository();
     if (!repository) return toast('Enter A GitHub Repository','error');
     try {
@@ -232,11 +212,9 @@ window.TDSettings = (() => {
       const input = document.querySelector('#uRepository');
       if (input) input.value = d.repository || repository;
       renderUpdateInfo({configured:true,repository:d.repository || repository,currentVersion:state.me?.version,state:d.settings?.runtime?.updateState||{}});
-      if (result) { result.className='test-result ok'; result.textContent=`Update source saved · ${d.repository || repository}`; }
       toast('updateSourceSaved');
       return d;
     } catch (e) {
-      if (result) { result.className='test-result bad'; result.textContent=e.message; }
       toast(e.message,'error');
     }
   }

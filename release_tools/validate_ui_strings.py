@@ -84,10 +84,16 @@ def main():
     assert 'def save_update_source(cfg, repository):' in dashboard_py
     assert 'github_update_integration' not in dashboard_py
     assert 'Only one GitHub integration can be configured' not in dashboard_py
-    assert '/api/update-source-test' in dashboard_py
+    assert '/api/update-source-test' not in dashboard_py
+    assert 'test_github_update_access' not in dashboard_py
+    assert 'def validate_update_repository(repository: str):' in dashboard_py
+    assert 'repo = validate_update_repository(update_repository(cfg))' in dashboard_py
     assert '/api/update-source' in dashboard_py
     assert 'id="uRepository"' in html
-    assert 'id="updateSourceTest"' in html
+    assert 'id="updateSourceTest"' not in html
+    assert 'id="updateSourceResult"' not in html
+    assert 'updateSourceTest' not in settings_js
+    assert 'updateSourceResult' not in settings_js
     assert 'id="updateSourceSave"' in html
     assert 'data-settings-page="updates" type="button">Updates</button>' in html
     assert '<option value="updates">Updates</option>' in html
@@ -95,6 +101,8 @@ def main():
     assert "x.type === 'github'" not in settings_js
     assert "title:'Install update'" not in app_js
     assert "confirmLabel:'Install and restart'" not in app_js
+    assert 'UPDATE_STATE_PATH.unlink(missing_ok=True)' in dashboard_py
+    assert 'shutil.rmtree(UPDATE_DIR, ignore_errors=True)' in dashboard_py
 
     assert 'id="sUpdateRepo"' not in html
     assert 'id="sUpdateToken"' not in html
