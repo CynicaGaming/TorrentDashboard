@@ -240,6 +240,8 @@ def main():
     assert 'id="passwordConfirmModal"' in html and 'requestPasswordConfirmation' in app_js
     assert 'password_configured' in dashboard_py
     assert 'Default Torrent Dashboard Sound' not in html and '<option value="default">Default</option>' in html
+    assert '<option value="custom">Custom</option>' in html and '<option value="custom">Custom Sound</option>' not in html
+    assert '<div class="account-form-grid"><label class="account-full-field">Username<input autocomplete="username" id="accountUsername"' in html
     assert ' · You' not in settings_js and 'Current user' in settings_js
     assert 'id="clientSettingsModal"' in html and 'id="clientSettingsForm"' in html
     for field in ('clientGlobalDl','clientGlobalUl','clientAltDl','clientAltUl','clientListenPort','clientMaxConnections','clientProxyType','clientProxyHost','clientProxyPort','clientProxyPassword'):
