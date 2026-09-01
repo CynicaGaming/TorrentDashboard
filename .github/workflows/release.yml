@@ -32,16 +32,6 @@ jobs:
         run: |
           if [ -f release_tools/apply_feature_update.py ]; then
             python release_tools/apply_feature_update.py
-            python - <<'PY'
-          from pathlib import Path
-          path = Path('dashboard.py')
-          text = path.read_text(encoding='utf-8')
-          text = text.replace('''f"**{title}**
-          {message}"''', 'f"**{title}**\\n{message}"')
-          text = text.replace('''f"{title}
-          {message}"''', 'f"{title}\\n{message}"')
-          path.write_text(text, encoding='utf-8')
-          PY
             rm -f release_tools/apply_feature_update.py
           fi
 
