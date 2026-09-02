@@ -66,16 +66,27 @@ def main():
     assert "attributeFilter:['placeholder','title','aria-label']" in app_js
     assert "applySentenceCaseUi(card)" in settings_js
 
-    # Torrent interaction contract: explicit context menu rather than row-click
-    # navigation, with qBitTorrent-inspired grouping and no automatic management.
-    assert "Torrent details" in app_js
-    assert "Torrent options…" not in app_js
+    # Torrent interaction contract: row selection opens a qBitTorrent-style
+    # information pane while operational commands remain in the context menu.
+    assert 'id="torrentDetailPane"' in html
+    assert 'id="drawer"' not in html
+    assert all(f'data-detailtab="{tab}"' in html for tab in ('general','trackers','peers','webseeds','content'))
+    assert 'HTTP Sources' in html and '>Content</button>' in html
+    assert "Torrent details" not in app_js
+    assert "openDetail(tr.dataset.server,tr.dataset.hash)" in app_js
+    assert "torrent-detail-selected" in app_js and "torrent-detail-selected" in app_css
+    assert "function closeDetailPane" in app_js and "function refreshDetailData" in app_js
+    assert "now-detailRefreshAt<3000" in app_js
+    assert "/api/v2/torrents/webseeds" in dashboard_py
+    assert "renderWebSeeds" in app_js
     assert "Automatic torrent management" not in app_js
-    assert "set_auto_management" not in app_js
-    assert "set_auto_management" not in dashboard_py
-    assert "openDetail(tr.dataset.server,tr.dataset.hash)" not in app_js
+    assert "set_auto_management" not in app_js and "set_auto_management" not in dashboard_py
     assert "menu-separator" in app_css and "@media(max-width:700px)" in app_css
     assert "e.target.closest('button[data-a]')" in app_js
+    # Add Torrent metadata is intentionally not part of 0.5.44.
+    assert "fetch_torrent_metadata" not in dashboard_py
+    assert "/api/torrent-metadata/fetch" not in dashboard_py
+    assert "Metadata retrieval complete" not in app_js
 
     # Updates owns the public GitHub repository directly. GitHub must not be a
     # modular integration and update installation remains a reactive button.
