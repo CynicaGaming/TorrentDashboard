@@ -1,5 +1,5 @@
 'use strict';
-const FRONTEND_BUILD='0.5.67';
+const FRONTEND_BUILD='0.5.68';
 const HTML_BUILD=document.querySelector('meta[name="torrent-dashboard-build"]')?.content||'';
 const RECOVERY_KEY=`td-frontend-recovery-${FRONTEND_BUILD}`;
 async function recoverFrontendBuild(reason){
@@ -717,11 +717,11 @@ async function toggleDetailPane(){
 }
 async function openDetail(server,hash){
   const same=state.detail?.server===server&&state.detail?.hash===hash;state.detail={server,hash,data:same?state.detail?.data:null};state.detailTab=state.detailTab||'general';
-  $('#torrentDetailPane').classList.remove('hidden');syncDetailPaneState();$$('[data-detailtab]').forEach(b=>b.classList.toggle('active',b.dataset.detailtab===state.detailTab));
+  const pane=$('#torrentDetailPane');pane.classList.remove('hidden');pane.closest('.torrent-workspace')?.classList.add('has-detail');syncDetailPaneState();$$('[data-detailtab]').forEach(b=>b.classList.toggle('active',b.dataset.detailtab===state.detailTab));
   const t=state.torrents.find(x=>(x._server_id||state.server)===server&&x.hash===hash);$('#detailName').textContent=t?.name||hash;$('#detailMeta').textContent=`${t?._server_name||server} · ${hash}`;render();
   if(!state.detailCollapsed)await refreshDetailData(true);
 }
-function closeDetailPane(){$('#torrentDetailPane').classList.add('hidden');state.detail=null;render()}
+function closeDetailPane(){const pane=$('#torrentDetailPane');pane.classList.add('hidden');pane.closest('.torrent-workspace')?.classList.remove('has-detail');state.detail=null;render()}
 async function refreshDetailData(force=false){
   if(!state.detail||state.detailCollapsed&&!force)return;const now=Date.now();if(!force&&now-detailRefreshAt<3000)return;detailRefreshAt=now;const {server,hash}=state.detail;
   if(!state.detail.data)$('#detailBody').innerHTML='<div class="empty">Loading…</div>';

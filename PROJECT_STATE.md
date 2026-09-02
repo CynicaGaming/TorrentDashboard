@@ -4,7 +4,7 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.67** (prerelease)
+- Latest documented build: **v0.5.68** (prerelease)
 - Repository: `CynicaGaming/TorrentDashboard`
 - Development branch: `refactor/backend-modularization-users`
 - Prerelease branch: `prerelease/backend-modularization`
@@ -12,7 +12,7 @@
 
 ### Latest release summary
 
-Reworks torrent details into a docked, collapsible inspector attached to the bottom of the torrent workspace so the torrent list remains visible and independently scrollable.
+Corrects the oversized v0.5.67 torrent workspace so the torrent list and docked details remain comfortably visible together within the desktop/tablet viewport while retaining independent scrolling.
 
 ## Architecture state
 
@@ -26,6 +26,7 @@ Reworks torrent details into a docked, collapsible inspector attached to the bot
 - Prefer docked inspectors over overlays when users need to compare selected-item details with a primary list.
 - Keep Collapse and Close as distinct actions: collapse preserves selection, close clears the detail context.
 - Keep the torrent table independently scrollable whenever the detail inspector is expanded.
+- Desktop/tablet list-detail workspaces should fit within the initial viewport by default; internal scrolling is preferred over expanding the page vertically.
 
 ## Development principles
 
@@ -36,6 +37,15 @@ Reworks torrent details into a docked, collapsible inspector attached to the bot
 - Use the same user-facing language for the same action and outcome across every surface.
 
 ## Recent work
+
+### v0.5.68 — Bounded torrent workspace sizing
+
+Corrects the oversized v0.5.67 torrent workspace so the torrent list and docked details remain comfortably visible together within the desktop/tablet viewport while retaining independent scrolling.
+
+- The list-only torrent workspace now uses a bounded 44dvh layout capped at 460 px instead of a forced 480 px minimum.
+- Opening torrent details switches the shared workspace to a bounded 58dvh layout capped at 600 px, keeping both the list and inspector visible together on typical desktop/tablet displays.
+- The torrent inspector receives roughly 42% of the shared workspace while the torrent list remains the flexible scroll region above it.
+- The workspace tracks whether details are open so list-only and list-plus-inspector states can use different vertical allocations.
 
 ### v0.5.67 — Docked collapsible torrent details
 
@@ -73,15 +83,6 @@ Moves configuration lifecycle and integration-provider ownership out of dashboar
 - Added torrent_dashboard/integrations.py for provider definitions, normalization, secret redaction, connection tests, and integration CRUD transforms.
 - dashboard.py now composes ConfigRepository through ConfigStore instead of implementing configuration lifecycle inline.
 - Existing route handlers keep their established helper call surface through imports to minimize refactor blast radius.
-
-### v0.5.63 — Code health and release guardrails
-
-Adds a maintenance checkpoint for architecture documentation, reusable source validation, user-domain tests, and release-workflow consistency without intentionally changing dashboard behavior.
-
-- Added ARCHITECTURE.md with explicit module ownership, dependency direction, configuration-transaction rules, testing guidance, and the next extraction boundaries.
-- Added release_tools/validate_source.py so development and release automation can share architecture, version-synchronization, compilation, and unit-test checks.
-- Added behavioral unit tests for password verification, username validation, duplicate users, last-administrator protection, self-service profile security, and password changes.
-- Refreshed README development, Linux startup, update provenance, and local-secret guidance.
 
 ## What to do next
 

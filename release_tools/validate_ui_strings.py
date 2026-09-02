@@ -128,6 +128,12 @@ def main():
     assert "torrent-detail-selected" in app_js and "torrent-detail-selected" in app_css
     assert "function closeDetailPane" in app_js and "function refreshDetailData" in app_js
     assert "now-detailRefreshAt<3000" in app_js
+    assert "pane.closest('.torrent-workspace')?.classList.add('has-detail')" in app_js
+    assert "pane.closest('.torrent-workspace')?.classList.remove('has-detail')" in app_js
+    assert ".torrent-workspace{display:flex;flex-direction:column;overflow:hidden;height:min(460px,44dvh)}" in app_css
+    assert ".torrent-workspace.has-detail{height:min(600px,58dvh)}" in app_css
+    assert "flex:0 0 clamp(180px,42%,290px)" in app_css
+    assert "height:calc(100dvh - 320px);min-height:480px" not in app_css
     assert "/api/v2/torrents/webseeds" in dashboard_py
     assert "renderWebSeeds" in app_js
     assert "Automatic torrent management" not in app_js

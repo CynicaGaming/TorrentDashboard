@@ -58,3 +58,14 @@ On desktop and tablet layouts, secondary inspection surfaces that describe a sel
 - Collapse preserves the current torrent selection and only reduces the inspector to its header; Close clears the inspector entirely.
 - Collapse state may be remembered as a user preference, but selecting a torrent must continue to update the docked header even while collapsed.
 - Mobile may use a bottom-sheet treatment when the available viewport cannot support a useful split workspace.
+
+## Bounded list and inspector workspaces
+
+On desktop and tablet layouts, list/detail workspaces should fit within the initial viewport under normal browser chrome rather than forcing the page to grow around a large list surface.
+
+- A list-only torrent workspace should remain deliberately bounded; unused vertical space is preferable to an oversized empty table.
+- Opening the torrent inspector may enlarge the shared workspace, but the torrent list and detail inspector should remain visible together in the initial viewport at standard desktop/tablet sizes.
+- The primary list becomes the flexible internal scroll region. Long lists should scroll inside the workspace before the overall dashboard page scrolls.
+- The detail body may scroll independently when its content exceeds the inspector allocation.
+- Mobile remains an exception: the existing bottom-sheet interaction may consume most of the viewport because simultaneous list/detail visibility is not practical at phone widths.
+

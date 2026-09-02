@@ -744,6 +744,67 @@
           "detail": "Use the configuration boundary to add restrictive file permissions and separate ordinary configuration from stored credentials."
         }
       ]
+    },
+    {
+      "version": "0.5.68",
+      "date": "2026-09-02",
+      "status": "prerelease",
+      "title": "Bounded torrent workspace sizing",
+      "summary": "Corrects the oversized v0.5.67 torrent workspace so the torrent list and docked details remain comfortably visible together within the desktop/tablet viewport while retaining independent scrolling.",
+      "highlights": [
+        "The list-only torrent workspace now uses a bounded 44dvh layout capped at 460 px instead of a forced 480 px minimum.",
+        "Opening torrent details switches the shared workspace to a bounded 58dvh layout capped at 600 px, keeping both the list and inspector visible together on typical desktop/tablet displays.",
+        "The torrent inspector receives roughly 42% of the shared workspace while the torrent list remains the flexible scroll region above it.",
+        "The workspace tracks whether details are open so list-only and list-plus-inspector states can use different vertical allocations."
+      ],
+      "fixes": [
+        "Prevents an empty or short torrent list from consuming most of the page height after the v0.5.67 docked-inspector change.",
+        "Removes the desktop 480 px minimum height that could push the torrent inspector below the initial viewport."
+      ],
+      "technical": [
+        "The has-detail workspace state is added when a torrent inspector opens and removed when it closes.",
+        "Desktop/tablet list and detail bodies retain independent overflow scrolling; mobile keeps the existing bottom-sheet behavior.",
+        "DESIGN_LANGUAGE.md now defines a bounded list/inspector viewport contract."
+      ],
+      "validation": [
+        "The UI regression audit rejects the former calc(100dvh - 320px)/480 px minimum-height rule and requires the new bounded workspace values.",
+        "Existing backend tests, JavaScript syntax validation, generated release metadata, and frontend/service-worker build synchronization remain release gates."
+      ],
+      "known_issues": [],
+      "architecture": [
+        "Torrent Dashboard remains a Python standard-library application with dashboard.py as the HTTP composition root.",
+        "Configuration, integrations, users, and configuration transaction coordination remain separated into torrent_dashboard package modules.",
+        "The torrent detail inspector remains frontend-owned; this release changes layout/state behavior without changing the /api/detail contract.",
+        "Desktop and tablet use a docked split workspace while mobile retains a bottom-sheet detail presentation."
+      ],
+      "decisions": [
+        "Prefer docked inspectors over overlays when users need to compare selected-item details with a primary list.",
+        "Keep Collapse and Close as distinct actions: collapse preserves selection, close clears the detail context.",
+        "Keep the torrent table independently scrollable whenever the detail inspector is expanded.",
+        "Desktop/tablet list-detail workspaces should fit within the initial viewport by default; internal scrolling is preferred over expanding the page vertically."
+      ],
+      "next_steps": [
+        {
+          "priority": 1,
+          "title": "Extract release and update provenance",
+          "detail": "Move GitHub release parsing, installed release metadata, package-integrity normalization, and historical digest caching out of dashboard.py."
+        },
+        {
+          "priority": 2,
+          "title": "Extract qBitTorrent transport and normalization",
+          "detail": "Move QBitClient, server normalization, proxy/preference translation, and Web API transport away from HTTP routing."
+        },
+        {
+          "priority": 3,
+          "title": "Expand request-level behavioral tests",
+          "detail": "Add authorization, CSRF, setup, account-route, and settings-mutation coverage around extracted service boundaries."
+        },
+        {
+          "priority": 4,
+          "title": "Harden secrets at rest",
+          "detail": "Use the configuration boundary to add restrictive file permissions and separate ordinary configuration from stored credentials."
+        }
+      ]
     }
   ]
 }
