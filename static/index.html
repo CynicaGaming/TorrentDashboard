@@ -4,10 +4,10 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#0b0d10" name="theme-color"/>
-<meta content="0.5.68" name="torrent-dashboard-build"/>
+<meta content="0.5.69" name="torrent-dashboard-build"/>
 <link href="/manifest.webmanifest" rel="manifest"/>
-<link href="/static/app.css?v=0.5.68" rel="stylesheet"/>
-<link href="/static/settings.css?v=0.5.68" rel="stylesheet"/>
+<link href="/static/app.css?v=0.5.69" rel="stylesheet"/>
+<link href="/static/settings.css?v=0.5.69" rel="stylesheet"/>
 <title>Torrent Dashboard</title>
 </head>
 <body>
@@ -121,7 +121,7 @@
 <article><span>Downloading</span><strong id="mActive">—</strong><small id="mQueue">—</small></article>
 <article><span>Remaining</span><strong id="mRemain">—</strong><small id="mEta">—</small></article>
 <article class="desktop-extra"><span>Disk Free</span><strong id="mDisk">—</strong><small id="mDiskWarn">—</small></article>
-<article class="desktop-extra"><span>Last Update</span><strong id="mUpdated">—</strong><small id="mHealth">—</small></article>
+<article class="desktop-extra"><span>Torrents</span><strong id="mTotal">—</strong><small id="mTorrentSummary">—</small></article>
 </section>
 <section class="panel controls-panel">
 <div class="tabs" id="tabs">
@@ -147,7 +147,7 @@
 <tbody id="torrentRows"></tbody>
 </table>
 </div>
-<div class="empty hidden" id="empty"><strong>No Torrents Match This View</strong><span>Change the filter or search query.</span></div>
+<div class="empty hidden" id="empty"><strong id="emptyTitle">No torrents yet</strong><span id="emptyText">Add a torrent to get started.</span></div>
 </div>
 <section class="torrent-detail-pane hidden" id="torrentDetailPane" aria-label="Torrent details">
 <header class="torrent-detail-header"><div><strong id="detailName">Torrent</strong><span id="detailMeta">—</span></div><div class="detail-pane-actions"><button class="detail-pane-toggle" id="detailToggle" type="button" aria-expanded="true" aria-label="Collapse torrent details" title="Collapse torrent details"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></button><button class="detail-pane-close" id="detailClose" type="button" aria-label="Close torrent details" title="Close torrent details">×</button></div></header>
@@ -253,7 +253,7 @@
 <div class="menu account-menu hidden" id="accountMenu" role="menu"><div class="account-menu-head"><span class="profile-avatar profile-avatar-menu"><img alt="" class="hidden" data-avatar-image/><span class="avatar-default" data-avatar-default aria-hidden="true"></span></span><div><strong id="accountMenuName">Account</strong><small id="accountMenuGroup">User</small></div></div><div class="menu-separator" role="separator"></div><button id="accountSettingsBtn" type="button">Account settings</button><button class="hidden" id="installPwa" type="button">Install app</button><div class="menu-separator" role="separator"></div><button id="logoutBtn" type="button">Sign out</button></div>
 <div class="menu hidden" id="contextMenu"></div>
 <div class="toasts" id="toasts"></div>
-<script src="/static/settings.js?v=0.5.68"></script>
-<script src="/static/app.js?v=0.5.68"></script>
+<script src="/static/settings.js?v=0.5.69"></script>
+<script src="/static/app.js?v=0.5.69"></script>
 </body>
 </html>

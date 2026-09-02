@@ -134,6 +134,13 @@ def main():
     assert ".torrent-workspace.has-detail{height:min(600px,58dvh)}" in app_css
     assert "flex:0 0 clamp(180px,42%,290px)" in app_css
     assert "height:calc(100dvh - 320px);min-height:480px" not in app_css
+    assert 'id="mTotal"' in html and 'id="mTorrentSummary"' in html
+    assert 'id="mUpdated"' not in html and 'id="mHealth"' not in html
+    assert 'id="emptyTitle"' in html and 'id="emptyText"' in html
+    assert "function emptyStateCopy()" in app_js
+    assert "['No active torrents','Nothing is downloading right now.']" in app_js
+    assert "['No torrents match these filters','Adjust your search or filters.']" in app_js
+    assert ".torrent-list-region>.empty{position:absolute;inset:44px 0 0;display:grid;place-content:center" in app_css
     assert "/api/v2/torrents/webseeds" in dashboard_py
     assert "renderWebSeeds" in app_js
     assert "Automatic torrent management" not in app_js

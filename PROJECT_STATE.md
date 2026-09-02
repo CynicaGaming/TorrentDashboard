@@ -4,7 +4,7 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.68** (prerelease)
+- Latest documented build: **v0.5.69** (prerelease)
 - Repository: `CynicaGaming/TorrentDashboard`
 - Development branch: `refactor/backend-modularization-users`
 - Prerelease branch: `prerelease/backend-modularization`
@@ -12,7 +12,7 @@
 
 ### Latest release summary
 
-Corrects the oversized v0.5.67 torrent workspace so the torrent list and docked details remain comfortably visible together within the desktop/tablet viewport while retaining independent scrolling.
+Cleans up zero-torrent dashboard states, re-centers empty messaging within the bounded torrent list, and replaces the redundant per-second Last Update card with a useful torrent summary.
 
 ## Architecture state
 
@@ -27,6 +27,8 @@ Corrects the oversized v0.5.67 torrent workspace so the torrent list and docked 
 - Keep Collapse and Close as distinct actions: collapse preserves selection, close clears the detail context.
 - Keep the torrent table independently scrollable whenever the detail inspector is expanded.
 - Desktop/tablet list-detail workspaces should fit within the initial viewport by default; internal scrolling is preferred over expanding the page vertically.
+- Per-poll timestamps are not primary dashboard metrics; stale/failed refresh conditions should be surfaced explicitly as health states.
+- Empty-state language must reflect the actual reason a collection is empty.
 
 ## Development principles
 
@@ -37,6 +39,15 @@ Corrects the oversized v0.5.67 torrent workspace so the torrent list and docked 
 - Use the same user-facing language for the same action and outcome across every surface.
 
 ## Recent work
+
+### v0.5.69 — Context-aware dashboard empty states
+
+Cleans up zero-torrent dashboard states, re-centers empty messaging within the bounded torrent list, and replaces the redundant per-second Last Update card with a useful torrent summary.
+
+- The torrent empty state is centered inside the available list body again instead of appearing below the flexing table region.
+- Empty-state copy now distinguishes a genuinely empty client from active/completed/paused views and from search/filter mismatches.
+- The Last Update metric has been replaced with a Torrents summary showing the total torrent count plus completed and paused counts.
+- Connection problems remain surfaced through the existing dashboard error banner instead of requiring users to inspect a timestamp.
 
 ### v0.5.68 — Bounded torrent workspace sizing
 
@@ -74,15 +85,6 @@ Aligns Settings, account, and action feedback around one content-design contract
 - Settings validation, empty states, dynamic labels, and common action feedback were normalized to sentence case while preserving proper product names and acronyms.
 - Account and qBitTorrent client dialogs now rely on their persistent inline success status instead of duplicating the same outcome with a toast.
 - Added DESIGN_LANGUAGE.md as the durable content-design contract for future UI work.
-
-### v0.5.64 — Configuration and integrations module extraction
-
-Moves configuration lifecycle and integration-provider ownership out of dashboard.py into dedicated package modules while preserving existing dashboard behavior.
-
-- Added torrent_dashboard/config.py for defaults, legacy migrations, update-repository normalization, browser-safe redaction, and atomic config.json persistence.
-- Added torrent_dashboard/integrations.py for provider definitions, normalization, secret redaction, connection tests, and integration CRUD transforms.
-- dashboard.py now composes ConfigRepository through ConfigStore instead of implementing configuration lifecycle inline.
-- Existing route handlers keep their established helper call surface through imports to minimize refactor blast radius.
 
 ## What to do next
 

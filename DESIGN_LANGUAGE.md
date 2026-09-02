@@ -69,3 +69,13 @@ On desktop and tablet layouts, list/detail workspaces should fit within the init
 - The detail body may scroll independently when its content exceeds the inspector allocation.
 - Mobile remains an exception: the existing bottom-sheet interaction may consume most of the viewport because simultaneous list/detail visibility is not practical at phone widths.
 
+## Empty states and live dashboard metrics
+
+Empty-state language must describe why the current surface is empty rather than using one generic message for every zero-row condition.
+
+- A client with no torrents should say that there are no torrents yet/available; it should not imply that filters are hiding results.
+- Filtered views should name the relevant condition, such as no active, completed, or paused torrents, or explain that search/filter criteria exclude all rows.
+- Empty states inside bounded list workspaces should remain visually centered in the available list body and should not be pushed below a flexing scroll region.
+- Primary dashboard metric cards should represent meaningful operational state. Values that refresh every polling interval, such as a per-second "Last update" timestamp, should not occupy a permanent summary card unless staleness itself requires attention.
+- Connection failures and stale data should be surfaced as health/error states rather than requiring users to infer problems from a timestamp.
+
