@@ -33,6 +33,7 @@ jobs:
           node --check static/app.js
           node --check static/settings.js
           python - <<'PY'
+          import json
           import dashboard
           import torrent_dashboard.users as users
 
@@ -46,7 +47,13 @@ jobs:
           assert hasattr(dashboard, 'CONFIG_STORE')
           if dashboard.VERSION >= '0.5.58':
               assert callable(dashboard.local_release_history)
-              assert len(dashboard.local_release_history()) >= 4
+              history = dashboard.local_release_history()
+              if dashboard.VERSION >= '0.5.59':
+                  assert len(history) == 2
+                  metadata = json.load(open('release_notes/releases.json', encoding='utf-8'))
+                  assert len(metadata.get('releases', [])) >= 5
+              else:
+                  assert len(history) >= 4
           PY
 
       - name: Determine Version
