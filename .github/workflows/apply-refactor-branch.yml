@@ -29,6 +29,10 @@ jobs:
       - name: Apply staged refactor
         shell: bash
         run: |
+          if [ -f release_tools/apply_feature_update_pre.py ]; then
+            python release_tools/apply_feature_update_pre.py
+            rm -f release_tools/apply_feature_update_pre.py
+          fi
           if [ -f release_tools/apply_feature_update.py ]; then
             python release_tools/apply_feature_update.py
             rm -f release_tools/apply_feature_update.py
