@@ -122,6 +122,10 @@ validator = validator.replace(
     'assert ".topbar.dashboard-mode .topbar-heading{display:none}" not in app_css',
 )
 validator = validator.replace(
+    "assert '.topbar.dashboard-mode .topbar-heading{display:none}' in app_css",
+    "assert '.topbar.dashboard-mode .topbar-heading{display:none}' not in app_css",
+)
+validator = validator.replace(
     "    # 0.5.74 bottom-anchors the persistent disclosure and removes redundant Dashboard chrome.\n",
     "    # 0.5.75 retains bottom anchoring, restores Dashboard hierarchy, quiets the empty disclosure, and makes update checks explicit.\n",
 )
