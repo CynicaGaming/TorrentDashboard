@@ -119,7 +119,7 @@ def main():
     assert 'CREATE_NO_WINDOW' in dashboard_py and '**_windows_background_process_kwargs()' in dashboard_py
     assert "const corePages = new Set(['general','access','clients','updates','notifications']);" in settings_js
     assert "if (activePage === 'updates') return saveUpdateSource();" not in settings_js
-    assert 'const savedRepository = String(state.settings?.updates?.repository || '');' in settings_js
+    assert "const savedRepository = String(state.settings?.updates?.repository || '');" in settings_js
     assert 'const source = await saveUpdateSource();' in settings_js
     assert '#updateSourceSave' not in settings_js
     assert 'data-settings-page="updates" type="button">Updates</button>' in html
