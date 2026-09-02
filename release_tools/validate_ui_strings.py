@@ -138,8 +138,8 @@ def main():
     assert "state.detailExpanded=!state.detailExpanded" in app_js
     assert "state.detailExpanded=true" in app_js
     assert "(!state.detailExpanded&&!force)" in app_js
-    assert ".torrent-workspace{display:flex;flex-direction:column;gap:12px;overflow:visible;height:min(460px,44dvh)}" in app_css
-    assert ".torrent-workspace.detail-expanded{height:var(--torrent-workspace-open-height,min(720px,calc(100dvh - 280px)))}" in app_css
+    assert ".torrent-workspace{display:flex;flex-direction:column;gap:12px;overflow:visible;height:var(--torrent-workspace-height,min(720px,calc(100dvh - 220px)))}" in app_css
+    assert ".topbar.dashboard-mode .topbar-heading{display:none}" in app_css
     assert ".torrent-list-panel{display:flex;flex:1 1 auto;min-height:0;overflow:hidden}" in app_css
     assert ".torrent-detail-pane:not(.collapsed){min-height:240px;flex:0 1 clamp(260px,46%,420px)}" in app_css
     assert ".torrent-detail-pane.collapsed{min-height:48px!important;max-height:48px!important;flex-basis:48px!important}" in app_css
@@ -148,7 +148,7 @@ def main():
     assert ".detail-pane-close" not in app_css and ".torrent-detail-header" not in app_css
     assert "function syncTorrentWorkspaceLayout()" in app_js
     assert "window.innerHeight-top-16" in app_js
-    assert "--torrent-workspace-open-height" in app_js
+    assert "--torrent-workspace-height" in app_js
     assert "height:calc(100dvh - 320px);min-height:480px" not in app_css
     assert 'id="mTotal"' in html and 'id="mTorrentSummary"' in html
     assert 'id="mUpdated"' not in html and 'id="mHealth"' not in html
@@ -491,6 +491,17 @@ def main():
     assert '.client-setting-copy>span{font-size:11.5px' in settings_css
     assert '## Desktop legibility' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')
 
+    # 0.5.74 bottom-anchors the persistent disclosure and removes redundant Dashboard chrome.
+    assert 'id="topbar"' in html and 'class="topbar dashboard-mode"' in html and 'class="topbar-heading"' in html
+    assert "$('#topbar')?.classList.toggle('dashboard-mode',dashboardView)" in app_js
+    assert "if(dashboardView)requestAnimationFrame(syncTorrentWorkspaceLayout)" in app_js
+    assert "--torrent-workspace-height" in app_js and "--torrent-workspace-open-height" not in app_js
+    assert "const available=Math.max(360,Math.floor(window.innerHeight-top-16))" in app_js
+    assert '.topbar.dashboard-mode{justify-content:flex-end;margin-bottom:12px}' in app_css
+    assert '.topbar.dashboard-mode .topbar-heading{display:none}' in app_css
+    assert '## Client-style dashboard chrome' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')
+    assert '### Bottom-anchored torrent dock' in (ROOT / 'TESTING.md').read_text(encoding='utf-8')
+
     # 0.5.73 supersedes v0.5.72's open/close-only inspector. The dock is
     # persistent, selection and disclosure are independent, and the full bar is
     # the accessible collapse/expand target on desktop and mobile.
@@ -503,7 +514,7 @@ def main():
     assert 'detailExpanded:false' in app_js and 'detailCollapsed' not in app_js
     assert 'function syncDetailDock()' in app_js and 'async function toggleDetailPane()' in app_js
     assert 'function resetDetailPane()' in app_js and 'closeDetailPane' not in app_js
-    assert '0.5.73 persistent collapsible torrent details' in app_css
+    assert '0.5.74 bottom-anchored client workspace' in app_css
     assert '.torrent-list-region .table-wrap{flex:1 1 auto;min-height:0;overflow:auto' in app_css
     assert '.torrent-detail-pane{position:static;inset:auto' in app_css
     assert '.torrent-detail-pane.collapsed{min-height:48px!important' in app_css

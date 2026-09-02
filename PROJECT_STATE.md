@@ -6,7 +6,7 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.73** (prerelease)
+- Latest documented build: **v0.5.74** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 - Upstream development branch: `refactor/backend-modularization-users`
 - Upstream prerelease branch: `prerelease/backend-modularization`
@@ -14,7 +14,7 @@
 
 ### Latest release summary
 
-Reworks torrent details into a persistent disclosure dock: the inspector can collapse to a compact full-width bar but is no longer closable, and torrent selection remains independent from inspector visibility.
+Anchors the persistent Torrent details disclosure to the bottom of the visible dashboard workspace and removes redundant Dashboard heading chrome to reclaim vertical space.
 
 ## Architecture state
 
@@ -42,6 +42,15 @@ Reworks torrent details into a persistent disclosure dock: the inspector can col
 - Keep public development continuity portable across forks; label canonical repository/branch/PR references as upstream context rather than local identity.
 
 ## Recent work
+
+### v0.5.74 — Bottom-anchored torrent details
+
+Anchors the persistent Torrent details disclosure to the bottom of the visible dashboard workspace and removes redundant Dashboard heading chrome to reclaim vertical space.
+
+- Desktop and tablet torrent workspaces now use the actual remaining viewport in both collapsed and expanded states, keeping Torrent details anchored to the bottom like a native client.
+- Expanding Torrent details grows upward while the torrent list remains the flexible scroll region above it.
+- The redundant Dashboard / Live torrent activity heading is hidden on Dashboard while server, torrent-control, and account actions remain visible.
+- Other views retain their page headings.
 
 ### v0.5.73 — Persistent collapsible torrent details
 
@@ -81,15 +90,6 @@ Adds a public, fork-safe development continuity layer so a new developer or AI c
 - Added generated HANDOFF.md, combining the last documented release state with active development intent into one portable resume document.
 - Added lightweight architectural decision records under docs/decisions/ so important rationale survives chats, maintainers, and forks.
 - Canonical repository, branch, and PR references are now labeled as upstream context instead of being presented as the identity of every checkout.
-
-### v0.5.69 — Context-aware dashboard empty states
-
-Cleans up zero-torrent dashboard states, re-centers empty messaging within the bounded torrent list, and replaces the redundant per-second Last Update card with a useful torrent summary.
-
-- The torrent empty state is centered inside the available list body again instead of appearing below the flexing table region.
-- Empty-state copy now distinguishes a genuinely empty client from active/completed/paused views and from search/filter mismatches.
-- The Last Update metric has been replaced with a Torrents summary showing the total torrent count plus completed and paused counts.
-- Connection problems remain surfaced through the existing dashboard error banner instead of requiring users to inspect a timestamp.
 
 ## What to do next
 

@@ -123,3 +123,12 @@ Do not use this file as a test-results log; it is a stable testing contract for 
 - Verify the torrent inspector reaches the bottom of the visible dashboard content and is visually separated from the torrent list as its own bordered panel.
 - Verify General, Trackers, Peers, HTTP Sources, and Content have a useful vertical viewport and scroll internally when needed.
 - Resize the browser and verify the dock recalculates without overlapping the viewport; mobile continues to use the bottom-sheet presentation.
+
+
+### Bottom-anchored torrent dock
+
+- Verify Dashboard / Live torrent activity is not visible on Dashboard while top-right controls remain available.
+- With details collapsed, verify the disclosure bar sits at the bottom of the visible dashboard workspace.
+- Expand details and verify the inspector grows upward from the same anchor while the torrent list scrolls above it.
+- Resize desktop/tablet and verify both states remain bottom-aligned without overlaying torrent rows.
+- Verify mobile retains the persistent collapsed bar above mobile navigation and expands into the sheet.

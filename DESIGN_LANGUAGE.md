@@ -85,3 +85,8 @@ Empty-state language must describe why the current surface is empty rather than 
 
 On non-mobile layouts, a docked list/detail workspace should use the actual remaining viewport rather than a fixed viewport-height guess. When torrent details are expanded, the workspace should extend to the bottom of the visible dashboard content, keep the torrent list scrollable above a visually separate detail panel, and allocate enough height to the inspector for its primary content to remain legible. When collapsed, the inspector remains as a compact dock bar without forcing the expanded workspace height. The separation between list and inspector is part of the hierarchy, not unused space. Mobile keeps the sheet model.
 
+
+
+## Client-style dashboard chrome
+
+On the Dashboard view, navigation already establishes location, so the redundant Dashboard title/subtitle is hidden while server, torrent-control, and account actions remain visible. On desktop/tablet, the torrent workspace fills the actual remaining viewport so the persistent Torrent details disclosure stays anchored to the bottom. Collapsed it reads as a compact client-style bar; expanded it grows upward while the torrent list scrolls above it.

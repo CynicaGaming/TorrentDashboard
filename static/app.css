@@ -256,11 +256,12 @@ button,select,input,textarea{border:1px solid var(--border);background:var(--pan
   .add-rate-input>span,.add-rate-grid small{font-size:10.5px}
 }
 
-/* 0.5.73 persistent collapsible torrent details. */
+/* 0.5.74 bottom-anchored client workspace. */
+.topbar.dashboard-mode{justify-content:flex-end;margin-bottom:12px}
+.topbar.dashboard-mode .topbar-heading{display:none}
 .torrent-list-region{min-width:0;min-height:0}
 @media(min-width:701px){
-  .torrent-workspace{display:flex;flex-direction:column;gap:12px;overflow:visible;height:min(460px,44dvh)}
-  .torrent-workspace.detail-expanded{height:var(--torrent-workspace-open-height,min(720px,calc(100dvh - 280px)))}
+  .torrent-workspace{display:flex;flex-direction:column;gap:12px;overflow:visible;height:var(--torrent-workspace-height,min(720px,calc(100dvh - 220px)))}
   .torrent-list-panel{display:flex;flex:1 1 auto;min-height:0;overflow:hidden}
   .torrent-list-region{position:relative;display:flex;flex:1 1 auto;min-height:0;flex-direction:column;overflow:hidden}
   .torrent-list-region .table-wrap{flex:1 1 auto;min-height:0;overflow:auto;overscroll-behavior:contain}
@@ -273,8 +274,10 @@ button,select,input,textarea{border:1px solid var(--border);background:var(--pan
 @media(min-width:1024px){
   .torrent-detail-pane:not(.collapsed){flex-basis:clamp(300px,46%,440px)}
   .torrent-detail-pane.collapsed{min-height:52px!important;max-height:52px!important;flex-basis:52px!important}
+  .topbar.dashboard-mode{margin-bottom:14px}
 }
 @media(max-width:700px){
+  .topbar.dashboard-mode{justify-content:flex-end;margin-bottom:10px}
   .torrent-detail-pane{position:fixed;z-index:72;left:8px;right:8px;bottom:58px;top:auto;height:min(68dvh,640px);min-height:240px;max-height:calc(100dvh - 88px);margin:0;border-radius:14px;transition:height .16s ease,min-height .16s ease}
   .torrent-detail-pane.collapsed{height:48px!important;min-height:48px!important;max-height:48px!important;top:auto!important}
   .torrent-detail-handle{min-height:48px;padding-left:14px;padding-right:14px}
