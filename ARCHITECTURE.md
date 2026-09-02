@@ -80,14 +80,14 @@ A caller that already holds a configuration dictionary must not assume that dict
 ## Release and update flow
 
 1. Structured release information is added to `release_notes/releases.json`.
-2. `release_tools/generate_release_notes.py` generates `CHANGELOG.md`, `PROJECT_STATE.md`, and the GitHub release body.
+2. `release_tools/generate_release_notes.py` generates `CHANGELOG.md`, `PROJECT_STATE.md`, `HANDOFF.md`, and the GitHub release body.
 3. Source validation and unit tests run before packaging.
 4. `release_tools/build_release.py` creates the ZIP and a sidecar release-information JSON file.
 5. GitHub publishes both assets.
 6. Torrent Dashboard verifies GitHub's SHA-256 for the ZIP before staging an update.
 7. The updater preserves runtime data, verifies the restarted version through `/health`, and rolls back on failure.
 
-`PROJECT_STATE.md` is generated handoff state. `ARCHITECTURE.md` is the durable design reference and is edited deliberately when module boundaries change.
+`PROJECT_STATE.md` is generated released-state context. `HANDOFF.md` combines released state with the authored active-work file. `ARCHITECTURE.md` is the durable design reference and is edited deliberately when module boundaries change.
 
 ## Testing strategy
 
@@ -99,7 +99,9 @@ Run the backend tests with:
 python -m unittest discover -s tests -v
 ```
 
-Release validation also compiles Python modules, syntax-checks JavaScript, checks frontend build-version synchronization, validates generated release metadata, and runs repository hygiene checks.
+Release validation also compiles Python modules, syntax-checks JavaScript, checks frontend build-version synchronization, validates generated release metadata, validates development-continuity files, and runs repository hygiene checks.
+
+Manual/environment-dependent verification is documented in `TESTING.md` rather than being left implicit in conversation history.
 
 ## Dependency direction
 
@@ -117,6 +119,21 @@ HTTP / process adapters (`dashboard.py`, `updater.py`)
 ```
 
 A package module importing `dashboard.py` is considered an architectural violation because it makes the composition root part of the domain dependency graph.
+
+## Development continuity
+
+The repository is designed so development can continue without access to prior chat history.
+
+- `PROJECT_STATE.md` is generated from released metadata and represents the last documented upstream state.
+- `development/current.json` is the authored active-work record and may legitimately differ in a fork.
+- `HANDOFF.md` combines released state and active work into the first document a new developer or AI should read.
+- `DEVELOPMENT.md` defines the contributor, fork, validation, versioning, and release workflow.
+- `TESTING.md` records the manual verification contract that cannot be fully represented by unit tests.
+- `docs/decisions/` records durable architectural rationale and can be superseded rather than rewritten.
+
+Canonical repository/branch/PR references in generated state are explicitly labeled **upstream**. They provide lineage and context; they are not instructions that a fork must use the same repository identity or workflow.
+
+Continuity files are public engineering artifacts. They must not contain credentials, private infrastructure details, user data, private incident context, or conversation transcripts.
 
 ## Near-term extraction plan
 
