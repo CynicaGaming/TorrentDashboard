@@ -1,1 +1,0 @@
-v0.5.49 staged scope: single Add Torrent entry point and qBitTorrent add-time options only. Metadata APIs, metadata polling, cached metadata, file priorities, and torrent export remain intentionally absent.
