@@ -87,6 +87,22 @@ def main():
     assert "fetch_torrent_metadata" not in dashboard_py
     assert "/api/torrent-metadata/fetch" not in dashboard_py
     assert "Metadata retrieval complete" not in app_js
+    # 0.5.48 changes only the Add Torrent shell. The existing submission
+    # contract remains in place and metadata behavior is still absent.
+    assert 'class="modal-card add-torrent-card"' in html
+    assert 'class="add-torrent-body"' in html
+    assert 'class="add-torrent-options"' in html
+    assert 'class="add-torrent-preview"' in html
+    assert 'Content preview not enabled yet' in html
+    assert 'No metadata requests are made in this release.' in html
+    assert 'id="addUrls"' in html and 'id="torrentFile"' in html and 'id="addPath"' in html
+    assert 'id="addCategory"' in html and 'id="addTags"' in html
+    assert 'id="addStopped"' in html and 'id="addSequential"' in html and 'id="addFirstLast"' in html
+    assert '0.5.48 Add Torrent visual shell' in app_css
+    assert 'fetch_torrent_metadata' not in dashboard_py
+    assert '/api/torrent-metadata/fetch' not in dashboard_py
+    assert 'addMetadataState' not in app_js
+    assert 'Metadata retrieval complete' not in app_js
     # 0.5.47 frontend generation contract. Navigation HTML is never cached,
     # stale versioned scripts trigger recovery, and optional Add Torrent bindings
     # cannot abort critical dashboard startup.
