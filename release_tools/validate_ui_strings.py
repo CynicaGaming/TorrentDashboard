@@ -280,6 +280,23 @@ def main():
         assert duplicate not in app_js
     assert "toast('clientSettingsSaved')" not in settings_js
 
+    # 0.5.34 usability, health, notification rules, accessibility, and scale.
+    assert 'LARGE_LIBRARY_THRESHOLD=300' in app_js and 'renderTorrentRows' in app_js and 'rowRenderCache' in app_js
+    assert 'registerDirtyScope' in app_js and 'Unsaved changes' in app_js and "beforeunload" in app_js
+    assert 'id="settingsSaveState"' in html and 'id="settingsSaveButton"' in html
+    assert 'accountProfileSaveState' in html and 'clientSettingsSaveState' in html
+    assert 'Discard changes?' in app_js and 'dirtyScopeNames:dirtyScopeNamesForSettings' in settings_js
+    assert 'client_health' in app_js or 'client-health' in app_js
+    assert 'client_health_snapshot' in dashboard_py and 'server_health' in dashboard_py and 'last_success' in dashboard_py
+    assert 'client_offline' in dashboard_py and 'client_recovered' in dashboard_py
+    for event_key in ('torrent_completed','torrent_error','torrent_stalled','client_offline','client_recovered','update_available','security_account'):
+        assert event_key in dashboard_py and f'data-notification-rule="{event_key}"' in html
+    assert 'default_notification_rules' in dashboard_py and 'normalize_notification_rules' in dashboard_py
+    assert 'id="testNotificationSound"' in html and 'async function testNotificationSound()' in settings_js
+    assert 'role="tab"' in html and 'role="tabpanel"' in html and 'aria-selected="true"' in html
+    assert 'trapSurfaceFocus' in app_js and 'showSurface' in app_js and ':focus-visible' in app_css
+    assert 'role="status" aria-live="polite"' in html
+
     print("UI string audit passed")
 
 
