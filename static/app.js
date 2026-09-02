@@ -1,5 +1,5 @@
 'use strict';
-const FRONTEND_BUILD='0.5.51';
+const FRONTEND_BUILD='0.5.52';
 const HTML_BUILD=document.querySelector('meta[name="torrent-dashboard-build"]')?.content||'';
 const RECOVERY_KEY=`td-frontend-recovery-${FRONTEND_BUILD}`;
 async function recoverFrontendBuild(reason){
@@ -196,11 +196,11 @@ function addMetadataPriorityLabel(value){value=Number(value);if(value===0)return
 function renderAddMetadataEmpty(title,text){
   const body=$('#addContentBody');if(body)body.innerHTML=`<div class="add-preview-empty"><strong>${esc(title)}</strong><span>${esc(text)}</span></div>`;
 }
-function renderAddMetadataIdle(title='Waiting for torrent source',text='Paste a single magnet link or torrent URL to preview its metadata before adding.'){
+function renderAddMetadataIdle(title='Waiting for torrent source',text='Paste a single magnet link, torrent URL, or choose a .torrent file to preview its metadata before adding.'){
   resetAddMetadataInfo();
-  const summary=$('#addContentSummary');if(summary)summary.textContent='Enter a single magnet link or torrent URL to retrieve metadata.';
+  const summary=$('#addContentSummary');if(summary)summary.textContent='Enter a single magnet link, torrent URL, or choose a .torrent file to retrieve metadata.';
   renderAddMetadataEmpty(title,text);
-  setAddMetadataStatus('Metadata preview','Enter a single magnet link or torrent URL to begin.','idle');
+  setAddMetadataStatus('Metadata preview','Enter a torrent source or choose a .torrent file to begin.','idle');
 }
 function renderAddMetadataLoading(metadata={}){
   renderAddMetadataInfo(metadata);
@@ -231,12 +231,51 @@ function currentAddMetadataSource(){
   const sources=addMetadataSources();
   return sources.length===1?sources[0]:'';
 }
+function addTorrentFileKey(file){return file?`${file.name}\u0000${file.size}\u0000${file.lastModified}`:''}
+function currentAddTorrentFileKey(){return addTorrentFileKey($('#torrentFile').files?.[0]||null)}
+function parsedTorrentMetadata(result){
+  const raw=result?.metadata;
+  if(Array.isArray(raw))return raw[0]||{};
+  return raw&&typeof raw==='object'?raw:{};
+}
+function renderAddTorrentFileMetadataLoading(file){
+  resetAddMetadataInfo();
+  const summary=$('#addContentSummary');if(summary)summary.textContent=`Parsing ${file?.name||'.torrent file'} with qBitTorrent.`;
+  renderAddMetadataEmpty('Parsing torrent metadata…','Torrent Dashboard is asking qBitTorrent to inspect the selected .torrent file.');
+  setAddMetadataStatus('Parsing torrent metadata…','Preview only · the original .torrent file will still be uploaded when you add it.','loading');
+}
+async function parseAddTorrentFileMetadata(file,generation,fileKey){
+  if(generation!==addMetadataState.generation||$('#addModal').classList.contains('hidden')||fileKey!==currentAddTorrentFileKey())return;
+  addMetadataState.inFlight=true;
+  try{
+    const form=new FormData();
+    form.append('server',state.server);
+    form.append('torrents',file,file.name);
+    const result=await api('/api/torrent-metadata/parse',{method:'POST',body:form});
+    if(generation!==addMetadataState.generation||$('#addModal').classList.contains('hidden')||fileKey!==currentAddTorrentFileKey())return;
+    const metadata=parsedTorrentMetadata(result);
+    if(!metadata||!Object.keys(metadata).length)throw new Error('qBitTorrent returned no torrent metadata');
+    renderAddMetadataComplete(metadata);
+    setAddMetadataStatus('Metadata retrieval complete','Preview only · Add torrent still uploads the original .torrent file.','complete');
+  }catch(error){
+    if(generation!==addMetadataState.generation)return;
+    console.error('[Torrent Dashboard] Add Torrent file metadata preview failed',error);
+    renderAddMetadataError(error?.message||'The selected .torrent file could not be parsed.');
+  }finally{
+    if(generation===addMetadataState.generation)addMetadataState.inFlight=false;
+  }
+}
 function scheduleAddMetadataPreview(delay=450){
   cancelAddMetadata();
   if($('#addModal').classList.contains('hidden'))return;
-  if($('#torrentFile').files?.[0]){
-    renderAddMetadataIdle('Torrent file selected','.torrent metadata preview will be enabled in the next controlled phase.');
-    setAddMetadataStatus('Torrent file selected','This release retrieves metadata only for magnet links and torrent URLs.','idle');
+  const torrentFile=$('#torrentFile').files?.[0];
+  if(torrentFile){
+    const fileKey=addTorrentFileKey(torrentFile);
+    addMetadataState.source=fileKey;
+    addMetadataState.startedAt=Date.now();
+    const generation=addMetadataState.generation;
+    renderAddTorrentFileMetadataLoading(torrentFile);
+    addMetadataState.timer=setTimeout(()=>parseAddTorrentFileMetadata(torrentFile,generation,fileKey),Math.max(0,delay));
     return;
   }
   const sources=addMetadataSources();
@@ -293,7 +332,7 @@ function bindAddTorrentUI(){
   $('#addTorrentBtn').addEventListener('click',openAddTorrent);
   $('#addAutoTmm').addEventListener('change',syncAddTorrentOptions);
   $('#addUseDownloadPath').addEventListener('change',syncAddTorrentOptions);
-  $('#addUrls').addEventListener('input',()=>scheduleAddMetadataPreview());
+  $('#addUrls').addEventListener('input',()=>{if(!$('#torrentFile').files?.[0])scheduleAddMetadataPreview()});
   $('#torrentFile').addEventListener('change',()=>scheduleAddMetadataPreview(0));
   $$('#addModal [data-modalclose]').forEach(x=>x.addEventListener('click',closeAddTorrent));
   $('#addForm').addEventListener('submit',addTorrent);

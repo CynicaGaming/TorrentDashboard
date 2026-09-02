@@ -113,12 +113,10 @@ def main():
     assert 'qbit_status' in dashboard_py and 'complete' in dashboard_py
     assert 'Torrent metadata preview requires qBittorrent Web API 2.11.9 or newer' in dashboard_py
 
-    # 0.5.51 wires only magnet/URL metadata preview into the Add Torrent dialog.
+    # 0.5.51 magnet/URL metadata preview remains bounded and read-only.
     for control in ('addContentBody','addContentSummary','addMetadataStatus','addMetadataStatusTitle','addMetadataStatusText','addMetadataProgress','addInfoSize','addInfoDate','addInfoHashV1','addInfoHashV2','addInfoCreatedBy','addInfoComment'):
         assert f'id="{control}"' in html
     assert '/api/torrent-metadata/fetch' in app_js
-    assert '/api/torrent-metadata/parse' not in app_js
-    assert '/api/torrent-metadata/save' not in app_js
     assert 'const ADD_METADATA_POLL_MS=1000;' in app_js
     assert 'const ADD_METADATA_TIMEOUT_MS=120000;' in app_js
     assert 'const addMetadataState=' in app_js
@@ -129,10 +127,21 @@ def main():
     assert 'Metadata retrieval complete' in app_js
     assert 'setTimeout(()=>fetchAddMetadataPreview(source,generation),ADD_METADATA_POLL_MS)' in app_js
     assert 'setInterval(fetchAddMetadataPreview' not in app_js
+    assert '0.5.51 Add Torrent magnet metadata preview' in app_css
+
+    # 0.5.52 adds read-only .torrent parsing without changing either stable add path.
+    assert '/api/torrent-metadata/parse' in app_js
+    assert '/api/torrent-metadata/save' not in app_js
+    assert 'function parseAddTorrentFileMetadata' in app_js
+    assert 'function parsedTorrentMetadata' in app_js
+    assert "form.append('torrents',file,file.name)" in app_js
+    assert "api('/api/torrent-metadata/parse',{method:'POST',body:form})" in app_js
+    assert "Array.isArray(raw)" in app_js
     assert "action:'add_magnet'" in app_js and "api('/api/upload'" in app_js
     assert "urls:$('#addUrls').value.trim()" in app_js
     assert 'Preview only · Add torrent still submits the original source.' in app_js
-    assert '0.5.51 Add Torrent magnet metadata preview' in app_css
+    assert 'Preview only · Add torrent still uploads the original .torrent file.' in app_js
+    assert '.torrent metadata preview will be enabled in the next controlled phase.' not in app_js
     # 0.5.47 frontend generation contract. Navigation HTML is never cached,
     # stale versioned scripts trigger recovery, and optional Add Torrent bindings
     # cannot abort critical dashboard startup.
