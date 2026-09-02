@@ -45,7 +45,7 @@ MAX_CUSTOM_SOUND_BYTES = 2 * 1024 * 1024
 AVATAR_DIR = DATA_DIR / "avatars"
 MAX_AVATAR_BYTES = 4 * 1024 * 1024
 PROFILE_AVATAR_TYPES = {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp"}
-VERSION = "0.5.45"
+VERSION = "0.5.44"
 STATUS_REFRESH_SECONDS = 1.0
 DEFAULT_UPDATE_REPOSITORY = "CynicaGaming/TorrentDashboard"
 
@@ -1470,92 +1470,6 @@ class QBitClient:
             self.post("/api/v2/transfer/toggleSpeedLimitsMode", {})
         return self.client_settings()
 
-    def fetch_torrent_metadata(self, source):
-        source = str(source or "").strip()
-        if not source:
-            raise RuntimeError("Enter a magnet link, torrent URL, or info hash")
-        try:
-            status, body = self._request("POST", "/api/v2/torrents/fetchMetadata", form={"source": source})
-        except RuntimeError as exc:
-            if "HTTP 404" in str(exc):
-                return {
-                    "supported": False,
-                    "pending": False,
-                    "metadata": {},
-                    "source": source,
-                    "error": "Metadata preview requires qBitTorrent Web API 2.11.9 or newer",
-                }
-            raise
-        try:
-            metadata = json.loads(body.decode() or "{}")
-        except Exception as exc:
-            raise RuntimeError("qBitTorrent returned invalid torrent metadata") from exc
-        if not isinstance(metadata, dict):
-            metadata = {}
-        canonical = str(metadata.get("id") or metadata.get("infohash_v1") or metadata.get("infohash_v2") or source)
-        return {
-            "supported": True,
-            "pending": status != 200,
-            "metadata": metadata,
-            "source": canonical,
-        }
-
-    def parse_torrent_metadata(self, filename, content):
-        boundary = "----TorrentDashboardMetadata" + secrets.token_hex(12)
-        safe_name = str(filename or "torrent.torrent").replace('"', "")[:255]
-        chunks = [
-            f'--{boundary}\r\nContent-Disposition: form-data; name="file"; filename="{safe_name}"\r\nContent-Type: application/x-bittorrent\r\n\r\n'.encode(),
-            content,
-            f'\r\n--{boundary}--\r\n'.encode(),
-        ]
-        try:
-            status, body = self._request(
-                "POST",
-                "/api/v2/torrents/parseMetadata",
-                raw=b"".join(chunks),
-                headers={"Content-Type": f"multipart/form-data; boundary={boundary}"},
-            )
-        except RuntimeError as exc:
-            if "HTTP 404" in str(exc):
-                return {
-                    "supported": False,
-                    "metadata": {},
-                    "source": "",
-                    "error": "Metadata preview requires qBitTorrent Web API 2.11.9 or newer",
-                }
-            raise
-        try:
-            parsed = json.loads(body.decode() or "[]")
-        except Exception as exc:
-            raise RuntimeError("qBitTorrent returned invalid torrent metadata") from exc
-        if isinstance(parsed, dict):
-            metadata = parsed
-        elif isinstance(parsed, list) and parsed and isinstance(parsed[0], dict):
-            metadata = parsed[0]
-        else:
-            metadata = {}
-        if status != 200 or not metadata:
-            raise RuntimeError("qBitTorrent could not parse the torrent metadata")
-        source = str(metadata.get("id") or metadata.get("infohash_v1") or metadata.get("infohash_v2") or "")
-        if not source:
-            raise RuntimeError("qBitTorrent did not return a torrent identifier")
-        return {"supported": True, "metadata": metadata, "source": source}
-
-    def save_torrent_metadata(self, source):
-        source = str(source or "").strip()
-        if not source:
-            raise RuntimeError("Torrent metadata is not available yet")
-        try:
-            path = "/api/v2/torrents/saveMetadata?" + urllib.parse.urlencode({"source": source})
-            status, body = self._request("GET", path)
-        except RuntimeError as exc:
-            if "HTTP 404" in str(exc):
-                raise RuntimeError("Saving metadata requires qBitTorrent Web API 2.11.9 or newer") from exc
-            raise
-        if status != 200 or not body:
-            raise RuntimeError("qBitTorrent could not export the torrent metadata")
-        return body
-
     def detail(self, hash_):
         paths = {
             "properties": ("/api/v2/torrents/properties", {"hash": hash_}),
@@ -1633,27 +1547,12 @@ class QBitClient:
             form = {
                 "urls": str(payload.get("urls", ""))[:16000],
                 "savepath": str(payload.get("savepath", ""))[:2048],
-                "downloadPath": str(payload.get("download_path", ""))[:2048],
-                "useDownloadPath": str(bool(payload.get("use_download_path", False))).lower(),
                 "category": str(payload.get("category", ""))[:256],
                 "tags": str(payload.get("tags", ""))[:1024],
-                "rename": str(payload.get("rename", ""))[:512],
-                "autoTMM": str(bool(payload.get("auto_tmm", False))).lower(),
                 "stopped": str(bool(payload.get("stopped", False))).lower(),
-                "addToTopOfQueue": str(bool(payload.get("add_to_top", False))).lower(),
-                "seedMode": str(bool(payload.get("seed_mode", False))).lower(),
                 "sequentialDownload": str(bool(payload.get("sequential", False))).lower(),
                 "firstLastPiecePrio": str(bool(payload.get("first_last", False))).lower(),
-                "stopCondition": str(payload.get("stop_condition") or "None")[:64],
-                "contentLayout": str(payload.get("content_layout") or "Original")[:64],
-                "dlLimit": max(-1, int(payload.get("download_limit", -1) or -1)),
-                "upLimit": max(-1, int(payload.get("upload_limit", -1) or -1)),
             }
-            priorities = payload.get("file_priorities")
-            if isinstance(priorities, list) and priorities:
-                if len(priorities) > 100000:
-                    raise RuntimeError("Torrent contains too many file priority entries")
-                form["filePriorities"] = ",".join(str(int(value)) for value in priorities)
             return self.post("/api/v2/torrents/add", form)
         raise RuntimeError(f"Unsupported action: {action}")
 
@@ -2489,21 +2388,6 @@ class Handler(BaseHTTPRequestHandler):
                 data=parse_json_body(self,50000); sid=str(data.pop("server","local")); settings=get_client(cfg,sid).update_client_settings(data)
                 HISTORY.event(sid,"client_settings_changed",sess.get("username",""),"",{"client_ip":self.client_ip()})
                 return self.send_json(200,{"ok":True,"settings":settings},new_cookie)
-            if path=="/api/torrent-metadata/fetch":
-                data=parse_json_body(self,25000); sid=str(data.get("server") or "local")
-                result=get_client(cfg,sid).fetch_torrent_metadata(data.get("source"))
-                return self.send_json(200,result,new_cookie)
-            if path=="/api/torrent-metadata/parse":
-                fields,files=parse_multipart(self); sid=str(fields.get("server") or "local")
-                if len(files) != 1:
-                    raise RuntimeError("Choose one .torrent file")
-                _,filename,content=files[0]
-                result=get_client(cfg,sid).parse_torrent_metadata(filename,content)
-                return self.send_json(200,result,new_cookie)
-            if path=="/api/torrent-metadata/save":
-                data=parse_json_body(self,25000); sid=str(data.get("server") or "local")
-                body=get_client(cfg,sid).save_torrent_metadata(data.get("source"))
-                return self.send_bytes(200,body,"application/x-bittorrent",new_cookie)
             if path=="/api/action":
                 data=parse_json_body(self); sid=data.pop("server","local"); action=data.pop("action"); result=get_client(cfg,sid).action(action,data)
                 HISTORY.event(sid, "action:"+action, sess.get("username",""), data.get("hash") or "", {"client_ip": self.client_ip()})
