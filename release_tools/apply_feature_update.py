@@ -26,19 +26,14 @@ def replace_once(text: str, old: str, new: str, label: str) -> str:
     return text.replace(old, new, 1)
 
 
-# Restore the Dashboard heading while keeping the bottom-anchored torrent workspace.
+# Restore the standard Dashboard heading while preserving bottom-anchored details.
 html = read("static/index.html")
-html = replace_once(
-    html,
-    '<header class="topbar dashboard-mode" id="topbar">',
-    '<header class="topbar" id="topbar">',
-    "dashboard topbar class",
-)
+html = replace_once(html, '<header class="topbar dashboard-mode" id="topbar">', '<header class="topbar" id="topbar">', "dashboard topbar")
 html = replace_once(
     html,
     '<span class="torrent-detail-handle-label">Torrent details</span><span class="torrent-detail-handle-selection" id="detailHandleSelection">No torrent selected</span>',
     '<span class="torrent-detail-handle-label">Torrent details</span><span class="torrent-detail-handle-selection" id="detailHandleSelection"></span>',
-    "detail handle empty selection copy",
+    "detail disclosure helper",
 )
 html = replace_once(
     html,
@@ -50,7 +45,6 @@ html = html.replace(OLD, NEW)
 write("static/index.html", html)
 
 
-# Selection copy is optional: when nothing is selected, the disclosure is simply "Torrent details".
 app_js = read("static/app.js")
 app_js = replace_once(app_js, f"const FRONTEND_BUILD='{OLD}';", f"const FRONTEND_BUILD='{NEW}';", "frontend build")
 app_js = app_js.replace("$('#topbar')?.classList.toggle('dashboard-mode',dashboardView);", "")
@@ -64,7 +58,7 @@ app_js = replace_once(
     app_js,
     "handle.setAttribute('aria-expanded',String(expanded));const selection=$('#detailHandleSelection');if(selection)selection.textContent=selected?($('#detailName')?.textContent||'Selected torrent'):'No torrent selected';",
     "handle.setAttribute('aria-expanded',String(expanded));const selection=$('#detailHandleSelection');if(selection)selection.textContent=selected?($('#detailName')?.textContent||'Selected torrent'):'';",
-    "detail handle selection state",
+    "detail disclosure state",
 )
 app_js = replace_once(
     app_js,
@@ -72,24 +66,23 @@ app_js = replace_once(
     "state.detail=null;state.detailExpanded=false;detailRefreshAt=0;$('#detailName').textContent='';$('#detailMeta').textContent='Select a torrent to view details.';$('#detailHandleSelection').textContent='';$('#detailBody').innerHTML=detailEmptyMarkup();syncDetailDock();render();",
     "detail reset state",
 )
-if "No torrent selected" in app_js:
-    raise SystemExit("obsolete no-selection copy remains in app.js")
+if "No torrent selected" in app_js or "classList.toggle('dashboard-mode'" in app_js:
+    raise SystemExit("obsolete dashboard/detail presentation state remains in app.js")
 write("static/app.js", app_js)
 
 
-# Opening Updates should render local/cached state only; GitHub is contacted on the explicit button action.
+# Entering Updates is passive. The explicit Check for updates action owns GitHub freshness.
 settings_js = read("static/settings.js")
 settings_js = settings_js.replace("  let updateIntegrityRefreshAt = 0;\n  let updateIntegrityRefreshPromise = null;\n", "")
 auto_refresh = """    if (page === 'updates' && state.settings && typeof checkForUpdates === 'function') {\n      const now = Date.now();\n      if (!updateIntegrityRefreshPromise && now - updateIntegrityRefreshAt > 60000) {\n        updateIntegrityRefreshAt = now;\n        updateIntegrityRefreshPromise = Promise.resolve()\n          .then(() => checkForUpdates(true))\n          .catch(() => null)\n          .finally(() => { updateIntegrityRefreshPromise = null; });\n      }\n    }\n"""
 if settings_js.count(auto_refresh) != 1:
-    raise SystemExit("updates auto-refresh block was not found exactly once")
+    raise SystemExit(f"Updates auto-check block: expected one match, found {settings_js.count(auto_refresh)}")
 settings_js = settings_js.replace(auto_refresh, "", 1)
 if "updateIntegrityRefreshAt" in settings_js or "updateIntegrityRefreshPromise" in settings_js or "checkForUpdates(true)" in settings_js:
-    raise SystemExit("automatic Updates-page network check remains in settings.js")
+    raise SystemExit("automatic Updates-page check remains")
 write("static/settings.js", settings_js)
 
 
-# Dashboard heading is visible again; retain viewport sizing and hide an empty optional selection label.
 css = read("static/app.css")
 for rule in (
     ".topbar.dashboard-mode{justify-content:flex-end;margin-bottom:12px}\n",
@@ -98,11 +91,12 @@ for rule in (
     "  .topbar.dashboard-mode{justify-content:flex-end;margin-bottom:10px}\n",
 ):
     css = css.replace(rule, "")
+if ".topbar.dashboard-mode" in css:
+    raise SystemExit("dashboard-mode CSS remains")
 css += "\n/* 0.5.75 dashboard hierarchy and detail disclosure cleanup. */\n.torrent-detail-handle-selection:empty{display:none}\n"
 write("static/app.css", css)
 
 
-# Update design and testing contracts to reflect the revised choices.
 design = read("DESIGN_LANGUAGE.md")
 design = design.replace(
     "## Client-style dashboard chrome\n\nThe dashboard should prioritize live client state over repeated navigation labels. On the Dashboard view, the sidebar/mobile navigation already establishes location, so the redundant page title/subtitle is hidden while server, torrent-control, and account actions remain available.\n",
@@ -110,6 +104,7 @@ design = design.replace(
 )
 design += """\n\n## Explicit update checks\n\nSettings → Updates must not initiate a GitHub network check merely because the page is opened. Cached/local release information may render immediately, but freshness is user-directed through the Check for updates action. This keeps network activity predictable and preserves a clear distinction between viewing update settings and requesting an update check.\n\nWhen the Torrent details disclosure has no selected torrent, the compact handle should remain visually quiet: show only the stable Torrent details label and disclosure affordance. Selection-specific copy appears only when a torrent is actually selected.\n"""
 write("DESIGN_LANGUAGE.md", design)
+
 
 testing = read("TESTING.md")
 testing = testing.replace(
@@ -120,29 +115,52 @@ testing += """\n\n### Update-check intent and empty detail disclosure\n\n- Open 
 write("TESTING.md", testing)
 
 
-# Bring the regression contract forward and explicitly retire the superseded v0.5.74 chrome rule.
+# Update both early and historical UI contracts without replacing large blocks.
 validator = read("release_tools/validate_ui_strings.py")
-validator = validator.replace('assert ".topbar.dashboard-mode .topbar-heading{display:none}" in app_css', 'assert ".topbar.dashboard-mode .topbar-heading{display:none}" not in app_css')
-old_block = '''    # 0.5.74 bottom-anchors the persistent disclosure and removes redundant Dashboard chrome.\n    assert 'id="topbar"' in html and 'class="topbar dashboard-mode"' in html and 'class="topbar-heading"' in html\n    assert "$('#topbar')?.classList.toggle('dashboard-mode',dashboardView)" in app_js\n    assert "if(dashboardView)requestAnimationFrame(syncTorrentWorkspaceLayout)" in app_js\n    assert "--torrent-workspace-height" in app_js and "--torrent-workspace-open-height" not in app_js\n    assert "const available=Math.max(360,Math.floor(window.innerHeight-top-16))" in app_js\n    assert '.topbar.dashboard-mode{justify-content:flex-end;margin-bottom:12px}' in app_css\n    assert '.topbar.dashboard-mode .topbar-heading{display:none}' not in app_css\n    assert '## Client-style dashboard chrome' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')\n    assert '### Bottom-anchored torrent dock' in (ROOT / 'TESTING.md').read_text(encoding='utf-8')\n\n'''
-new_block = '''    # 0.5.75 keeps v0.5.74 bottom anchoring but restores Dashboard hierarchy, quiets the empty disclosure, and makes update checks explicit.\n    assert 'id="topbar"' in html and 'class="topbar" id="topbar"' in html and 'class="topbar-heading"' in html\n    assert 'class="topbar dashboard-mode"' not in html and "classList.toggle('dashboard-mode'" not in app_js\n    assert "if(dashboardView)requestAnimationFrame(syncTorrentWorkspaceLayout)" in app_js\n    assert "--torrent-workspace-height" in app_js and "--torrent-workspace-open-height" not in app_js\n    assert "const available=Math.max(360,Math.floor(window.innerHeight-top-16))" in app_js\n    assert '.topbar.dashboard-mode' not in app_css\n    assert 'id="detailHandleSelection"></span>' in html and 'No torrent selected' not in html and 'No torrent selected' not in app_js\n    assert '.torrent-detail-handle-selection:empty{display:none}' in app_css\n    assert 'updateIntegrityRefreshAt' not in settings_js and 'updateIntegrityRefreshPromise' not in settings_js\n    assert 'checkForUpdates(true)' not in settings_js\n    assert '## Client-style dashboard workspace' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')\n    assert '## Explicit update checks' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')\n    assert '### Bottom-anchored torrent dock' in (ROOT / 'TESTING.md').read_text(encoding='utf-8')\n    assert '### Update-check intent and empty detail disclosure' in (ROOT / 'TESTING.md').read_text(encoding='utf-8')\n\n'''
-if validator.count(old_block) != 1:
-    raise SystemExit(f"v0.5.74 validator block: expected one match, found {validator.count(old_block)}")
-validator = validator.replace(old_block, new_block, 1)
+validator = validator.replace(
+    'assert ".topbar.dashboard-mode .topbar-heading{display:none}" in app_css',
+    'assert ".topbar.dashboard-mode .topbar-heading{display:none}" not in app_css',
+)
+validator = validator.replace(
+    "    # 0.5.74 bottom-anchors the persistent disclosure and removes redundant Dashboard chrome.\n",
+    "    # 0.5.75 retains bottom anchoring, restores Dashboard hierarchy, quiets the empty disclosure, and makes update checks explicit.\n",
+)
+validator = validator.replace(
+    "assert 'id=\"topbar\"' in html and 'class=\"topbar dashboard-mode\"' in html and 'class=\"topbar-heading\"' in html",
+    "assert 'id=\"topbar\"' in html and 'class=\"topbar\" id=\"topbar\"' in html and 'class=\"topbar-heading\"' in html",
+)
+validator = validator.replace(
+    'assert "$(\'#topbar\')?.classList.toggle(\'dashboard-mode\',dashboardView)" in app_js',
+    'assert "classList.toggle(\'dashboard-mode\'" not in app_js',
+)
+validator = validator.replace(
+    "assert '.topbar.dashboard-mode{justify-content:flex-end;margin-bottom:12px}' in app_css",
+    "assert '.topbar.dashboard-mode' not in app_css",
+)
+validator = validator.replace(
+    "assert '## Client-style dashboard chrome' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')",
+    "assert '## Client-style dashboard workspace' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')",
+)
+anchor = "    assert '### Bottom-anchored torrent dock' in (ROOT / 'TESTING.md').read_text(encoding='utf-8')\n"
+extra = """    assert 'class=\"topbar dashboard-mode\"' not in html\n    assert 'id=\"detailHandleSelection\"></span>' in html\n    assert 'No torrent selected' not in html and 'No torrent selected' not in app_js\n    assert '.torrent-detail-handle-selection:empty{display:none}' in app_css\n    assert 'updateIntegrityRefreshAt' not in settings_js and 'updateIntegrityRefreshPromise' not in settings_js\n    assert 'checkForUpdates(true)' not in settings_js\n    assert '## Explicit update checks' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')\n    assert '### Update-check intent and empty detail disclosure' in (ROOT / 'TESTING.md').read_text(encoding='utf-8')\n"""
+if validator.count(anchor) != 1:
+    raise SystemExit(f"testing-contract anchor: expected one match, found {validator.count(anchor)}")
+validator = validator.replace(anchor, anchor + extra, 1)
+if "class=\"topbar dashboard-mode\"' in html" in validator or "Client-style dashboard chrome" in validator:
+    raise SystemExit("superseded v0.5.74 dashboard validator remains")
 write("release_tools/validate_ui_strings.py", validator)
 
 
-# Synchronize version/cache identifiers.
 dashboard = read("dashboard.py")
 dashboard = replace_once(dashboard, f'VERSION = "{OLD}"', f'VERSION = "{NEW}"', "dashboard version")
 write("dashboard.py", dashboard)
 
 sw = read("static/sw.js")
-sw = replace_once(sw, "torrent-dashboard-v0574", "torrent-dashboard-v0575", "service worker cache")
+sw = replace_once(sw, "torrent-dashboard-v0574", "torrent-dashboard-v0575", "service-worker cache")
 sw = sw.replace(OLD, NEW)
 write("static/sw.js", sw)
 
 
-# Structured release metadata; inherit durable architecture/roadmap context.
 meta_path = ROOT / "release_notes" / "releases.json"
 meta = json.loads(meta_path.read_text(encoding="utf-8"))
 releases = meta["releases"]
@@ -171,7 +189,7 @@ entry = {
         "The optional detailHandleSelection label is hidden when empty."
     ],
     "validation": [
-        "UI regression checks now require visible Dashboard hierarchy, absence of passive Updates-page update checks, quiet empty detail disclosure, and continued bottom anchoring.",
+        "UI regression checks require visible Dashboard hierarchy, absence of passive Updates-page checks, quiet empty detail disclosure, and continued bottom anchoring.",
         "Existing backend tests, source validation, JavaScript syntax checks, generated documentation checks, and release package-integrity gates remain required."
     ],
     "known_issues": [],
@@ -181,6 +199,5 @@ for key in ("architecture", "decisions", "next_steps"):
         entry[key] = copy.deepcopy(previous[key])
 releases.append(entry)
 meta_path.write_text(json.dumps(meta, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-
 subprocess.run(["python", "release_tools/generate_release_notes.py", "--version", NEW], cwd=ROOT, check=True)
 print(f"Applied Torrent Dashboard v{NEW} dashboard/update-check cleanup")
