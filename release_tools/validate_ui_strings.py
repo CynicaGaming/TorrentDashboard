@@ -97,7 +97,7 @@ def main():
     assert 'No metadata requests are made in this release.' in html
     assert 'id="addUrls"' in html and 'id="torrentFile"' in html and 'id="addPath"' in html
     assert 'id="addCategory"' in html and 'id="addTags"' in html
-    assert 'id="addStopped"' in html and 'id="addSequential"' in html and 'id="addFirstLast"' in html
+    assert 'id="addStartTorrent"' in html and 'id="addSequential"' in html and 'id="addFirstLast"' in html
     assert '0.5.48 Add Torrent visual shell' in app_css
     assert 'fetch_torrent_metadata' not in dashboard_py
     assert '/api/torrent-metadata/fetch' not in dashboard_py
