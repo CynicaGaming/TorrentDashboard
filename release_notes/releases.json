@@ -935,6 +935,73 @@
           "detail": "Use the configuration boundary to add restrictive file permissions and separate ordinary configuration from stored credentials."
         }
       ]
+    },
+    {
+      "version": "0.5.71",
+      "date": "2026-09-02",
+      "status": "prerelease",
+      "title": "Viewport-docked torrent inspector",
+      "summary": "Corrects the desktop torrent details layout so the inspector docks to the bottom of the visible dashboard and receives enough vertical space to remain useful while the torrent list scrolls above it.",
+      "highlights": [
+        "When torrent details are open on desktop/tablet, the shared torrent workspace now measures its actual viewport position and fills the remaining visible height instead of using a fixed 58dvh estimate.",
+        "The detail inspector receives a larger desktop allocation, preventing General and table-based detail tabs from being compressed into a shallow strip.",
+        "The torrent list remains the flexible scroll region above the inspector, while the detail body scrolls independently when its content exceeds the available inspector height.",
+        "List-only sizing remains bounded and mobile retains the existing bottom-sheet behavior."
+      ],
+      "fixes": [
+        "Removes the large unused area below the torrent inspector visible on tall desktop viewports.",
+        "Prevents the docked detail pane from appearing visually squashed after the earlier bounded-workspace correction."
+      ],
+      "technical": [
+        "syncTorrentWorkspaceLayout() derives the open workspace height from window.innerHeight minus the workspace's current top coordinate, making the layout resilient to metric/control heights and browser resizing.",
+        "The viewport-derived height is stored as a CSS custom property so CSS continues to own the list/detail flex split and mobile breakpoint behavior."
+      ],
+      "validation": [
+        "The UI contract now requires viewport-derived open-workspace sizing, the enlarged inspector allocation, and removal of the former fixed 58dvh open-workspace rule.",
+        "TESTING.md now includes manual desktop inspector checks for bottom docking, usable detail height, internal scrolling, resize behavior, and mobile preservation."
+      ],
+      "known_issues": [],
+      "architecture": [
+        "Torrent Dashboard remains a Python standard-library application with dashboard.py as the HTTP composition root.",
+        "Configuration, integrations, users, and configuration transaction coordination remain separated into torrent_dashboard package modules.",
+        "The torrent detail inspector remains frontend-owned; this release changes layout/state behavior without changing the /api/detail contract.",
+        "Desktop and tablet use a docked split workspace while mobile retains a bottom-sheet detail presentation.",
+        "Development continuity is split between released state (release_notes/releases.json), authored active work (development/current.json), generated HANDOFF.md, durable architecture/testing guides, and short architectural decision records."
+      ],
+      "decisions": [
+        "Prefer docked inspectors over overlays when users need to compare selected-item details with a primary list.",
+        "Keep Collapse and Close as distinct actions: collapse preserves selection, close clears the detail context.",
+        "Keep the torrent table independently scrollable whenever the detail inspector is expanded.",
+        "Desktop/tablet list-detail workspaces should fit within the initial viewport by default; internal scrolling is preferred over expanding the page vertically.",
+        "Per-poll timestamps are not primary dashboard metrics; stale/failed refresh conditions should be surfaced explicitly as health states.",
+        "Empty-state language must reflect the actual reason a collection is empty.",
+        "Treat canonical repository, branch, and pull-request references as upstream lineage rather than assumptions about a fork's local identity.",
+        "Keep active work state public-safe and repository-focused; do not archive chat transcripts as development state.",
+        "Use the same developer-oriented documentation for humans and AI rather than maintaining vendor-specific AI instructions.",
+        "Size an open desktop list/detail workspace from its actual viewport position rather than relying on a fixed dvh approximation."
+      ],
+      "next_steps": [
+        {
+          "priority": 1,
+          "title": "Extract release and update provenance",
+          "detail": "Move GitHub release parsing, installed release metadata, package-integrity normalization, and historical digest caching out of dashboard.py."
+        },
+        {
+          "priority": 2,
+          "title": "Extract qBitTorrent transport and normalization",
+          "detail": "Move QBitClient, server normalization, proxy/preference translation, and Web API transport away from HTTP routing."
+        },
+        {
+          "priority": 3,
+          "title": "Expand request-level behavioral tests",
+          "detail": "Add authorization, CSRF, setup, account-route, and settings-mutation coverage around extracted service boundaries."
+        },
+        {
+          "priority": 4,
+          "title": "Harden secrets at rest",
+          "detail": "Use the configuration boundary to add restrictive file permissions and separate ordinary configuration from stored credentials."
+        }
+      ]
     }
   ]
 }

@@ -112,3 +112,10 @@ Mobile:
 If a regression cannot reasonably be automated yet, record the missing coverage in `development/current.json` or the next release metadata and add it to this matrix if it is a recurring verification need.
 
 Do not use this file as a test-results log; it is a stable testing contract for upstream and forks.
+
+### Desktop torrent inspector
+
+- With a torrent selected at normal desktop zoom, verify the torrent list and inspector both remain visible without scrolling the overall page.
+- Verify the torrent inspector reaches the bottom of the visible dashboard content instead of leaving a large unused gap below it.
+- Verify General, Trackers, Peers, HTTP Sources, and Content have a useful vertical viewport and scroll internally when needed.
+- Resize the browser and verify the dock recalculates without overlapping the viewport; mobile continues to use the bottom-sheet presentation.

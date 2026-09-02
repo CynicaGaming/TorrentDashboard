@@ -6,7 +6,7 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.70** (prerelease)
+- Latest documented build: **v0.5.71** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 - Upstream development branch: `refactor/backend-modularization-users`
 - Upstream prerelease branch: `prerelease/backend-modularization`
@@ -14,7 +14,7 @@
 
 ### Latest release summary
 
-Adds a public, fork-safe development continuity layer so a new developer or AI can recover both the last known-good release state and unfinished engineering intent without relying on prior chat history.
+Corrects the desktop torrent details layout so the inspector docks to the bottom of the visible dashboard and receives enough vertical space to remain useful while the torrent list scrolls above it.
 
 ## Architecture state
 
@@ -35,6 +35,7 @@ Adds a public, fork-safe development continuity layer so a new developer or AI c
 - Treat canonical repository, branch, and pull-request references as upstream lineage rather than assumptions about a fork's local identity.
 - Keep active work state public-safe and repository-focused; do not archive chat transcripts as development state.
 - Use the same developer-oriented documentation for humans and AI rather than maintaining vendor-specific AI instructions.
+- Size an open desktop list/detail workspace from its actual viewport position rather than relying on a fixed dvh approximation.
 
 ## Development principles
 
@@ -46,6 +47,15 @@ Adds a public, fork-safe development continuity layer so a new developer or AI c
 - Keep public development continuity portable across forks; label canonical repository/branch/PR references as upstream context rather than local identity.
 
 ## Recent work
+
+### v0.5.71 — Viewport-docked torrent inspector
+
+Corrects the desktop torrent details layout so the inspector docks to the bottom of the visible dashboard and receives enough vertical space to remain useful while the torrent list scrolls above it.
+
+- When torrent details are open on desktop/tablet, the shared torrent workspace now measures its actual viewport position and fills the remaining visible height instead of using a fixed 58dvh estimate.
+- The detail inspector receives a larger desktop allocation, preventing General and table-based detail tabs from being compressed into a shallow strip.
+- The torrent list remains the flexible scroll region above the inspector, while the detail body scrolls independently when its content exceeds the available inspector height.
+- List-only sizing remains bounded and mobile retains the existing bottom-sheet behavior.
 
 ### v0.5.70 — Fork-safe development continuity
 
@@ -84,15 +94,6 @@ Reworks torrent details into a docked, collapsible inspector attached to the bot
 - The torrent table is the flexible scroll region above the inspector, so expanding details reduces the list viewport rather than covering torrent rows.
 - The detail header now provides separate Collapse and Close controls; collapse preserves the selected torrent while Close clears the inspector.
 - The collapsed preference is remembered locally, and mobile retains its existing bottom-sheet presentation with matching collapse behavior.
-
-### v0.5.66 — Desktop legibility and workspace use
-
-Raises the desktop readability baseline across Torrent Dashboard and uses the available canvas more effectively without changing mobile behavior or removing compact density.
-
-- Desktop primary content, forms, tables, navigation, dialogs, patch notes, torrent details, Add Torrent, and notifications use larger type and more deliberate spacing at 1024 px and above.
-- The desktop sidebar and main content area use more of the available viewport instead of preserving undersized text beside unused space.
-- Muted text contrast is stronger in both dark and light themes while remaining visually subordinate to primary content.
-- Compact density remains available with a reduced row height, but no longer implies the former undersized desktop typography baseline.
 
 ## What to do next
 

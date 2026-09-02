@@ -7,14 +7,14 @@
 This handoff is intentionally portable across public forks. Verify the current checkout's Git remote, branch, and open work before using upstream references as instructions.
 
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
-- Last documented upstream build: **v0.5.70** (prerelease)
+- Last documented upstream build: **v0.5.71** (prerelease)
 - Upstream development branch: `refactor/backend-modularization-users`
 - Upstream prerelease branch: `prerelease/backend-modularization`
 - Upstream active PR: **#25**
 
 ## Last known-good state
 
-Adds a public, fork-safe development continuity layer so a new developer or AI can recover both the last known-good release state and unfinished engineering intent without relying on prior chat history.
+Corrects the desktop torrent details layout so the inspector docks to the bottom of the visible dashboard and receives enough vertical space to remain useful while the torrent list scrolls above it.
 
 The released-state details and recent history are in `PROJECT_STATE.md`; architectural constraints are in `ARCHITECTURE.md`.
 

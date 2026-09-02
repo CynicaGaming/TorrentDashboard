@@ -131,8 +131,12 @@ def main():
     assert "pane.closest('.torrent-workspace')?.classList.add('has-detail')" in app_js
     assert "pane.closest('.torrent-workspace')?.classList.remove('has-detail')" in app_js
     assert ".torrent-workspace{display:flex;flex-direction:column;overflow:hidden;height:min(460px,44dvh)}" in app_css
-    assert ".torrent-workspace.has-detail{height:min(600px,58dvh)}" in app_css
-    assert "flex:0 0 clamp(180px,42%,290px)" in app_css
+    assert ".torrent-workspace.has-detail{height:var(--torrent-workspace-open-height,min(720px,calc(100dvh - 280px)))}" in app_css
+    assert "flex:0 0 clamp(240px,48%,420px)" in app_css
+    assert ".torrent-detail-pane{flex-basis:clamp(300px,48%,440px)}" in app_css
+    assert "function syncTorrentWorkspaceLayout()" in app_js
+    assert "window.innerHeight-top-16" in app_js
+    assert "--torrent-workspace-open-height" in app_js
     assert "height:calc(100dvh - 320px);min-height:480px" not in app_css
     assert 'id="mTotal"' in html and 'id="mTorrentSummary"' in html
     assert 'id="mUpdated"' not in html and 'id="mHealth"' not in html

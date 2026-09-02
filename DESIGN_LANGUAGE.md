@@ -79,3 +79,7 @@ Empty-state language must describe why the current surface is empty rather than 
 - Primary dashboard metric cards should represent meaningful operational state. Values that refresh every polling interval, such as a per-second "Last update" timestamp, should not occupy a permanent summary card unless staleness itself requires attention.
 - Connection failures and stale data should be surfaced as health/error states rather than requiring users to infer problems from a timestamp.
 
+## Viewport-docked desktop inspectors
+
+On non-mobile layouts, a docked list/detail workspace should use the actual remaining viewport rather than a fixed viewport-height guess. When torrent details are open, the shared workspace should extend to the bottom of the visible dashboard content, keep the torrent list scrollable above it, and allocate enough height to the inspector for its primary content to remain legible. Mobile keeps the sheet model.
+

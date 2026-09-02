@@ -1,5 +1,5 @@
 'use strict';
-const FRONTEND_BUILD='0.5.70';
+const FRONTEND_BUILD='0.5.71';
 const HTML_BUILD=document.querySelector('meta[name="torrent-dashboard-build"]')?.content||'';
 const RECOVERY_KEY=`td-frontend-recovery-${FRONTEND_BUILD}`;
 async function recoverFrontendBuild(reason){
@@ -563,6 +563,20 @@ function stateInfo(t){const s=String(t.state||'').toLowerCase();if(s.includes('e
 function trackerHost(v){try{return new URL(v).hostname||v}catch{return v||''}}
 function keyFor(t){return`${t._server_id||state.server}:${t.hash}`}
 function visibleTorrents(){let arr=state.torrents.filter(t=>{if(state.filter==='active'&&!isActive(t))return false;if(state.filter==='completed'&&!isComplete(t))return false;if(state.filter==='paused'&&!isPaused(t))return false;if(state.category&&t.category!==state.category)return false;if(state.tag&&!String(t.tags||'').split(',').map(x=>x.trim()).includes(state.tag))return false;if(state.tracker&&trackerHost(t.tracker)!==state.tracker)return false;if(state.search&&!`${t.name||''} ${t.category||''} ${t.tags||''} ${t.tracker||''}`.toLowerCase().includes(state.search))return false;return true});const [field,dir]=state.sort.split('_');const val=(t)=>({name:String(t.name||'').toLowerCase(),progress:Number(t.progress||0),down:Number(t.dlspeed||0),up:Number(t.upspeed||0),eta:Number(t.eta||9e15),size:Number(t.size||0),ratio:Number(t.ratio||0),added:Number(t.added_on||0)})[field];arr.sort((a,b)=>{let A=val(a),B=val(b);return(A<B?-1:A>B?1:0)*(dir==='desc'?-1:1)});return arr}
+function syncTorrentWorkspaceLayout(){
+  const workspace=$('.torrent-workspace');
+  if(!workspace)return;
+  const mobile=window.matchMedia('(max-width:700px)').matches;
+  const hasDetail=workspace.classList.contains('has-detail');
+  if(mobile||!hasDetail){workspace.style.removeProperty('--torrent-workspace-open-height');return}
+  if(!$('#view-dashboard')?.classList.contains('active'))return;
+  const top=Math.max(0,workspace.getBoundingClientRect().top);
+  const available=Math.max(320,Math.floor(window.innerHeight-top-16));
+  const value=`${available}px`;
+  if(workspace.style.getPropertyValue('--torrent-workspace-open-height')!==value)workspace.style.setProperty('--torrent-workspace-open-height',value);
+}
+window.addEventListener('resize',()=>requestAnimationFrame(syncTorrentWorkspaceLayout));
+
 function emptyStateCopy(){
   const hasFacet=!!(state.search||state.category||state.tag||state.tracker);
   if(!state.torrents.length)return state.me?.can_manage?['No torrents yet','Add a torrent to get started.']:['No torrents available','There are no torrents on this server.'];
@@ -572,7 +586,7 @@ function emptyStateCopy(){
   if(state.filter==='paused')return['No paused torrents','Paused torrents will appear here.'];
   return['No torrents in this view','Try another filter.'];
 }
-function render(){const list=visibleTorrents();$('#torrentRows').innerHTML=list.map(rowHtml).join('');const empty=$('#empty');empty.classList.toggle('hidden',list.length>0);if(!list.length){const [title,text]=emptyStateCopy();$('#emptyTitle').textContent=title;$('#emptyText').textContent=text}$('#selectedCount').textContent=state.selected.size;$('#bulkbar').classList.toggle('hidden',!state.selected.size);$('#selectAll').checked=!!list.length&&list.every(t=>state.selected.has(keyFor(t)));updateFilters()}
+function render(){const list=visibleTorrents();$('#torrentRows').innerHTML=list.map(rowHtml).join('');const empty=$('#empty');empty.classList.toggle('hidden',list.length>0);if(!list.length){const [title,text]=emptyStateCopy();$('#emptyTitle').textContent=title;$('#emptyText').textContent=text}$('#selectedCount').textContent=state.selected.size;$('#bulkbar').classList.toggle('hidden',!state.selected.size);$('#selectAll').checked=!!list.length&&list.every(t=>state.selected.has(keyFor(t)));updateFilters();syncTorrentWorkspaceLayout()}
 function rowHtml(t){const pct=Math.max(0,Math.min(100,Number(t.progress||0)*100)),[label,cls]=stateInfo(t),server=t._server_name?`${t._server_name} · `:'';return`<tr class="${state.detail&&state.detail.server===(t._server_id||state.server)&&state.detail.hash===t.hash?'torrent-detail-selected':''}" data-key="${esc(keyFor(t))}" data-hash="${esc(t.hash)}" data-server="${esc(t._server_id||state.server)}"><td class="check"><input class="rowcheck" type="checkbox" ${state.selected.has(keyFor(t))?'checked':''}></td><td><div class="torrent-name" title="${esc(t.name)}">${esc(t.name)}</div><div class="torrent-sub">${esc(server)}${bytes(t.size)} · ${esc(t.category||'Uncategorized')} · ${Number(t.num_seeds||0)} Seeds</div></td><td class="progress-cell" data-col="progress"><div class="progress-top"><span>${pct.toFixed(1)}%</span><span>${bytes(t.amount_left)} Left</span></div><div class="track"><div class="fill" style="width:${pct}%"></div></div></td><td class="mobile-grid" data-col="state" data-label="Status"><span class="state ${cls}">${esc(uiText(label))}</span></td><td class="mobile-grid" data-col="down" data-label="Download"><span class="mono">${speed(t.dlspeed||0)}</span></td><td class="mobile-grid" data-col="up" data-label="Upload"><span class="mono">${speed(t.upspeed||0)}</span></td><td class="mobile-grid" data-col="eta" data-label="ETA"><span class="mono">${eta(t.eta)}</span></td><td class="mobile-grid" data-col="ratio" data-label="Ratio"><span class="mono">${Number(t.ratio||0).toFixed(2)}</span></td><td class="row-actions"><button class="more-row" aria-label="Actions">•••</button></td></tr>`}
 function syncFilterSelect(select,values,selected,emptyLabel){
   if(!select)return;
@@ -726,11 +740,11 @@ async function toggleDetailPane(){
 }
 async function openDetail(server,hash){
   const same=state.detail?.server===server&&state.detail?.hash===hash;state.detail={server,hash,data:same?state.detail?.data:null};state.detailTab=state.detailTab||'general';
-  const pane=$('#torrentDetailPane');pane.classList.remove('hidden');pane.closest('.torrent-workspace')?.classList.add('has-detail');syncDetailPaneState();$$('[data-detailtab]').forEach(b=>b.classList.toggle('active',b.dataset.detailtab===state.detailTab));
+  const pane=$('#torrentDetailPane');pane.classList.remove('hidden');pane.closest('.torrent-workspace')?.classList.add('has-detail');syncDetailPaneState();syncTorrentWorkspaceLayout();$$('[data-detailtab]').forEach(b=>b.classList.toggle('active',b.dataset.detailtab===state.detailTab));
   const t=state.torrents.find(x=>(x._server_id||state.server)===server&&x.hash===hash);$('#detailName').textContent=t?.name||hash;$('#detailMeta').textContent=`${t?._server_name||server} · ${hash}`;render();
   if(!state.detailCollapsed)await refreshDetailData(true);
 }
-function closeDetailPane(){const pane=$('#torrentDetailPane');pane.classList.add('hidden');pane.closest('.torrent-workspace')?.classList.remove('has-detail');state.detail=null;render()}
+function closeDetailPane(){const pane=$('#torrentDetailPane');pane.classList.add('hidden');pane.closest('.torrent-workspace')?.classList.remove('has-detail');syncTorrentWorkspaceLayout();state.detail=null;render()}
 async function refreshDetailData(force=false){
   if(!state.detail||state.detailCollapsed&&!force)return;const now=Date.now();if(!force&&now-detailRefreshAt<3000)return;detailRefreshAt=now;const {server,hash}=state.detail;
   if(!state.detail.data)$('#detailBody').innerHTML='<div class="empty">Loading…</div>';
