@@ -490,6 +490,73 @@
           "detail": "After configuration ownership is isolated, add restrictive filesystem permissions and a cleaner separation between ordinary configuration and stored credentials."
         }
       ]
+    },
+    {
+      "version": "0.5.64",
+      "date": "2026-09-02",
+      "status": "prerelease",
+      "title": "Configuration and integrations module extraction",
+      "summary": "Moves configuration lifecycle and integration-provider ownership out of dashboard.py into dedicated package modules while preserving existing dashboard behavior.",
+      "highlights": [
+        "Added torrent_dashboard/config.py for defaults, legacy migrations, update-repository normalization, browser-safe redaction, and atomic config.json persistence.",
+        "Added torrent_dashboard/integrations.py for provider definitions, normalization, secret redaction, connection tests, and integration CRUD transforms.",
+        "dashboard.py now composes ConfigRepository through ConfigStore instead of implementing configuration lifecycle inline.",
+        "Existing route handlers keep their established helper call surface through imports to minimize refactor blast radius."
+      ],
+      "fixes": [],
+      "technical": [
+        "LAN detection for the legacy auto-trust migration is injected into ConfigRepository, preserving the no-import-back-to-dashboard dependency rule.",
+        "ConfigStore remains the transaction coordinator while ConfigRepository owns parsing, migration, normalization, and atomic persistence.",
+        "Browser configuration sanitization now has a package boundary; dashboard.py only adds runtime network and update state."
+      ],
+      "validation": [
+        "Configuration tests cover default creation, legacy network/auth/integration/update migrations, save cleanup, and browser secret redaction.",
+        "Integration tests cover secret preservation, URL validation, immutable CRUD transforms, and provider catalog metadata.",
+        "Reusable source validation rejects configuration or integration ownership drifting back into dashboard.py.",
+        "Existing UI, frontend-generation, release-metadata, user-domain, and configuration-concurrency checks remain active."
+      ],
+      "known_issues": [
+        "dashboard.py and static/app.js remain larger than the intended steady-state architecture; release/update metadata and qBitTorrent transport are the next high-value extraction boundaries.",
+        "ConfigStore coordinates only the running process; an external editor writing config.json concurrently is not cross-process locked."
+      ],
+      "architecture": [
+        "dashboard.py is the composition root and HTTP adapter; configuration schema/persistence and integration definitions are no longer implemented there.",
+        "User and account logic lives in torrent_dashboard/users.py.",
+        "Configuration defaults, migrations, browser sanitization, repository normalization, and atomic persistence live in torrent_dashboard/config.py.",
+        "Configuration transaction coordination lives in torrent_dashboard/config_store.py.",
+        "Integration provider definitions, normalization, redaction, connection tests, and CRUD transforms live in torrent_dashboard/integrations.py.",
+        "Runtime LAN detection is injected into ConfigRepository rather than reversing dependency direction to dashboard.py.",
+        "Release/update provenance remains in dashboard.py and is the next planned extraction."
+      ],
+      "decisions": [
+        "Continue behavior-preserving modularization in small prerelease increments.",
+        "Package modules must not import dashboard.py.",
+        "Keep ConfigStore focused on transaction coordination and ConfigRepository focused on configuration file lifecycle.",
+        "Inject runtime-only dependencies into package modules instead of importing the process adapter.",
+        "Keep integration provider configuration separate from notification delivery."
+      ],
+      "next_steps": [
+        {
+          "priority": 1,
+          "title": "Extract release and update provenance",
+          "detail": "Move GitHub release parsing, installed release metadata, package-integrity normalization, and historical digest caching out of dashboard.py."
+        },
+        {
+          "priority": 2,
+          "title": "Extract qBitTorrent transport and normalization",
+          "detail": "Move QBitClient, server normalization, proxy/preference translation, and Web API transport away from HTTP routing."
+        },
+        {
+          "priority": 3,
+          "title": "Expand request-level behavioral tests",
+          "detail": "Add authorization, CSRF, setup, account-route, and settings-mutation coverage around extracted service boundaries."
+        },
+        {
+          "priority": 4,
+          "title": "Harden secrets at rest",
+          "detail": "Use the configuration boundary to add restrictive file permissions and separate ordinary configuration from stored credentials."
+        }
+      ]
     }
   ]
 }

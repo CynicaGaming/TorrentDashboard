@@ -50,7 +50,9 @@ def main():
     app_css = (ROOT / "static" / "app.css").read_text(encoding="utf-8")
     settings_css = (ROOT / "static" / "settings.css").read_text(encoding="utf-8")
     dashboard_py = (ROOT / "dashboard.py").read_text(encoding="utf-8")
+    config_py = (ROOT / "torrent_dashboard" / "config.py").read_text(encoding="utf-8")
     config_store_py = (ROOT / "torrent_dashboard" / "config_store.py").read_text(encoding="utf-8")
+    integrations_py = (ROOT / "torrent_dashboard" / "integrations.py").read_text(encoding="utf-8")
     users_py = (ROOT / "torrent_dashboard" / "users.py").read_text(encoding="utf-8")
 
     validate_html_attributes(html)
@@ -201,7 +203,7 @@ def main():
 
     # Updates owns the public GitHub repository directly. GitHub must not be a
     # modular integration and update installation remains a reactive button.
-    assert 'DEFAULT_UPDATE_REPOSITORY = "CynicaGaming/TorrentDashboard"' in dashboard_py
+    assert 'DEFAULT_UPDATE_REPOSITORY = "CynicaGaming/TorrentDashboard"' in config_py
     assert 'def update_repository(cfg):' in dashboard_py
     assert 'def save_update_source(cfg, repository):' in dashboard_py
     assert 'github_update_integration' not in dashboard_py
@@ -384,10 +386,16 @@ def main():
     assert '0.5.26 qBitTorrent-style torrent toolbar' in app_css
     assert '0.5.28 advanced per-client qBitTorrent settings' in settings_css
 
-    # 0.5.56 serializes all configuration read/modify/write mutations.
+    # 0.5.56 serializes all configuration read/modify/write mutations; 0.5.64
+    # moves schema/migration/persistence ownership behind ConfigRepository.
+    assert 'from torrent_dashboard.config import (' in dashboard_py
+    assert 'from torrent_dashboard.integrations import (' in dashboard_py
     assert 'from torrent_dashboard.config_store import ConfigStore' in dashboard_py
-    assert 'CONFIG_STORE = ConfigStore(_load_config_unlocked, _save_config_unlocked)' in dashboard_py
+    assert 'CONFIG_STORE = ConfigStore(CONFIG_REPOSITORY.load, CONFIG_REPOSITORY.save)' in dashboard_py
     assert 'def mutate_config(transform):' in dashboard_py
+    assert 'class ConfigRepository:' in config_py and 'def normalize_config(' in config_py
+    assert 'INTEGRATION_TYPES = {' in integrations_py and 'def normalize_integration(' in integrations_py
+    assert 'def _load_config_unlocked' not in dashboard_py and 'INTEGRATION_TYPES = {' not in dashboard_py
     assert 'class ConfigStore:' in config_store_py and 'with self._lock:' in config_store_py
     mutation_section = dashboard_py.split('class Handler(BaseHTTPRequestHandler):', 1)[1]
     assert 'save_config(' not in mutation_section

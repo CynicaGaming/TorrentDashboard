@@ -64,8 +64,26 @@ def validate_dashboard_contract() -> None:
 
     if "from torrent_dashboard.users import" not in source:
         fail("dashboard.py must consume the extracted users module")
+    if "from torrent_dashboard.config import" not in source:
+        fail("dashboard.py must consume the extracted configuration module")
+    if "from torrent_dashboard.integrations import" not in source:
+        fail("dashboard.py must consume the extracted integrations module")
     if "from torrent_dashboard.config_store import ConfigStore" not in source:
         fail("dashboard.py must use ConfigStore for configuration coordination")
+
+    forbidden_ownership = (
+        "def _load_config_unlocked",
+        "def _save_config_unlocked",
+        "def normalize_integration",
+        "def redacted_integrations",
+        "def normalize_github_repository",
+        "INTEGRATION_TYPES = {",
+    )
+    leftovers = [marker for marker in forbidden_ownership if marker in source]
+    if leftovers:
+        fail("dashboard.py still owns extracted configuration/integration behavior: " + ", ".join(leftovers))
+    if "CONFIG_STORE = ConfigStore(CONFIG_REPOSITORY.load, CONFIG_REPOSITORY.save)" not in source:
+        fail("dashboard.py must coordinate ConfigRepository through ConfigStore")
 
 
 def app_version() -> str:

@@ -4,7 +4,7 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.63** (prerelease)
+- Latest documented build: **v0.5.64** (prerelease)
 - Repository: `CynicaGaming/TorrentDashboard`
 - Development branch: `refactor/backend-modularization-users`
 - Prerelease branch: `prerelease/backend-modularization`
@@ -12,34 +12,25 @@
 
 ### Latest release summary
 
-Adds a maintenance checkpoint for architecture documentation, reusable source validation, user-domain tests, and release-workflow consistency without intentionally changing dashboard behavior.
+Moves configuration lifecycle and integration-provider ownership out of dashboard.py into dedicated package modules while preserving existing dashboard behavior.
 
 ## Architecture state
 
-- The application remains a Python standard-library ThreadingHTTPServer service with most HTTP routing still in dashboard.py.
-- User and account domain logic lives in torrent_dashboard/users.py.
-- Configuration transaction coordination lives in torrent_dashboard/config_store.py while config normalization and migration logic still lives in dashboard.py.
-- The updater consumes public GitHub Releases and already exposes each release body as manifest.notes.
-- Completed development increments are published from prerelease/backend-modularization; active refactor work remains on refactor/backend-modularization-users.
-- Update history is sourced from bundled structured release metadata and supplemented with the latest GitHub release manifest during update checks.
-- Installed release provenance is stored in root release-info.json and is replaced/rolled back with application files; release build provenance is also published as a sidecar JSON asset.
-- Authoritative historical release digests are cached under data/release-integrity.json and merged into the locally bundled patch-note history.
-- ARCHITECTURE.md now documents module ownership, dependency direction, configuration transactions, testing, and the extraction roadmap.
-- Reusable source validation lives in release_tools/validate_source.py and is intended to be shared by development and release workflows.
+- dashboard.py is the composition root and HTTP adapter; configuration schema/persistence and integration definitions are no longer implemented there.
+- User and account logic lives in torrent_dashboard/users.py.
+- Configuration defaults, migrations, browser sanitization, repository normalization, and atomic persistence live in torrent_dashboard/config.py.
+- Configuration transaction coordination lives in torrent_dashboard/config_store.py.
+- Integration provider definitions, normalization, redaction, connection tests, and CRUD transforms live in torrent_dashboard/integrations.py.
+- Runtime LAN detection is injected into ConfigRepository rather than reversing dependency direction to dashboard.py.
+- Release/update provenance remains in dashboard.py and is the next planned extraction.
 
 ## Current engineering decisions
 
-- Continue modularization in behavior-preserving increments rather than combining refactors with unrelated feature changes.
-- Use structured release metadata rather than commit-message inference as the authoritative source for release notes.
-- Keep PROJECT_STATE.md generated and read-only so it cannot drift from release metadata.
-- Preserve future GitHub prereleases instead of deleting all older prereleases during publication.
-- Keep complete release history in repository metadata while limiting the in-app Updates view to the two most recent releases.
-- Treat Package SHA-256 as release provenance metadata sourced only from the finalized GitHub asset or a verified local download, never as manually authored patch-note content.
-- Populate historical package digests from retained GitHub release assets at update-check time rather than storing mutable package hashes in authored patch-note metadata.
-- Persist remote release-integrity metadata under data/ so historical hashes remain available across browser sessions and application updates without treating hashes as authored patch-note fields.
-- Run periodic maintenance checkpoints that improve tests, documentation, module boundaries, and release tooling without bundling unrelated product changes.
-- Treat dashboard.py as the composition root; modules under torrent_dashboard must not import dashboard.py.
-- Run standard-library unit tests and reusable architecture validation as part of release packaging, not only ad-hoc source-string assertions.
+- Continue behavior-preserving modularization in small prerelease increments.
+- Package modules must not import dashboard.py.
+- Keep ConfigStore focused on transaction coordination and ConfigRepository focused on configuration file lifecycle.
+- Inject runtime-only dependencies into package modules instead of importing the process adapter.
+- Keep integration provider configuration separate from notification delivery.
 
 ## Development principles
 
@@ -49,6 +40,15 @@ Adds a maintenance checkpoint for architecture documentation, reusable source va
 - Keep user-facing patch notes separate from engineering handoff details.
 
 ## Recent work
+
+### v0.5.64 — Configuration and integrations module extraction
+
+Moves configuration lifecycle and integration-provider ownership out of dashboard.py into dedicated package modules while preserving existing dashboard behavior.
+
+- Added torrent_dashboard/config.py for defaults, legacy migrations, update-repository normalization, browser-safe redaction, and atomic config.json persistence.
+- Added torrent_dashboard/integrations.py for provider definitions, normalization, secret redaction, connection tests, and integration CRUD transforms.
+- dashboard.py now composes ConfigRepository through ConfigStore instead of implementing configuration lifecycle inline.
+- Existing route handlers keep their established helper call surface through imports to minimize refactor blast radius.
 
 ### v0.5.63 — Code health and release guardrails
 
@@ -84,25 +84,17 @@ Persists the verified release-package SHA-256 with installed builds and surfaces
 - Recovery updates persist the same release metadata after independently verifying the GitHub asset digest.
 - The release build emits a Torrent-Dashboard-<version>.release.json sidecar containing the final ZIP digest, version, repository, tag, and commit.
 
-### v0.5.59 — Patch notes presentation cleanup
-
-Simplified Settings → Updates to focus on the latest two releases while retaining the complete release history for changelog and project handoff purposes, with a cleaner release-card presentation.
-
-- Settings → Updates now shows only the latest release and the immediately previous release instead of the complete historical list.
-- Release cards now use a dedicated version badge, release-status badges, publication date, clearer typography, and improved spacing.
-- The expanded release no longer repeats the version/title heading inside the patch-note body.
-- The full structured release history remains preserved in release_notes/releases.json, CHANGELOG.md, and PROJECT_STATE.md.
-
 ## What to do next
 
-1. **Extract configuration normalization and persistence** — Move config defaults, migration, normalization, sanitization, and atomic persistence into a dedicated torrent_dashboard module while preserving ConfigStore as the transaction coordinator.
-2. **Split release/update provenance from dashboard.py** — Move GitHub release parsing, installed release metadata, and historical digest caching behind a cohesive backend module after configuration extraction is stable.
-3. **Expand request-level behavioral tests** — Add authorization, CSRF, setup, account-route, and configuration-mutation coverage around the extracted domain boundaries.
-4. **Harden secrets at rest** — After configuration ownership is isolated, add restrictive filesystem permissions and a cleaner separation between ordinary configuration and stored credentials.
+1. **Extract release and update provenance** — Move GitHub release parsing, installed release metadata, package-integrity normalization, and historical digest caching out of dashboard.py.
+2. **Extract qBitTorrent transport and normalization** — Move QBitClient, server normalization, proxy/preference translation, and Web API transport away from HTTP routing.
+3. **Expand request-level behavioral tests** — Add authorization, CSRF, setup, account-route, and settings-mutation coverage around extracted service boundaries.
+4. **Harden secrets at rest** — Use the configuration boundary to add restrictive file permissions and separate ordinary configuration from stored credentials.
 
 ## Known issues
 
-- dashboard.py and static/app.js remain larger than the intended steady-state architecture; this checkpoint adds guardrails before the next extraction rather than attempting multiple large refactors at once.
+- dashboard.py and static/app.js remain larger than the intended steady-state architecture; release/update metadata and qBitTorrent transport are the next high-value extraction boundaries.
+- ConfigStore coordinates only the running process; an external editor writing config.json concurrently is not cross-process locked.
 
 ## Handoff instructions for a new development session
 

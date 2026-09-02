@@ -19,7 +19,7 @@ The current rules are:
 
 ### `dashboard.py`
 
-Owns application composition, process startup, HTTP routing, qBitTorrent orchestration, sessions, network/interface discovery, integrations, notification delivery, history collection, update orchestration, and compatibility adapters that have not yet been extracted.
+Owns application composition, process startup, HTTP routing, qBitTorrent orchestration, sessions, network/interface discovery, notification delivery, history collection, update orchestration, and compatibility adapters that have not yet been extracted. Configuration and integration domains are imported from package modules rather than implemented here.
 
 This file is still larger than the desired steady-state architecture. Refactors should reduce its responsibilities incrementally while keeping behavior stable.
 
@@ -35,11 +35,17 @@ Owns the user/account domain:
 - password changes
 - legacy authentication-field synchronization
 
+### `torrent_dashboard/config.py`
+
+Owns configuration defaults, legacy migrations, update-repository normalization, browser-safe configuration redaction, and atomic `config.json` persistence through `ConfigRepository`. LAN detection needed by one legacy migration is injected by the composition root rather than imported from it.
+
 ### `torrent_dashboard/config_store.py`
 
-Owns in-process configuration transaction coordination. `mutate()` acquires the lock before reading the latest configuration, applies one transformation, persists it, and releases the lock only after the write completes.
+Owns in-process configuration transaction coordination. `mutate()` acquires the lock before reading the latest configuration through `ConfigRepository`, applies one transformation, persists it, and releases the lock only after the write completes.
 
-Configuration schema normalization and migration are still in `dashboard.py` and are the next backend extraction target.
+### `torrent_dashboard/integrations.py`
+
+Owns the integration provider catalog, field validation and normalization, configured-secret redaction, connection tests, and integration CRUD transforms. Provider definitions no longer live in the HTTP adapter.
 
 ### `updater.py`
 
@@ -116,10 +122,10 @@ A package module importing `dashboard.py` is considered an architectural violati
 
 The next useful boundaries are:
 
-1. **Configuration** — schema defaults, migrations, normalization, sanitization, and persistence.
-2. **Release/update metadata** — GitHub release parsing, installed provenance, and integrity-history persistence.
-3. **qBitTorrent client/domain operations** — isolate Web API transport and normalization from HTTP routes.
-4. **Integrations/notifications** — separate provider normalization and delivery health from request handling.
+1. **Release/update metadata** — GitHub release parsing, installed provenance, and integrity-history persistence.
+2. **qBitTorrent client/domain operations** — isolate Web API transport, server normalization, and preference translation from HTTP routes.
+3. **Request/application services** — move setup and settings transformations behind testable service functions so HTTP handlers remain adapters.
+4. **Notification delivery** — separate delivery dispatch from provider configuration now that integration definitions are isolated.
 5. **Frontend feature modules** — reduce the responsibility of `static/app.js` after backend boundaries stabilize.
 
 Extraction should remain incremental. A refactor should not simultaneously redesign unrelated user-facing behavior unless the behavior change is independently required and tested.

@@ -33,7 +33,23 @@ from http import cookies
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
+from torrent_dashboard.config import (
+    ConfigRepository,
+    DEFAULT_CONFIG,
+    DEFAULT_UPDATE_REPOSITORY,
+    normalize_github_repository,
+    public_config,
+)
 from torrent_dashboard.config_store import ConfigStore
+from torrent_dashboard.integrations import (
+    INTEGRATION_TYPES,
+    delete_integration,
+    integration_catalog,
+    normalize_integration,
+    redacted_integrations,
+    save_integration,
+    test_integration_connection,
+)
 from torrent_dashboard.users import (
     AVATAR_DIR,
     MAX_AVATAR_BYTES,
@@ -69,9 +85,8 @@ RELEASE_INFO_PATH = APP_DIR / "release-info.json"
 RELEASE_INTEGRITY_CACHE_PATH = DATA_DIR / "release-integrity.json"
 CUSTOM_SOUND_BASENAME = "custom-notification-sound"
 MAX_CUSTOM_SOUND_BYTES = 2 * 1024 * 1024
-VERSION = "0.5.63"
+VERSION = "0.5.64"
 STATUS_REFRESH_SECONDS = 1.0
-DEFAULT_UPDATE_REPOSITORY = "CynicaGaming/TorrentDashboard"
 
 
 class SingleInstanceLock:
@@ -130,204 +145,19 @@ class SingleInstanceLock:
             self._file = None
 
 
-DEFAULT_CONFIG = {
-    "setup": {"complete": False},
-    "dashboard": {
-        "title": "Torrent Dashboard",
-        "bind_host": "0.0.0.0",
-        "port": 8765,
-        "open_browser": True,
-        "history_retention_days": 30,
-        "history_sample_seconds": 10,
-        "low_disk_gb": 20,
-        "https_enabled": False,
-        "https_cert": "",
-        "https_key": ""
-    },
-    "updates": {"repository": DEFAULT_UPDATE_REPOSITORY},
-    "auth": {
-        "mode": "lan_bypass",
-        "trusted_interfaces": [],
-        "trusted_ips": [],
-        "session_hours": 24,
-        "max_login_attempts_per_10m": 20
-    },
-    "users": [],
-    "servers": [],
-    "notifications": {
-        "browser": True,
-        "sound": False,
-        "sound_mode": "default",
-        "custom_sound_file": "",
-        "custom_sound_name": "",
-        "custom_sound_mime": ""
-    },
-    "integrations": []
-}
-
-
-def deep_merge(base, override):
-    out = dict(base)
-    for key, value in (override or {}).items():
-        if isinstance(value, dict) and isinstance(out.get(key), dict):
-            out[key] = deep_merge(out[key], value)
-        else:
-            out[key] = value
-    return out
-
-
-def _load_config_unlocked():
-    if not CONFIG_PATH.exists():
-        CONFIG_PATH.write_text(json.dumps(DEFAULT_CONFIG, indent=2) + "\n", encoding="utf-8")
-    raw = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
-    # Existing Torrent Dashboard installs predate the setup wizard. Treat an
-    # existing config as already configured so upgrades do not interrupt them.
-    if "setup" not in raw:
-        raw["setup"] = {"complete": True}
-
-    # 3.2.1 replaces the single automatic LAN choice with explicit trusted
-    # network-interface selection plus a general IP/CIDR whitelist. Existing
-    # installations are migrated in memory without discarding custom entries.
-    auth_raw = raw.setdefault("auth", {})
-    legacy_cidrs = list(auth_raw.get("trusted_cidrs", []) or [])
-    if "trusted_ips" not in auth_raw:
-        auth_raw["trusted_ips"] = [c for c in legacy_cidrs if c not in ("127.0.0.0/8", "::1/128")]
-    if "trusted_interfaces" not in auth_raw:
-        auth_raw["trusted_interfaces"] = []
-        if auth_raw.get("auto_trust_lan", False):
-            try:
-                default = detect_lan_network()
-                if default.get("interface_id") or default.get("interface"):
-                    auth_raw["trusted_interfaces"] = [default.get("interface_id") or default.get("interface")]
-            except Exception:
-                pass
-
-    merged = deep_merge(DEFAULT_CONFIG, raw)
-    # 0.5.16 makes status collection a fixed one-second application behavior.
-    # Ignore and retire any refresh_seconds value left by an older install.
-    merged.setdefault("dashboard", {}).pop("refresh_seconds", None)
-    # Read-only mode is replaced by per-user roles in 0.5.0. Standard Users
-    # are read-only; Administrators retain management access.
-    merged.setdefault("dashboard", {}).pop("read_only", None)
-
-    raw_users = raw.get("users")
-    if isinstance(raw_users, list) and raw_users:
-        merged["users"] = [normalize_user(item, item) for item in raw_users if isinstance(item, dict)]
-    else:
-        legacy_auth = raw.get("auth", {}) if isinstance(raw.get("auth"), dict) else {}
-        legacy_hash = str(legacy_auth.get("password_hash") or "")
-        if legacy_hash:
-            username = str(legacy_auth.get("username") or "admin")[:128]
-            merged["users"] = [normalize_user({
-                "id": stable_record_id("user", username),
-                "username": username,
-                "password_hash": legacy_hash,
-                "group": "administrator",
-            }, require_password=True)]
-        else:
-            merged["users"] = []
-
-    raw_integrations = raw.get("integrations")
-    legacy_github_repo = ""
-    if isinstance(raw_integrations, list):
-        migrated = []
-        for item in raw_integrations:
-            if not isinstance(item, dict):
-                continue
-            if str(item.get("type") or "").strip().lower() == "github":
-                if not legacy_github_repo:
-                    legacy_github_repo = str(item.get("repository") or "").strip()
-                continue
-            try:
-                migrated.append(normalize_integration(item, item))
-            except Exception:
-                continue
-        merged["integrations"] = migrated
-    elif isinstance(raw_integrations, dict):
-        migrated = []
-        for provider in ("sonarr", "radarr", "lidarr", "prowlarr", "jellyfin", "plex"):
-            value = raw_integrations.get(provider) or {}
-            if not isinstance(value, dict) or not value.get("url"):
-                continue
-            payload = {"id": stable_record_id("integration", provider, value.get("url")), "type": provider, "name": INTEGRATION_TYPES[provider]["label"], **value}
-            try:
-                migrated.append(normalize_integration(payload, payload))
-            except Exception:
-                continue
-        webhook = str(raw_integrations.get("home_assistant_webhook") or "").strip()
-        if webhook:
-            payload = {"id": stable_record_id("integration", "home_assistant", webhook), "type": "home_assistant", "name": "Home Assistant", "webhook_url": webhook}
-            try:
-                migrated.append(normalize_integration(payload, payload))
-            except Exception:
-                pass
-        merged["integrations"] = migrated
-    else:
-        merged["integrations"] = []
-
-    # Notification delivery endpoints moved into Integrations in 0.5.5.
-    # Preserve existing configured destinations without exposing legacy fields
-    # on the Notifications page.
-    legacy_notifications = raw.get("notifications", {}) if isinstance(raw.get("notifications"), dict) else {}
-    legacy_destinations = [
-        ("generic_webhook", "webhook_url", str(legacy_notifications.get("webhook_url") or "").strip()),
-        ("discord", "webhook_url", str(legacy_notifications.get("discord_webhook") or "").strip()),
-        ("ntfy", "topic_url", str(legacy_notifications.get("ntfy_url") or "").strip()),
-    ]
-    for provider, field, value in legacy_destinations:
-        if not value:
-            continue
-        if any(item.get("type") == provider and item.get(field) == value for item in merged.get("integrations", [])):
-            continue
-        payload = {"id": stable_record_id("integration", provider, value), "type": provider, "name": INTEGRATION_TYPES[provider]["label"], field: value, "enabled": True}
-        try:
-            merged.setdefault("integrations", []).append(normalize_integration(payload, payload))
-        except Exception:
-            pass
-    for legacy_key in ("webhook_url", "discord_webhook", "ntfy_url"):
-        merged.setdefault("notifications", {}).pop(legacy_key, None)
-
-    # Updates owns its public GitHub repository directly. Preserve the saved
-    # repository from either the previous Updates object or the retired GitHub
-    # integration, then remove GitHub from the integration collection.
-    legacy_updates = raw.get("updates", {}) if isinstance(raw.get("updates"), dict) else {}
-    update_repo = str(legacy_updates.get("repository") or legacy_github_repo or DEFAULT_UPDATE_REPOSITORY).strip()
-    try:
-        update_repo = normalize_github_repository(update_repo)
-    except Exception:
-        update_repo = DEFAULT_UPDATE_REPOSITORY
-    merged["updates"] = {"repository": update_repo}
-    merged["integrations"] = [x for x in merged.get("integrations", []) if x.get("type") != "github"]
-
-    sync_legacy_auth(merged)
-    return merged
-
-
-def _save_config_unlocked(cfg):
-    cfg = json.loads(json.dumps(cfg))
-    cfg["integrations"] = [x for x in cfg.get("integrations", []) if x.get("type") != "github"]
-    updates = cfg.setdefault("updates", {})
-    updates["repository"] = normalize_github_repository(updates.get("repository") or DEFAULT_UPDATE_REPOSITORY)
-    updates.pop("github_token", None)
-    tmp = CONFIG_PATH.with_suffix(".tmp")
-    tmp.write_text(json.dumps(cfg, indent=2) + "\n", encoding="utf-8")
-    tmp.replace(CONFIG_PATH)
-
-
-CONFIG_STORE = ConfigStore(_load_config_unlocked, _save_config_unlocked)
+CONFIG_REPOSITORY = ConfigRepository(
+    CONFIG_PATH,
+    detect_lan_network=lambda: detect_lan_network(),
+)
+CONFIG_STORE = ConfigStore(CONFIG_REPOSITORY.load, CONFIG_REPOSITORY.save)
 
 
 def load_config():
     return CONFIG_STORE.load()
 
 
-
 def mutate_config(transform):
     return CONFIG_STORE.mutate(transform)
-
-
-
-
 
 
 class SessionStore:
@@ -653,255 +483,6 @@ def is_loopback_ip(ip):
 
 SETUP_CODE = secrets.token_urlsafe(6).replace("-", "").replace("_", "")[:8].upper()
 
-
-
-INTEGRATION_TYPES = {
-    "sonarr": {
-        "label": "Sonarr",
-        "fields": [
-            {"key": "url", "label": "URL", "placeholder": "http://host:8989", "required": True},
-            {"key": "api_key", "label": "API Key", "secret": True, "required": True},
-        ],
-    },
-    "radarr": {
-        "label": "Radarr",
-        "fields": [
-            {"key": "url", "label": "URL", "placeholder": "http://host:7878", "required": True},
-            {"key": "api_key", "label": "API Key", "secret": True, "required": True},
-        ],
-    },
-    "lidarr": {
-        "label": "Lidarr",
-        "fields": [
-            {"key": "url", "label": "URL", "placeholder": "http://host:8686", "required": True},
-            {"key": "api_key", "label": "API Key", "secret": True, "required": True},
-        ],
-    },
-    "prowlarr": {
-        "label": "Prowlarr",
-        "fields": [
-            {"key": "url", "label": "URL", "placeholder": "http://host:9696", "required": True},
-            {"key": "api_key", "label": "API Key", "secret": True, "required": True},
-        ],
-    },
-    "jellyfin": {
-        "label": "Jellyfin",
-        "fields": [
-            {"key": "url", "label": "URL", "placeholder": "http://host:8096", "required": True},
-            {"key": "api_key", "label": "API Key", "secret": True, "required": True},
-        ],
-    },
-    "plex": {
-        "label": "Plex",
-        "fields": [
-            {"key": "url", "label": "URL", "placeholder": "http://host:32400", "required": True},
-            {"key": "token", "label": "Token", "secret": True, "required": True},
-        ],
-    },
-    "discord": {
-        "label": "Discord",
-        "fields": [
-            {"key": "webhook_url", "label": "Webhook URL", "placeholder": "https://discord.com/api/webhooks/...", "secret": True, "required": True},
-        ],
-    },
-    "ntfy": {
-        "label": "ntfy",
-        "fields": [
-            {"key": "topic_url", "label": "Topic URL", "placeholder": "https://ntfy.sh/topic", "required": True},
-            {"key": "access_token", "label": "Access Token", "secret": True, "required": False},
-        ],
-    },
-    "generic_webhook": {
-        "label": "Generic Webhook",
-        "fields": [
-            {"key": "webhook_url", "label": "Webhook URL", "placeholder": "https://example.com/webhook", "secret": True, "required": True},
-        ],
-    },
-    "home_assistant": {
-        "label": "Home Assistant",
-        "fields": [
-            {"key": "webhook_url", "label": "Webhook URL", "placeholder": "https://home-assistant.example/api/webhook/...", "required": True},
-        ],
-    },
-}
-
-
-def stable_record_id(kind, *parts):
-    raw = kind + ":" + ":".join(str(x or "") for x in parts)
-    return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:12]
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-def integration_catalog():
-    out = []
-    for provider, spec in INTEGRATION_TYPES.items():
-        fields = []
-        for field in spec.get("fields", []):
-            fields.append({k: v for k, v in field.items() if k in ("key", "label", "placeholder", "secret", "required", "input_type")})
-        out.append({"type": provider, "label": spec["label"], "fields": fields})
-    return out
-
-
-def normalize_integration(data, existing=None):
-    existing = existing or {}
-    provider = str(data.get("type") or existing.get("type") or "").strip().lower()
-    spec = INTEGRATION_TYPES.get(provider)
-    if not spec:
-        raise RuntimeError("Unsupported integration type")
-    item = {
-        "id": str(data.get("id") or existing.get("id") or uuid.uuid4().hex[:12])[:64],
-        "type": provider,
-        "name": str(data.get("name") or existing.get("name") or spec["label"]).strip()[:128],
-        "enabled": bool(data.get("enabled", existing.get("enabled", True))),
-    }
-    for field in spec.get("fields", []):
-        key = field["key"]
-        supplied = data.get(key)
-        if field.get("secret") and supplied in (None, "", "<configured>"):
-            value = existing.get(key, "")
-        elif supplied is None:
-            value = existing.get(key, "")
-        else:
-            value = str(supplied).strip()
-        if field.get("required") and not value:
-            raise RuntimeError(f"{field['label']} is required")
-        if key.endswith("url") or key == "url":
-            if value and not str(value).startswith(("http://", "https://")):
-                raise RuntimeError(f"{field['label']} must start with http:// or https://")
-            value = str(value).rstrip("/") if key == "url" else str(value)
-        item[key] = value
-    return item
-
-
-def redacted_integrations(cfg):
-    result = []
-    for source in cfg.get("integrations", []):
-        item = json.loads(json.dumps(source))
-        configured = []
-        spec = INTEGRATION_TYPES.get(item.get("type"), {})
-        for field in spec.get("fields", []):
-            if field.get("secret") and item.get(field["key"]):
-                configured.append(field["key"])
-                item[field["key"]] = "<configured>"
-        item["configured_secrets"] = configured
-        result.append(item)
-    return result
-
-
-def test_integration_connection(item):
-    item = normalize_integration(item, item)
-    provider = item["type"]
-    spec = INTEGRATION_TYPES[provider]
-    label = spec["label"]
-    try:
-        if provider in ("sonarr", "radarr", "lidarr", "prowlarr"):
-            req = urllib.request.Request(item["url"].rstrip("/") + "/api/v3/system/status", headers={"X-Api-Key": item["api_key"], "Accept": "application/json"})
-            with urllib.request.urlopen(req, timeout=7) as resp:
-                data = json.loads(resp.read(200000).decode("utf-8"))
-            version = str(data.get("version") or "").strip()
-        elif provider == "jellyfin":
-            req = urllib.request.Request(item["url"].rstrip("/") + "/System/Info", headers={"X-Emby-Token": item["api_key"], "Accept": "application/json"})
-            with urllib.request.urlopen(req, timeout=7) as resp:
-                data = json.loads(resp.read(200000).decode("utf-8"))
-            version = str(data.get("Version") or data.get("ProductVersion") or "").strip()
-        elif provider == "plex":
-            req = urllib.request.Request(item["url"].rstrip("/") + "/identity", headers={"X-Plex-Token": item["token"]})
-            with urllib.request.urlopen(req, timeout=7) as resp:
-                resp.read(200000)
-            version = ""
-        elif provider == "discord":
-            body = json.dumps({"content": "Torrent Dashboard integration connection test"}).encode("utf-8")
-            req = urllib.request.Request(item["webhook_url"], data=body, headers={"Content-Type": "application/json"}, method="POST")
-            with urllib.request.urlopen(req, timeout=7) as resp:
-                resp.read(200000)
-            version = ""
-        elif provider == "ntfy":
-            headers = {"Title": "Torrent Dashboard Test"}
-            if item.get("access_token"):
-                headers["Authorization"] = f"Bearer {item['access_token']}"
-            req = urllib.request.Request(item["topic_url"], data=b"Integration connection test", headers=headers, method="POST")
-            with urllib.request.urlopen(req, timeout=7) as resp:
-                resp.read(200000)
-            version = ""
-        elif provider == "generic_webhook":
-            body = json.dumps({"title": "Torrent Dashboard Test", "message": "Integration connection test"}).encode("utf-8")
-            req = urllib.request.Request(item["webhook_url"], data=body, headers={"Content-Type": "application/json"}, method="POST")
-            with urllib.request.urlopen(req, timeout=7) as resp:
-                resp.read(200000)
-            version = ""
-        elif provider == "home_assistant":
-            body = json.dumps({"title": "Torrent Dashboard Test", "message": "Integration connection test"}).encode("utf-8")
-            req = urllib.request.Request(item["webhook_url"], data=body, headers={"Content-Type": "application/json"}, method="POST")
-            with urllib.request.urlopen(req, timeout=7) as resp:
-                resp.read(200000)
-            version = ""
-        else:
-            raise RuntimeError("Unsupported integration type")
-        return {"ok": True, "message": f"Connected · {label}{(' ' + version) if version else ''}"}
-    except urllib.error.HTTPError as exc:
-        raise RuntimeError(f"{label} returned HTTP {exc.code}") from exc
-    except urllib.error.URLError as exc:
-        raise RuntimeError(f"Could not connect to {label}: {exc.reason}") from exc
-    except json.JSONDecodeError as exc:
-        raise RuntimeError(f"{label} returned an invalid response") from exc
-
-
-def save_integration(cfg, data):
-    out = json.loads(json.dumps(cfg))
-    integrations = out.setdefault("integrations", [])
-    item_id = str(data.get("id") or "")
-    existing = next((x for x in integrations if str(x.get("id") or "") == item_id), None) if item_id else None
-    item = normalize_integration(data, existing)
-    if existing:
-        integrations[integrations.index(existing)] = item
-    else:
-        integrations.append(item)
-    return out, item
-
-
-def delete_integration(cfg, integration_id):
-    integration_id = str(integration_id or "")
-    if not integration_id:
-        raise RuntimeError("Integration ID is required")
-    out = json.loads(json.dumps(cfg))
-    before = len(out.get("integrations", []))
-    out["integrations"] = [x for x in out.get("integrations", []) if str(x.get("id") or "") != integration_id]
-    if len(out["integrations"]) == before:
-        raise RuntimeError("Integration was not found")
-    return out
 
 
 def normalize_qbittorrent_server(data, existing=None):
@@ -1797,18 +1378,6 @@ def configured_notification_sound(cfg):
         return None, None
     mime = str(n.get("custom_sound_mime") or mimetypes.guess_type(path.name)[0] or "application/octet-stream")
     return path, mime
-
-
-def normalize_github_repository(value: str) -> str:
-    value = str(value or "").strip().removesuffix(".git").strip("/")
-    for prefix in ("https://github.com/", "http://github.com/", "github.com/"):
-        if value.lower().startswith(prefix):
-            value = value[len(prefix):].strip("/")
-            break
-    parts = value.split("/")
-    if len(parts) != 2 or not all(re.fullmatch(r"[A-Za-z0-9_.-]+", x or "") for x in parts):
-        raise RuntimeError("GitHub repository must be owner/repo or a github.com repository URL")
-    return "/".join(parts)
 
 
 def github_headers(accept="application/vnd.github+json"):
@@ -2765,23 +2334,13 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def redacted_config(cfg):
-    out=json.loads(json.dumps(cfg))
-    out.setdefault("auth",{}).pop("password_hash",None)
-    out.setdefault("auth",{}).pop("username",None)
-    for s in out.get("servers",[]):
-        if s.get("password"): s["password"]="<configured>"
-        if s.get("api_key"): s["api_key"]="<configured>"
-    out["users"]=[public_user(u) for u in cfg.get("users",[])]
-    out["integrations"]=redacted_integrations(cfg)
-    n=out.get("notifications",{})
-    for secret in ("gotify_token","telegram_bot_token"):
-        if n.get(secret): n[secret]="<configured>"
-    out["runtime"]={
+    out = public_config(cfg)
+    out["runtime"] = {
         "detected_lan": detect_lan_network(),
         "local_ip": local_lan_ip(),
         "network_interfaces": detect_network_interfaces(),
-        "trusted_interface_networks": interface_networks(cfg.get("auth",{}).get("trusted_interfaces",[])),
-        "effective_trusted_cidrs": effective_trusted_cidrs(cfg.get("auth",{})),
+        "trusted_interface_networks": interface_networks(cfg.get("auth", {}).get("trusted_interfaces", [])),
+        "effective_trusted_cidrs": effective_trusted_cidrs(cfg.get("auth", {})),
         "updateState": update_state(),
         "releaseHistory": local_release_history(),
     }

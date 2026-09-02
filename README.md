@@ -82,7 +82,7 @@ If you discover a security issue, do not post credentials or sensitive exploit d
 
 ## Development
 
-Architecture and module ownership are documented in [`ARCHITECTURE.md`](ARCHITECTURE.md). Current development handoff state is generated in [`PROJECT_STATE.md`](PROJECT_STATE.md).
+Architecture and module ownership are documented in [`ARCHITECTURE.md`](ARCHITECTURE.md). Current development handoff state is generated in [`PROJECT_STATE.md`](PROJECT_STATE.md). Backend domain modules isolate users/accounts, configuration lifecycle, configuration transactions, and integrations from the HTTP composition root.
 
 Backend tests use the Python standard library and can be run with:
 
