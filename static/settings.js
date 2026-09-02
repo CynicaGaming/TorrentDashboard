@@ -108,7 +108,7 @@ window.TDSettings = (() => {
 
   async function openClientSettings(serverId) {
     serverId = String(serverId || '').trim();
-    if (!serverId) return toast('Save the client before opening Settings.','error');
+    if (!serverId) return toast('Save The Client Before Opening Client Settings','error');
     const server = (state.settings?.servers || []).find(item => String(item.id || '') === serverId);
     clientSettingsServerId = serverId;
     const modal = document.querySelector('#clientSettingsModal');
@@ -116,13 +116,13 @@ window.TDSettings = (() => {
     if (name) name.textContent = `${server?.name || serverId} · qBitTorrent`;
     activateClientSettingsTab('speed');
     modal?.classList.remove('hidden');
-    setClientSettingsStatus('Loading…');
+    setClientSettingsStatus('Loading client settings…');
     try {
       const data = await api(`/api/client-settings?server=${encodeURIComponent(serverId)}`);
       fillClientSettings(data.settings || {});
-      setClientSettingsStatus('');
+      setClientSettingsStatus('Live settings loaded from qBitTorrent.');
     } catch (e) {
-      setClientSettingsStatus(e.message || 'Could not load settings.', 'bad');
+      setClientSettingsStatus(e.message || 'Could not load client settings.', 'bad');
     }
   }
 
@@ -146,17 +146,18 @@ window.TDSettings = (() => {
     const numeric=[payload.speed.download_limit_kb,payload.speed.upload_limit_kb,payload.speed.alternative_download_limit_kb,payload.speed.alternative_upload_limit_kb,payload.connection.max_connections,payload.connection.max_connections_per_torrent,payload.connection.max_upload_slots,payload.connection.max_upload_slots_per_torrent];
     if (!payload.connection.random_port) numeric.push(payload.connection.listen_port);
     if (payload.proxy.type !== 'none') numeric.push(payload.proxy.port);
-    if (numeric.some(x => Number.isNaN(x))) return setClientSettingsStatus('Enter whole numbers for limits and ports.', 'bad');
+    if (numeric.some(x => Number.isNaN(x))) return setClientSettingsStatus('Enter valid whole numbers for the client limits and ports.', 'bad');
     const button = document.querySelector('#saveClientSettings');
     if (button) button.disabled = true;
-    setClientSettingsStatus('Saving…');
+    setClientSettingsStatus('Saving client settings…');
     try {
       const data=await post('/api/client-settings',payload);
       fillClientSettings(data.settings || {});
-      setClientSettingsStatus('Saved.', 'ok');
+      setClientSettingsStatus('Client settings saved.', 'ok');
+      toast('clientSettingsSaved');
       if (state.server === clientSettingsServerId) await loadMeta();
     } catch (err) {
-      setClientSettingsStatus(err.message || 'Could not save settings.', 'bad');
+      setClientSettingsStatus(err.message || 'Could not save client settings.', 'bad');
     } finally {
       if (button) button.disabled = false;
     }
@@ -206,7 +207,7 @@ window.TDSettings = (() => {
     const soundFile = document.querySelector('#nSoundFile');
     if (soundFile) soundFile.value = '';
     const soundName = document.querySelector('#nCustomSoundName');
-    if (soundName) soundName.textContent = n.custom_sound_name || 'None uploaded';
+    if (soundName) soundName.textContent = n.custom_sound_name || 'No Custom Sound Uploaded';
     updateNotificationSoundUi();
     activate(localStorage.tdSettingsPage || 'general');
   }
@@ -282,7 +283,7 @@ window.TDSettings = (() => {
     const browserEnabled = !!document.querySelector('#nBrowser')?.checked;
     const soundEnabled = !!document.querySelector('#nSound')?.checked;
     if (!browserEnabled && !soundEnabled) {
-      if (status) { status.className='test-result bad'; status.textContent='Enable browser notifications or sound first.'; }
+      if (status) { status.className='test-result bad'; status.textContent='Enable browser notifications or completion sound before testing.'; }
       return;
     }
     const mode = document.querySelector('#nSoundMode')?.value || 'default';
@@ -295,16 +296,18 @@ window.TDSettings = (() => {
       else soundUrl=`/static/default-completion.wav?v=${encodeURIComponent(state.me?.version || '')}`;
     }
     try {
-      if (status) { status.className='test-result muted'; status.textContent='Testing…'; }
+      if (status) { status.className='test-result muted'; status.textContent='Testing notification…'; }
+      const tested=[];
       if (browserEnabled) {
         if (!('Notification' in window)) throw new Error('Browser notifications are not supported by this browser.');
         let permission=Notification.permission;
         if (permission==='default') permission=await Notification.requestPermission();
         if (permission!=='granted') throw new Error(permission==='denied' ? "Browser notification permission is blocked. Enable it in this site's browser permissions." : 'Browser notification permission was not granted.');
-        await showBrowserNotification(state.settings?.dashboard?.title || 'Torrent Dashboard',{body:'Test notification from Torrent Dashboard.',tag:'torrent-dashboard-test'});
+        await showBrowserNotification(state.settings?.dashboard?.title || 'Torrent Dashboard',{body:'This is a test notification from Torrent Dashboard.',tag:'torrent-dashboard-test'});
+        tested.push('browser notification');
       }
-      if (soundEnabled) await playSoundUrl(soundUrl);
-      if (status) { status.className='test-result ok'; status.textContent='Test successful.'; }
+      if (soundEnabled) { await playSoundUrl(soundUrl); tested.push('completion sound'); }
+      if (status) { status.className='test-result ok'; status.textContent=`Test successful: ${tested.join(' and ')}.`; }
     } catch(e) {
       if (status) { status.className='test-result bad'; status.textContent=e.message || 'Notification test failed.'; }
     } finally { if (revoke) URL.revokeObjectURL(soundUrl); }
@@ -361,7 +364,7 @@ window.TDSettings = (() => {
     const list = document.querySelector('#integrationList');
     if (!list) return;
     if (!integrations.length) {
-      list.innerHTML = '<div class="settings-empty"><b>No integrations</b><span>Choose a type above to add one.</span></div>';
+      list.innerHTML = '<div class="settings-empty"><b>No Integrations Added</b><span>Choose an integration type above to add the first connection.</span></div>';
       return;
     }
     list.innerHTML = '';
@@ -374,7 +377,7 @@ window.TDSettings = (() => {
       card.dataset.type = item.type;
       const fields = (type.fields || []).map(f => fieldHtml(f, item[f.key], item.configured_secrets?.includes(f.key))).join('');
       const subtitle = integrationSubtitle(item, type);
-      card.innerHTML = `<button class="accordion-summary" type="button" aria-expanded="${index===0?'true':'false'}"><span><b>${esc(integrationLabel(item))}</b>${subtitle?`<small>${esc(subtitle)}</small>`:''}</span><span class="accordion-chevron">⌄</span></button><div class="accordion-body ${index===0?'':'hidden'}"><div class="settings-form-grid"><label>Display Name<input data-field="name" value="${esc(item.name||type.label)}" maxlength="128"></label>${fields}<label class="toggle"><input data-field="enabled" type="checkbox" ${item.enabled!==false?'checked':''}><span>Enabled</span></label></div><div class="settings-inline-actions"><button class="secondary integration-test" type="button">Test</button><button class="primary integration-save" type="button">Save</button><button class="danger integration-delete" type="button">Delete</button></div><div class="test-result muted integration-result"></div></div>`;
+      card.innerHTML = `<button class="accordion-summary" type="button" aria-expanded="${index===0?'true':'false'}"><span><b>${esc(integrationLabel(item))}</b>${subtitle?`<small>${esc(subtitle)}</small>`:''}</span><span class="accordion-chevron">⌄</span></button><div class="accordion-body ${index===0?'':'hidden'}"><div class="settings-form-grid"><label>Display Name<input data-field="name" value="${esc(item.name||type.label)}" maxlength="128"></label>${fields}<label class="toggle"><input data-field="enabled" type="checkbox" ${item.enabled!==false?'checked':''}><span>Enabled</span></label></div><div class="settings-inline-actions"><button class="secondary integration-test" type="button">Test Connection</button><button class="primary integration-save" type="button">Save</button><button class="danger integration-delete" type="button">Delete</button></div><div class="test-result muted integration-result">Not Tested Yet</div></div>`;
       const summary = card.querySelector('.accordion-summary');
       summary.addEventListener('click', () => {
         const body = card.querySelector('.accordion-body');
@@ -405,7 +408,7 @@ window.TDSettings = (() => {
       catalog = d.types || [];
       integrations = d.integrations || [];
       const select = document.querySelector('#integrationTypeSelect');
-      if (select) select.innerHTML = '<option value="">Choose integration…</option>' + catalog.map(x => `<option value="${esc(x.type)}">${esc(x.label)}</option>`).join('');
+      if (select) select.innerHTML = '<option value="">Choose Integration…</option>' + catalog.map(x => `<option value="${esc(x.type)}">${esc(x.label)}</option>`).join('');
       renderIntegrations();
     } catch (e) {
       toast(e.message,'error');
@@ -415,7 +418,7 @@ window.TDSettings = (() => {
   function addIntegration() {
     const select = document.querySelector('#integrationTypeSelect');
     const type = catalog.find(x => x.type === select?.value);
-    if (!type) return toast('Choose an integration type.','error');
+    if (!type) return toast('Choose An Integration Type','error');
     integrations.unshift({id:'',type:type.type,name:type.label,enabled:true,_new:true,configured_secrets:[]});
     renderIntegrations();
     if (select) select.value='';
@@ -424,7 +427,7 @@ window.TDSettings = (() => {
   async function testIntegration(card) {
     const out = card.querySelector('.integration-result');
     out.className='test-result muted integration-result';
-    out.textContent='Testing…';
+    out.textContent='Testing Connection…';
     try {
       const d = await post('/api/integration-test', integrationData(card));
       out.className='test-result ok integration-result';
@@ -447,8 +450,7 @@ window.TDSettings = (() => {
   }
 
   async function deleteIntegration(card, item) {
-    const confirmed = await showActionDialog({input:false,title:'Delete integration',message:`Delete “${integrationLabel(item)}”?`,confirmLabel:'Delete',danger:true});
-    if (!confirmed) return;
+    if (!confirm(`Delete ${integrationLabel(item)}?`)) return;
     if (!card.dataset.id) {
       integrations = integrations.filter(x => x !== item);
       renderIntegrations();
@@ -472,7 +474,7 @@ window.TDSettings = (() => {
     const list = document.querySelector('#userList');
     if (!list) return;
     if (!users.length) {
-      list.innerHTML='<div class="settings-empty"><b>No users</b><span>Add an administrator to manage Torrent Dashboard.</span></div>';
+      list.innerHTML='<div class="settings-empty"><b>No Users Found</b><span>Add an administrator account to manage Torrent Dashboard.</span></div>';
       return;
     }
     list.innerHTML='';
@@ -485,7 +487,7 @@ window.TDSettings = (() => {
       const display=userName(user);
       const username=user.username||'New User';
       const showUsername=!!user.username && display!==user.username;
-      card.innerHTML=`<button class="accordion-summary" type="button" aria-expanded="${index===0?'true':'false'}"><span><span class="user-name-line"><b>${esc(display)}</b>${current?'<span class="current-user-badge">Current user</span>':''}</span>${showUsername?`<small>${esc(username)}</small>`:''}</span><span class="user-group-badge ${user.group==='administrator'?'admin':'standard'}">${esc(group)}</span><span class="accordion-chevron">⌄</span></button><div class="accordion-body ${index===0?'':'hidden'}"><div class="settings-form-grid two-col"><label><span class="field-label">Username <span class="required-mark" aria-hidden="true">*</span></span><input data-user-field="username" value="${esc(user.username||'')}" maxlength="128" autocomplete="off" required></label><label><span class="field-label">Role <span class="required-mark" aria-hidden="true">*</span></span><select class="user-group-select" data-user-field="group" required><option value="administrator" ${user.group==='administrator'?'selected':''}>Administrator</option><option value="standard" ${user.group==='standard'?'selected':''}>Standard User</option></select></label><label>First Name<input data-user-field="first_name" value="${esc(user.first_name||'')}" maxlength="128"></label><label>Last Name<input data-user-field="last_name" value="${esc(user.last_name||'')}" maxlength="128"></label><label class="full-field">Email<input data-user-field="email" type="email" value="${esc(user.email||'')}" maxlength="254"></label><label><span class="field-label">Password <span class="required-mark" aria-hidden="true">*</span></span><input data-user-field="password" type="password" autocomplete="new-password" required ${user._new?'placeholder="Create Password"':'class="secret-configured" data-configured-secret="1" value="'+SECRET_MASK+'"'}></label><label><span class="field-label">Confirm Password <span class="required-mark" aria-hidden="true">*</span></span><input data-user-field="password2" type="password" autocomplete="new-password" required ${user._new?'placeholder="Confirm Password"':'class="secret-configured" data-configured-secret="1" value="'+SECRET_MASK+'"'}></label></div><div class="settings-inline-actions"><button class="primary user-save" type="button">Save</button><button class="danger user-delete" type="button" ${current?'disabled':''}>Delete</button></div></div>`;
+      card.innerHTML=`<button class="accordion-summary" type="button" aria-expanded="${index===0?'true':'false'}"><span><span class="user-name-line"><b>${esc(display)}</b>${current?'<span class="current-user-badge">Current user</span>':''}</span>${showUsername?`<small>${esc(username)}</small>`:''}</span><span class="user-group-badge ${user.group==='administrator'?'admin':'standard'}">${esc(group)}</span><span class="accordion-chevron">⌄</span></button><div class="accordion-body ${index===0?'':'hidden'}"><div class="settings-form-grid two-col"><label><span class="field-label">Username <span class="required-mark" aria-hidden="true">*</span></span><input data-user-field="username" value="${esc(user.username||'')}" maxlength="128" autocomplete="off" required></label><label><span class="field-label">User Group <span class="required-mark" aria-hidden="true">*</span></span><select class="user-group-select" data-user-field="group" required><option value="administrator" ${user.group==='administrator'?'selected':''}>Administrator</option><option value="standard" ${user.group==='standard'?'selected':''}>Standard User</option></select></label><label>First Name<input data-user-field="first_name" value="${esc(user.first_name||'')}" maxlength="128"></label><label>Last Name<input data-user-field="last_name" value="${esc(user.last_name||'')}" maxlength="128"></label><label class="full-field">Email<input data-user-field="email" type="email" value="${esc(user.email||'')}" maxlength="254"></label><label><span class="field-label">Password <span class="required-mark" aria-hidden="true">*</span></span><input data-user-field="password" type="password" autocomplete="new-password" required ${user._new?'placeholder="Create Password"':'class="secret-configured" data-configured-secret="1" value="'+SECRET_MASK+'"'}></label><label><span class="field-label">Confirm Password <span class="required-mark" aria-hidden="true">*</span></span><input data-user-field="password2" type="password" autocomplete="new-password" required ${user._new?'placeholder="Confirm Password"':'class="secret-configured" data-configured-secret="1" value="'+SECRET_MASK+'"'}></label></div><div class="settings-inline-actions"><button class="primary user-save" type="button">Save</button><button class="danger user-delete" type="button" ${current?'disabled':''}>Delete</button></div></div>`;
       const summary=card.querySelector('.accordion-summary');
       summary.addEventListener('click',()=>{const body=card.querySelector('.accordion-body');const open=body.classList.contains('hidden');body.classList.toggle('hidden',!open);summary.setAttribute('aria-expanded',String(open))});
       card.querySelector('.user-save').addEventListener('click',()=>saveUser(card));
@@ -520,8 +522,8 @@ window.TDSettings = (() => {
 
   async function saveUser(card) {
     const data=userData(card);
-    if (!data.username) return toast('Enter a username.','error');
-    if (data.password !== data.password2) return toast('Passwords do not match.','error');
+    if (!data.username) return toast('Enter A Username','error');
+    if (data.password !== data.password2) return toast('Passwords Do Not Match','error');
     delete data.password2;
     try {
       await post('/api/users',data);
@@ -536,8 +538,7 @@ window.TDSettings = (() => {
     if (!card.dataset.id) {
       users=users.filter(x=>x!==user);renderUsers();return;
     }
-    const confirmed=await showActionDialog({input:false,title:'Delete user',message:`Delete “${user.username}”?`,confirmLabel:'Delete',danger:true});
-    if (!confirmed) return;
+    if (!confirm(`Delete user ${user.username}?`)) return;
     try {
       await post('/api/users/delete',{id:card.dataset.id});
       toast('userDeleted');
