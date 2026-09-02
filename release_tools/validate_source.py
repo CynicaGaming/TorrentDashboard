@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run reusable source, architecture, and unit-test validation.
+"""Run reusable source, architecture, documentation, and unit-test validation.
 
 This intentionally uses only the Python standard library so the same command can
 run locally, in the development branch workflow, and in release packaging.
@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import ast
 import compileall
+import json
 import re
 import sys
 import unittest
@@ -126,9 +127,36 @@ def validate_frontend_version() -> None:
 
 
 def validate_documentation() -> None:
-    for name in ("README.md", "ARCHITECTURE.md", "DESIGN_LANGUAGE.md", "PROJECT_STATE.md", "CHANGELOG.md"): 
+    required = (
+        "README.md",
+        "DEVELOPMENT.md",
+        "ARCHITECTURE.md",
+        "DESIGN_LANGUAGE.md",
+        "TESTING.md",
+        "PROJECT_STATE.md",
+        "HANDOFF.md",
+        "CHANGELOG.md",
+        "development/current.json",
+        "docs/decisions/README.md",
+    )
+    for name in required:
         if not (ROOT / name).is_file():
             fail(f"Required project documentation is missing: {name}")
+
+    decisions = sorted((ROOT / "docs" / "decisions").glob("[0-9][0-9][0-9][0-9]-*.md"))
+    if len(decisions) < 5:
+        fail("Expected the baseline architectural decision records under docs/decisions")
+
+    active = json.loads((ROOT / "development" / "current.json").read_text(encoding="utf-8"))
+    if int(active.get("schema") or 0) != 1:
+        fail("development/current.json must use schema 1")
+    for field in ("status", "objective", "why", "next_action"):
+        if not isinstance(active.get(field), str) or not active[field].strip():
+            fail(f"development/current.json requires non-empty {field}")
+    for field in ("acceptance_criteria", "decisions", "files", "blockers", "out_of_scope"):
+        value = active.get(field)
+        if not isinstance(value, list) or not all(isinstance(item, str) and item.strip() for item in value):
+            fail(f"development/current.json field {field} must be a list of non-empty strings")
 
 
 def run_unit_tests() -> None:
