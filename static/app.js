@@ -133,7 +133,13 @@ async function playSoundUrl(src){
 function configuredCompletionSoundUrl(){const n=state.settings?.notifications||{};return n.sound_mode==='custom'&&n.custom_sound_file?`/api/notification-sound?ts=${Date.now()}`:`/static/default-completion.wav?v=${encodeURIComponent(state.me?.version||'')}`}
 async function playCompletionSound(){if(!state.settings?.notifications?.sound)return;const n=state.settings.notifications||{};try{return await playSoundUrl(configuredCompletionSoundUrl())}catch(e){if(n.sound_mode==='custom')return playSoundUrl(`/static/default-completion.wav?v=${encodeURIComponent(state.me?.version||'')}`);throw e}}
 async function showBrowserNotification(title,options={}){if(!('Notification'in window))throw new Error('Browser notifications are not supported');if(Notification.permission!=='granted')throw new Error('Browser notification permission is not granted');if('serviceWorker'in navigator){try{const reg=await navigator.serviceWorker.ready;if(reg?.showNotification){await reg.showNotification(title,options);return}}catch{}}new Notification(title,options)}
-async function api(url,opt={}){opt.headers={...(opt.headers||{})};if(opt.method&&opt.method!=='GET'&&opt.method!=='HEAD'&&state.csrf)opt.headers['X-CSRF-Token']=state.csrf;const r=await fetch(url,opt);let data;const ct=r.headers.get('content-type')||'';data=ct.includes('json')?await r.json():await r.text();if(r.status===401){showLogin();throw new Error(data.error||'Authentication required')}if(!r.ok)throw new Error(data.error||`HTTP ${r.status}`);return data}
+async function api(url,opt={}){
+  opt.headers={...(opt.headers||{})};const method=opt.method||'GET';if(method!=='GET'&&method!=='HEAD'&&state.csrf)opt.headers['X-CSRF-Token']=state.csrf;
+  let r;try{r=await fetch(url,opt)}catch(e){window.__tdReportError?.('API network failure',e,{url,method});throw e}
+  let data;try{const ct=r.headers.get('content-type')||'';data=ct.includes('json')?await r.json():await r.text()}catch(e){window.__tdReportError?.('API response parse failure',e,{url,method,status:r.status});throw e}
+  if(r.status===401){showLogin();const e=new Error(data?.error||'Authentication required');window.__tdReportError?.('API authentication',e,{url,method,status:r.status});throw e}
+  if(!r.ok){const e=new Error(data?.error||`HTTP ${r.status}`);window.__tdReportError?.('API request failure',e,{url,method,status:r.status});throw e}return data
+}
 async function post(url,obj){return api(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(obj)})}
 
 function showLogin(reset=false){
@@ -159,7 +165,7 @@ async function parseAddTorrentFile(){clearAddMetadataTimer();addMetadataGenerati
 function closeAddTorrent(){clearAddMetadataTimer();$('#addModal').classList.add('hidden')}
 function openAddTorrent(mode='link'){if(state.server==='all')return toast('chooseSpecificServerFirst','error');addMetadataState.mode=mode;$('#addForm').reset();$('#addStart').checked=true;$('#addAutoTmm').value='manual';$('#addStopCondition').value='None';$('#addContentLayout').value='Original';$('#addLinkSourceWrap').classList.toggle('hidden',mode!=='link');$('#addFileSourceWrap').classList.toggle('hidden',mode!=='file');$('#addDialogSourceSummary').textContent=mode==='file'?'Choose a .torrent file and review its contents before adding it.':'Enter a magnet link or torrent URL and review metadata before adding it.';resetAddMetadata(false);$('#addModal').classList.remove('hidden');if(mode==='file')setTimeout(()=>$('#torrentFile').click(),0);else setTimeout(()=>$('#addUrls').focus(),0)}
 
-async function rawJson(url,opt={}){const r=await fetch(url,opt);const data=await r.json().catch(()=>({}));if(!r.ok)throw new Error(data.error||`HTTP ${r.status}`);return data}
+async function rawJson(url,opt={}){const method=opt.method||'GET';let r;try{r=await fetch(url,opt)}catch(e){window.__tdReportError?.('Public API network failure',e,{url,method});throw e}let data={};try{data=await r.json()}catch(e){window.__tdReportError?.('Public API response parse failure',e,{url,method,status:r.status})}if(!r.ok){const e=new Error(data.error||`HTTP ${r.status}`);window.__tdReportError?.('Public API request failure',e,{url,method,status:r.status});throw e}return data}
 function parseWhitelist(selector){return $(selector).value.split(/\n|,/).map(x=>x.trim()).filter(Boolean)}
 function selectedInterfaceIds(target){return $$(`${target} input[data-interface-id]:checked`).map(x=>x.dataset.interfaceId)}
 function setupServer(){return{type:'qbittorrent',name:$('#wClientName').value.trim()||'qBitTorrent',base_url:$('#wClientUrl').value.trim(),auth_method:$('#wClientAuth').value,api_key:$('#wClientApiKey').value.trim(),username:$('#wClientUser').value.trim(),password:$('#wClientPass').value,enabled:true}}
@@ -187,19 +193,17 @@ async function finishSetup(e){if(e?.preventDefault)e.preventDefault();$('#setupE
 function bindPublicUI(){if(window.__tdPublicBound)return;window.__tdPublicBound=true;$('#loginForm').addEventListener('submit',async e=>{e.preventDefault();$('#loginError').textContent='';try{await post('/api/login',{username:$('#loginUser').value,password:$('#loginPass').value});location.reload()}catch(err){$('#loginError').textContent=err.message}});$('#setupForm').addEventListener('submit',e=>e.preventDefault());$('#wBack').addEventListener('click',()=>goToSetupStep(state.setupStep-1));$('#wNext').addEventListener('click',()=>{const last=$$('.setup-page').length-1;if(state.setupStep===last){finishSetup();return}goToSetupStep(state.setupStep+1)});$('#setupSteps').addEventListener('click',e=>{const b=e.target.closest('[data-setup-step]');if(b)goToSetupStep(Number(b.dataset.setupStep))});$('#wTestClient').addEventListener('click',()=>testSetupClient().catch(()=>{}));$('#wClientAuth').addEventListener('change',updateWizardClientAuth);$('#wAuthMode').addEventListener('change',()=>{$('#wizardAccount').classList.toggle('hidden',$('#wAuthMode').value==='disabled');updateWizardLanVisibility()});$('#wRefreshInterfaces').addEventListener('click',()=>refreshSetupInterfaces(true).catch(e=>$('#setupError').textContent=e.message));}
 
 async function bootstrap(){
-  bindPublicUI();
+  window.__tdMarkStartupStage?.('binding public UI');
+  try{bindPublicUI()}catch(e){window.__tdReportError?.('public UI binding',e);throw e}
   try{
-    state.setup=await rawJson('/api/setup/status');
-    if(state.setup.required){showSetup();$('#wLocalIp').value=state.setup?.lan_ip||'127.0.0.1';$('#wPort').value=state.setup?.port||8765;$('#wTrustedIps').value=(state.setup.trusted_ips||[]).join('\n');renderInterfaceList('#wInterfaceList',state.setup.network_interfaces||[],state.setup.trusted_interfaces||[],!(state.setup.trusted_interfaces||[]).length);state.setupInterfaceSelectionInitialized=true;$('#setupCodeWrap').classList.toggle('hidden',!state.setup.code_required);updateWizardClientAuth();updateWizardLanVisibility();updateSetupStep();return}
-    state.me=await api('/api/me');state.csrf=state.me.csrf;showApp();
-    document.body.classList.toggle('standard-user',!state.me.can_manage);
-    $('#brandTitle').textContent=state.me.title;$('#brandAddress').textContent=state.me.lan_ip||'Local';document.title=state.me.title;$('#version').textContent=`v${state.me.version}`;
-    if(state.me.user_id){try{const account=await api('/api/account');applyAccountUser(account.user)}catch{}}
-    syncCurrentUserUi();
-    if(state.me.can_manage){await loadSettings()}else{state.settings={dashboard:{low_disk_gb:20},notifications:{browser:false,sound:false}}}
-    await loadServers();bindUI();applyPrefs();await refreshStatus();scheduleRefresh();registerPwa();
-  }
-  catch(e){if(!$('#login').classList.contains('hidden'))return;toast(e.message,'error')}
+    window.__tdMarkStartupStage?.('checking setup status');state.setup=await rawJson('/api/setup/status');
+    if(state.setup.required){showSetup();$('#wLocalIp').value=state.setup?.lan_ip||'127.0.0.1';$('#wPort').value=state.setup?.port||8765;$('#wTrustedIps').value=(state.setup.trusted_ips||[]).join('\n');renderInterfaceList('#wInterfaceList',state.setup.network_interfaces||[],state.setup.trusted_interfaces||[],!(state.setup.trusted_interfaces||[]).length);state.setupInterfaceSelectionInitialized=true;$('#setupCodeWrap').classList.toggle('hidden',!state.setup.code_required);updateWizardClientAuth();updateWizardLanVisibility();updateSetupStep();window.__tdMarkReady?.('first-run setup');return}
+    window.__tdMarkStartupStage?.('loading session');state.me=await api('/api/me');state.csrf=state.me.csrf;showApp();
+    document.body.classList.toggle('standard-user',!state.me.can_manage);$('#brandTitle').textContent=state.me.title;$('#brandAddress').textContent=state.me.lan_ip||'Local';document.title=state.me.title;$('#version').textContent=`v${state.me.version}`;
+    if(state.me.user_id){try{window.__tdMarkStartupStage?.('loading account');const account=await api('/api/account');applyAccountUser(account.user)}catch(e){window.__tdReportError?.('account bootstrap',e)}}syncCurrentUserUi();
+    window.__tdMarkStartupStage?.('loading settings');if(state.me.can_manage){await loadSettings()}else{state.settings={dashboard:{low_disk_gb:20},notifications:{browser:false,sound:false}}}
+    window.__tdMarkStartupStage?.('loading clients');await loadServers();window.__tdMarkStartupStage?.('binding dashboard UI');bindUI();applyPrefs();window.__tdMarkStartupStage?.('loading torrent status');await refreshStatus();scheduleRefresh();registerPwa();window.__tdMarkReady?.('dashboard ready');
+  }catch(e){window.__tdBootstrapFailed=true;window.__tdReportError?.('dashboard bootstrap',e,{stage:window.__tdStartupStage||'unknown'});if(!$('#login').classList.contains('hidden')){window.__tdMarkReady?.('login');return}showApp();const banner=$('#errorBanner');if(banner){banner.textContent=`Startup failed: ${e.message}. Open the browser developer console for details.`;banner.classList.remove('hidden')}try{toast(e.message,'error')}catch{}}
 }
 
 let bound=false;
@@ -536,4 +540,4 @@ async function signOut(){try{await post('/api/logout',{})}catch{}location.reload
 
 function registerPwa(){if('serviceWorker'in navigator){navigator.serviceWorker.register('/sw.js',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(sessionStorage.getItem('tdSwReloaded')!=='1'){sessionStorage.setItem('tdSwReloaded','1');location.reload()}})}window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();state.deferredPrompt=e;$('#installPwa').classList.remove('hidden')});$('#installPwa').onclick=async()=>{if(state.deferredPrompt){state.deferredPrompt.prompt();await state.deferredPrompt.userChoice;state.deferredPrompt=null;$('#installPwa').classList.add('hidden')}}}
 
-applySentenceCaseUi(document);decorateSecretFields(document);caseObserver.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['placeholder','title','aria-label']});bootstrap();
+window.__tdMarkStartupStage?.('initializing application');applySentenceCaseUi(document);decorateSecretFields(document);caseObserver.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['placeholder','title','aria-label']});bootstrap();

@@ -1,5 +1,32 @@
 'use strict';
 
+(() => {
+  const PREFIX='[Torrent Dashboard]', recent=new Map();
+  const message=e=>e instanceof Error?(e.message||e.name):String(e?.message||e||'Unknown error');
+  function report(scope,error,context={}){
+    const msg=message(error),key=`${scope}|${msg}|${context.url||context.source||''}`,now=Date.now();
+    if(now-(recent.get(key)||0)<3000)return;recent.set(key,now);
+    const details={time:new Date().toISOString(),stage:window.__tdStartupStage||'unknown',...context};
+    if(console.groupCollapsed)console.groupCollapsed(`${PREFIX} ${scope}: ${msg}`);
+    console.error(error instanceof Error?error:msg);console.log('Context:',details);
+    if(error instanceof Error&&error.stack)console.log(error.stack);
+    if(console.groupEnd)console.groupEnd();
+  }
+  window.__tdReportError=report;
+  window.__tdStartupStage='loading scripts';
+  window.__tdMarkStartupStage=stage=>{window.__tdStartupStage=stage;console.info(`${PREFIX} startup: ${stage}`)};
+  window.__tdMarkReady=stage=>{window.__tdStartupStage=stage||'ready';window.__tdBootstrapReady=true;console.info(`${PREFIX} startup complete: ${window.__tdStartupStage}`)};
+  if(typeof window.addEventListener==='function'){
+    window.addEventListener('error',event=>{
+      if(event.target&&event.target!==window){const t=event.target;report('resource load failure',new Error(`Failed to load ${t.tagName||'resource'}`),{source:t.src||t.href||'',tag:t.tagName||''});return}
+      report('uncaught exception',event.error||new Error(event.message||'Uncaught browser error'),{source:event.filename||'',line:event.lineno||0,column:event.colno||0});
+    },true);
+    window.addEventListener('unhandledrejection',event=>report('unhandled promise rejection',event.reason instanceof Error?event.reason:new Error(message(event.reason))));
+  }
+  if(typeof document!=='undefined')setTimeout(()=>{if(!window.__tdBootstrapReady&&!window.__tdBootstrapFailed)report('startup watchdog',new Error('Dashboard startup did not complete within 15 seconds'),{stage:window.__tdStartupStage||'unknown'})},15000);
+  console.info(`${PREFIX} browser diagnostics enabled`);
+})();
+
 window.TDSettings = (() => {
   let bound = false;
   let catalog = [];
