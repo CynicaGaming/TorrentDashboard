@@ -20,34 +20,35 @@ def update_dashboard():
     text = replace_once(text, 'VERSION = "0.5.46"', f'VERSION = "{TARGET_VERSION}"', "dashboard version")
 
     handler_marker = "\n\nclass Handler(BaseHTTPRequestHandler):\n"
-    recovery_helper = r'''
+    recovery_helper = r"""
 
 def frontend_recovery_script(version):
-    version = json.dumps(str(version))
-    return f'''(() => {{
-  const build = {version};
+    build = json.dumps(str(version))
+    script = '''(() => {
+  const build = __BUILD__;
   if (window.__tdFrontendRecoveryStarted) return;
   window.__tdFrontendRecoveryStarted = true;
-  console.error('[Torrent Dashboard] Frontend build mismatch detected. Clearing cached application shell.', {{ build }});
-  (async () => {{
-    try {{
-      if ('serviceWorker' in navigator) {{
+  console.error('[Torrent Dashboard] Frontend build mismatch detected. Clearing cached application shell.', { build });
+  (async () => {
+    try {
+      if ('serviceWorker' in navigator) {
         const registrations = await navigator.serviceWorker.getRegistrations();
         await Promise.all(registrations.map(registration => registration.unregister()));
-      }}
-    }} catch (error) {{ console.error('[Torrent Dashboard] Service worker cleanup failed', error); }}
-    try {{
-      if ('caches' in window) {{
+      }
+    } catch (error) { console.error('[Torrent Dashboard] Service worker cleanup failed', error); }
+    try {
+      if ('caches' in window) {
         const keys = await caches.keys();
         await Promise.all(keys.filter(key => key.startsWith('torrent-dashboard-')).map(key => caches.delete(key)));
-      }}
-    }} catch (error) {{ console.error('[Torrent Dashboard] Cache cleanup failed', error); }}
+      }
+    } catch (error) { console.error('[Torrent Dashboard] Cache cleanup failed', error); }
     const url = new URL(window.location.href);
     url.searchParams.set('td-recover', build);
     window.location.replace(url.toString());
-  }})();
-}})();'''.encode("utf-8")
-'''
+  })();
+})();'''
+    return script.replace("__BUILD__", build).encode("utf-8")
+"""
     text = replace_once(text, handler_marker, recovery_helper + handler_marker, "HTTP handler marker")
 
     old_static = '        if path.startswith("/static/"): return self.serve_static(path[len("/static/"):])\n'
@@ -154,8 +155,9 @@ def update_validator():
     # stale versioned scripts trigger recovery, and optional Add Torrent bindings
     # cannot abort critical dashboard startup.
     sw = (ROOT / "static" / "sw.js").read_text(encoding="utf-8")
-    assert f'<meta content="{dashboard.VERSION}" name="torrent-dashboard-build"/>' in html
-    assert f"const FRONTEND_BUILD='{dashboard.VERSION}';" in app_js
+    version = re.search(r'^VERSION\s*=\s*["\']([^"\']+)', dashboard_py, re.M).group(1)
+    assert f'<meta content="{version}" name="torrent-dashboard-build"/>' in html
+    assert f"const FRONTEND_BUILD='{version}';" in app_js
     assert "HTML_BUILD!==FRONTEND_BUILD" in app_js and "recoverFrontendBuild" in app_js
     assert "showStartupFailure(e,'bootstrap')" in app_js
     assert "function bindAddTorrentUI()" in app_js
@@ -167,7 +169,8 @@ def update_validator():
     assert "frontend_recovery_script" in dashboard_py
     assert 'requested and requested != VERSION' in dashboard_py
     assert "event.request.mode==='navigate'" in sw
-    assert "'/','" not in sw and "'/index.html'" not in sw.split('const ASSETS=',1)[1].split(';',1)[0]
+    assets = sw.split('const ASSETS=',1)[1].split(';',1)[0]
+    assert "'/'" not in assets and "'/index.html'" not in assets
 '''
     text = replace_once(text, marker, addition, "frontend hardening validator marker")
     path.write_text(text, encoding="utf-8")
@@ -181,7 +184,6 @@ def main():
     update_css()
     update_validator()
 
-    # Final staging assertions before CI performs Python/Node/package validation.
     dashboard = (ROOT / "dashboard.py").read_text(encoding="utf-8")
     html = (ROOT / "static" / "index.html").read_text(encoding="utf-8")
     app = (ROOT / "static" / "app.js").read_text(encoding="utf-8")
