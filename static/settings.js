@@ -16,6 +16,21 @@
   window.__tdStartupStage='loading scripts';
   window.__tdMarkStartupStage=stage=>{window.__tdStartupStage=stage;console.info(`${PREFIX} startup: ${stage}`)};
   window.__tdMarkReady=stage=>{window.__tdStartupStage=stage||'ready';window.__tdBootstrapReady=true;console.info(`${PREFIX} startup complete: ${window.__tdStartupStage}`)};
+  if(typeof window.fetch==='function'&&!window.__tdFetchDiagnostics){
+    window.__tdFetchDiagnostics=true;
+    const nativeFetch=window.fetch.bind(window);
+    window.fetch=async function(input,init={}){
+      const url=typeof input==='string'?input:(input?.url||String(input||''));
+      const method=String(init?.method||'GET').toUpperCase();
+      const started=performance?.now?.()||Date.now();
+      try{
+        const response=await nativeFetch(input,init);
+        if(!response.ok&&response.status!==401)report('HTTP request failure',new Error(`${method} ${url} returned HTTP ${response.status}`),{url,method,status:response.status});
+        return response;
+      }catch(error){report('network request failure',error,{url,method});throw error}
+      finally{const elapsed=(performance?.now?.()||Date.now())-started;if(elapsed>5000)console.warn(`${PREFIX} slow request: ${method} ${url} (${Math.round(elapsed)} ms)`)}
+    };
+  }
   if(typeof window.addEventListener==='function'){
     window.addEventListener('error',event=>{
       if(event.target&&event.target!==window){const t=event.target;report('resource load failure',new Error(`Failed to load ${t.tagName||'resource'}`),{source:t.src||t.href||'',tag:t.tagName||''});return}
