@@ -4,7 +4,7 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.65** (prerelease)
+- Latest documented build: **v0.5.66** (prerelease)
 - Repository: `CynicaGaming/TorrentDashboard`
 - Development branch: `refactor/backend-modularization-users`
 - Prerelease branch: `prerelease/backend-modularization`
@@ -12,21 +12,21 @@
 
 ### Latest release summary
 
-Aligns Settings, account, and action feedback around one content-design contract so identical actions use identical language and scoped dialogs avoid redundant success notifications.
+Raises the desktop readability baseline across Torrent Dashboard and uses the available canvas more effectively without changing mobile behavior or removing compact density.
 
 ## Architecture state
 
-- DESIGN_LANGUAGE.md is the durable source for user-facing content conventions, while release_tools/validate_ui_strings.py enforces high-value regression contracts.
-- Core Settings pages share one form-level save language even when an individual page uses a specialized backend endpoint.
-- Scoped dialogs own their persistent inline status and do not duplicate successful completion in the global toast layer.
-- Backend module boundaries from v0.5.64 remain unchanged.
+- dashboard.py remains the composition root and HTTP adapter.
+- Configuration lifecycle, configuration transactions, integrations, and users/accounts remain isolated in torrent_dashboard package modules.
+- Desktop presentation now has an explicit design-language readability contract separate from responsive/mobile tuning.
+- Release/update provenance remains the next planned backend extraction.
 
 ## Current engineering decisions
 
-- Use the same words for the same action and result throughout the product.
-- Use sentence case for interface copy except established product names and acronyms.
-- Use one success feedback channel per interaction rather than stacking inline status and toast confirmations.
-- Keep feature-specific success language for entity CRUD where the saved object is materially different from core dashboard settings.
+- Use available desktop space before reducing type size.
+- Treat 1024 px and above as the desktop legibility breakpoint while preserving existing responsive rules below it.
+- Keep compact density as a spacing preference rather than a license to use hard-to-read text.
+- Continue behavior-preserving modularization independently from presentation-quality passes.
 
 ## Development principles
 
@@ -37,6 +37,15 @@ Aligns Settings, account, and action feedback around one content-design contract
 - Use the same user-facing language for the same action and outcome across every surface.
 
 ## Recent work
+
+### v0.5.66 — Desktop legibility and workspace use
+
+Raises the desktop readability baseline across Torrent Dashboard and uses the available canvas more effectively without changing mobile behavior or removing compact density.
+
+- Desktop primary content, forms, tables, navigation, dialogs, patch notes, torrent details, Add Torrent, and notifications use larger type and more deliberate spacing at 1024 px and above.
+- The desktop sidebar and main content area use more of the available viewport instead of preserving undersized text beside unused space.
+- Muted text contrast is stronger in both dark and light themes while remaining visually subordinate to primary content.
+- Compact density remains available with a reduced row height, but no longer implies the former undersized desktop typography baseline.
 
 ### v0.5.65 — Interface language consistency
 
@@ -74,24 +83,16 @@ Makes the previous release's Package SHA-256 populate reliably by caching author
 - Normal Settings loads merge the persisted integrity cache into the two displayed patch-note revisions.
 - Opening Settings → Updates silently refreshes release metadata at most once per minute, so historical SHA-256 values self-populate without requiring a manual Check for updates click.
 
-### v0.5.61 — Patch note integrity history fix
-
-Moves package integrity metadata below each patch-note body and backfills SHA-256 values for both displayed revisions from retained GitHub releases.
-
-- Package SHA-256 now appears at the bottom of an expanded patch-note card, after the release notes.
-- Update checks enrich both displayed revisions with authoritative GitHub ZIP digests instead of enriching only the newest release.
-- The frontend also preserves SHA-256 and package fields when merging a matching GitHub manifest into bundled release history.
-
 ## What to do next
 
 1. **Extract release and update provenance** — Move GitHub release parsing, installed release metadata, package-integrity normalization, and historical digest caching out of dashboard.py.
 2. **Extract qBitTorrent transport and normalization** — Move QBitClient, server normalization, proxy/preference translation, and Web API transport away from HTTP routing.
 3. **Expand request-level behavioral tests** — Add authorization, CSRF, setup, account-route, and settings-mutation coverage around extracted service boundaries.
-4. **Retire legacy UI copy tokens incrementally** — Replace older uiText token-derived user messages with explicit display copy when each surface is next modified, preserving the new design-language contract.
+4. **Harden secrets at rest** — Use the configuration boundary to add restrictive file permissions and separate ordinary configuration from stored credentials.
 
 ## Known issues
 
-- Some older application surfaces still use uiText token normalization internally even though their rendered copy is sentence case; these can be converted to explicit display strings incrementally without changing behavior.
+- The pass improves CSS typography and spacing but does not replace browser/device visual regression testing; unusually low-DPI displays may still benefit from OS-level text scaling.
 
 ## Handoff instructions for a new development session
 

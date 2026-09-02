@@ -35,3 +35,15 @@ qBitTorrent client settings and account dialogs keep their result visible inside
 New user-facing copy should be authored in its final display form rather than relying on token-to-text conversion. The existing `uiText()` normalizer remains a compatibility layer for older surfaces and may be retired incrementally.
 
 `release_tools/validate_ui_strings.py` enforces the high-value copy contracts that have caused drift before, including the core Settings save confirmation and known title-case legacy strings.
+
+
+## Desktop legibility
+
+Desktop layouts should use available space before shrinking text. At viewport widths of 1024 px and above:
+
+- Primary application and table content should generally render in the **13–15 px** range.
+- Supporting copy, help text, timestamps, and secondary metadata should generally stay at **11.5 px or larger**. Small badges and compact metadata labels may use approximately **10–11 px** when contrast and spacing remain strong.
+- Muted text must remain visibly subordinate without becoming low-contrast. Dark and light themes both need a clear contrast step between `--text`, `--muted`, surfaces, and borders.
+- Forms and navigation should gain spacing and hit area before their text is reduced. The desktop canvas should be used rather than preserving large unused margins.
+- Compact density may reduce row height and spacing, but it should not restore the former undersized text baseline.
+- Tablet and mobile breakpoints remain independently tuned; desktop typography rules must not simply scale responsive layouts upward.

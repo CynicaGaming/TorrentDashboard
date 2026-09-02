@@ -622,6 +622,68 @@
           "detail": "Replace older uiText token-derived user messages with explicit display copy when each surface is next modified, preserving the new design-language contract."
         }
       ]
+    },
+    {
+      "version": "0.5.66",
+      "date": "2026-09-02",
+      "status": "prerelease",
+      "title": "Desktop legibility and workspace use",
+      "summary": "Raises the desktop readability baseline across Torrent Dashboard and uses the available canvas more effectively without changing mobile behavior or removing compact density.",
+      "highlights": [
+        "Desktop primary content, forms, tables, navigation, dialogs, patch notes, torrent details, Add Torrent, and notifications use larger type and more deliberate spacing at 1024 px and above.",
+        "The desktop sidebar and main content area use more of the available viewport instead of preserving undersized text beside unused space.",
+        "Muted text contrast is stronger in both dark and light themes while remaining visually subordinate to primary content.",
+        "Compact density remains available with a reduced row height, but no longer implies the former undersized desktop typography baseline."
+      ],
+      "fixes": [
+        "Improves readability at 100% browser zoom on desktop, especially for torrent rows, supporting metadata, Settings forms, update notes, and account/client dialogs."
+      ],
+      "technical": [
+        "Desktop-specific legibility overrides begin at 1024 px so the existing tablet and mobile breakpoints retain their independent tuning.",
+        "DESIGN_LANGUAGE.md now defines minimum desktop readability expectations so future feature work uses space before shrinking type.",
+        "The UI regression audit verifies the desktop typography floor, muted contrast token, compact-density row override, and key Settings/readability selectors."
+      ],
+      "validation": [
+        "Existing backend behavioral tests and architecture checks remain unchanged by the presentation-only pass.",
+        "JavaScript syntax, frontend build synchronization, service-worker cache generation, generated release metadata, and the expanded UI string/readability audit remain release gates."
+      ],
+      "known_issues": [
+        "The pass improves CSS typography and spacing but does not replace browser/device visual regression testing; unusually low-DPI displays may still benefit from OS-level text scaling."
+      ],
+      "architecture": [
+        "dashboard.py remains the composition root and HTTP adapter.",
+        "Configuration lifecycle, configuration transactions, integrations, and users/accounts remain isolated in torrent_dashboard package modules.",
+        "Desktop presentation now has an explicit design-language readability contract separate from responsive/mobile tuning.",
+        "Release/update provenance remains the next planned backend extraction."
+      ],
+      "decisions": [
+        "Use available desktop space before reducing type size.",
+        "Treat 1024 px and above as the desktop legibility breakpoint while preserving existing responsive rules below it.",
+        "Keep compact density as a spacing preference rather than a license to use hard-to-read text.",
+        "Continue behavior-preserving modularization independently from presentation-quality passes."
+      ],
+      "next_steps": [
+        {
+          "priority": 1,
+          "title": "Extract release and update provenance",
+          "detail": "Move GitHub release parsing, installed release metadata, package-integrity normalization, and historical digest caching out of dashboard.py."
+        },
+        {
+          "priority": 2,
+          "title": "Extract qBitTorrent transport and normalization",
+          "detail": "Move QBitClient, server normalization, proxy/preference translation, and Web API transport away from HTTP routing."
+        },
+        {
+          "priority": 3,
+          "title": "Expand request-level behavioral tests",
+          "detail": "Add authorization, CSRF, setup, account-route, and settings-mutation coverage around extracted service boundaries."
+        },
+        {
+          "priority": 4,
+          "title": "Harden secrets at rest",
+          "detail": "Use the configuration boundary to add restrictive file permissions and separate ordinary configuration from stored credentials."
+        }
+      ]
     }
   ]
 }

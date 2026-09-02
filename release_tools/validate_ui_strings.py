@@ -448,6 +448,20 @@ def main():
     assert 'save_config(' not in mutation_section
     assert mutation_section.count('mutate_config(') >= 12
 
+    # 0.5.66 desktop readability contract. Desktop uses available space instead
+    # of falling back to the historical 8-11px interface baseline.
+    assert '0.5.66 desktop legibility baseline' in app_css
+    assert '0.5.66 desktop settings legibility' in settings_css
+    assert '@media(min-width:1024px)' in app_css and '@media(min-width:1024px)' in settings_css
+    assert ':root{--muted:#a7b3bf;--row:70px}' in app_css
+    assert ':root[data-density="compact"]{--row:56px}' in app_css
+    assert '.torrent-name{max-width:620px;font-size:15px}' in app_css
+    assert '.update-release-body{padding:16px 17px 18px;font-size:12.5px' in app_css
+    assert '.settings-subnav button{min-height:40px;padding:10px 11px;font-size:13px' in settings_css
+    assert '.accordion-summary b{font-size:14px}' in settings_css
+    assert '.client-setting-copy>span{font-size:11.5px' in settings_css
+    assert '## Desktop legibility' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')
+
     print("UI string audit passed")
 
 
