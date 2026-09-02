@@ -42,7 +42,8 @@ jobs:
           node --check static/settings.js
           python - <<'PY'
           import dashboard
-          assert dashboard.VERSION in {'0.5.56', '0.5.57'}
+          assert dashboard.VERSION in {'0.5.56', '0.5.57', '0.5.58'}
+          # migration anchor: assert dashboard.VERSION in {'0.5.56', '0.5.57'}
           assert callable(dashboard.normalize_user)
           assert callable(dashboard.save_user)
           assert callable(dashboard.session_is_admin)
@@ -55,8 +56,14 @@ jobs:
           print(dashboard.VERSION)
           PY
           )
-          if [ "$VERSION" = "0.5.57" ]; then
+          if [ "$VERSION" = "0.5.57" ] || [ "$VERSION" = "0.5.58" ]; then
             python release_tools/generate_release_notes.py --version "$VERSION" --check
+          fi
+          # Keep one migration anchor until the staged v0.5.58 script has applied.
+          if false; then
+            if [ "$VERSION" = "0.5.57" ]; then
+              :
+            fi
           fi
 
       - name: Commit applied refactor
