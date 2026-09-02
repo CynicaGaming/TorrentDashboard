@@ -41,6 +41,12 @@ html = replace_once(
     '<div class="torrent-detail-context"><strong id="detailName"></strong><span id="detailMeta">Select a torrent to view details.</span></div>',
     "detail empty context",
 )
+html = replace_once(
+    html,
+    '<div class="torrent-detail-body" id="detailBody"><div class="empty detail-empty"><strong>No torrent selected</strong><span>Select a torrent to view details.</span></div></div>',
+    '<div class="torrent-detail-body" id="detailBody"><div class="empty detail-empty"><span>Select a torrent to view details.</span></div></div>',
+    "initial detail body",
+)
 html = html.replace(OLD, NEW)
 write("static/index.html", html)
 
