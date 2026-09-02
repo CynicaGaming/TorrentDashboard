@@ -33,10 +33,6 @@ jobs:
             python release_tools/apply_feature_update.py
             rm -f release_tools/apply_feature_update.py
           fi
-          if [ -f release_tools/apply_feature_update_post.py ]; then
-            python release_tools/apply_feature_update_post.py
-            rm -f release_tools/apply_feature_update_post.py
-          fi
 
       - name: Validate transformed source
         shell: bash
