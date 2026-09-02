@@ -37,18 +37,27 @@ jobs:
       - name: Validate transformed source
         shell: bash
         run: |
-          python -m py_compile dashboard.py torrent_dashboard/users.py torrent_dashboard/config_store.py
+          python -m py_compile dashboard.py torrent_dashboard/users.py torrent_dashboard/config_store.py release_tools/generate_release_notes.py
+          node --check static/app.js
+          node --check static/settings.js
           python - <<'PY'
           import dashboard
-          assert dashboard.VERSION in {'0.5.55', '0.5.56'}
+          assert dashboard.VERSION in {'0.5.56', '0.5.57'}
           assert callable(dashboard.normalize_user)
           assert callable(dashboard.save_user)
           assert callable(dashboard.session_is_admin)
           assert dashboard.normalize_user.__module__ == 'torrent_dashboard.users'
-          if dashboard.VERSION == '0.5.56':
-              assert callable(dashboard.mutate_config)
-              assert hasattr(dashboard, 'CONFIG_STORE')
+          assert callable(dashboard.mutate_config)
+          assert hasattr(dashboard, 'CONFIG_STORE')
           PY
+          VERSION=$(python - <<'PY'
+          import dashboard
+          print(dashboard.VERSION)
+          PY
+          )
+          if [ "$VERSION" = "0.5.57" ]; then
+            python release_tools/generate_release_notes.py --version "$VERSION" --check
+          fi
 
       - name: Commit applied refactor
         shell: bash
