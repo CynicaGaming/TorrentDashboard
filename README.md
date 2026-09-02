@@ -82,20 +82,22 @@ If you discover a security issue, do not post credentials or sensitive exploit d
 
 ## Development
 
-Architecture and module ownership are documented in [`ARCHITECTURE.md`](ARCHITECTURE.md), and user-facing content conventions are documented in [`DESIGN_LANGUAGE.md`](DESIGN_LANGUAGE.md). Current development handoff state is generated in [`PROJECT_STATE.md`](PROJECT_STATE.md). Backend domain modules isolate users/accounts, configuration lifecycle, configuration transactions, and integrations from the HTTP composition root.
+Start with [`DEVELOPMENT.md`](DEVELOPMENT.md) for the contributor/fork workflow and [`HANDOFF.md`](HANDOFF.md) for the current portable development handoff. Architecture and module ownership are documented in [`ARCHITECTURE.md`](ARCHITECTURE.md), interface/content conventions in [`DESIGN_LANGUAGE.md`](DESIGN_LANGUAGE.md), and the automated/manual verification contract in [`TESTING.md`](TESTING.md).
 
-Backend tests use the Python standard library and can be run with:
+Important architectural choices and their rationale are kept under [`docs/decisions/`](docs/decisions/). Current unfinished engineering intent lives in [`development/current.json`](development/current.json); generated released-state context remains in [`PROJECT_STATE.md`](PROJECT_STATE.md).
 
-```bash
-python -m unittest discover -s tests -v
-```
+Torrent Dashboard is a public project and these continuity files are intentionally fork-safe. Canonical upstream branch and PR references are labeled as upstream context rather than assumptions about a fork. Fork maintainers should update `development/current.json` when their roadmap diverges and should never place credentials, private infrastructure details, or conversation transcripts in public handoff material.
 
-Reusable source/architecture validation can be run with:
+Backend tests and reusable source validation can be run with:
 
 ```bash
 python release_tools/validate_source.py
 ```
 
-Development releases use semantic versions in the `0.x.x` range. Structured release metadata in `release_notes/releases.json` generates the changelog, project handoff, and GitHub release body.
+UI contract validation can be run with:
 
-Pull requests and forks are welcome. Fork maintainers can point **Settings → Updates** at their own public release repository or change `DEFAULT_UPDATE_REPOSITORY` for their build.
+```bash
+python release_tools/validate_ui_strings.py
+```
+
+Structured release metadata in `release_notes/releases.json` generates the changelog, project state, portable handoff, and GitHub release body. Pull requests and forks are welcome. Fork maintainers can point **Settings → Updates** at their own public release repository or change `DEFAULT_UPDATE_REPOSITORY` for their build.
