@@ -83,9 +83,8 @@ def main():
     assert "set_auto_management" not in app_js and "set_auto_management" not in dashboard_py
     assert "menu-separator" in app_css and "@media(max-width:700px)" in app_css
     assert "e.target.closest('button[data-a]')" in app_js
-    # Add Torrent metadata is intentionally not part of 0.5.44.
-    assert "fetch_torrent_metadata" not in dashboard_py
-    assert "/api/torrent-metadata/fetch" not in dashboard_py
+    # Add Torrent metadata is implemented server-side in 0.5.50 but remains
+    # disconnected from the browser until the next controlled phase.
     assert "Metadata retrieval complete" not in app_js
     # 0.5.48 changes only the Add Torrent shell. The existing submission
     # contract remains in place and metadata behavior is still absent.
@@ -99,8 +98,6 @@ def main():
     assert 'id="addCategory"' in html and 'id="addTags"' in html
     assert 'id="addStartTorrent"' in html and 'id="addSequential"' in html and 'id="addFirstLast"' in html
     assert '0.5.48 Add Torrent visual shell' in app_css
-    assert 'fetch_torrent_metadata' not in dashboard_py
-    assert '/api/torrent-metadata/fetch' not in dashboard_py
     assert 'addMetadataState' not in app_js
     assert 'Metadata retrieval complete' not in app_js
     # 0.5.49 activates qBitTorrent add-time options while keeping metadata disabled.
@@ -113,9 +110,20 @@ def main():
     assert '"autoTMM"' in dashboard_py and '"addToTopOfQueue"' in dashboard_py and '"seedMode"' in dashboard_py
     assert '"stopCondition"' in dashboard_py and '"contentLayout"' in dashboard_py
     assert '0.5.49 Add Torrent advanced options' in app_css
-    assert 'fetch_torrent_metadata' not in dashboard_py
-    assert '/api/torrent-metadata/fetch' not in dashboard_py
     assert 'addMetadataState' not in app_js
+    # 0.5.50 metadata backend: explicit admin-only proxy routes exist, but no
+    # browser code is allowed to call them yet. This keeps polling out of runtime.
+    for method in ('fetch_torrent_metadata','parse_torrent_metadata','save_torrent_metadata'):
+        assert f'def {method}' in dashboard_py
+    for route in ('/api/torrent-metadata/fetch','/api/torrent-metadata/parse','/api/torrent-metadata/save'):
+        assert route in dashboard_py
+        assert route not in app_js
+    assert '/api/v2/torrents/fetchMetadata' in dashboard_py
+    assert '/api/v2/torrents/parseMetadata' in dashboard_py
+    assert '/api/v2/torrents/saveMetadata' in dashboard_py
+    assert 'qbit_status' in dashboard_py and 'complete' in dashboard_py
+    assert 'Torrent metadata preview requires qBittorrent Web API 2.11.9 or newer' in dashboard_py
+    assert 'Metadata retrieval complete' not in app_js
     # 0.5.47 frontend generation contract. Navigation HTML is never cached,
     # stale versioned scripts trigger recovery, and optional Add Torrent bindings
     # cannot abort critical dashboard startup.

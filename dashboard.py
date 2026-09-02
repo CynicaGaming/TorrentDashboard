@@ -45,7 +45,7 @@ MAX_CUSTOM_SOUND_BYTES = 2 * 1024 * 1024
 AVATAR_DIR = DATA_DIR / "avatars"
 MAX_AVATAR_BYTES = 4 * 1024 * 1024
 PROFILE_AVATAR_TYPES = {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp"}
-VERSION = "0.5.49"
+VERSION = "0.5.50"
 STATUS_REFRESH_SECONDS = 1.0
 DEFAULT_UPDATE_REPOSITORY = "CynicaGaming/TorrentDashboard"
 
@@ -1336,6 +1336,74 @@ class QBitClient:
     def post(self, path, form=None):
         return self._request("POST", path, form=form or {})
 
+    @staticmethod
+    def _torrent_metadata_json(body):
+        if not body:
+            return {}
+        try:
+            return json.loads(body.decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+            raise RuntimeError("qBittorrent returned invalid torrent metadata") from exc
+
+    @staticmethod
+    def _metadata_api_error(exc):
+        message = str(exc)
+        if "qBittorrent HTTP 404" in message:
+            return RuntimeError("Torrent metadata preview requires qBittorrent Web API 2.11.9 or newer")
+        return RuntimeError(message)
+
+    def fetch_torrent_metadata(self, source, downloader=""):
+        source = str(source or "").strip()[:16000]
+        if not source:
+            raise RuntimeError("A magnet link or torrent URL is required")
+        form = {"source": source}
+        downloader = str(downloader or "").strip()[:256]
+        if downloader:
+            form["downloader"] = downloader
+        try:
+            status, body = self.post("/api/v2/torrents/fetchMetadata", form)
+        except RuntimeError as exc:
+            raise self._metadata_api_error(exc) from exc
+        return {
+            "qbit_status": int(status),
+            "complete": int(status) == 200,
+            "metadata": self._torrent_metadata_json(body),
+        }
+
+    def parse_torrent_metadata(self, filename, content):
+        if not content:
+            raise RuntimeError("No .torrent file supplied")
+        boundary = "----TorrentDashboardMetadata" + secrets.token_hex(12)
+        safe_name = Path(str(filename or "torrent.torrent")).name.replace('"', "")[:255] or "torrent.torrent"
+        raw = (
+            f"--{boundary}\r\nContent-Disposition: form-data; name=\"torrents\"; filename=\"{safe_name}\"\r\n"
+            "Content-Type: application/x-bittorrent\r\n\r\n"
+        ).encode() + content + f"\r\n--{boundary}--\r\n".encode()
+        try:
+            status, body = self._request(
+                "POST", "/api/v2/torrents/parseMetadata", raw=raw,
+                headers={"Content-Type": f"multipart/form-data; boundary={boundary}"}
+            )
+        except RuntimeError as exc:
+            raise self._metadata_api_error(exc) from exc
+        return {
+            "qbit_status": int(status),
+            "metadata": self._torrent_metadata_json(body),
+        }
+
+    def save_torrent_metadata(self, source):
+        source = str(source or "").strip()[:16000]
+        if not source:
+            raise RuntimeError("Torrent metadata source is required")
+        route = "/api/v2/torrents/saveMetadata?" + urllib.parse.urlencode({"source": source})
+        try:
+            status, body = self._request("GET", route, expect_json=False)
+        except RuntimeError as exc:
+            raise self._metadata_api_error(exc) from exc
+        if not body:
+            raise RuntimeError("qBittorrent returned an empty torrent metadata file")
+        return int(status), body
+
     def info(self):
         torrents = self.get_json("/api/v2/torrents/info") or []
         transfer = self.get_json("/api/v2/transfer/info") or {}
@@ -2331,8 +2399,16 @@ class Handler(BaseHTTPRequestHandler):
             if not avatar_path:
                 return self.send_json(404,{"error":"No profile picture is configured"},new_cookie)
             return self.send_bytes(200,avatar_path.read_bytes(),avatar_mime,new_cookie)
-        if path in ("/api/settings","/api/integrations","/api/users","/api/network/interfaces","/api/client-settings") and not session_is_admin(sess):
+        if path in ("/api/settings","/api/integrations","/api/users","/api/network/interfaces","/api/client-settings","/api/torrent-metadata/save") and not session_is_admin(sess):
             return self.send_json(403,{"error":"Administrator access is required"},new_cookie)
+
+        if path=="/api/torrent-metadata/save":
+            sid=qs.get("server",["local"])[0]; source=qs.get("source",[""])[0]
+            try:
+                _,body=get_client(cfg,sid).save_torrent_metadata(source)
+                return self.send_bytes(200,body,"application/x-bittorrent",new_cookie,{"Content-Disposition":'attachment; filename="torrent.torrent"'})
+            except Exception as e:
+                return self.send_json(502,{"error":str(e)},new_cookie)
 
         if path=="/api/status":
             sid=qs.get("server",["all"])[0]
@@ -2433,6 +2509,18 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send_json(200,{"ok":True,"user":public_user(user)},new_cookie)
             if not session_is_admin(sess):
                 return self.send_json(403,{"error":"Administrator access is required"},new_cookie)
+            if path=="/api/torrent-metadata/fetch":
+                data=parse_json_body(self,50000); sid=str(data.get("server") or "local")
+                result=get_client(cfg,sid).fetch_torrent_metadata(data.get("source"),data.get("downloader"))
+                return self.send_json(200,result,new_cookie)
+            if path=="/api/torrent-metadata/parse":
+                fields,files=parse_multipart(self)
+                sid=str(fields.get("server") or "local")
+                if not files:
+                    raise RuntimeError("No .torrent file supplied")
+                _,filename,content=files[0]
+                result=get_client(cfg,sid).parse_torrent_metadata(filename,content)
+                return self.send_json(200,result,new_cookie)
             if path=="/api/client-settings":
                 data=parse_json_body(self,50000); sid=str(data.pop("server","local")); settings=get_client(cfg,sid).update_client_settings(data)
                 HISTORY.event(sid,"client_settings_changed",sess.get("username",""),"",{"client_ip":self.client_ip()})

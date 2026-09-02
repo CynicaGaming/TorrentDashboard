@@ -1,5 +1,5 @@
-const CACHE='torrent-dashboard-v0549';
-const ASSETS=['/static/app.css?v=0.5.49','/static/settings.css?v=0.5.49','/static/settings.js?v=0.5.49','/static/app.js?v=0.5.49','/manifest.webmanifest'];
+const CACHE='torrent-dashboard-v0550';
+const ASSETS=['/static/app.css?v=0.5.50','/static/settings.css?v=0.5.50','/static/settings.js?v=0.5.50','/static/app.js?v=0.5.50','/manifest.webmanifest'];
 self.addEventListener('install',event=>{self.skipWaiting();event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS)))});
 self.addEventListener('activate',event=>event.waitUntil(Promise.all([caches.keys().then(keys=>Promise.all(keys.filter(key=>key!==CACHE).map(key=>caches.delete(key)))),self.clients.claim()])));
 self.addEventListener('fetch',event=>{if(event.request.method!=='GET')return;const url=new URL(event.request.url);if(url.origin!==self.location.origin||url.pathname.startsWith('/api/')||event.request.mode==='navigate'||url.pathname==='/'||url.pathname==='/index.html')return;event.respondWith(fetch(event.request,{cache:'no-store'}).then(response=>{if(response.ok){const copy=response.clone();caches.open(CACHE).then(cache=>cache.put(event.request,copy))}return response}).catch(()=>caches.match(event.request)))});
