@@ -1,5 +1,5 @@
 'use strict';
-const FRONTEND_BUILD='0.5.52';
+const FRONTEND_BUILD='0.5.53';
 const HTML_BUILD=document.querySelector('meta[name="torrent-dashboard-build"]')?.content||'';
 const RECOVERY_KEY=`td-frontend-recovery-${FRONTEND_BUILD}`;
 async function recoverFrontendBuild(reason){
@@ -340,10 +340,25 @@ function bindAddTorrentUI(){
   renderAddMetadataIdle();
   return true;
 }
+let addTorrentDefaultsRequest=0;
+async function loadAddTorrentClientDefaults(){
+  const server=state.server,request=++addTorrentDefaultsRequest;
+  const initial={save:$('#addPath').value,temp:$('#addDownloadPath').value,use:!!$('#addUseDownloadPath').checked};
+  try{
+    const data=await api(`/api/client-settings?server=${encodeURIComponent(server)}`);
+    if(request!==addTorrentDefaultsRequest||state.server!==server||$('#addModal').classList.contains('hidden'))return;
+    const downloads=data?.settings?.downloads||{};
+    if($('#addPath').value===initial.save)$('#addPath').value=downloads.save_path||'';
+    if($('#addDownloadPath').value===initial.temp)$('#addDownloadPath').value=downloads.temp_path||'';
+    if(!!$('#addUseDownloadPath').checked===initial.use)$('#addUseDownloadPath').checked=!!downloads.temp_path_enabled;
+    syncAddTorrentOptions();
+  }catch(error){console.error('[Torrent Dashboard] Could not load Add Torrent client defaults',error)}
+}
 function openAddTorrent(){
   if(state.server==='all')return toast('chooseSpecificServerFirst','error');
   $('#addModal').classList.remove('hidden');
   syncAddTorrentOptions();
+  loadAddTorrentClientDefaults();
   scheduleAddMetadataPreview(0);
   $('#addUrls').focus();
 }
@@ -438,8 +453,8 @@ async function refreshStatus(){try{const d=await api(`/api/status?server=${encod
 function checkCompletions(){const now=new Set(state.torrents.filter(t=>Number(t.progress)>=.999999).map(keyFor));if(state.lastComplete.size){for(const k of now)if(!state.lastComplete.has(k)){const t=state.torrents.find(x=>keyFor(x)===k);if(t){toast(`completed: ${t.name}`);playCompletionSound().catch(()=>{});if(state.settings?.notifications?.browser&&'Notification' in window&&Notification.permission==='granted')showBrowserNotification(state.settings?.dashboard?.title||'Torrent Dashboard',{body:`Completed: ${t.name}`,tag:`torrent-complete-${k}`}).catch(()=>{})}}}state.lastComplete=now;if('setAppBadge'in navigator){let n=state.torrents.filter(isActive).length;n?navigator.setAppBadge(n):navigator.clearAppBadge()}}
 
 function renderMetrics(d){const t=state.torrents,x=state.transfer,active=t.filter(isActive),queued=active.filter(a=>!Number(a.dlspeed)).length,remain=active.reduce((a,b)=>a+Number(b.amount_left||0),0),etas=active.map(a=>Number(a.eta)).filter(v=>Number.isFinite(v)&&v<8640000),avg=etas.length?etas.reduce((a,b)=>a+b,0)/etas.length:Infinity;$('#mDown').textContent=speed(x.dl_info_speed||0);$('#mDownTotal').textContent=`Session ${bytes(x.dl_info_data||0)}`;$('#mUp').textContent=speed(x.up_info_speed||0);$('#mUpTotal').textContent=`Session ${bytes(x.up_info_data||0)}`;$('#mActive').textContent=active.length;$('#mQueue').textContent=queued?`${queued} ${uiText('queuedOrStalled')}`:uiText('allActive');$('#mRemain').textContent=bytes(remain);$('#mEta').textContent=`${uiText('avgEta')} ${eta(avg)}`;$('#mUpdated').textContent=new Date((d.ts||Date.now()/1000)*1000).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'});$('#mHealth').textContent=uiText(d.ok===false?'connectionIssue':'healthy');let disk=d.disk_free;if(state.server==='all')disk=null;$('#mDisk').textContent=disk==null?'—':bytes(disk);let low=Number(state.settings?.dashboard?.low_disk_gb||20)*1024**3;$('#mDiskWarn').textContent=uiText(disk!=null&&disk<low?'lowDiskSpace':'downloadVolume');const c=d.tab_counts||{};$('#countAll').textContent=c.all??t.length;$('#countActive').textContent=c.downloading??t.filter(isActive).length;$('#countCompleted').textContent=c.completed??t.filter(isComplete).length;$('#countPaused').textContent=c.paused??t.filter(isPaused).length}
-function isComplete(t){return Number(t.progress||0)>=.999999}function isPaused(t){let s=String(t.state||'').toLowerCase();return s.includes('paused')||s.includes('stopped')}function isActive(t){return !isComplete(t)&&!isPaused(t)}
-function stateInfo(t){const s=String(t.state||'').toLowerCase();if(s.includes('error')||s.includes('missing'))return['error','error'];if(isPaused(t))return['paused','pause'];if(s.includes('upload')||s.includes('seed'))return[Number(t.upspeed)>0?'seeding':'seedIdle','seed'];if(s.includes('stall')&&!isComplete(t))return['stalled','pause'];if(s.includes('check'))return['checking','pause'];if(s.includes('meta'))return['metadata','down'];if(!isComplete(t)&&Number(t.dlspeed)>0)return['downloading','down'];if(!isComplete(t))return['queued',''];return['complete','seed']}
+function isComplete(t){return Number(t.progress||0)>=.999999}function isStopped(t){let s=String(t.state||'').toLowerCase();return s.includes('paused')||s.includes('stopped')}function isPaused(t){return !isComplete(t)&&isStopped(t)}function isActive(t){return !isComplete(t)&&!isStopped(t)}
+function stateInfo(t){const s=String(t.state||'').toLowerCase();if(s.includes('error')||s.includes('missing'))return['error','error'];if(isComplete(t)&&isStopped(t))return['complete','seed'];if(isPaused(t))return['paused','pause'];if(s.includes('upload')||s.includes('seed'))return[Number(t.upspeed)>0?'seeding':'seedIdle','seed'];if(s.includes('stall')&&!isComplete(t))return['stalled','pause'];if(s.includes('check'))return['checking','pause'];if(s.includes('meta'))return['metadata','down'];if(!isComplete(t)&&Number(t.dlspeed)>0)return['downloading','down'];if(!isComplete(t))return['queued',''];return['complete','seed']}
 function trackerHost(v){try{return new URL(v).hostname||v}catch{return v||''}}
 function keyFor(t){return`${t._server_id||state.server}:${t.hash}`}
 function visibleTorrents(){let arr=state.torrents.filter(t=>{if(state.filter==='active'&&!isActive(t))return false;if(state.filter==='completed'&&!isComplete(t))return false;if(state.filter==='paused'&&!isPaused(t))return false;if(state.category&&t.category!==state.category)return false;if(state.tag&&!String(t.tags||'').split(',').map(x=>x.trim()).includes(state.tag))return false;if(state.tracker&&trackerHost(t.tracker)!==state.tracker)return false;if(state.search&&!`${t.name||''} ${t.category||''} ${t.tags||''} ${t.tracker||''}`.toLowerCase().includes(state.search))return false;return true});const [field,dir]=state.sort.split('_');const val=(t)=>({name:String(t.name||'').toLowerCase(),progress:Number(t.progress||0),down:Number(t.dlspeed||0),up:Number(t.upspeed||0),eta:Number(t.eta||9e15),size:Number(t.size||0),ratio:Number(t.ratio||0),added:Number(t.added_on||0)})[field];arr.sort((a,b)=>{let A=val(a),B=val(b);return(A<B?-1:A>B?1:0)*(dir==='desc'?-1:1)});return arr}
@@ -480,7 +495,7 @@ function showTorrentMenu(tr,anchor,context=false){
   const items=[];
 
   if(admin){
-    items.push(item(isPaused(t)?'start':'stop',isPaused(t)?'Resume':'Pause',isPaused(t)?'▶':'Ⅱ'));
+    items.push(item(isStopped(t)?'start':'stop',isStopped(t)?'Resume':'Pause',isStopped(t)?'▶':'Ⅱ'));
     items.push(item('force_start',t.force_start?'Disable force start':'Force start','»'));
     items.push(item('delete','Remove…','×','danger'));
     items.push(sep);

@@ -41,6 +41,7 @@ window.TDSettings = (() => {
     document.querySelector('#clientSettingsForm')?.addEventListener('submit', saveClientSettings);
     document.querySelectorAll('[data-client-settings-close]').forEach(el => el.addEventListener('click', closeClientSettings));
     document.querySelectorAll('[data-client-settings-tab]').forEach(el => el.addEventListener('click', () => activateClientSettingsTab(el.dataset.clientSettingsTab)));
+    document.querySelector('#clientTempPathEnabled')?.addEventListener('change', syncClientSettingsControls);
     document.querySelector('#clientRandomPort')?.addEventListener('change', syncClientSettingsControls);
     document.querySelector('#clientProxyType')?.addEventListener('change', syncClientSettingsControls);
     document.querySelector('#clientProxyAuth')?.addEventListener('change', syncClientSettingsControls);
@@ -60,14 +61,17 @@ window.TDSettings = (() => {
     status.textContent = message;
   }
 
-  function activateClientSettingsTab(tab='speed') {
-    const allowed = new Set(['speed','connection','proxy']);
+  function activateClientSettingsTab(tab='downloads') {
+    const allowed = new Set(['downloads','speed','connection','proxy']);
     if (!allowed.has(tab)) tab = 'speed';
     document.querySelectorAll('[data-client-settings-tab]').forEach(el => el.classList.toggle('active', el.dataset.clientSettingsTab === tab));
     document.querySelectorAll('[data-client-settings-pane]').forEach(el => el.classList.toggle('active', el.dataset.clientSettingsPane === tab));
   }
 
   function syncClientSettingsControls() {
+    const tempPathEnabled = !!document.querySelector('#clientTempPathEnabled')?.checked;
+    const tempPath = document.querySelector('#clientTempPath');
+    if (tempPath) tempPath.disabled = !tempPathEnabled;
     const randomPort = !!document.querySelector('#clientRandomPort')?.checked;
     const listenPort = document.querySelector('#clientListenPort');
     if (listenPort) listenPort.disabled = randomPort;
@@ -83,9 +87,10 @@ window.TDSettings = (() => {
   }
 
   function fillClientSettings(settings) {
-    const speed=settings?.speed||{}, connection=settings?.connection||{}, proxy=settings?.proxy||{};
+    const downloads=settings?.downloads||{}, speed=settings?.speed||{}, connection=settings?.connection||{}, proxy=settings?.proxy||{};
     const setValue=(id,value)=>{const el=document.querySelector('#'+id);if(el)el.value=String(value ?? '');};
     const setChecked=(id,value)=>{const el=document.querySelector('#'+id);if(el)el.checked=!!value;};
+    setValue('clientSavePath',downloads.save_path || '');setChecked('clientTempPathEnabled',downloads.temp_path_enabled);setValue('clientTempPath',downloads.temp_path || '');
     setChecked('clientAltSpeed',speed.alternative_enabled);
     setValue('clientGlobalDl',speed.download_limit_kb ?? 0);setValue('clientGlobalUl',speed.upload_limit_kb ?? 0);
     setValue('clientAltDl',speed.alternative_download_limit_kb ?? 0);setValue('clientAltUl',speed.alternative_upload_limit_kb ?? 0);
@@ -114,7 +119,7 @@ window.TDSettings = (() => {
     const modal = document.querySelector('#clientSettingsModal');
     const name = document.querySelector('#clientSettingsClientName');
     if (name) name.textContent = `${server?.name || serverId} · qBitTorrent`;
-    activateClientSettingsTab('speed');
+    activateClientSettingsTab('downloads');
     modal?.classList.remove('hidden');
     setClientSettingsStatus('Loading client settings…');
     try {
@@ -139,10 +144,13 @@ window.TDSettings = (() => {
     try { proxyPassword=secretFieldValue(passwordInput,'<configured>'); } catch(err) { return setClientSettingsStatus(err.message,'bad'); }
     const payload={
       server:clientSettingsServerId,
+      downloads:{save_path:document.querySelector('#clientSavePath')?.value.trim()||'',temp_path_enabled:!!document.querySelector('#clientTempPathEnabled')?.checked,temp_path:document.querySelector('#clientTempPath')?.value.trim()||''},
       speed:{alternative_enabled:!!document.querySelector('#clientAltSpeed')?.checked,download_limit_kb:clientNumber('clientGlobalDl'),upload_limit_kb:clientNumber('clientGlobalUl'),alternative_download_limit_kb:clientNumber('clientAltDl'),alternative_upload_limit_kb:clientNumber('clientAltUl')},
       connection:{listen_port:clientNumber('clientListenPort'),random_port:!!document.querySelector('#clientRandomPort')?.checked,upnp:!!document.querySelector('#clientUpnp')?.checked,max_connections:clientNumber('clientMaxConnections'),max_connections_per_torrent:clientNumber('clientMaxConnectionsTorrent'),max_upload_slots:clientNumber('clientMaxUploads'),max_upload_slots_per_torrent:clientNumber('clientMaxUploadsTorrent')},
       proxy:{type:document.querySelector('#clientProxyType')?.value||'none',host:document.querySelector('#clientProxyHost')?.value.trim()||'',port:clientNumber('clientProxyPort'),authentication:!!document.querySelector('#clientProxyAuth')?.checked,username:document.querySelector('#clientProxyUsername')?.value.trim()||'',password:proxyPassword,hostname_lookup:!!document.querySelector('#clientProxyLookup')?.checked,bittorrent:!!document.querySelector('#clientProxyBittorrent')?.checked,peer_connections:!!document.querySelector('#clientProxyPeers')?.checked}
     };
+    if (!payload.downloads.save_path) return setClientSettingsStatus('Default save path is required.', 'bad');
+    if (payload.downloads.temp_path_enabled && !payload.downloads.temp_path) return setClientSettingsStatus('Incomplete torrent path is required when the separate path is enabled.', 'bad');
     const numeric=[payload.speed.download_limit_kb,payload.speed.upload_limit_kb,payload.speed.alternative_download_limit_kb,payload.speed.alternative_upload_limit_kb,payload.connection.max_connections,payload.connection.max_connections_per_torrent,payload.connection.max_upload_slots,payload.connection.max_upload_slots_per_torrent];
     if (!payload.connection.random_port) numeric.push(payload.connection.listen_port);
     if (payload.proxy.type !== 'none') numeric.push(payload.proxy.port);

@@ -142,6 +142,27 @@ def main():
     assert 'Preview only · Add torrent still submits the original source.' in app_js
     assert 'Preview only · Add torrent still uploads the original .torrent file.' in app_js
     assert '.torrent metadata preview will be enabled in the next controlled phase.' not in app_js
+    # 0.5.53 keeps completed/stopped torrents classified as complete while
+    # exposing qBitTorrent download-location defaults in Client Settings and Add Torrent.
+    assert "function isStopped(t)" in app_js
+    assert "function isPaused(t){return !isComplete(t)&&isStopped(t)}" in app_js
+    assert "if(isComplete(t)&&isStopped(t))return['complete','seed']" in app_js
+    assert "item(isStopped(t)?'start':'stop'" in app_js
+    assert 'float(t.get("progress",0) or 0)<.999999 and ("paused"' in dashboard_py
+    for control in ('clientSavePath','clientTempPathEnabled','clientTempPath'):
+        assert f'id="{control}"' in html
+    assert 'data-client-settings-tab="downloads"' in html
+    assert 'data-client-settings-pane="downloads"' in html
+    assert '"downloads": {' in dashboard_py and '"save_path": str(prefs.get("save_path")' in dashboard_py
+    assert '"temp_path_enabled": bool(prefs.get("temp_path_enabled"' in dashboard_py
+    assert '"temp_path": str(prefs.get("temp_path")' in dashboard_py
+    assert "downloads:{save_path:document.querySelector('#clientSavePath')" in settings_js
+    assert "function loadAddTorrentClientDefaults" in app_js
+    assert "downloads.save_path||''" in app_js and "downloads.temp_path||''" in app_js
+    assert "downloads.temp_path_enabled" in app_js
+    assert 'Use another path for incomplete torrents' in html
+    assert '.client-path-grid{grid-template-columns:1fr}' in settings_css
+
     # 0.5.47 frontend generation contract. Navigation HTML is never cached,
     # stale versioned scripts trigger recovery, and optional Add Torrent bindings
     # cannot abort critical dashboard startup.

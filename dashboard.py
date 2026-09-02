@@ -45,7 +45,7 @@ MAX_CUSTOM_SOUND_BYTES = 2 * 1024 * 1024
 AVATAR_DIR = DATA_DIR / "avatars"
 MAX_AVATAR_BYTES = 4 * 1024 * 1024
 PROFILE_AVATAR_TYPES = {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp"}
-VERSION = "0.5.52"
+VERSION = "0.5.53"
 STATUS_REFRESH_SECONDS = 1.0
 DEFAULT_UPDATE_REPOSITORY = "CynicaGaming/TorrentDashboard"
 
@@ -1447,6 +1447,11 @@ class QBitClient:
         proxy_type = normalize_qbittorrent_proxy_type(raw_proxy_type)
         legacy_auth = raw_proxy_type in (3, 4)
         return {
+            "downloads": {
+                "save_path": str(prefs.get("save_path") or ""),
+                "temp_path_enabled": bool(prefs.get("temp_path_enabled", False)),
+                "temp_path": str(prefs.get("temp_path") or ""),
+            },
             "speed": {
                 "alternative_enabled": alt_speed,
                 "download_limit_kb": _qbit_rate_to_kb(prefs.get("dl_limit", 0)),
@@ -1482,14 +1487,26 @@ class QBitClient:
     def update_client_settings(self, data):
         if not isinstance(data, dict):
             raise RuntimeError("Client settings payload must be an object")
+        downloads = data.get("downloads") or {}
         speed = data.get("speed") or {}
         connection = data.get("connection") or {}
         proxy = data.get("proxy") or {}
-        if not all(isinstance(x, dict) for x in (speed, connection, proxy)):
+        if not all(isinstance(x, dict) for x in (downloads, speed, connection, proxy)):
             raise RuntimeError("Client settings sections must be objects")
+
+        save_path = str(downloads.get("save_path") or "").strip()[:4096]
+        temp_path = str(downloads.get("temp_path") or "").strip()[:4096]
+        temp_path_enabled = bool(downloads.get("temp_path_enabled", False))
+        if not save_path:
+            raise RuntimeError("Default save path is required")
+        if temp_path_enabled and not temp_path:
+            raise RuntimeError("Incomplete torrent path is required when the separate path is enabled")
 
         current = self.preferences()
         update = {
+            "save_path": save_path,
+            "temp_path_enabled": temp_path_enabled,
+            "temp_path": temp_path,
             "dl_limit": _qbit_rate_from_kb(speed.get("download_limit_kb", 0), "Download limit"),
             "up_limit": _qbit_rate_from_kb(speed.get("upload_limit_kb", 0), "Upload limit"),
             "alt_dl_limit": _qbit_rate_from_kb(speed.get("alternative_download_limit_kb", 0), "Alternative download limit"),
@@ -2428,7 +2445,7 @@ class Handler(BaseHTTPRequestHandler):
                 "all":len(payload.get("torrents",[])),
                 "downloading":sum(1 for t in payload.get("torrents",[]) if float(t.get("progress",0) or 0)<1 and "paused" not in str(t.get("state","")).lower() and "stopped" not in str(t.get("state","")).lower()),
                 "completed":sum(1 for t in payload.get("torrents",[]) if float(t.get("progress",0) or 0)>=.999999),
-                "paused":sum(1 for t in payload.get("torrents",[]) if "paused" in str(t.get("state","")).lower() or "stopped" in str(t.get("state","")).lower()),
+                "paused":sum(1 for t in payload.get("torrents",[]) if float(t.get("progress",0) or 0)<.999999 and ("paused" in str(t.get("state","")).lower() or "stopped" in str(t.get("state","")).lower())),
             }
             return self.send_json(200,payload,new_cookie)
 
