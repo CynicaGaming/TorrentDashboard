@@ -37,25 +37,27 @@ jobs:
       - name: Validate transformed source
         shell: bash
         run: |
-          python -m py_compile dashboard.py torrent_dashboard/users.py torrent_dashboard/config_store.py release_tools/generate_release_notes.py
+          python -m py_compile dashboard.py updater.py torrent_dashboard/users.py torrent_dashboard/config_store.py release_tools/build_release.py release_tools/generate_release_notes.py
           node --check static/app.js
           node --check static/settings.js
           python - <<'PY'
           import dashboard
-          assert dashboard.VERSION in {'0.5.56', '0.5.57', '0.5.58', '0.5.59'}
+          assert dashboard.VERSION in {'0.5.56', '0.5.57', '0.5.58', '0.5.59', '0.5.60'}
           assert callable(dashboard.normalize_user)
           assert callable(dashboard.save_user)
           assert callable(dashboard.session_is_admin)
           assert dashboard.normalize_user.__module__ == 'torrent_dashboard.users'
           assert callable(dashboard.mutate_config)
           assert hasattr(dashboard, 'CONFIG_STORE')
+          if dashboard.VERSION >= '0.5.60':
+              assert callable(dashboard.installed_release_info)
           PY
           VERSION=$(python - <<'PY'
           import dashboard
           print(dashboard.VERSION)
           PY
           )
-          if [ "$VERSION" = "0.5.57" ] || [ "$VERSION" = "0.5.58" ] || [ "$VERSION" = "0.5.59" ]; then
+          if [ "$VERSION" = "0.5.57" ] || [ "$VERSION" = "0.5.58" ] || [ "$VERSION" = "0.5.59" ] || [ "$VERSION" = "0.5.60" ]; then
             python release_tools/generate_release_notes.py --version "$VERSION" --check
           fi
 
