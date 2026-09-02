@@ -87,6 +87,26 @@ def main():
     assert "fetch_torrent_metadata" not in dashboard_py
     assert "/api/torrent-metadata/fetch" not in dashboard_py
     assert "Metadata retrieval complete" not in app_js
+    # 0.5.47 frontend generation contract. Navigation HTML is never cached,
+    # stale versioned scripts trigger recovery, and optional Add Torrent bindings
+    # cannot abort critical dashboard startup.
+    sw = (ROOT / "static" / "sw.js").read_text(encoding="utf-8")
+    version = re.search(r'^VERSION\s*=\s*["\']([^"\']+)', dashboard_py, re.M).group(1)
+    assert f'<meta content="{version}" name="torrent-dashboard-build"/>' in html
+    assert f"const FRONTEND_BUILD='{version}';" in app_js
+    assert "HTML_BUILD!==FRONTEND_BUILD" in app_js and "recoverFrontendBuild" in app_js
+    assert "showStartupFailure(e,'bootstrap')" in app_js
+    assert "function bindAddTorrentUI()" in app_js
+    assert "missing elements" in app_js
+    assert "function bindUI(){if(bound)return;" in app_js
+    assert "function bindUI(){if(bound)return;bound=true;" not in app_js
+    assert "bound=true;\n}" in app_js
+    assert 'id="startupFailure"' in html and '.startup-failure{' in app_css
+    assert "frontend_recovery_script" in dashboard_py
+    assert 'requested and requested != VERSION' in dashboard_py
+    assert "event.request.mode==='navigate'" in sw
+    assets = sw.split('const ASSETS=',1)[1].split(';',1)[0]
+    assert "'/'" not in assets and "'/index.html'" not in assets
 
     # Updates owns the public GitHub repository directly. GitHub must not be a
     # modular integration and update installation remains a reactive button.

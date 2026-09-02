@@ -1,4 +1,22 @@
 'use strict';
+const FRONTEND_BUILD='0.5.47';
+const HTML_BUILD=document.querySelector('meta[name="torrent-dashboard-build"]')?.content||'';
+const RECOVERY_KEY=`td-frontend-recovery-${FRONTEND_BUILD}`;
+async function recoverFrontendBuild(reason){
+  console.error('[Torrent Dashboard] Frontend build mismatch', {reason,htmlBuild:HTML_BUILD,scriptBuild:FRONTEND_BUILD});
+  if(window.__tdFrontendRecoveryStarted)return;
+  window.__tdFrontendRecoveryStarted=true;
+  const attempts=Number(sessionStorage.getItem(RECOVERY_KEY)||0);
+  if(attempts>=2){console.error('[Torrent Dashboard] Frontend recovery stopped after repeated mismatches');return}
+  sessionStorage.setItem(RECOVERY_KEY,String(attempts+1));
+  try{if('serviceWorker'in navigator){const registrations=await navigator.serviceWorker.getRegistrations();await Promise.all(registrations.map(registration=>registration.unregister()))}}catch(error){console.error('[Torrent Dashboard] Service worker cleanup failed',error)}
+  try{if('caches'in window){const keys=await caches.keys();await Promise.all(keys.filter(key=>key.startsWith('torrent-dashboard-')).map(key=>caches.delete(key)))}}catch(error){console.error('[Torrent Dashboard] Cache cleanup failed',error)}
+  const url=new URL(location.href);url.searchParams.set('td-recover',FRONTEND_BUILD);location.replace(url.toString())
+}
+if(HTML_BUILD!==FRONTEND_BUILD){recoverFrontendBuild('HTML and JavaScript builds do not match');throw new Error(`Torrent Dashboard frontend build mismatch: HTML ${HTML_BUILD||'unknown'}, JavaScript ${FRONTEND_BUILD}`)}
+sessionStorage.removeItem(RECOVERY_KEY);
+window.addEventListener('error',event=>console.error('[Torrent Dashboard] Uncaught error',event.error||event.message));
+window.addEventListener('unhandledrejection',event=>console.error('[Torrent Dashboard] Unhandled promise rejection',event.reason));
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 
 const UI_SPECIAL={torrentdashboard:'Torrent Dashboard',homeassistant:'Home Assistant',qbittorrent:'qBitTorrent',github:'GitHub',api:'API',ip:'IP',cidr:'CIDR',url:'URL',lan:'LAN',nic:'NIC',https:'HTTPS',http:'HTTP',ui:'UI',pwa:'PWA',exe:'EXE',eta:'ETA',id:'ID',pc:'PC',nas:'NAS',ntfy:'ntfy',sonarr:'Sonarr',radarr:'Radarr',lidarr:'Lidarr',prowlarr:'Prowlarr',jellyfin:'Jellyfin',plex:'Plex',discord:'Discord',windows:'Windows'};
@@ -143,6 +161,22 @@ function showLogin(reset=false){
 }
 function showApp(){ $('#setup').classList.add('hidden');$('#login').classList.add('hidden');$('#app').classList.remove('hidden') }
 function showSetup(){ $('#login').classList.add('hidden');$('#app').classList.add('hidden');$('#setup').classList.remove('hidden') }
+function showStartupFailure(error,stage='startup'){
+  console.error(`[Torrent Dashboard] ${stage} failed`,error);
+  const box=$('#startupFailure');if(!box)return;
+  const message=$('#startupFailureMessage');if(message)message.textContent=`${error?.message||error||'Unknown error'} · Open the browser console for details.`;
+  box.classList.remove('hidden');
+}
+function bindAddTorrentUI(){
+  const required=['addLinkBtn','addFileBtn','addModal','addForm','addUrls','torrentFile'];
+  const missing=required.filter(id=>!document.getElementById(id));
+  if(missing.length){console.error('[Torrent Dashboard] Add Torrent UI unavailable; missing elements',missing);return false}
+  $('#addLinkBtn').addEventListener('click',()=>openAddTorrent('link'));
+  $('#addFileBtn').addEventListener('click',()=>openAddTorrent('file'));
+  $$('#addModal [data-modalclose]').forEach(x=>x.addEventListener('click',()=>$('#addModal').classList.add('hidden')));
+  $('#addForm').addEventListener('submit',addTorrent);
+  return true;
+}
 function openAddTorrent(mode='link'){if(state.server==='all')return toast('chooseSpecificServerFirst','error');$('#addModal').classList.remove('hidden');if(mode==='file')$('#torrentFile').click();else $('#addUrls').focus()}
 
 async function rawJson(url,opt={}){const r=await fetch(url,opt);const data=await r.json().catch(()=>({}));if(!r.ok)throw new Error(data.error||`HTTP ${r.status}`);return data}
@@ -185,11 +219,11 @@ async function bootstrap(){
     if(state.me.can_manage){await loadSettings()}else{state.settings={dashboard:{low_disk_gb:20},notifications:{browser:false,sound:false}}}
     await loadServers();bindUI();applyPrefs();await refreshStatus();scheduleRefresh();registerPwa();
   }
-  catch(e){if(!$('#login').classList.contains('hidden'))return;toast(e.message,'error')}
+  catch(e){if(!$('#login').classList.contains('hidden'))return;showStartupFailure(e,'bootstrap')}
 }
 
 let bound=false;
-function bindUI(){if(bound)return;bound=true;
+function bindUI(){if(bound)return;
   $('#homeBrand').addEventListener('click',()=>setView('dashboard'));
   $$('.nav-root,.settings-subnav button,.mobile-nav button').forEach(b=>b.addEventListener('click',()=>setView(b.dataset.view)));
   $$('#tabs button').forEach(b=>b.classList.toggle('active',b.dataset.filter===state.filter));$$('#tabs button').forEach(b=>b.addEventListener('click',()=>{state.filter=b.dataset.filter;localStorage.tdFilter=state.filter;$$('#tabs button').forEach(x=>x.classList.toggle('active',x===b));render()}));
@@ -202,14 +236,15 @@ function bindUI(){if(bound)return;bound=true;
   $('#selectAll').addEventListener('change',e=>{visibleTorrents().forEach(t=>e.target.checked?state.selected.add(keyFor(t)):state.selected.delete(keyFor(t)));render()});
   $('#torrentRows').addEventListener('click',rowClick);$('#torrentRows').addEventListener('change',rowChange);$('#torrentRows').addEventListener('contextmenu',rowContext);
   $('#bulkbar').addEventListener('click',e=>{if(e.target.closest('[data-bulk-clear]')){state.selected.clear();render();return}const a=e.target.closest('[data-bulk]')?.dataset.bulk;if(a)bulkAction(a)});
-  $('#addLinkBtn').addEventListener('click',()=>openAddTorrent('link'));$('#addFileBtn').addEventListener('click',()=>openAddTorrent('file'));$$('[data-modalclose]').forEach(x=>x.addEventListener('click',()=>$('#addModal').classList.add('hidden')));$('#addForm').addEventListener('submit',addTorrent);$('#removeForm')?.addEventListener('submit',e=>{e.preventDefault();closeRemoveDialog({deleteFiles:!!$('#removeFiles')?.checked})});$$('[data-remove-cancel]').forEach(x=>x.addEventListener('click',()=>closeRemoveDialog(null)));
+  bindAddTorrentUI();$('#removeForm')?.addEventListener('submit',e=>{e.preventDefault();closeRemoveDialog({deleteFiles:!!$('#removeFiles')?.checked})});$$('[data-remove-cancel]').forEach(x=>x.addEventListener('click',()=>closeRemoveDialog(null)));
   $('#detailClose').addEventListener('click',closeDetailPane);$$('[data-detailtab]').forEach(x=>x.addEventListener('click',()=>{state.detailTab=x.dataset.detailtab;$$('[data-detailtab]').forEach(b=>b.classList.toggle('active',b===x));renderDetail()}));
   $('#profileBtn').addEventListener('click',e=>{showMenu($('#accountMenu'),e.currentTarget);e.currentTarget.setAttribute('aria-expanded','true')});document.addEventListener('click',e=>{if(!e.target.closest('.menu')&&!e.target.closest('#profileBtn')&&!e.target.closest('.more-row')){$$('.menu').forEach(m=>m.classList.add('hidden'));$('#profileBtn')?.setAttribute('aria-expanded','false')}});
   $('#accountSettingsBtn').addEventListener('click',()=>{hideAccountMenu();openAccountModal('profile')});$('#logoutBtn').addEventListener('click',()=>{hideAccountMenu();signOut()});$$('[data-account-close]').forEach(x=>x.addEventListener('click',closeAccountModal));$('#accountProfileForm').addEventListener('submit',saveOwnProfile);$('#accountPasswordForm').addEventListener('submit',changeOwnPassword);$('#accountChooseAvatar').addEventListener('click',()=>$('#accountAvatarInput').click());$('#accountAvatarInput').addEventListener('change',uploadOwnAvatar);$('#accountRemoveAvatar').addEventListener('click',removeOwnAvatar);bindPasswordConfirmation();
   $('#pauseAllBtn').addEventListener('click',()=>globalAction('stop'));$('#resumeAllBtn').addEventListener('click',()=>globalAction('start'));
   $('#notificationFilter')?.addEventListener('change',renderNotifications);$('#refreshNotifications')?.addEventListener('click',loadNotifications);
   if(state.me?.can_manage)TDSettings.bind();
-  window.addEventListener('keydown',e=>{if(e.key==='/'&&!['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName)){e.preventDefault();$('#search').focus()}if(e.key==='Escape'){if(!$('#passwordConfirmModal')?.classList.contains('hidden')){closePasswordConfirmation(null);return}if(!$('#clientSettingsModal')?.classList.contains('hidden')){TDSettings.closeClientSettings();return}if(!$('#accountModal')?.classList.contains('hidden')){closeAccountModal();return}if(!$('#accountMenu')?.classList.contains('hidden')){hideAccountMenu();return}if(!$('#actionDialogModal')?.classList.contains('hidden')){closeActionDialog(null);return}if(!$('#removeModal')?.classList.contains('hidden')){closeRemoveDialog(null);return}if(state.selected.size){state.selected.clear();render();return}closeDetailPane();$('#addModal').classList.add('hidden')}});
+  window.addEventListener('keydown',e=>{if(e.key==='/'&&!['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName)){e.preventDefault();$('#search').focus()}if(e.key==='Escape'){if(!$('#passwordConfirmModal')?.classList.contains('hidden')){closePasswordConfirmation(null);return}if(!$('#clientSettingsModal')?.classList.contains('hidden')){TDSettings.closeClientSettings();return}if(!$('#accountModal')?.classList.contains('hidden')){closeAccountModal();return}if(!$('#accountMenu')?.classList.contains('hidden')){hideAccountMenu();return}if(!$('#actionDialogModal')?.classList.contains('hidden')){closeActionDialog(null);return}if(!$('#removeModal')?.classList.contains('hidden')){closeRemoveDialog(null);return}if(state.selected.size){state.selected.clear();render();return}closeDetailPane();$('#addModal')?.classList.add('hidden')}});
+  bound=true;
 }
 
 function setSettingsNavExpanded(expanded){const group=$('#settingsNavGroup'),submenu=$('#settingsSubnav');if(!group||!submenu)return;group.classList.toggle('expanded',!!expanded);submenu.classList.toggle('hidden',!expanded)}

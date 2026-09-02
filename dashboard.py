@@ -45,7 +45,7 @@ MAX_CUSTOM_SOUND_BYTES = 2 * 1024 * 1024
 AVATAR_DIR = DATA_DIR / "avatars"
 MAX_AVATAR_BYTES = 4 * 1024 * 1024
 PROFILE_AVATAR_TYPES = {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp"}
-VERSION = "0.5.46"
+VERSION = "0.5.47"
 STATUS_REFRESH_SECONDS = 1.0
 DEFAULT_UPDATE_REPOSITORY = "CynicaGaming/TorrentDashboard"
 
@@ -2173,6 +2173,34 @@ def launch_update_installer(handler, cfg, requested_version=None):
     return {"ok":True,"state":"installing","version":state.get("version")}
 
 
+def frontend_recovery_script(version):
+    build = json.dumps(str(version))
+    script = '''(() => {
+  const build = __BUILD__;
+  if (window.__tdFrontendRecoveryStarted) return;
+  window.__tdFrontendRecoveryStarted = true;
+  console.error('[Torrent Dashboard] Frontend build mismatch detected. Clearing cached application shell.', { build });
+  (async () => {
+    try {
+      if ('serviceWorker' in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(registrations.map(registration => registration.unregister()));
+      }
+    } catch (error) { console.error('[Torrent Dashboard] Service worker cleanup failed', error); }
+    try {
+      if ('caches' in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.filter(key => key.startsWith('torrent-dashboard-')).map(key => caches.delete(key)));
+      }
+    } catch (error) { console.error('[Torrent Dashboard] Cache cleanup failed', error); }
+    const url = new URL(window.location.href);
+    url.searchParams.set('td-recover', build);
+    window.location.replace(url.toString());
+  })();
+})();'''
+    return script.replace("__BUILD__", build).encode("utf-8")
+
+
 class Handler(BaseHTTPRequestHandler):
     server_version = "TorrentDashboard/0"
 
@@ -2237,7 +2265,12 @@ class Handler(BaseHTTPRequestHandler):
         if path=="/health": return self.send_json(200,{"ok":True,"version":VERSION,"pid":os.getpid(),"application":str(APP_DIR),"python":sys.executable})
         if path=="/manifest.webmanifest": return self.serve_static("manifest.webmanifest")
         if path=="/sw.js": return self.serve_static("sw.js","application/javascript; charset=utf-8")
-        if path.startswith("/static/"): return self.serve_static(path[len("/static/"):])
+        if path.startswith("/static/"):
+            name=path[len("/static/"):]
+            requested=(qs.get("v") or [""])[0]
+            if name in ("app.js","settings.js") and requested and requested != VERSION:
+                return self.send_bytes(200,frontend_recovery_script(VERSION),"application/javascript; charset=utf-8")
+            return self.serve_static(name)
         if path=="/" or path=="/index.html": return self.serve_static("index.html")
 
         if path=="/api/setup/status":

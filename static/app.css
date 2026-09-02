@@ -162,3 +162,6 @@ button,select,input,textarea{border:1px solid var(--border);background:var(--pan
 @media(max-width:900px){.detail-general-grid{grid-template-columns:1fr 1fr}}
 @media(max-width:700px){.torrent-detail-pane{position:fixed;z-index:72;left:8px;right:8px;bottom:58px;top:72px;max-height:none;margin:0}.detail-general-grid{grid-template-columns:1fr}.torrent-detail-tabs{overflow:auto}}
 
+/* 0.5.47 frontend recovery and startup diagnostics */
+.startup-failure{position:fixed;z-index:3000;left:50%;top:18px;transform:translateX(-50%);width:min(720px,calc(100% - 32px));display:grid;gap:5px;padding:12px 14px;border:1px solid var(--bad);border-radius:10px;background:var(--panel);box-shadow:0 14px 40px rgba(0,0,0,.35)}.startup-failure strong{font-size:11px}.startup-failure span{font-size:9px;color:var(--muted)}
+
