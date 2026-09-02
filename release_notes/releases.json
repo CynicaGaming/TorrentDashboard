@@ -1,16 +1,17 @@
 {
   "project": {
-    "repository": "CynicaGaming/TorrentDashboard",
-    "development_branch": "refactor/backend-modularization-users",
-    "prerelease_branch": "prerelease/backend-modularization",
-    "pull_request": 25,
     "principles": [
       "Keep refactors behavior-preserving and split them into small prerelease increments.",
       "Validate the applied source, not only staging scripts.",
       "Use the built-in updater to test each completed prerelease increment.",
       "Keep user-facing patch notes separate from engineering handoff details.",
-      "Use the same user-facing language for the same action and outcome across every surface."
-    ]
+      "Use the same user-facing language for the same action and outcome across every surface.",
+      "Keep public development continuity portable across forks; label canonical repository/branch/PR references as upstream context rather than local identity."
+    ],
+    "canonical_repository": "CynicaGaming/TorrentDashboard",
+    "upstream_development_branch": "refactor/backend-modularization-users",
+    "upstream_prerelease_branch": "prerelease/backend-modularization",
+    "upstream_pull_request": 25
   },
   "releases": [
     {
@@ -844,6 +845,73 @@
         "Desktop/tablet list-detail workspaces should fit within the initial viewport by default; internal scrolling is preferred over expanding the page vertically.",
         "Per-poll timestamps are not primary dashboard metrics; stale/failed refresh conditions should be surfaced explicitly as health states.",
         "Empty-state language must reflect the actual reason a collection is empty."
+      ],
+      "next_steps": [
+        {
+          "priority": 1,
+          "title": "Extract release and update provenance",
+          "detail": "Move GitHub release parsing, installed release metadata, package-integrity normalization, and historical digest caching out of dashboard.py."
+        },
+        {
+          "priority": 2,
+          "title": "Extract qBitTorrent transport and normalization",
+          "detail": "Move QBitClient, server normalization, proxy/preference translation, and Web API transport away from HTTP routing."
+        },
+        {
+          "priority": 3,
+          "title": "Expand request-level behavioral tests",
+          "detail": "Add authorization, CSRF, setup, account-route, and settings-mutation coverage around extracted service boundaries."
+        },
+        {
+          "priority": 4,
+          "title": "Harden secrets at rest",
+          "detail": "Use the configuration boundary to add restrictive file permissions and separate ordinary configuration from stored credentials."
+        }
+      ]
+    },
+    {
+      "version": "0.5.70",
+      "date": "2026-09-02",
+      "status": "prerelease",
+      "title": "Fork-safe development continuity",
+      "summary": "Adds a public, fork-safe development continuity layer so a new developer or AI can recover both the last known-good release state and unfinished engineering intent without relying on prior chat history.",
+      "highlights": [
+        "Added DEVELOPMENT.md as the durable contributor and fork workflow, including validation, versioning, publication, generated-file, and definition-of-done guidance.",
+        "Added TESTING.md with the automated baseline and a manual smoke-test matrix for setup, roles, torrent operations, details, Add Torrent, Settings, updates, recovery, and responsive behavior.",
+        "Added development/current.json as a public-safe active-work record for objectives, acceptance criteria, decisions, blockers, scope, affected areas, and the exact next action.",
+        "Added generated HANDOFF.md, combining the last documented release state with active development intent into one portable resume document.",
+        "Added lightweight architectural decision records under docs/decisions/ so important rationale survives chats, maintainers, and forks.",
+        "Canonical repository, branch, and PR references are now labeled as upstream context instead of being presented as the identity of every checkout."
+      ],
+      "fixes": [],
+      "technical": [
+        "release_tools/generate_release_notes.py now validates development/current.json and generates HANDOFF.md alongside PROJECT_STATE.md and CHANGELOG.md.",
+        "Generated handoff files explicitly instruct forks to verify their own origin/branch before following upstream references.",
+        "Forks can replace development/current.json with their own roadmap while retaining upstream release history and architectural decisions as lineage."
+      ],
+      "validation": [
+        "Source validation requires the development, testing, handoff, active-work, and decision-record continuity files.",
+        "Release-note validation fails when HANDOFF.md, PROJECT_STATE.md, or CHANGELOG.md is stale relative to their authored sources.",
+        "Existing backend tests, UI contract validation, JavaScript syntax checks, and frontend/service-worker version synchronization remain release gates."
+      ],
+      "known_issues": [],
+      "architecture": [
+        "Torrent Dashboard remains a Python standard-library application with dashboard.py as the HTTP composition root.",
+        "Configuration, integrations, users, and configuration transaction coordination remain separated into torrent_dashboard package modules.",
+        "The torrent detail inspector remains frontend-owned; this release changes layout/state behavior without changing the /api/detail contract.",
+        "Desktop and tablet use a docked split workspace while mobile retains a bottom-sheet detail presentation.",
+        "Development continuity is split between released state (release_notes/releases.json), authored active work (development/current.json), generated HANDOFF.md, durable architecture/testing guides, and short architectural decision records."
+      ],
+      "decisions": [
+        "Prefer docked inspectors over overlays when users need to compare selected-item details with a primary list.",
+        "Keep Collapse and Close as distinct actions: collapse preserves selection, close clears the detail context.",
+        "Keep the torrent table independently scrollable whenever the detail inspector is expanded.",
+        "Desktop/tablet list-detail workspaces should fit within the initial viewport by default; internal scrolling is preferred over expanding the page vertically.",
+        "Per-poll timestamps are not primary dashboard metrics; stale/failed refresh conditions should be surfaced explicitly as health states.",
+        "Empty-state language must reflect the actual reason a collection is empty.",
+        "Treat canonical repository, branch, and pull-request references as upstream lineage rather than assumptions about a fork's local identity.",
+        "Keep active work state public-safe and repository-focused; do not archive chat transcripts as development state.",
+        "Use the same developer-oriented documentation for humans and AI rather than maintaining vendor-specific AI instructions."
       ],
       "next_steps": [
         {
