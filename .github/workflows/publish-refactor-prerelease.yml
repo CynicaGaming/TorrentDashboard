@@ -3,7 +3,7 @@ name: Publish Refactor Pre-Release
 on:
   push:
     branches:
-      - refactor/backend-modularization-users
+      - prerelease/backend-modularization
 
 permissions:
   contents: write
@@ -29,19 +29,22 @@ jobs:
       - name: Validate Refactored Source
         shell: bash
         run: |
-          python -m py_compile dashboard.py updater.py release_tools/build_release.py torrent_dashboard/users.py
+          python -m py_compile dashboard.py updater.py release_tools/build_release.py torrent_dashboard/users.py torrent_dashboard/config_store.py
           node --check static/app.js
           node --check static/settings.js
           python - <<'PY'
           import dashboard
           import torrent_dashboard.users as users
 
-          assert dashboard.VERSION == '0.5.55'
+          assert dashboard.VERSION >= '0.5.55'
           assert dashboard.normalize_user is users.normalize_user
           assert dashboard.save_user is users.save_user
           assert dashboard.session_is_admin is users.session_is_admin
           assert callable(dashboard.normalize_qbittorrent_server)
           assert callable(dashboard.normalize_integration)
+          if dashboard.VERSION >= '0.5.56':
+              assert callable(dashboard.mutate_config)
+              assert hasattr(dashboard, 'CONFIG_STORE')
           PY
 
       - name: Determine Version
@@ -54,7 +57,6 @@ jobs:
           print(re.search(r'^VERSION\s*=\s*["\']([^"\']+)', text, re.M).group(1))
           PY
           )
-          test "$VERSION" = "0.5.55"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
 
@@ -89,6 +91,7 @@ jobs:
           assert any(n.endswith('/dashboard.py') for n in names)
           assert any(n.endswith('/torrent_dashboard/__init__.py') for n in names)
           assert any(n.endswith('/torrent_dashboard/users.py') for n in names)
+          assert any(n.endswith('/torrent_dashboard/config_store.py') for n in names)
           assert any(n.endswith('/updater.py') for n in names)
           assert not any(n.endswith('apply_feature_update.py') for n in names)
           PY
@@ -104,5 +107,5 @@ jobs:
             "$ZIP" \
             --target "$GITHUB_SHA" \
             --title "Torrent Dashboard Pre-Release" \
-            --notes "Development prerelease. Version: $TAG\n\nBackend modularization: extracted the user/account domain into torrent_dashboard/users.py without intentional behavior changes." \
+            --notes "Development prerelease. Version: $TAG\n\nBackend modularization increment." \
             --prerelease
