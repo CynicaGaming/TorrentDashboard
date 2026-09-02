@@ -4,10 +4,10 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#0b0d10" name="theme-color"/>
-<meta content="0.5.56" name="torrent-dashboard-build"/>
+<meta content="0.5.57" name="torrent-dashboard-build"/>
 <link href="/manifest.webmanifest" rel="manifest"/>
-<link href="/static/app.css?v=0.5.56" rel="stylesheet"/>
-<link href="/static/settings.css?v=0.5.56" rel="stylesheet"/>
+<link href="/static/app.css?v=0.5.57" rel="stylesheet"/>
+<link href="/static/settings.css?v=0.5.57" rel="stylesheet"/>
 <title>Torrent Dashboard</title>
 </head>
 <body>
@@ -202,6 +202,10 @@
 <div class="update-status" id="updateStatus"><div><span>Current Version</span><strong id="updateCurrent">—</strong></div><div><span>Latest Version</span><strong id="updateLatest">Not Checked</strong></div><div><span>Update State</span><strong id="updateState">Idle</strong></div></div>
 <div class="update-actions"><button class="secondary update-action" id="updateAction" type="button">Check For Updates</button></div>
 <div class="muted update-message" id="updateMessage">Check the configured public repository for a newer Torrent Dashboard release.</div>
+<div class="update-notes hidden" id="updateNotesWrap">
+<div class="update-notes-heading"><strong>Patch Notes</strong><span id="updateNotesVersion"></span></div>
+<div class="update-notes-content" id="updateNotes"></div>
+</div>
 </div>
 </section>
 <section class="settings-page" data-settings-section="notifications">
@@ -247,7 +251,7 @@
 <div class="menu account-menu hidden" id="accountMenu" role="menu"><div class="account-menu-head"><span class="profile-avatar profile-avatar-menu"><img alt="" class="hidden" data-avatar-image/><span class="avatar-default" data-avatar-default aria-hidden="true"></span></span><div><strong id="accountMenuName">Account</strong><small id="accountMenuGroup">User</small></div></div><div class="menu-separator" role="separator"></div><button id="accountSettingsBtn" type="button">Account settings</button><button class="hidden" id="installPwa" type="button">Install app</button><div class="menu-separator" role="separator"></div><button id="logoutBtn" type="button">Sign out</button></div>
 <div class="menu hidden" id="contextMenu"></div>
 <div class="toasts" id="toasts"></div>
-<script src="/static/settings.js?v=0.5.56"></script>
-<script src="/static/app.js?v=0.5.56"></script>
+<script src="/static/settings.js?v=0.5.57"></script>
+<script src="/static/app.js?v=0.5.57"></script>
 </body>
 </html>

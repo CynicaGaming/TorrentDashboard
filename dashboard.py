@@ -67,7 +67,7 @@ UPDATE_DIR = DATA_DIR / "updates"
 UPDATE_STATE_PATH = DATA_DIR / "update-status.json"
 CUSTOM_SOUND_BASENAME = "custom-notification-sound"
 MAX_CUSTOM_SOUND_BYTES = 2 * 1024 * 1024
-VERSION = "0.5.56"
+VERSION = "0.5.57"
 STATUS_REFRESH_SECONDS = 1.0
 DEFAULT_UPDATE_REPOSITORY = "CynicaGaming/TorrentDashboard"
 

@@ -113,3 +113,14 @@
 
 /* 0.5.53 client download-location settings */
 .client-path-grid{grid-template-columns:1fr}.client-path-grid input{font-family:ui-monospace,SFMono-Regular,Consolas,"Liberation Mono",monospace}
+
+
+/* release-notes-pipeline */
+.update-notes{margin-top:16px;padding-top:16px;border-top:1px solid var(--line,#2b3038)}
+.update-notes-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
+.update-notes-heading span{font-size:12px;opacity:.68}
+.update-notes-content{display:grid;gap:8px;font-size:13px;line-height:1.55}
+.update-notes-content h4{margin:6px 0 0;font-size:13px}
+.update-notes-content p{margin:0;color:var(--muted,#9aa3af)}
+.update-notes-content ul{margin:0;padding-left:20px;color:var(--muted,#9aa3af)}
+.update-notes-content li+li{margin-top:5px}
