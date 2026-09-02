@@ -27,12 +27,10 @@ def replace_once(text: str, old: str, new: str, label: str) -> str:
     return text.replace(old, new, 1)
 
 
-# Application version.
 dashboard = read("dashboard.py")
 dashboard = replace_once(dashboard, f'VERSION = "{OLD}"', f'VERSION = "{NEW}"', "dashboard version")
 write("dashboard.py", dashboard)
 
-# HTML build/cache references.
 html = read("static/index.html")
 html = html.replace(f'content="{OLD}" name="torrent-dashboard-build"', f'content="{NEW}" name="torrent-dashboard-build"')
 html = html.replace(f'?v={OLD}', f'?v={NEW}')
@@ -40,13 +38,12 @@ if OLD in html:
     raise RuntimeError("index.html still contains old build version")
 write("static/index.html", html)
 
-# Frontend build plus explicit workspace state.
 app_js = read("static/app.js")
 app_js = replace_once(app_js, f"const FRONTEND_BUILD='{OLD}';", f"const FRONTEND_BUILD='{NEW}';", "frontend build")
 app_js = replace_once(
     app_js,
-    "$('#torrentDetailPane').classList.remove('hidden');$$('[data-detailtab]')",
-    "const pane=$('#torrentDetailPane');pane.classList.remove('hidden');pane.closest('.torrent-workspace')?.classList.add('has-detail');$$('[data-detailtab]')",
+    "  $('#torrentDetailPane').classList.remove('hidden');syncDetailPaneState();$$('[data-detailtab]').forEach(b=>b.classList.toggle('active',b.dataset.detailtab===state.detailTab));",
+    "  const pane=$('#torrentDetailPane');pane.classList.remove('hidden');pane.closest('.torrent-workspace')?.classList.add('has-detail');syncDetailPaneState();$$('[data-detailtab]').forEach(b=>b.classList.toggle('active',b.dataset.detailtab===state.detailTab));",
     "detail open workspace state",
 )
 app_js = replace_once(
@@ -57,7 +54,6 @@ app_js = replace_once(
 )
 write("static/app.js", app_js)
 
-# Bound the non-mobile workspace instead of forcing a large minimum height.
 css = read("static/app.css")
 css = replace_once(
     css,
@@ -79,7 +75,6 @@ css = replace_once(
 )
 write("static/app.css", css)
 
-# Service worker generation.
 sw = read("static/sw.js")
 sw = sw.replace("torrent-dashboard-v0567", "torrent-dashboard-v0568")
 sw = sw.replace(f"?v={OLD}", f"?v={NEW}")
@@ -87,7 +82,6 @@ if OLD in sw or "v0567" in sw:
     raise RuntimeError("service worker still contains old build version")
 write("static/sw.js", sw)
 
-# Durable interaction/layout contract.
 design = read("DESIGN_LANGUAGE.md")
 section = """
 
@@ -105,7 +99,6 @@ if "## Bounded list and inspector workspaces" not in design:
     design = design.rstrip() + section + "\n"
 write("DESIGN_LANGUAGE.md", design)
 
-# Strengthen the UI regression contract for the corrected layout.
 validator = read("release_tools/validate_ui_strings.py")
 anchor = "    assert \"now-detailRefreshAt<3000\" in app_js\n"
 addition = """    assert \"pane.closest('.torrent-workspace')?.classList.add('has-detail')\" in app_js
@@ -119,7 +112,6 @@ if addition.strip() not in validator:
     validator = replace_once(validator, anchor, anchor + addition, "torrent workspace validator")
 write("release_tools/validate_ui_strings.py", validator)
 
-# Structured release metadata.
 notes_path = ROOT / "release_notes" / "releases.json"
 notes = json.loads(notes_path.read_text(encoding="utf-8"))
 releases = notes.get("releases", [])
@@ -159,7 +151,5 @@ releases.append({
 })
 notes_path.write_text(json.dumps(notes, indent=2) + "\n", encoding="utf-8")
 
-# Regenerate checked-in handoff/changelog artifacts.
 subprocess.run([sys.executable, str(ROOT / "release_tools" / "generate_release_notes.py"), "--version", NEW], cwd=ROOT, check=True)
-
 print(f"Applied v{NEW} bounded torrent workspace sizing")
