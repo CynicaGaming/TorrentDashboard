@@ -50,6 +50,7 @@ def main():
     app_css = (ROOT / "static" / "app.css").read_text(encoding="utf-8")
     settings_css = (ROOT / "static" / "settings.css").read_text(encoding="utf-8")
     dashboard_py = (ROOT / "dashboard.py").read_text(encoding="utf-8")
+    config_store_py = (ROOT / "torrent_dashboard" / "config_store.py").read_text(encoding="utf-8")
     users_py = (ROOT / "torrent_dashboard" / "users.py").read_text(encoding="utf-8")
 
     validate_html_attributes(html)
@@ -382,6 +383,15 @@ def main():
     assert 'preferences = client.preferences()' in dashboard_py and 'disk_free = disk_free_for(preferences)' in dashboard_py
     assert '0.5.26 qBitTorrent-style torrent toolbar' in app_css
     assert '0.5.28 advanced per-client qBitTorrent settings' in settings_css
+
+    # 0.5.56 serializes all configuration read/modify/write mutations.
+    assert 'from torrent_dashboard.config_store import ConfigStore' in dashboard_py
+    assert 'CONFIG_STORE = ConfigStore(_load_config_unlocked, _save_config_unlocked)' in dashboard_py
+    assert 'def mutate_config(transform):' in dashboard_py
+    assert 'class ConfigStore:' in config_store_py and 'with self._lock:' in config_store_py
+    mutation_section = dashboard_py.split('class Handler(BaseHTTPRequestHandler):', 1)[1]
+    assert 'save_config(' not in mutation_section
+    assert mutation_section.count('mutate_config(') >= 12
 
     print("UI string audit passed")
 

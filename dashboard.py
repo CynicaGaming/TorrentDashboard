@@ -33,6 +33,7 @@ from http import cookies
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
+from torrent_dashboard.config_store import ConfigStore
 from torrent_dashboard.users import (
     AVATAR_DIR,
     MAX_AVATAR_BYTES,
@@ -66,7 +67,7 @@ UPDATE_DIR = DATA_DIR / "updates"
 UPDATE_STATE_PATH = DATA_DIR / "update-status.json"
 CUSTOM_SOUND_BASENAME = "custom-notification-sound"
 MAX_CUSTOM_SOUND_BYTES = 2 * 1024 * 1024
-VERSION = "0.5.55"
+VERSION = "0.5.56"
 STATUS_REFRESH_SECONDS = 1.0
 DEFAULT_UPDATE_REPOSITORY = "CynicaGaming/TorrentDashboard"
 
@@ -173,7 +174,7 @@ def deep_merge(base, override):
     return out
 
 
-def load_config():
+def _load_config_unlocked():
     if not CONFIG_PATH.exists():
         CONFIG_PATH.write_text(json.dumps(DEFAULT_CONFIG, indent=2) + "\n", encoding="utf-8")
     raw = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
@@ -300,7 +301,7 @@ def load_config():
     return merged
 
 
-def save_config(cfg):
+def _save_config_unlocked(cfg):
     cfg = json.loads(json.dumps(cfg))
     cfg["integrations"] = [x for x in cfg.get("integrations", []) if x.get("type") != "github"]
     updates = cfg.setdefault("updates", {})
@@ -309,6 +310,21 @@ def save_config(cfg):
     tmp = CONFIG_PATH.with_suffix(".tmp")
     tmp.write_text(json.dumps(cfg, indent=2) + "\n", encoding="utf-8")
     tmp.replace(CONFIG_PATH)
+
+
+CONFIG_STORE = ConfigStore(_load_config_unlocked, _save_config_unlocked)
+
+
+def load_config():
+    return CONFIG_STORE.load()
+
+
+def save_config(cfg):
+    return CONFIG_STORE.save(cfg)
+
+
+def mutate_config(transform):
+    return CONFIG_STORE.mutate(transform)
 
 
 
@@ -2287,14 +2303,14 @@ class Handler(BaseHTTPRequestHandler):
         try:
             if path=="/api/account":
                 data=parse_json_body(self,20000)
-                updated,user=save_current_user_profile(cfg,sess.get("user_id",""),data)
-                save_config(updated); SESSIONS.update_user(user)
+                updated,user=mutate_config(lambda current: save_current_user_profile(current,sess.get("user_id",""),data))
+                SESSIONS.update_user(user)
                 HISTORY.event("dashboard","account_profile_changed",user.get("username",""),"",{"client_ip":self.client_ip()})
                 return self.send_json(200,{"ok":True,"user":public_user(user)},new_cookie)
             if path=="/api/account/password":
                 data=parse_json_body(self,20000)
-                updated,user=change_current_user_password(cfg,sess.get("user_id",""),data.get("current_password"),data.get("new_password"))
-                save_config(updated); SESSIONS.remove_user_except(user.get("id",""),token)
+                updated,user=mutate_config(lambda current: change_current_user_password(current,sess.get("user_id",""),data.get("current_password"),data.get("new_password")))
+                SESSIONS.remove_user_except(user.get("id",""),token)
                 HISTORY.event("dashboard","account_password_changed",user.get("username",""),"",{"client_ip":self.client_ip()})
                 return self.send_json(200,{"ok":True},new_cookie)
             if path=="/api/account/avatar":
@@ -2302,13 +2318,11 @@ class Handler(BaseHTTPRequestHandler):
                 if not files:
                     raise RuntimeError("Choose a profile picture")
                 _,filename,content=files[0]
-                updated,user=store_user_avatar(cfg,sess.get("user_id",""),filename,content)
-                save_config(updated)
+                updated,user=mutate_config(lambda current: store_user_avatar(current,sess.get("user_id",""),filename,content))
                 HISTORY.event("dashboard","account_avatar_changed",user.get("username",""),"",{"client_ip":self.client_ip()})
                 return self.send_json(200,{"ok":True,"user":public_user(user)},new_cookie)
             if path=="/api/account/avatar/delete":
-                updated,user=remove_user_avatar(cfg,sess.get("user_id",""))
-                save_config(updated)
+                updated,user=mutate_config(lambda current: remove_user_avatar(current,sess.get("user_id","")))
                 HISTORY.event("dashboard","account_avatar_removed",user.get("username",""),"",{"client_ip":self.client_ip()})
                 return self.send_json(200,{"ok":True,"user":public_user(user)},new_cookie)
             if not session_is_admin(sess):
@@ -2351,27 +2365,32 @@ class Handler(BaseHTTPRequestHandler):
                 item=normalize_integration(data,existing)
                 return self.send_json(200,test_integration_connection(item),new_cookie)
             if path=="/api/integrations":
-                data=parse_json_body(self,20000); updated,item=save_integration(cfg,data); save_config(updated)
+                data=parse_json_body(self,20000); updated,item=mutate_config(lambda current: save_integration(current,data))
                 HISTORY.event("dashboard","integration_saved",item.get("name",item.get("type","")),"",{"client_ip":self.client_ip(),"type":item.get("type")})
                 return self.send_json(200,{"ok":True,"integration":redacted_integrations({"integrations":[item]})[0]},new_cookie)
             if path=="/api/integrations/delete":
-                data=parse_json_body(self,10000); iid=str(data.get("id") or ""); updated=delete_integration(cfg,iid); save_config(updated)
+                data=parse_json_body(self,10000); iid=str(data.get("id") or ""); updated,_=mutate_config(lambda current: (delete_integration(current,iid),None))
                 HISTORY.event("dashboard","integration_deleted",iid,"",{"client_ip":self.client_ip()})
                 return self.send_json(200,{"ok":True},new_cookie)
             if path=="/api/users":
-                data=parse_json_body(self,20000); updated,user=save_user(cfg,data); save_config(updated); SESSIONS.update_user(user)
+                data=parse_json_body(self,20000); updated,user=mutate_config(lambda current: save_user(current,data)); SESSIONS.update_user(user)
                 HISTORY.event("dashboard","user_saved",user.get("username",""),"",{"client_ip":self.client_ip(),"group":user.get("group")})
                 return self.send_json(200,{"ok":True,"user":public_user(user)},new_cookie)
             if path=="/api/users/delete":
-                data=parse_json_body(self,10000); uid=str(data.get("id") or ""); updated=delete_user(cfg,uid,sess.get("user_id","")); save_config(updated); delete_user_avatar_files(uid); SESSIONS.remove_user(uid)
+                data=parse_json_body(self,10000); uid=str(data.get("id") or ""); updated,_=mutate_config(lambda current: (delete_user(current,uid,sess.get("user_id","")),None)); delete_user_avatar_files(uid); SESSIONS.remove_user(uid)
                 HISTORY.event("dashboard","user_deleted",uid,"",{"client_ip":self.client_ip()})
                 return self.send_json(200,{"ok":True},new_cookie)
             if path=="/api/settings":
-                data=parse_json_body(self); updated=apply_settings_update(cfg,data); save_config(updated)
+                data=parse_json_body(self); updated,_=mutate_config(lambda current: (apply_settings_update(current,data),None))
                 HISTORY.event("dashboard", "settings_changed", sess.get("username",""), "", {"client_ip": self.client_ip()})
                 return self.send_json(200,{"ok":True,"settings":redacted_config(updated)},new_cookie)
             if path=="/api/update-source":
-                data=parse_json_body(self,10000); previous_repo=update_repository(cfg); updated,repo=save_update_source(cfg,data.get("repository") or ""); save_config(updated)
+                data=parse_json_body(self,10000)
+                def update_source_mutation(current):
+                    previous_repo=update_repository(current)
+                    updated,repo=save_update_source(current,data.get("repository") or "")
+                    return updated,(previous_repo,repo)
+                updated,(previous_repo,repo)=mutate_config(update_source_mutation)
                 if repo != previous_repo:
                     UPDATE_STATE_PATH.unlink(missing_ok=True)
                     if UPDATE_DIR.exists(): shutil.rmtree(UPDATE_DIR, ignore_errors=True)
@@ -2391,8 +2410,7 @@ class Handler(BaseHTTPRequestHandler):
                 if not files:
                     raise RuntimeError("Choose a custom sound file")
                 _, filename, content = files[0]
-                updated, info = store_custom_notification_sound(cfg, filename, content)
-                save_config(updated)
+                updated, info = mutate_config(lambda current: store_custom_notification_sound(current, filename, content))
                 HISTORY.event("dashboard","notification_sound_changed",info.get("name", ""),"",{"client_ip":self.client_ip()})
                 return self.send_json(200,{"ok":True,**info},new_cookie)
             if path=="/api/notification-test":
@@ -2462,7 +2480,11 @@ class Handler(BaseHTTPRequestHandler):
             out["integrations"]=[]
             sync_legacy_auth(out)
             out["servers"]=normalized
-            save_config(out)
+            def commit_setup(current):
+                if current.get("setup",{}).get("complete"):
+                    raise RuntimeError("Setup has already been completed")
+                return out,None
+            out,_=mutate_config(commit_setup)
             with CACHE_LOCK:
                 CLIENTS.clear()
             with CACHE_LOCK:
@@ -2581,13 +2603,15 @@ def apply_settings_update(cfg,data):
 
 
 def set_password_cli(password):
-    cfg=load_config()
-    admin=next((u for u in cfg.get("users",[]) if u.get("group")=="administrator"),None)
-    if admin:
-        admin["password_hash"]=hash_password(password)
-    else:
-        cfg.setdefault("users",[]).append(normalize_user({"username":cfg.get("auth",{}).get("username") or "admin","password":password,"group":"administrator"},require_password=True))
-    sync_legacy_auth(cfg); save_config(cfg)
+    def update_password(cfg):
+        admin=next((u for u in cfg.get("users",[]) if u.get("group")=="administrator"),None)
+        if admin:
+            admin["password_hash"]=hash_password(password)
+        else:
+            cfg.setdefault("users",[]).append(normalize_user({"username":cfg.get("auth",{}).get("username") or "admin","password":password,"group":"administrator"},require_password=True))
+        sync_legacy_auth(cfg)
+        return cfg,None
+    mutate_config(update_password)
     print("Dashboard password updated.")
 
 

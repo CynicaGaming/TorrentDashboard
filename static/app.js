@@ -1,5 +1,5 @@
 'use strict';
-const FRONTEND_BUILD='0.5.55';
+const FRONTEND_BUILD='0.5.56';
 const HTML_BUILD=document.querySelector('meta[name="torrent-dashboard-build"]')?.content||'';
 const RECOVERY_KEY=`td-frontend-recovery-${FRONTEND_BUILD}`;
 async function recoverFrontendBuild(reason){
