@@ -121,6 +121,8 @@ jobs:
               '/torrent_dashboard/__init__.py',
               '/torrent_dashboard/users.py',
               '/torrent_dashboard/config_store.py',
+              '/torrent_dashboard/config.py',
+              '/torrent_dashboard/integrations.py',
               '/ARCHITECTURE.md',
               '/PROJECT_STATE.md',
               '/CHANGELOG.md',
