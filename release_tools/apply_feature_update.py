@@ -51,7 +51,7 @@ app_js = app_js.replace("$('#topbar')?.classList.toggle('dashboard-mode',dashboa
 app_js = replace_once(
     app_js,
     'function detailEmptyMarkup(){return \'<div class="empty detail-empty"><strong>No torrent selected</strong><span>Select a torrent to view details.</span></div>\'}',
-    'function detailEmptyMarkup(){return \'<div class="empty detail-empty"><strong>Torrent details</strong><span>Select a torrent to view details.</span></div>\'}',
+    'function detailEmptyMarkup(){return \'<div class="empty detail-empty"><span>Select a torrent to view details.</span></div>\'}',
     "detail empty markup",
 )
 app_js = replace_once(
