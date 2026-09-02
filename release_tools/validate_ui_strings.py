@@ -83,10 +83,34 @@ def main():
     assert "set_auto_management" not in app_js and "set_auto_management" not in dashboard_py
     assert "menu-separator" in app_css and "@media(max-width:700px)" in app_css
     assert "e.target.closest('button[data-a]')" in app_js
-    # Add Torrent metadata is intentionally not part of 0.5.44.
-    assert "fetch_torrent_metadata" not in dashboard_py
-    assert "/api/torrent-metadata/fetch" not in dashboard_py
-    assert "Metadata retrieval complete" not in app_js
+    # Add Torrent metadata is demand-driven and isolated from application startup.
+    assert 'id="addMetadataStatus"' in html
+    assert 'id="addSaveTorrent"' in html
+    assert 'id="addFileRows"' in html
+    assert 'id="addStart"' in html and 'id="addStopCondition"' in html
+    assert 'Save as .torrent file' in html
+    assert 'Torrent management mode' in html
+    assert 'def fetch_torrent_metadata(self, source):' in dashboard_py
+    assert 'def parse_torrent_metadata(self, filename, content):' in dashboard_py
+    assert 'def save_torrent_metadata(self, source):' in dashboard_py
+    assert '/api/v2/torrents/fetchMetadata' in dashboard_py
+    assert '/api/v2/torrents/parseMetadata' in dashboard_py
+    assert '/api/v2/torrents/saveMetadata' in dashboard_py
+    assert 'self._request("GET", path)' in dashboard_py
+    assert 'self._request("POST", "/api/v2/torrents/saveMetadata"' not in dashboard_py
+    assert "addMetadataState.mode==='file'?addMetadataState.source:addSingleSource()" in app_js
+    assert '/api/torrent-metadata/fetch' in dashboard_py
+    assert '/api/torrent-metadata/parse' in dashboard_py
+    assert '/api/torrent-metadata/save' in dashboard_py
+    assert 'filePriorities' in dashboard_py
+    assert 'addMetadataGeneration' in app_js
+    assert 'clearTimeout(addMetadataTimer)' in app_js
+    assert 'setTimeout(()=>fetchAddMetadata(generation),1000)' in app_js
+    assert 'setInterval' not in app_js[app_js.find('let addMetadataTimer'):app_js.find('async function rawJson')]
+    assert "generation!==addMetadataGeneration||!addModalOpen()" in app_js
+    assert "function closeAddTorrent(){clearAddMetadataTimer();addMetadataGeneration++" in app_js
+    assert "fetchAddMetadata(" not in app_js[app_js.find('async function bootstrap'):app_js.find("document.addEventListener('DOMContentLoaded'") if "document.addEventListener('DOMContentLoaded'" in app_js else len(app_js)]
+    assert '.add-torrent-card{' in app_css
 
     # Updates owns the public GitHub repository directly. GitHub must not be a
     # modular integration and update installation remains a reactive button.
