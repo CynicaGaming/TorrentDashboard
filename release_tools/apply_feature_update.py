@@ -27,7 +27,6 @@ def replace_once(path: str, old: str, new: str) -> None:
     write(path, text.replace(old, new, 1))
 
 
-# Keep the application and frontend cache generation synchronized.
 replace_once("dashboard.py", f'VERSION = "{OLD}"', f'VERSION = "{NEW}"')
 index = read("static/index.html")
 if OLD not in index:
@@ -75,7 +74,7 @@ app_css += r'''
   .empty{padding:72px 24px}.empty strong{font-size:15px}.empty span{font-size:12px;line-height:1.5}
   .history-head h2{font-size:23px}.history-head p{font-size:12.5px}.event{font-size:12.5px}.event small{font-size:11.5px}
   .menu{min-width:230px}.menu button{font-size:12.5px;padding:10px 11px}.toast{font-size:13px}
-  #contextMenu{min-width:270px}.context-menu button,#contextMenu button{font-size:12.5px;min-height:38px}.menu-caption,#contextMenu .menu-caption{font-size:10px}
+  #contextMenu{min-width:270px}#contextMenu button{font-size:12.5px;min-height:38px}#contextMenu .menu-caption{font-size:10px}
   .profile-button-copy{max-width:180px}.profile-button-copy strong{font-size:12.5px}.profile-button-copy small{font-size:10.5px}
   .account-menu-head strong{font-size:13px}.account-menu-head small{font-size:11px}
   .modal-card h2,.drawer-sheet h2{font-size:19px}.modal-card label{font-size:12.5px}.drawer-sheet header p{font-size:12px}
@@ -102,7 +101,7 @@ app_css += r'''
   .add-source-or{font-size:10px}.add-preview-heading strong{font-size:12.5px}.add-preview-heading span{font-size:10.5px}.add-content-columns{font-size:10px}.add-content-row{font-size:11.5px;padding:10px 12px}.add-preview-empty strong{font-size:13.5px}.add-preview-empty span{font-size:11.5px}.add-info-grid span,.add-info-grid b{font-size:11.5px}.add-torrent-status strong{font-size:11.5px}.add-torrent-status span{font-size:10.5px}.add-torrent-actions button{font-size:12px}
   .add-rate-input>span,.add-rate-grid small{font-size:10.5px}
 }
-'''
+'''.replace(r'\"', '"')
 write("static/app.css", app_css)
 
 settings_marker = "/* 0.5.66 desktop settings legibility. */"
@@ -130,7 +129,6 @@ settings_css += r'''
 '''
 write("static/settings.css", settings_css)
 
-# Document the readability contract so future feature work does not regress it.
 design = read("DESIGN_LANGUAGE.md")
 if "## Desktop legibility" not in design:
     design += """
@@ -148,7 +146,6 @@ Desktop layouts should use available space before shrinking text. At viewport wi
 """
 write("DESIGN_LANGUAGE.md", design)
 
-# Lock the new desktop floor into the UI regression audit.
 validator = read("release_tools/validate_ui_strings.py")
 needle = '    print("UI string audit passed")\n'
 if needle not in validator:
@@ -157,7 +154,6 @@ checks = '''    # 0.5.66 desktop readability contract. Desktop uses available sp
 validator = validator.replace(needle, checks + needle, 1)
 write("release_tools/validate_ui_strings.py", validator)
 
-# Add structured release metadata and regenerate the changelog/handoff.
 notes_path = ROOT / "release_notes" / "releases.json"
 data = json.loads(notes_path.read_text(encoding="utf-8"))
 releases = data.get("releases", [])
@@ -212,5 +208,5 @@ releases.append({
 data["releases"] = releases
 notes_path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
 
-subprocess.run([sys.executable, str(ROOT / "release_tools" / "generate_release_notes.py"), "--version", NEW, "--write"], cwd=ROOT, check=True)
+subprocess.run([sys.executable, str(ROOT / "release_tools" / "generate_release_notes.py"), "--version", NEW], cwd=ROOT, check=True)
 print(f"Applied v{NEW} desktop legibility pass")
