@@ -1,0 +1,32 @@
+{
+  "schema": 1,
+  "status": "ready",
+  "objective": "Extract release and update provenance from dashboard.py",
+  "why": "Release parsing, installed package provenance, SHA-256 normalization, and integrity-history persistence form one cohesive domain that is still mixed into the HTTP composition root.",
+  "acceptance_criteria": [
+    "GitHub release parsing and asset-digest normalization live in a focused torrent_dashboard module rather than dashboard.py.",
+    "Installed release-info.json and data/release-integrity.json read/write behavior is owned behind a small tested interface.",
+    "dashboard.py composes the release/provenance service and retains routing/orchestration rather than domain parsing logic.",
+    "The existing public GitHub update protocol, two-release patch-note history, package SHA-256 display, and updater behavior remain unchanged.",
+    "Behavioral tests cover normalization, cache merge/persistence, malformed metadata, and installed-release precedence."
+  ],
+  "decisions": [
+    "Keep the extraction behavior-preserving; do not redesign the updater UI in the same increment.",
+    "Keep updater.py independent so failed application updates can still recover out of process.",
+    "Treat GitHub's finalized asset digest or a previously verified local package digest as authoritative package provenance."
+  ],
+  "files": [
+    "dashboard.py",
+    "torrent_dashboard/",
+    "tests/",
+    "ARCHITECTURE.md"
+  ],
+  "blockers": [],
+  "out_of_scope": [
+    "Secret-at-rest changes.",
+    "Authorization-role changes.",
+    "Changing the public GitHub release/update protocol.",
+    "Frontend redesign unrelated to release provenance."
+  ],
+  "next_action": "Inventory the release/provenance helpers still defined in dashboard.py, define the public interface for a torrent_dashboard release/provenance module, and add characterization tests before moving implementations."
+}
