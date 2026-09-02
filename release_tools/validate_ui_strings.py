@@ -83,24 +83,14 @@ def main():
     assert "set_auto_management" not in app_js and "set_auto_management" not in dashboard_py
     assert "menu-separator" in app_css and "@media(max-width:700px)" in app_css
     assert "e.target.closest('button[data-a]')" in app_js
-    # Add Torrent metadata is implemented server-side in 0.5.50 but remains
-    # disconnected from the browser until the next controlled phase.
-    assert "Metadata retrieval complete" not in app_js
-    # 0.5.48 changes only the Add Torrent shell. The existing submission
-    # contract remains in place and metadata behavior is still absent.
+    # Add Torrent shell and native qBitTorrent add options remain present.
     assert 'class="modal-card add-torrent-card"' in html
     assert 'class="add-torrent-body"' in html
     assert 'class="add-torrent-options"' in html
     assert 'class="add-torrent-preview"' in html
-    assert 'Content preview not enabled yet' in html
-    assert 'No metadata requests are made in this release.' in html
     assert 'id="addUrls"' in html and 'id="torrentFile"' in html and 'id="addPath"' in html
     assert 'id="addCategory"' in html and 'id="addTags"' in html
     assert 'id="addStartTorrent"' in html and 'id="addSequential"' in html and 'id="addFirstLast"' in html
-    assert '0.5.48 Add Torrent visual shell' in app_css
-    assert 'addMetadataState' not in app_js
-    assert 'Metadata retrieval complete' not in app_js
-    # 0.5.49 activates qBitTorrent add-time options while keeping metadata disabled.
     assert 'id="addTorrentBtn"' in html
     assert "function openAddTorrent(){" in app_js and "torrentFile').click()" not in app_js
     for control in ('addAutoTmm','addUseDownloadPath','addDownloadPath','addRename','addStartTorrent','addStopCondition','addToTop','addSeedMode','addContentLayout','addDlLimit','addUlLimit'):
@@ -109,21 +99,40 @@ def main():
     assert "fd.append('autoTMM'" in app_js and "fd.append('contentLayout'" in app_js
     assert '"autoTMM"' in dashboard_py and '"addToTopOfQueue"' in dashboard_py and '"seedMode"' in dashboard_py
     assert '"stopCondition"' in dashboard_py and '"contentLayout"' in dashboard_py
+    assert '0.5.48 Add Torrent visual shell' in app_css
     assert '0.5.49 Add Torrent advanced options' in app_css
-    assert 'addMetadataState' not in app_js
-    # 0.5.50 metadata backend: explicit admin-only proxy routes exist, but no
-    # browser code is allowed to call them yet. This keeps polling out of runtime.
+
+    # 0.5.50 metadata backend remains available.
     for method in ('fetch_torrent_metadata','parse_torrent_metadata','save_torrent_metadata'):
         assert f'def {method}' in dashboard_py
     for route in ('/api/torrent-metadata/fetch','/api/torrent-metadata/parse','/api/torrent-metadata/save'):
         assert route in dashboard_py
-        assert route not in app_js
     assert '/api/v2/torrents/fetchMetadata' in dashboard_py
     assert '/api/v2/torrents/parseMetadata' in dashboard_py
     assert '/api/v2/torrents/saveMetadata' in dashboard_py
     assert 'qbit_status' in dashboard_py and 'complete' in dashboard_py
     assert 'Torrent metadata preview requires qBittorrent Web API 2.11.9 or newer' in dashboard_py
-    assert 'Metadata retrieval complete' not in app_js
+
+    # 0.5.51 wires only magnet/URL metadata preview into the Add Torrent dialog.
+    for control in ('addContentBody','addContentSummary','addMetadataStatus','addMetadataStatusTitle','addMetadataStatusText','addMetadataProgress','addInfoSize','addInfoDate','addInfoHashV1','addInfoHashV2','addInfoCreatedBy','addInfoComment'):
+        assert f'id="{control}"' in html
+    assert '/api/torrent-metadata/fetch' in app_js
+    assert '/api/torrent-metadata/parse' not in app_js
+    assert '/api/torrent-metadata/save' not in app_js
+    assert 'const ADD_METADATA_POLL_MS=1000;' in app_js
+    assert 'const ADD_METADATA_TIMEOUT_MS=120000;' in app_js
+    assert 'const addMetadataState=' in app_js
+    assert 'function scheduleAddMetadataPreview' in app_js
+    assert 'function fetchAddMetadataPreview' in app_js
+    assert 'function cancelAddMetadata' in app_js
+    assert 'function closeAddTorrent()' in app_js
+    assert 'Metadata retrieval complete' in app_js
+    assert 'setTimeout(()=>fetchAddMetadataPreview(source,generation),ADD_METADATA_POLL_MS)' in app_js
+    assert 'setInterval(fetchAddMetadataPreview' not in app_js
+    assert "action:'add_magnet'" in app_js and "api('/api/upload'" in app_js
+    assert "urls:$('#addUrls').value.trim()" in app_js
+    assert 'Preview only · Add torrent still submits the original source.' in app_js
+    assert '0.5.51 Add Torrent magnet metadata preview' in app_css
     # 0.5.47 frontend generation contract. Navigation HTML is never cached,
     # stale versioned scripts trigger recovery, and optional Add Torrent bindings
     # cannot abort critical dashboard startup.
