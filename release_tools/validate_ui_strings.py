@@ -87,6 +87,7 @@ def main():
     assert 'id="addMetadataStatus"' in html
     assert 'id="addSaveTorrent"' in html
     assert 'id="addFileRows"' in html
+    assert 'title="${esc(filePath)}"' not in app_js
     assert 'id="addStart"' in html and 'id="addStopCondition"' in html
     assert 'Save as .torrent file' in html
     assert 'Torrent management mode' in html
