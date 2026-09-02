@@ -1,0 +1,125 @@
+# Torrent Dashboard Architecture
+
+This document describes the intended module boundaries for Torrent Dashboard and the rules used to keep the application maintainable as features are added.
+
+## Design goals
+
+Torrent Dashboard intentionally remains a small, dependency-light Python application. Modularity should come from clear internal boundaries rather than from introducing a framework solely to organize code.
+
+The current rules are:
+
+- `dashboard.py` is the **composition root and HTTP adapter**. It may assemble services and route requests, but new domain logic should normally live under `torrent_dashboard/`.
+- Modules under `torrent_dashboard/` **must not import `dashboard`**. Dependencies on runtime-specific behavior are passed in explicitly instead of creating circular imports.
+- Domain modules should expose small public interfaces through `__all__` and keep filesystem/network side effects at clear boundaries.
+- Configuration changes must use the `ConfigStore.mutate()` transaction path. Request code must never save a stale configuration snapshot directly.
+- Release metadata is authored once in `release_notes/releases.json`; generated files and GitHub release notes must not become competing sources of truth.
+- Runtime data belongs under `data/` and is excluded from release packages unless a component explicitly documents otherwise.
+
+## Current backend layout
+
+### `dashboard.py`
+
+Owns application composition, process startup, HTTP routing, qBitTorrent orchestration, sessions, network/interface discovery, integrations, notification delivery, history collection, update orchestration, and compatibility adapters that have not yet been extracted.
+
+This file is still larger than the desired steady-state architecture. Refactors should reduce its responsibilities incrementally while keeping behavior stable.
+
+### `torrent_dashboard/users.py`
+
+Owns the user/account domain:
+
+- password hashing and verification
+- user normalization and lookup
+- administrator/standard-user invariants
+- self-service profile changes
+- avatar validation and storage
+- password changes
+- legacy authentication-field synchronization
+
+### `torrent_dashboard/config_store.py`
+
+Owns in-process configuration transaction coordination. `mutate()` acquires the lock before reading the latest configuration, applies one transformation, persists it, and releases the lock only after the write completes.
+
+Configuration schema normalization and migration are still in `dashboard.py` and are the next backend extraction target.
+
+### `updater.py`
+
+Owns out-of-process update replacement, restart verification, and rollback. It should remain independent from dashboard HTTP routing so a failed application update can still be recovered.
+
+## Frontend layout
+
+### `static/app.js`
+
+Owns the main dashboard runtime, torrent interaction, account UI, dialogs, notifications, and shared API helpers. It remains a large module; future feature work should prefer extracting cohesive browser-side domains instead of continuing to grow this file.
+
+### `static/settings.js`
+
+Owns Settings-page behavior, including users, integrations, client settings, notifications, and updates. This separation has worked well and is the model for future frontend extraction.
+
+### Styles
+
+`static/app.css` contains shared/dashboard styles and `static/settings.css` contains Settings-specific styles. New component styles should stay with the narrowest applicable surface.
+
+## Configuration flow
+
+All application-generated `config.json` writes follow this contract:
+
+1. Acquire the shared `ConfigStore` lock.
+2. Reload the latest configuration from disk.
+3. Apply one validated transformation.
+4. Persist the complete transformed configuration atomically.
+5. Release the lock.
+
+A caller that already holds a configuration dictionary must not assume that dictionary is current enough to save.
+
+## Release and update flow
+
+1. Structured release information is added to `release_notes/releases.json`.
+2. `release_tools/generate_release_notes.py` generates `CHANGELOG.md`, `PROJECT_STATE.md`, and the GitHub release body.
+3. Source validation and unit tests run before packaging.
+4. `release_tools/build_release.py` creates the ZIP and a sidecar release-information JSON file.
+5. GitHub publishes both assets.
+6. Torrent Dashboard verifies GitHub's SHA-256 for the ZIP before staging an update.
+7. The updater preserves runtime data, verifies the restarted version through `/health`, and rolls back on failure.
+
+`PROJECT_STATE.md` is generated handoff state. `ARCHITECTURE.md` is the durable design reference and is edited deliberately when module boundaries change.
+
+## Testing strategy
+
+Tests use the Python standard library (`unittest`) so the development and release environments do not need extra packages.
+
+Run the backend tests with:
+
+```bash
+python -m unittest discover -s tests -v
+```
+
+Release validation also compiles Python modules, syntax-checks JavaScript, checks frontend build-version synchronization, validates generated release metadata, and runs repository hygiene checks.
+
+## Dependency direction
+
+Preferred dependency direction:
+
+```text
+HTTP / process adapters (`dashboard.py`, `updater.py`)
+                 │
+                 ▼
+      application/domain modules
+          (`torrent_dashboard/`)
+                 │
+                 ▼
+       Python standard library
+```
+
+A package module importing `dashboard.py` is considered an architectural violation because it makes the composition root part of the domain dependency graph.
+
+## Near-term extraction plan
+
+The next useful boundaries are:
+
+1. **Configuration** — schema defaults, migrations, normalization, sanitization, and persistence.
+2. **Release/update metadata** — GitHub release parsing, installed provenance, and integrity-history persistence.
+3. **qBitTorrent client/domain operations** — isolate Web API transport and normalization from HTTP routes.
+4. **Integrations/notifications** — separate provider normalization and delivery health from request handling.
+5. **Frontend feature modules** — reduce the responsibility of `static/app.js` after backend boundaries stabilize.
+
+Extraction should remain incremental. A refactor should not simultaneously redesign unrelated user-facing behavior unless the behavior change is independently required and tested.
