@@ -115,7 +115,7 @@ jobs:
           sound = pathlib.Path('static/default-completion.wav')
 
           assert 'API Key (qBitTorrent 5.2+)' in html
-          assert ('User Management' in html) or ('managed under Users.' in html)
+          assert 'User Management' in html
           assert 'integrationTypeSelect' in html
           assert '<b>Local Dashboard Address</b>' in html
           assert 'Local IP Address' not in html
