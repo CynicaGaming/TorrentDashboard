@@ -235,8 +235,8 @@ window.TDSettings = (() => {
   async function saveCore(e) {
     if (e?.preventDefault) e.preventDefault();
     if (!dirtyScopes.get('settingsCore')?.dirty) return;
-    const activePage = document.querySelector('.settings-page.active')?.dataset.settingsSection || 'general';
-    if (activePage === 'updates') return saveUpdateSource();
+    const repository = updateSourceRepository();
+    const savedRepository = String(state.settings?.updates?.repository || '');
     const servers = [...document.querySelectorAll('.server-setting')].map(serverRowData);
     const payload = {
       dashboard: {title: document.querySelector('#sTitle')?.value || 'Torrent Dashboard',port: Number(document.querySelector('#sPort')?.value || 8765)},
@@ -245,6 +245,10 @@ window.TDSettings = (() => {
       notifications: {sound_mode: document.querySelector('#nSoundMode')?.value || 'default',rules:notificationRulesData()}
     };
     try {
+      if (repository !== savedRepository) {
+        const source = await saveUpdateSource();
+        if (!source) { syncDirtyScope('settingsCore'); return; }
+      }
       await uploadNotificationSoundIfNeeded();
       const d = await post('/api/settings', payload);
       state.settings = d.settings;
@@ -315,7 +319,6 @@ window.TDSettings = (() => {
       const input = document.querySelector('#uRepository');
       if (input) input.value = d.repository || repository;
       renderUpdateInfo({configured:true,repository:d.repository || repository,currentVersion:state.me?.version,state:d.settings?.runtime?.updateState||{}});
-      resetDirtyScope('settingsCore',true);
       return d;
     } catch (e) {
       toast(e.message,'error');
@@ -370,7 +373,7 @@ window.TDSettings = (() => {
 
   async function loadIntegrations() {try {const d = await api('/api/integrations');catalog = d.types || [];integrations = d.integrations || [];const select = document.querySelector('#integrationTypeSelect');if (select) select.innerHTML = '<option value="">Choose integration…</option>' + catalog.map(x => `<option value="${esc(x.type)}">${esc(x.label)}</option>`).join('');renderIntegrations();} catch (e) {toast(e.message,'error')}}
 
-  function addIntegration() {const select = document.querySelector('#integrationTypeSelect'),type = catalog.find(x => x.type === select?.value);if (!type) return toast('Choose an integration type.','error');integrations.unshift({id:'',type:type.type,name:type.label,enabled:true,_new:true,configured_secrets:[]});renderIntegrations();if (select) select.value='';}
+  function addIntegration() {const select = document.querySelector('#integrationTypeSelect'),type = catalog.find(x => x.type === select?.value);if (!type) return toast('Choose an integration type.','error');if(dirtyScopeNames(name=>name.startsWith('integration:')).length)return toast('Save or remove current integration changes before adding another.','error');integrations.unshift({id:'',type:type.type,name:type.label,enabled:true,_new:true,configured_secrets:[]});renderIntegrations();if (select) select.value='';}
 
   async function testIntegration(card) {const out = card.querySelector('.integration-result');out.className='test-result muted integration-result';out.textContent='Testing…';try {const d = await post('/api/integration-test', integrationData(card));out.className='test-result ok integration-result';out.textContent=d.message || 'Connected';} catch (e) {out.className='test-result bad integration-result';out.textContent=e.message;}}
 
@@ -393,7 +396,7 @@ window.TDSettings = (() => {
   }
 
   async function loadUsers() {try {const d = await api('/api/users');users = d.users || [];currentUserId = d.current_user_id || state.me?.user_id || '';renderUsers();} catch(e) {toast(e.message,'error')}}
-  function addUser() {users.unshift({id:'',username:'',first_name:'',last_name:'',email:'',group:'standard',_new:true});renderUsers();}
+  function addUser() {if(dirtyScopeNames(name=>name.startsWith('user:')).length)return toast('Save or remove current user changes before adding another.','error');users.unshift({id:'',username:'',first_name:'',last_name:'',email:'',group:'standard',_new:true});renderUsers();}
   function userData(card) {const data={id:card.dataset.id||''};card.querySelectorAll('[data-user-field]').forEach(input=>data[input.dataset.userField]=input.type==='password'?secretFieldValue(input,''):input.value.trim());return data;}
 
   async function saveUser(card,user) {const key=card.dataset.dirtyScope;if(!dirtyScopes.get(key)?.dirty)return;const data=userData(card);if (!data.username) return toast('Enter a username.','error');if (data.password !== data.password2) return toast('Passwords do not match.','error');delete data.password2;try {const d=await post('/api/users',data);Object.assign(user,d.user||{}, {_new:false,_dirtyKey:key});card.dataset.id=user.id||'';configuredSecret(card.querySelector('[data-user-field="password"]'),true,'Password');configuredSecret(card.querySelector('[data-user-field="password2"]'),true,'Confirm Password');const summary=card.querySelector('.accordion-summary'),display=userName(user);summary.querySelector('.user-name-line b').textContent=display;const badge=summary.querySelector('.user-group-badge');badge.textContent=user.group==='administrator'?'Administrator':'Standard User';badge.className=`user-group-badge ${user.group==='administrator'?'admin':'standard'}`;resetDirtyScope(key,true);} catch(e) {toast(e.message,'error');syncDirtyScope(key)}}

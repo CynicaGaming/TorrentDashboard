@@ -143,14 +143,16 @@ async function post(url,obj){return api(url,{method:'POST',headers:{'Content-Typ
 const dirtyScopes=new Map();
 function formFingerprint(root){
   if(!root)return'';
-  return JSON.stringify([...root.querySelectorAll('input,select,textarea')].filter(el=>!['button','submit','reset'].includes(el.type)).map((el,index)=>{
-    const key=el.id||el.name||el.dataset.field||el.dataset.k||el.dataset.userField||`${el.tagName}:${index}`;
+  const fields=[...root.querySelectorAll('input,select,textarea')].filter(el=>!['button','submit','reset'].includes(el.type)).map((el,index)=>{
+    const key=el.id||el.name||el.dataset.field||el.dataset.k||el.dataset.userField||el.dataset.interfaceId||`${el.tagName}:${index}`;
+    if(el.type==='checkbox'&&el.dataset.interfaceId&&!el.checked)return null;
     let value;
     if(el.type==='checkbox'||el.type==='radio')value=!!el.checked;
     else if(el.type==='file'){const file=el.files?.[0];value=file?`${file.name}:${file.size}:${file.lastModified}`:'';}
     else value=el.value;
-    return[key,el.type||el.tagName,value];
-  }));
+    return[key,value];
+  }).filter(Boolean).sort((a,b)=>String(a[0]).localeCompare(String(b[0])));
+  return JSON.stringify(fields);
 }
 function dirtyElement(ref){return typeof ref==='string'?$(ref):ref}
 function syncDirtyScope(name){

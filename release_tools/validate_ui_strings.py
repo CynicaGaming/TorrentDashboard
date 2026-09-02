@@ -96,7 +96,7 @@ def main():
     assert 'updateSourceResult' not in settings_js
     assert 'id="updateSourceSave"' not in html
     assert 'Save Settings' not in html
-    assert '<div class="settings-savebar" id="settingsSavebar"><button class="primary" type="submit">Save</button></div>' in html
+    assert 'id="settingsSaveState"' in html and 'id="settingsSaveButton"' in html and 'id="settingsSaveButton" type="submit" disabled' in html
     # Settings navigation labels and card titles must use the same canonical names.
     for title in ('General','Access','Clients','Updates','Notifications','Integrations','Users'):
         assert f'<div class="panel-title">{title}</div>' in html
@@ -118,7 +118,9 @@ def main():
     assert 'async function showBrowserNotification' in app_js
     assert 'CREATE_NO_WINDOW' in dashboard_py and '**_windows_background_process_kwargs()' in dashboard_py
     assert "const corePages = new Set(['general','access','clients','updates','notifications']);" in settings_js
-    assert "if (activePage === 'updates') return saveUpdateSource();" in settings_js
+    assert "if (activePage === 'updates') return saveUpdateSource();" not in settings_js
+    assert 'const savedRepository = String(state.settings?.updates?.repository || '');' in settings_js
+    assert 'const source = await saveUpdateSource();' in settings_js
     assert '#updateSourceSave' not in settings_js
     assert 'data-settings-page="updates" type="button">Updates</button>' in html
     assert 'data-settings-page="access" type="button">Access</button>' in html
@@ -296,6 +298,12 @@ def main():
     assert 'role="tab"' in html and 'role="tabpanel"' in html and 'aria-selected="true"' in html
     assert 'trapSurfaceFocus' in app_js and 'showSurface' in app_js and ':focus-visible' in app_css
     assert 'role="status" aria-live="polite"' in html
+    assert "return[key,el.type||el.tagName,value]" not in app_js
+    assert "el.dataset.interfaceId&&!el.checked" in app_js
+    assert 'Save or remove current integration changes before adding another.' in settings_js
+    assert 'Save or remove current user changes before adding another.' in settings_js
+    assert "resetDirtyScope('settingsCore',true);
+      return d;" not in settings_js.split('async function saveUpdateSource()',1)[1].split('async function loadExtras()',1)[0]
 
     print("UI string audit passed")
 
