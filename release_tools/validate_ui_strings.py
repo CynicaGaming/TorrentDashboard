@@ -66,16 +66,23 @@ def main():
     assert "attributeFilter:['placeholder','title','aria-label']" in app_js
     assert "applySentenceCaseUi(card)" in settings_js
 
-    # Torrent interaction contract: explicit context menu rather than row-click
-    # navigation, with qBitTorrent-inspired grouping and no automatic management.
-    assert "Torrent details" in app_js
-    assert "Torrent options…" not in app_js
-    assert "Automatic torrent management" not in app_js
-    assert "set_auto_management" not in app_js
-    assert "set_auto_management" not in dashboard_py
-    assert "openDetail(tr.dataset.server,tr.dataset.hash)" not in app_js
+    # Torrent interaction contract: row selection opens a qBitTorrent-inspired
+    # lower information pane; operational commands remain in the context menu.
+    assert "Torrent details" not in app_js
+    assert 'id="torrentDetailPane"' in html
+    assert all(f'data-detailtab="{tab}"' in html for tab in ('general','trackers','peers','webseeds','content'))
+    assert "openDetail(tr.dataset.server,tr.dataset.hash)" in app_js
+    assert "torrent-detail-selected" in app_css
     assert "menu-separator" in app_css and "@media(max-width:700px)" in app_css
     assert "e.target.closest('button[data-a]')" in app_js
+    assert 'id="addMetadataStatus"' in html and 'id="addFileRows"' in html
+    assert '/api/torrent-metadata/fetch' in app_js and '/api/torrent-metadata/parse' in app_js
+    assert 'def fetch_torrent_metadata(self, source):' in dashboard_py
+    assert 'def parse_torrent_metadata(self, filename, content):' in dashboard_py
+    assert '/api/v2/torrents/fetchMetadata' in dashboard_py and '/api/v2/torrents/parseMetadata' in dashboard_py
+    assert 'filePriorities' in dashboard_py and 'file_priorities:addFilePriorities()' in app_js
+    assert '"webseeds": ("/api/v2/torrents/webseeds"' in dashboard_py
+    assert '0.5.39 qBitTorrent-inspired torrent workspace' in app_css
 
     # Updates owns the public GitHub repository directly. GitHub must not be a
     # modular integration and update installation remains a reactive button.
