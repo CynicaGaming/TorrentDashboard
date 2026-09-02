@@ -286,6 +286,68 @@
           "detail": "After the configuration module boundary is stable, add restrictive file permissions and a cleaner separation between ordinary configuration and stored credentials."
         }
       ]
+    },
+    {
+      "version": "0.5.61",
+      "date": "2026-09-02",
+      "status": "prerelease",
+      "title": "Patch note integrity history fix",
+      "summary": "Moves package integrity metadata below each patch-note body and backfills SHA-256 values for both displayed revisions from retained GitHub releases.",
+      "highlights": [
+        "Package SHA-256 now appears at the bottom of an expanded patch-note card, after the release notes.",
+        "Update checks enrich both displayed revisions with authoritative GitHub ZIP digests instead of enriching only the newest release.",
+        "The frontend also preserves SHA-256 and package fields when merging a matching GitHub manifest into bundled release history."
+      ],
+      "fixes": [
+        "The immediately previous patch-note revision now receives its Package SHA-256 after an update check when the corresponding GitHub release is retained."
+      ],
+      "technical": [
+        "fetch_update_release reuses one GitHub release-list response for latest-release selection and a two-entry integrity history, avoiding a second GitHub API request.",
+        "SHA-256 values remain provenance metadata and are not copied into release_notes/releases.json."
+      ],
+      "validation": [
+        "A pure release-integrity helper test verifies two retained GitHub releases produce two exact ZIP digests.",
+        "local_release_history regression coverage verifies both latest and previous displayed revisions receive SHA-256 metadata.",
+        "JavaScript syntax validation covers the reordered integrity block and corrected manifest merge."
+      ],
+      "known_issues": [
+        "A build installed by manually extracting a ZIP cannot know the ZIP's own digest until it obtains authoritative release metadata, because the archive cannot contain its own final hash."
+      ],
+      "architecture": [
+        "The application remains a Python standard-library ThreadingHTTPServer service with most HTTP routing still in dashboard.py.",
+        "User and account domain logic lives in torrent_dashboard/users.py.",
+        "Configuration transaction coordination lives in torrent_dashboard/config_store.py while config normalization and migration logic still lives in dashboard.py.",
+        "The updater consumes public GitHub Releases and already exposes each release body as manifest.notes.",
+        "Completed development increments are published from prerelease/backend-modularization; active refactor work remains on refactor/backend-modularization-users.",
+        "Update history is sourced from bundled structured release metadata and supplemented with the latest GitHub release manifest during update checks.",
+        "Installed release provenance is stored in root release-info.json and is replaced/rolled back with application files; release build provenance is also published as a sidecar JSON asset."
+      ],
+      "decisions": [
+        "Continue modularization in behavior-preserving increments rather than combining refactors with unrelated feature changes.",
+        "Use structured release metadata rather than commit-message inference as the authoritative source for release notes.",
+        "Keep PROJECT_STATE.md generated and read-only so it cannot drift from release metadata.",
+        "Preserve future GitHub prereleases instead of deleting all older prereleases during publication.",
+        "Keep complete release history in repository metadata while limiting the in-app Updates view to the two most recent releases.",
+        "Treat Package SHA-256 as release provenance metadata sourced only from the finalized GitHub asset or a verified local download, never as manually authored patch-note content.",
+        "Populate historical package digests from retained GitHub release assets at update-check time rather than storing mutable package hashes in authored patch-note metadata."
+      ],
+      "next_steps": [
+        {
+          "priority": 1,
+          "title": "Extract configuration normalization and persistence",
+          "detail": "Move config loading, migration, normalization, sanitization, and atomic persistence out of dashboard.py while preserving ConfigStore as the transaction coordinator."
+        },
+        {
+          "priority": 2,
+          "title": "Expand behavioral tests",
+          "detail": "Add end-to-end authorization, account, CSRF, setup, and configuration mutation coverage around the new module boundaries."
+        },
+        {
+          "priority": 3,
+          "title": "Harden secrets at rest",
+          "detail": "After the configuration module boundary is stable, add restrictive file permissions and a cleaner separation between ordinary configuration and stored credentials."
+        }
+      ]
     }
   ]
 }

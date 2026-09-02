@@ -4,7 +4,7 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.60** (prerelease)
+- Latest documented build: **v0.5.61** (prerelease)
 - Repository: `CynicaGaming/TorrentDashboard`
 - Development branch: `refactor/backend-modularization-users`
 - Prerelease branch: `prerelease/backend-modularization`
@@ -12,7 +12,7 @@
 
 ### Latest release summary
 
-Persists the verified release-package SHA-256 with installed builds and surfaces the exact package digest alongside patch notes.
+Moves package integrity metadata below each patch-note body and backfills SHA-256 values for both displayed revisions from retained GitHub releases.
 
 ## Architecture state
 
@@ -32,6 +32,7 @@ Persists the verified release-package SHA-256 with installed builds and surfaces
 - Preserve future GitHub prereleases instead of deleting all older prereleases during publication.
 - Keep complete release history in repository metadata while limiting the in-app Updates view to the two most recent releases.
 - Treat Package SHA-256 as release provenance metadata sourced only from the finalized GitHub asset or a verified local download, never as manually authored patch-note content.
+- Populate historical package digests from retained GitHub release assets at update-check time rather than storing mutable package hashes in authored patch-note metadata.
 
 ## Development principles
 
@@ -41,6 +42,14 @@ Persists the verified release-package SHA-256 with installed builds and surfaces
 - Keep user-facing patch notes separate from engineering handoff details.
 
 ## Recent work
+
+### v0.5.61 — Patch note integrity history fix
+
+Moves package integrity metadata below each patch-note body and backfills SHA-256 values for both displayed revisions from retained GitHub releases.
+
+- Package SHA-256 now appears at the bottom of an expanded patch-note card, after the release notes.
+- Update checks enrich both displayed revisions with authoritative GitHub ZIP digests instead of enriching only the newest release.
+- The frontend also preserves SHA-256 and package fields when merging a matching GitHub manifest into bundled release history.
 
 ### v0.5.60 — Installed package integrity metadata
 
@@ -77,14 +86,6 @@ Adds a structured release metadata pipeline that generates GitHub release notes,
 - Added release_tools/generate_release_notes.py to generate GitHub release bodies, CHANGELOG.md, and PROJECT_STATE.md deterministically.
 - The Updates page now displays patch notes returned in the existing GitHub release manifest.
 - Prerelease publication uses the generated release body instead of a hard-coded release description.
-
-### v0.5.56 — Serialized configuration mutations
-
-Prevented lost configuration updates by moving application-generated configuration mutations onto a serialized read-modify-write transaction path.
-
-- Added torrent_dashboard/config_store.py with a shared reentrant lock.
-- Configuration mutations now reload the latest config while holding the lock, apply the requested transformation, atomically replace config.json, and release the lock only after the write completes.
-- Profile, password, avatar, user, integration, settings, update-source, notification-sound, setup, and CLI password writes use the transaction path.
 
 ## What to do next
 

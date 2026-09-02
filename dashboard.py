@@ -68,7 +68,7 @@ UPDATE_STATE_PATH = DATA_DIR / "update-status.json"
 RELEASE_INFO_PATH = APP_DIR / "release-info.json"
 CUSTOM_SOUND_BASENAME = "custom-notification-sound"
 MAX_CUSTOM_SOUND_BYTES = 2 * 1024 * 1024
-VERSION = "0.5.60"
+VERSION = "0.5.61"
 STATUS_REFRESH_SECONDS = 1.0
 DEFAULT_UPDATE_REPOSITORY = "CynicaGaming/TorrentDashboard"
 
@@ -1914,6 +1914,34 @@ def _asset_sha256(asset):
     return digest
 
 
+def _github_release_integrity(releases, limit=2):
+    rows=[]
+    for release in releases if isinstance(releases,list) else []:
+        if release.get("draft"):
+            continue
+        version=str(release.get("tag_name") or "").strip().lstrip("vV")
+        if not re.fullmatch(r"\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?",version):
+            continue
+        asset=_find_dashboard_asset(release)
+        if not asset:
+            continue
+        try:
+            digest=_asset_sha256(asset)
+        except Exception:
+            continue
+        rows.append({
+            "version":version,
+            "sha256":digest,
+            "package":str(asset.get("name") or f"Torrent-Dashboard-{version}.zip"),
+            "publishedAt":str(release.get("published_at") or release.get("created_at") or ""),
+            "channel":"prerelease" if release.get("prerelease") else "stable",
+            "releaseUrl":str(release.get("html_url") or ""),
+        })
+        if len(rows)>=max(1,int(limit)):
+            break
+    return rows
+
+
 def validate_update_repository(repository: str):
     repo = normalize_github_repository(repository)
     try:
@@ -1988,7 +2016,10 @@ def installed_release_info():
 
 def fetch_update_release(cfg):
     repo = validate_update_repository(update_repository(cfg))
-    release=_latest_github_release(cfg,repo)
+    releases=_github_releases(cfg,repo)
+    if not releases:
+        raise RuntimeError("No GitHub release was found for the configured repository")
+    release=releases[0]
     tag=str(release.get("tag_name") or "").strip()
     version=tag.lstrip("vV")
     if not re.fullmatch(r"\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?",version):
@@ -2014,6 +2045,7 @@ def fetch_update_release(cfg):
             "size":int(asset.get("size") or 0),
         },
         "currentVersion":VERSION,
+        "releaseHistory":_github_release_integrity(releases,2),
     }
     data["updateAvailable"]=is_newer_version(version)
     if version == VERSION and not installed_release_info():
@@ -2064,6 +2096,22 @@ def local_release_history(latest_manifest=None,limit=2):
         idx=next((i for i,x in enumerate(entries) if x.get("version")==version),None)
         if idx is None: entries.append(remote)
         else: entries[idx]={**entries[idx],**{k:v for k,v in remote.items() if v}}
+        for integrity in latest_manifest.get("releaseHistory") or []:
+            if not isinstance(integrity,dict):
+                continue
+            iv=str(integrity.get("version") or "").strip().lstrip("vV")
+            idx=next((i for i,x in enumerate(entries) if x.get("version")==iv),None)
+            if idx is None:
+                continue
+            digest=str(integrity.get("sha256") or "").strip().lower()
+            if re.fullmatch(r"[0-9a-f]{64}",digest):
+                entries[idx]={
+                    **entries[idx],
+                    "sha256":digest,
+                    "package":str(integrity.get("package") or entries[idx].get("package") or ""),
+                    "publishedAt":str(integrity.get("publishedAt") or entries[idx].get("publishedAt") or ""),
+                    "channel":str(integrity.get("channel") or entries[idx].get("channel") or ""),
+                }
     installed=installed_release_info()
     if installed.get("version"):
         idx=next((i for i,x in enumerate(entries) if x.get("version")==installed.get("version")),None)
