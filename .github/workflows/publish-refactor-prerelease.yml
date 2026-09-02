@@ -29,34 +29,18 @@ jobs:
       - name: Validate Refactored Source
         shell: bash
         run: |
-          python -m py_compile dashboard.py updater.py release_tools/build_release.py release_tools/generate_release_notes.py torrent_dashboard/users.py torrent_dashboard/config_store.py
+          python release_tools/validate_source.py
+          python release_tools/validate_ui_strings.py
           node --check static/app.js
           node --check static/settings.js
-          python - <<'PY'
-          import json
-          import dashboard
-          import torrent_dashboard.users as users
-
-          assert dashboard.VERSION >= '0.5.55'
-          assert dashboard.normalize_user is users.normalize_user
-          assert dashboard.save_user is users.save_user
-          assert dashboard.session_is_admin is users.session_is_admin
-          assert callable(dashboard.normalize_qbittorrent_server)
-          assert callable(dashboard.normalize_integration)
-          assert callable(dashboard.mutate_config)
-          assert hasattr(dashboard, 'CONFIG_STORE')
-          if dashboard.VERSION >= '0.5.58':
-              assert callable(dashboard.local_release_history)
-              history = dashboard.local_release_history()
-              if dashboard.VERSION >= '0.5.59':
-                  assert len(history) == 2
-                  metadata = json.load(open('release_notes/releases.json', encoding='utf-8'))
-                  assert len(metadata.get('releases', [])) >= 5
-              else:
-                  assert len(history) >= 4
-          if dashboard.VERSION >= '0.5.60':
-              assert callable(dashboard.installed_release_info)
-          PY
+          node - <<'JS'
+          global.window = {};
+          const fs = require('fs');
+          eval(fs.readFileSync('static/settings.js','utf8'));
+          if (!window.TDSettings || typeof window.TDSettings.bind !== 'function' || typeof window.TDSettings.fill !== 'function') {
+            throw new Error('settings.js did not initialize window.TDSettings');
+          }
+          JS
 
       - name: Determine Version
         id: version
@@ -109,14 +93,19 @@ jobs:
           info_path=Path('dist') / f'Torrent-Dashboard-{version}.release.json'
           with zipfile.ZipFile(path) as z:
               names=[n for n in z.namelist() if not n.endswith('/')]
-          assert any(n.endswith('/dashboard.py') for n in names)
-          assert any(n.endswith('/torrent_dashboard/__init__.py') for n in names)
-          assert any(n.endswith('/torrent_dashboard/users.py') for n in names)
-          assert any(n.endswith('/torrent_dashboard/config_store.py') for n in names)
-          assert any(n.endswith('/PROJECT_STATE.md') for n in names)
-          assert any(n.endswith('/CHANGELOG.md') for n in names)
-          assert any(n.endswith('/release_notes/releases.json') for n in names)
-          assert any(n.endswith('/updater.py') for n in names)
+          required=(
+              '/dashboard.py',
+              '/torrent_dashboard/__init__.py',
+              '/torrent_dashboard/users.py',
+              '/torrent_dashboard/config_store.py',
+              '/ARCHITECTURE.md',
+              '/PROJECT_STATE.md',
+              '/CHANGELOG.md',
+              '/release_notes/releases.json',
+              '/updater.py',
+          )
+          for suffix in required:
+              assert any(n.endswith(suffix) for n in names), suffix
           assert not any(n.endswith('apply_feature_update.py') for n in names)
           info=json.loads(info_path.read_text(encoding='utf-8'))
           digest=hashlib.sha256(path.read_bytes()).hexdigest()
