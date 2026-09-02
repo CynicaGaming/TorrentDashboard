@@ -179,7 +179,7 @@ async function bootstrap(){
     if(state.setup.required){showSetup();$('#wLocalIp').value=state.setup?.lan_ip||'127.0.0.1';$('#wPort').value=state.setup?.port||8765;$('#wTrustedIps').value=(state.setup.trusted_ips||[]).join('\n');renderInterfaceList('#wInterfaceList',state.setup.network_interfaces||[],state.setup.trusted_interfaces||[],!(state.setup.trusted_interfaces||[]).length);state.setupInterfaceSelectionInitialized=true;$('#setupCodeWrap').classList.toggle('hidden',!state.setup.code_required);updateWizardClientAuth();updateWizardLanVisibility();updateSetupStep();return}
     state.me=await api('/api/me');state.csrf=state.me.csrf;showApp();
     document.body.classList.toggle('standard-user',!state.me.can_manage);
-    $('#brandTitle').textContent=state.me.title;document.title=state.me.title;$('#version').textContent=`v${state.me.version}`;
+    $('#brandTitle').textContent=state.me.title;$('#brandAddress').textContent=state.me.lan_ip||'Local';document.title=state.me.title;$('#version').textContent=`v${state.me.version}`;
     if(state.me.user_id){try{const account=await api('/api/account');applyAccountUser(account.user)}catch{}}
     syncCurrentUserUi();
     if(state.me.can_manage){await loadSettings()}else{state.settings={dashboard:{low_disk_gb:20},notifications:{browser:false,sound:false}}}
@@ -190,6 +190,7 @@ async function bootstrap(){
 
 let bound=false;
 function bindUI(){if(bound)return;bound=true;
+  $('#homeBrand').addEventListener('click',()=>setView('dashboard'));
   $$('.nav-root,.settings-subnav button,.mobile-nav button').forEach(b=>b.addEventListener('click',()=>setView(b.dataset.view)));
   $$('#tabs button').forEach(b=>b.classList.toggle('active',b.dataset.filter===state.filter));$$('#tabs button').forEach(b=>b.addEventListener('click',()=>{state.filter=b.dataset.filter;localStorage.tdFilter=state.filter;$$('#tabs button').forEach(x=>x.classList.toggle('active',x===b));render()}));
   $('#search').value=state.search;$('#search').addEventListener('input',e=>{state.search=e.target.value.trim().toLowerCase();localStorage.tdSearch=state.search;render()});

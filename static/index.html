@@ -5,8 +5,8 @@
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#0b0d10" name="theme-color"/>
 <link href="/manifest.webmanifest" rel="manifest"/>
-<link href="/static/app.css?v=0.5.37" rel="stylesheet"/>
-<link href="/static/settings.css?v=0.5.37" rel="stylesheet"/>
+<link href="/static/app.css?v=0.5.38" rel="stylesheet"/>
+<link href="/static/settings.css?v=0.5.38" rel="stylesheet"/>
 <title>Torrent Dashboard</title>
 </head>
 <body>
@@ -75,7 +75,7 @@
 </div>
 <div class="app hidden" id="app">
 <aside class="sidebar">
-<div class="brand"><div class="brand-mark">⇣</div><div><strong id="brandTitle">Torrent Dashboard</strong><small>qBitTorrent Control</small></div></div>
+<button class="brand brand-home" id="homeBrand" type="button" aria-label="Go to dashboard"><span class="brand-mark" aria-hidden="true">⇣</span><span class="brand-copy"><strong id="brandTitle">Torrent Dashboard</strong><small id="brandAddress">—</small></span></button>
 <nav>
 <button class="nav nav-root active" data-view="dashboard">Dashboard</button>
 <button class="nav nav-root" data-view="notifications">Notifications</button>
@@ -242,7 +242,7 @@
 <div class="menu account-menu hidden" id="accountMenu" role="menu"><div class="account-menu-head"><span class="profile-avatar profile-avatar-menu"><img alt="" class="hidden" data-avatar-image/><span class="avatar-default" data-avatar-default aria-hidden="true"></span></span><div><strong id="accountMenuName">Account</strong><small id="accountMenuGroup">User</small></div></div><div class="menu-separator" role="separator"></div><button id="accountSettingsBtn" type="button">Account settings</button><button class="hidden" id="installPwa" type="button">Install app</button><div class="menu-separator" role="separator"></div><button id="logoutBtn" type="button">Sign out</button></div>
 <div class="menu hidden" id="contextMenu"></div>
 <div class="toasts" id="toasts"></div>
-<script src="/static/settings.js?v=0.5.37"></script>
-<script src="/static/app.js?v=0.5.37"></script>
+<script src="/static/settings.js?v=0.5.38"></script>
+<script src="/static/app.js?v=0.5.38"></script>
 </body>
 </html>
