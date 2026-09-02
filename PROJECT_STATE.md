@@ -4,7 +4,7 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.61** (prerelease)
+- Latest documented build: **v0.5.62** (prerelease)
 - Repository: `CynicaGaming/TorrentDashboard`
 - Development branch: `refactor/backend-modularization-users`
 - Prerelease branch: `prerelease/backend-modularization`
@@ -12,7 +12,7 @@
 
 ### Latest release summary
 
-Moves package integrity metadata below each patch-note body and backfills SHA-256 values for both displayed revisions from retained GitHub releases.
+Makes the previous release's Package SHA-256 populate reliably by caching authoritative GitHub release digests and refreshing them automatically when the Updates page opens.
 
 ## Architecture state
 
@@ -23,6 +23,7 @@ Moves package integrity metadata below each patch-note body and backfills SHA-25
 - Completed development increments are published from prerelease/backend-modularization; active refactor work remains on refactor/backend-modularization-users.
 - Update history is sourced from bundled structured release metadata and supplemented with the latest GitHub release manifest during update checks.
 - Installed release provenance is stored in root release-info.json and is replaced/rolled back with application files; release build provenance is also published as a sidecar JSON asset.
+- Authoritative historical release digests are cached under data/release-integrity.json and merged into the locally bundled patch-note history.
 
 ## Current engineering decisions
 
@@ -33,6 +34,7 @@ Moves package integrity metadata below each patch-note body and backfills SHA-25
 - Keep complete release history in repository metadata while limiting the in-app Updates view to the two most recent releases.
 - Treat Package SHA-256 as release provenance metadata sourced only from the finalized GitHub asset or a verified local download, never as manually authored patch-note content.
 - Populate historical package digests from retained GitHub release assets at update-check time rather than storing mutable package hashes in authored patch-note metadata.
+- Persist remote release-integrity metadata under data/ so historical hashes remain available across browser sessions and application updates without treating hashes as authored patch-note fields.
 
 ## Development principles
 
@@ -42,6 +44,14 @@ Moves package integrity metadata below each patch-note body and backfills SHA-25
 - Keep user-facing patch notes separate from engineering handoff details.
 
 ## Recent work
+
+### v0.5.62 — Persistent historical package integrity
+
+Makes the previous release's Package SHA-256 populate reliably by caching authoritative GitHub release digests and refreshing them automatically when the Updates page opens.
+
+- Successful GitHub release lookups persist authoritative package digests to data/release-integrity.json.
+- Normal Settings loads merge the persisted integrity cache into the two displayed patch-note revisions.
+- Opening Settings → Updates silently refreshes release metadata at most once per minute, so historical SHA-256 values self-populate without requiring a manual Check for updates click.
 
 ### v0.5.61 — Patch note integrity history fix
 
@@ -78,15 +88,6 @@ Expanded Settings → Updates from a single latest-release note block into a col
 - The newest revision opens by default and each older revision can be expanded independently.
 - Future prerelease publication preserves older prereleases instead of deleting the complete prerelease history.
 
-### v0.5.57 — Release notes and project handoff pipeline
-
-Adds a structured release metadata pipeline that generates GitHub release notes, in-app patch notes, a cumulative changelog, and a durable project handoff document for future development sessions.
-
-- Added release_notes/releases.json as the single source of truth for release summaries and engineering handoff context.
-- Added release_tools/generate_release_notes.py to generate GitHub release bodies, CHANGELOG.md, and PROJECT_STATE.md deterministically.
-- The Updates page now displays patch notes returned in the existing GitHub release manifest.
-- Prerelease publication uses the generated release body instead of a hard-coded release description.
-
 ## What to do next
 
 1. **Extract configuration normalization and persistence** — Move config loading, migration, normalization, sanitization, and atomic persistence out of dashboard.py while preserving ConfigStore as the transaction coordinator.
@@ -95,7 +96,7 @@ Adds a structured release metadata pipeline that generates GitHub release notes,
 
 ## Known issues
 
-- A build installed by manually extracting a ZIP cannot know the ZIP's own digest until it obtains authoritative release metadata, because the archive cannot contain its own final hash.
+- The first time an installation opens Updates with no prior integrity cache, GitHub must be reachable before a historical digest can be populated. Once fetched, the digest remains available from the local cache.
 
 ## Handoff instructions for a new development session
 

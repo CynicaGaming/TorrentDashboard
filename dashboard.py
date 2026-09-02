@@ -66,9 +66,10 @@ DB_PATH = DATA_DIR / "torrent_desk.sqlite3"
 UPDATE_DIR = DATA_DIR / "updates"
 UPDATE_STATE_PATH = DATA_DIR / "update-status.json"
 RELEASE_INFO_PATH = APP_DIR / "release-info.json"
+RELEASE_INTEGRITY_CACHE_PATH = DATA_DIR / "release-integrity.json"
 CUSTOM_SOUND_BASENAME = "custom-notification-sound"
 MAX_CUSTOM_SOUND_BYTES = 2 * 1024 * 1024
-VERSION = "0.5.61"
+VERSION = "0.5.62"
 STATUS_REFRESH_SECONDS = 1.0
 DEFAULT_UPDATE_REPOSITORY = "CynicaGaming/TorrentDashboard"
 
@@ -1942,6 +1943,53 @@ def _github_release_integrity(releases, limit=2):
     return rows
 
 
+def _normalized_release_integrity(rows, limit=20):
+    out=[]; seen=set()
+    for raw in rows if isinstance(rows,list) else []:
+        if not isinstance(raw,dict):
+            continue
+        version=str(raw.get("version") or "").strip().lstrip("vV")
+        digest=str(raw.get("sha256") or "").strip().lower()
+        if not re.fullmatch(r"\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?",version):
+            continue
+        if not re.fullmatch(r"[0-9a-f]{64}",digest) or version in seen:
+            continue
+        seen.add(version)
+        out.append({
+            "version":version,
+            "sha256":digest,
+            "package":str(raw.get("package") or f"Torrent-Dashboard-{version}.zip"),
+            "publishedAt":str(raw.get("publishedAt") or ""),
+            "channel":str(raw.get("channel") or ""),
+            "releaseUrl":str(raw.get("releaseUrl") or ""),
+        })
+        if len(out)>=max(1,int(limit)):
+            break
+    return out
+
+
+def cached_release_integrity():
+    try:
+        payload=json.loads(RELEASE_INTEGRITY_CACHE_PATH.read_text(encoding="utf-8"))
+        if not isinstance(payload,dict) or int(payload.get("schema") or 0) != 1:
+            return []
+        return _normalized_release_integrity(payload.get("releases") or [],20)
+    except Exception:
+        return []
+
+
+def write_release_integrity_cache(rows):
+    clean=_normalized_release_integrity(rows,20)
+    if not clean:
+        return []
+    DATA_DIR.mkdir(parents=True,exist_ok=True)
+    payload={"schema":1,"repository":DEFAULT_UPDATE_REPOSITORY,"updatedAt":int(time.time()),"releases":clean}
+    tmp=RELEASE_INTEGRITY_CACHE_PATH.with_suffix(".tmp")
+    tmp.write_text(json.dumps(payload,indent=2)+"\n",encoding="utf-8")
+    tmp.replace(RELEASE_INTEGRITY_CACHE_PATH)
+    return clean
+
+
 def validate_update_repository(repository: str):
     repo = normalize_github_repository(repository)
     try:
@@ -2030,6 +2078,7 @@ def fetch_update_release(cfg):
     api_url=str(asset.get("url") or "")
     if not api_url.startswith("https://api.github.com/"):
         raise RuntimeError("GitHub release asset URL is invalid")
+    integrity_history=_github_release_integrity(releases,20)
     data={
         "version":version,
         "channel":"prerelease" if release.get("prerelease") else "stable",
@@ -2045,8 +2094,12 @@ def fetch_update_release(cfg):
             "size":int(asset.get("size") or 0),
         },
         "currentVersion":VERSION,
-        "releaseHistory":_github_release_integrity(releases,2),
+        "releaseHistory":integrity_history[:2],
     }
+    try:
+        write_release_integrity_cache(integrity_history)
+    except Exception:
+        pass
     data["updateAvailable"]=is_newer_version(version)
     if version == VERSION and not installed_release_info():
         try:
@@ -2090,6 +2143,20 @@ def local_release_history(latest_manifest=None,limit=2):
             if not re.fullmatch(r"\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?",version): continue
             entries.append({"version":version,"title":str(raw.get("title") or f"Torrent Dashboard v{version}"),"summary":str(raw.get("summary") or ""),"publishedAt":str(raw.get("date") or ""),"channel":"prerelease" if raw.get("status")=="prerelease" else "stable","notes":_release_history_markdown(raw),"source":"bundled"})
     except Exception: entries=[]
+    for integrity in cached_release_integrity():
+        iv=str(integrity.get("version") or "").strip().lstrip("vV")
+        idx=next((i for i,x in enumerate(entries) if x.get("version")==iv),None)
+        if idx is None:
+            continue
+        digest=str(integrity.get("sha256") or "").strip().lower()
+        if re.fullmatch(r"[0-9a-f]{64}",digest):
+            entries[idx]={
+                **entries[idx],
+                "sha256":digest,
+                "package":str(integrity.get("package") or entries[idx].get("package") or ""),
+                "publishedAt":str(integrity.get("publishedAt") or entries[idx].get("publishedAt") or ""),
+                "channel":str(integrity.get("channel") or entries[idx].get("channel") or ""),
+            }
     if isinstance(latest_manifest,dict) and latest_manifest.get("version"):
         version=str(latest_manifest.get("version") or "").strip().lstrip("vV")
         remote={"version":version,"title":str(latest_manifest.get("title") or f"Torrent Dashboard v{version}"),"summary":"","publishedAt":str(latest_manifest.get("publishedAt") or ""),"channel":str(latest_manifest.get("channel") or ""),"notes":str(latest_manifest.get("notes") or ""),"sha256":str((latest_manifest.get("asset") or {}).get("sha256") or ""),"package":str((latest_manifest.get("asset") or {}).get("name") or ""),"source":"github"}
