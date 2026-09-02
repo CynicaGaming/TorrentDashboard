@@ -9,7 +9,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: torrent-dashboard-refactor-prerelease
+  group: torrent-dashboard-refactor-prerelease-v0572
   cancel-in-progress: true
 
 jobs:
