@@ -56,11 +56,13 @@ Only run tests that are relevant and safe in your environment. Never commit real
 
 ### Torrent details
 
-- Selecting a torrent opens the docked inspector on desktop/tablet.
+- The docked torrent-details bar is always present on desktop/tablet and starts collapsed with no selection.
+- Clicking the disclosure bar expands/collapses the inspector without clearing the selected torrent.
+- Selecting a torrent automatically expands the inspector and updates the selected-torrent context.
+- Expanding with no torrent selected shows the empty detail state without errors.
 - Torrent list and detail body scroll independently when needed.
-- Details remain open while a torrent is selected; Close clears the detail context.
 - General, Trackers, Peers, HTTP Sources, and Content tabs render without errors.
-- Mobile retains the bottom-sheet detail presentation.
+- Mobile keeps the persistent collapsed bar and uses the bottom-sheet presentation when expanded.
 
 ### Add Torrent
 
@@ -104,7 +106,7 @@ Mobile:
 
 - Navigation remains reachable.
 - Tables/cards do not introduce unusable horizontal overflow.
-- Torrent detail sheet can be opened and closed.
+- Torrent detail bar remains reachable, expands as a bottom sheet, and collapses again with a full-width touch target.
 - Dialogs remain operable with the on-screen keyboard present.
 
 ## Recording gaps
@@ -115,7 +117,9 @@ Do not use this file as a test-results log; it is a stable testing contract for 
 
 ### Desktop torrent inspector
 
-- With a torrent selected at normal desktop zoom, verify the torrent list and inspector both remain visible without scrolling the overall page.
+- With no torrent selected, verify the compact Torrent details bar remains visible below the torrent list without consuming the expanded workspace height.
+- With a torrent selected at normal desktop zoom, verify the inspector expands automatically and the torrent list and inspector both remain visible without scrolling the overall page.
+- Collapse the inspector and verify the selected row remains selected; expand it again and verify the same torrent details return.
 - Verify the torrent inspector reaches the bottom of the visible dashboard content and is visually separated from the torrent list as its own bordered panel.
 - Verify General, Trackers, Peers, HTTP Sources, and Content have a useful vertical viewport and scroll internally when needed.
 - Resize the browser and verify the dock recalculates without overlapping the viewport; mobile continues to use the bottom-sheet presentation.

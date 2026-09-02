@@ -6,7 +6,7 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.72** (prerelease)
+- Latest documented build: **v0.5.73** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 - Upstream development branch: `refactor/backend-modularization-users`
 - Upstream prerelease branch: `prerelease/backend-modularization`
@@ -14,7 +14,7 @@
 
 ### Latest release summary
 
-Simplifies the torrent inspector into an always-open-on-selection, visually distinct panel below the torrent list while preserving viewport docking and independent scrolling.
+Reworks torrent details into a persistent disclosure dock: the inspector can collapse to a compact full-width bar but is no longer closable, and torrent selection remains independent from inspector visibility.
 
 ## Architecture state
 
@@ -29,6 +29,8 @@ Simplifies the torrent inspector into an always-open-on-selection, visually dist
 - Do not expose Collapse when the detail inspector is already bounded, scrollable, and dismissible with Close.
 - Keep viewport-derived docking and independent list/detail scrolling.
 - Keep active backend modularization work separate from this presentation correction.
+- Treat torrent-detail selection and inspector disclosure as independent state: collapse changes presentation, not selection.
+- Keep the torrent-detail dock persistently discoverable and use the full disclosure bar as the primary keyboard/touch interaction target.
 
 ## Development principles
 
@@ -40,6 +42,16 @@ Simplifies the torrent inspector into an always-open-on-selection, visually dist
 - Keep public development continuity portable across forks; label canonical repository/branch/PR references as upstream context rather than local identity.
 
 ## Recent work
+
+### v0.5.73 — Persistent collapsible torrent details
+
+Reworks torrent details into a persistent disclosure dock: the inspector can collapse to a compact full-width bar but is no longer closable, and torrent selection remains independent from inspector visibility.
+
+- Torrent details now remain permanently available below the torrent list as a compact collapsed bar instead of disappearing when dismissed.
+- The entire styled Torrent details bar toggles expansion, replacing small collapse/close icon controls with a larger keyboard- and touch-friendly target.
+- Selecting a torrent automatically expands the inspector; collapsing it preserves the selected torrent and expanding again restores the same context.
+- With no torrent selected, the dock remains available and can expand into a simple empty state rather than vanishing from the dashboard.
+- Mobile keeps the bottom-sheet detail presentation when expanded while retaining the persistent collapsed bar at the bottom of the interface.
 
 ### v0.5.72 — Separated docked torrent details
 
@@ -78,15 +90,6 @@ Cleans up zero-torrent dashboard states, re-centers empty messaging within the b
 - Empty-state copy now distinguishes a genuinely empty client from active/completed/paused views and from search/filter mismatches.
 - The Last Update metric has been replaced with a Torrents summary showing the total torrent count plus completed and paused counts.
 - Connection problems remain surfaced through the existing dashboard error banner instead of requiring users to inspect a timestamp.
-
-### v0.5.68 — Bounded torrent workspace sizing
-
-Corrects the oversized v0.5.67 torrent workspace so the torrent list and docked details remain comfortably visible together within the desktop/tablet viewport while retaining independent scrolling.
-
-- The list-only torrent workspace now uses a bounded 44dvh layout capped at 460 px instead of a forced 480 px minimum.
-- Opening torrent details switches the shared workspace to a bounded 58dvh layout capped at 600 px, keeping both the list and inspector visible together on typical desktop/tablet displays.
-- The torrent inspector receives roughly 42% of the shared workspace while the torrent list remains the flexible scroll region above it.
-- The workspace tracks whether details are open so list-only and list-plus-inspector states can use different vertical allocations.
 
 ## What to do next
 

@@ -56,8 +56,10 @@ On desktop and tablet layouts, secondary inspection surfaces that describe a sel
 - Torrent details dock below the torrent list as a distinct sibling panel rather than visually merging into the table surface.
 - The list and inspector should each have their own border, radius, background, and clear spacing so their roles are immediately distinguishable.
 - The primary torrent list remains independently scrollable while details are open.
-- Torrent details do not collapse. Selecting a torrent opens the inspector; Close clears the detail context and returns the list to its bounded list-only layout.
-- Mobile may use a bottom-sheet treatment when the available viewport cannot support a useful split workspace.
+- Torrent details are persistent and collapsible rather than closable. The collapsed state is a compact disclosure bar; it never clears the selected torrent.
+- Selecting a torrent expands the inspector automatically and updates its content. With no selection, the dock remains available and may be expanded to an empty state.
+- The full disclosure bar is the interaction target and must remain keyboard- and touch-accessible; small icon-only collapse/close controls are not required.
+- Mobile may use a bottom-sheet treatment when expanded, but the collapsed disclosure bar remains persistently reachable.
 
 ## Bounded list and inspector workspaces
 
@@ -81,5 +83,5 @@ Empty-state language must describe why the current surface is empty rather than 
 
 ## Viewport-docked desktop inspectors
 
-On non-mobile layouts, a docked list/detail workspace should use the actual remaining viewport rather than a fixed viewport-height guess. When torrent details are open, the workspace should extend to the bottom of the visible dashboard content, keep the torrent list scrollable above a visually separate detail panel, and allocate enough height to the inspector for its primary content to remain legible. The separation between list and inspector is part of the hierarchy, not unused space. Mobile keeps the sheet model.
+On non-mobile layouts, a docked list/detail workspace should use the actual remaining viewport rather than a fixed viewport-height guess. When torrent details are expanded, the workspace should extend to the bottom of the visible dashboard content, keep the torrent list scrollable above a visually separate detail panel, and allocate enough height to the inspector for its primary content to remain legible. When collapsed, the inspector remains as a compact dock bar without forcing the expanded workspace height. The separation between list and inspector is part of the hierarchy, not unused space. Mobile keeps the sheet model.
 

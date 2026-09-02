@@ -126,19 +126,26 @@ def main():
     assert "Torrent details" not in app_js
     assert "openDetail(tr.dataset.server,tr.dataset.hash)" in app_js
     assert "torrent-detail-selected" in app_js and "torrent-detail-selected" in app_css
-    assert "function closeDetailPane" in app_js and "function refreshDetailData" in app_js
+    assert "function toggleDetailPane" in app_js and "function resetDetailPane" in app_js and "function refreshDetailData" in app_js
     assert "now-detailRefreshAt<3000" in app_js
-    assert "pane.closest('.torrent-workspace')?.classList.add('has-detail')" in app_js
-    assert "pane.closest('.torrent-workspace')?.classList.remove('has-detail')" in app_js
+    assert "detailExpanded:false" in app_js
+    assert "workspace?.classList.toggle('detail-expanded',expanded)" in app_js
     assert 'class="torrent-workspace"' in html and 'class="torrent-panel torrent-list-panel"' in html
-    assert 'id="detailToggle"' not in html and "detailCollapsed" not in app_js and "tdDetailCollapsed" not in app_js
-    assert "toggleDetailPane" not in app_js and "syncDetailPaneState" not in app_js
+    assert 'class="torrent-detail-pane collapsed"' in html and 'id="detailHandle"' in html
+    assert 'aria-expanded="false"' in html and 'aria-controls="detailPanelContent"' in html
+    assert 'id="detailClose"' not in html and "closeDetailPane" not in app_js
+    assert "detailCollapsed" not in app_js and "tdDetailCollapsed" not in app_js
+    assert "state.detailExpanded=!state.detailExpanded" in app_js
+    assert "state.detailExpanded=true" in app_js
+    assert "(!state.detailExpanded&&!force)" in app_js
     assert ".torrent-workspace{display:flex;flex-direction:column;gap:12px;overflow:visible;height:min(460px,44dvh)}" in app_css
-    assert ".torrent-workspace.has-detail{height:var(--torrent-workspace-open-height,min(720px,calc(100dvh - 280px)))}" in app_css
+    assert ".torrent-workspace.detail-expanded{height:var(--torrent-workspace-open-height,min(720px,calc(100dvh - 280px)))}" in app_css
     assert ".torrent-list-panel{display:flex;flex:1 1 auto;min-height:0;overflow:hidden}" in app_css
-    assert "border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);display:flex;flex:0 1 clamp(260px,46%,420px)" in app_css
-    assert ".torrent-detail-pane{flex-basis:clamp(300px,46%,440px)}" in app_css
-    assert ".torrent-detail-pane.collapsed" not in app_css and ".detail-pane-toggle" not in app_css
+    assert ".torrent-detail-pane:not(.collapsed){min-height:240px;flex:0 1 clamp(260px,46%,420px)}" in app_css
+    assert ".torrent-detail-pane.collapsed{min-height:48px!important;max-height:48px!important;flex-basis:48px!important}" in app_css
+    assert ".torrent-detail-pane:not(.has-selection) .torrent-detail-context,.torrent-detail-pane:not(.has-selection) .torrent-detail-tabs{display:none}" in app_css
+    assert ".torrent-detail-handle{appearance:none;width:100%;min-height:48px" in app_css
+    assert ".detail-pane-close" not in app_css and ".torrent-detail-header" not in app_css
     assert "function syncTorrentWorkspaceLayout()" in app_js
     assert "window.innerHeight-top-16" in app_js
     assert "--torrent-workspace-open-height" in app_js
@@ -484,20 +491,24 @@ def main():
     assert '.client-setting-copy>span{font-size:11.5px' in settings_css
     assert '## Desktop legibility' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')
 
-    # 0.5.72 supersedes the original collapsible inspector contract. Torrent
-    # list and details are distinct sibling surfaces; details are open or closed.
+    # 0.5.73 supersedes v0.5.72's open/close-only inspector. The dock is
+    # persistent, selection and disclosure are independent, and the full bar is
+    # the accessible collapse/expand target on desktop and mobile.
     assert 'class="torrent-workspace"' in html
     assert 'class="torrent-panel torrent-list-panel"' in html
     assert 'class="torrent-list-region"' in html
-    assert 'id="detailToggle"' not in html and 'Collapse torrent details' not in html
-    assert 'detailCollapsed' not in app_js and 'tdDetailCollapsed' not in app_js
-    assert 'function syncDetailPaneState()' not in app_js and 'toggleDetailPane' not in app_js
-    assert '0.5.72 separated viewport-docked torrent details' in app_css
+    assert 'class="torrent-detail-pane collapsed"' in html
+    assert 'id="detailHandle"' in html and 'id="detailHandleSelection"' in html
+    assert 'id="detailClose"' not in html and 'Close torrent details' not in html
+    assert 'detailExpanded:false' in app_js and 'detailCollapsed' not in app_js
+    assert 'function syncDetailDock()' in app_js and 'async function toggleDetailPane()' in app_js
+    assert 'function resetDetailPane()' in app_js and 'closeDetailPane' not in app_js
+    assert '0.5.73 persistent collapsible torrent details' in app_css
     assert '.torrent-list-region .table-wrap{flex:1 1 auto;min-height:0;overflow:auto' in app_css
     assert '.torrent-detail-pane{position:static;inset:auto' in app_css
-    assert 'border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow)' in app_css
-    assert '.torrent-detail-pane.collapsed' not in app_css and '.detail-pane-toggle' not in app_css
-    assert '@media(max-width:700px)' in app_css
+    assert '.torrent-detail-pane.collapsed{min-height:48px!important' in app_css
+    assert '.torrent-detail-handle[aria-expanded="true"] svg{transform:rotate(180deg)}' in app_css
+    assert '@media(max-width:700px)' in app_css and 'bottom:58px;top:auto;height:min(68dvh,640px)' in app_css
 
     print("UI string audit passed")
 
