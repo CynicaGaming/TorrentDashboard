@@ -225,6 +225,67 @@
           "detail": "After the configuration module boundary is stable, add restrictive file permissions and a cleaner separation between ordinary configuration and stored credentials."
         }
       ]
+    },
+    {
+      "version": "0.5.60",
+      "date": "2026-09-02",
+      "status": "prerelease",
+      "title": "Installed package integrity metadata",
+      "summary": "Persists the verified release-package SHA-256 with installed builds and surfaces the exact package digest alongside patch notes.",
+      "highlights": [
+        "Settings → Updates shows Package SHA-256 for a release whenever authoritative package metadata is available, with a one-click Copy control.",
+        "The normal updater writes release-info.json into the staged application only after the downloaded ZIP matches GitHub's published SHA-256.",
+        "Recovery updates persist the same release metadata after independently verifying the GitHub asset digest.",
+        "The release build emits a Torrent-Dashboard-<version>.release.json sidecar containing the final ZIP digest, version, repository, tag, and commit."
+      ],
+      "fixes": [],
+      "technical": [
+        "release-info.json is intentionally created after package verification rather than embedded in the ZIP, because embedding a ZIP's own final digest would change the ZIP and invalidate that digest.",
+        "release_tools/build_release.py excludes any locally installed release-info.json so stale package metadata cannot leak into a future release.",
+        "If a manually extracted build checks GitHub while it is still the latest release, the dashboard can opportunistically persist its authoritative GitHub package digest."
+      ],
+      "validation": [
+        "CI validates that the generated sidecar SHA-256 exactly matches the final release ZIP.",
+        "Python compilation covers normal and recovery update persistence paths.",
+        "JavaScript syntax validation covers package-integrity rendering and copy behavior."
+      ],
+      "known_issues": [
+        "A build installed by manually extracting a ZIP cannot know the ZIP's own digest until it obtains authoritative release metadata, because the archive cannot contain its own final hash."
+      ],
+      "architecture": [
+        "The application remains a Python standard-library ThreadingHTTPServer service with most HTTP routing still in dashboard.py.",
+        "User and account domain logic lives in torrent_dashboard/users.py.",
+        "Configuration transaction coordination lives in torrent_dashboard/config_store.py while config normalization and migration logic still lives in dashboard.py.",
+        "The updater consumes public GitHub Releases and already exposes each release body as manifest.notes.",
+        "Completed development increments are published from prerelease/backend-modularization; active refactor work remains on refactor/backend-modularization-users.",
+        "Update history is sourced from bundled structured release metadata and supplemented with the latest GitHub release manifest during update checks.",
+        "Installed release provenance is stored in root release-info.json and is replaced/rolled back with application files; release build provenance is also published as a sidecar JSON asset."
+      ],
+      "decisions": [
+        "Continue modularization in behavior-preserving increments rather than combining refactors with unrelated feature changes.",
+        "Use structured release metadata rather than commit-message inference as the authoritative source for release notes.",
+        "Keep PROJECT_STATE.md generated and read-only so it cannot drift from release metadata.",
+        "Preserve future GitHub prereleases instead of deleting all older prereleases during publication.",
+        "Keep complete release history in repository metadata while limiting the in-app Updates view to the two most recent releases.",
+        "Treat Package SHA-256 as release provenance metadata sourced only from the finalized GitHub asset or a verified local download, never as manually authored patch-note content."
+      ],
+      "next_steps": [
+        {
+          "priority": 1,
+          "title": "Extract configuration normalization and persistence",
+          "detail": "Move config loading, migration, normalization, sanitization, and atomic persistence out of dashboard.py while preserving ConfigStore as the transaction coordinator."
+        },
+        {
+          "priority": 2,
+          "title": "Expand behavioral tests",
+          "detail": "Add end-to-end authorization, account, CSRF, setup, and configuration mutation coverage around the new module boundaries."
+        },
+        {
+          "priority": 3,
+          "title": "Harden secrets at rest",
+          "detail": "After the configuration module boundary is stable, add restrictive file permissions and a cleaner separation between ordinary configuration and stored credentials."
+        }
+      ]
     }
   ]
 }

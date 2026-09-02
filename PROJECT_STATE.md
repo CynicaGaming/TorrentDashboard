@@ -4,7 +4,7 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.59** (prerelease)
+- Latest documented build: **v0.5.60** (prerelease)
 - Repository: `CynicaGaming/TorrentDashboard`
 - Development branch: `refactor/backend-modularization-users`
 - Prerelease branch: `prerelease/backend-modularization`
@@ -12,7 +12,7 @@
 
 ### Latest release summary
 
-Simplified Settings → Updates to focus on the latest two releases while retaining the complete release history for changelog and project handoff purposes, with a cleaner release-card presentation.
+Persists the verified release-package SHA-256 with installed builds and surfaces the exact package digest alongside patch notes.
 
 ## Architecture state
 
@@ -22,6 +22,7 @@ Simplified Settings → Updates to focus on the latest two releases while retain
 - The updater consumes public GitHub Releases and already exposes each release body as manifest.notes.
 - Completed development increments are published from prerelease/backend-modularization; active refactor work remains on refactor/backend-modularization-users.
 - Update history is sourced from bundled structured release metadata and supplemented with the latest GitHub release manifest during update checks.
+- Installed release provenance is stored in root release-info.json and is replaced/rolled back with application files; release build provenance is also published as a sidecar JSON asset.
 
 ## Current engineering decisions
 
@@ -30,6 +31,7 @@ Simplified Settings → Updates to focus on the latest two releases while retain
 - Keep PROJECT_STATE.md generated and read-only so it cannot drift from release metadata.
 - Preserve future GitHub prereleases instead of deleting all older prereleases during publication.
 - Keep complete release history in repository metadata while limiting the in-app Updates view to the two most recent releases.
+- Treat Package SHA-256 as release provenance metadata sourced only from the finalized GitHub asset or a verified local download, never as manually authored patch-note content.
 
 ## Development principles
 
@@ -39,6 +41,15 @@ Simplified Settings → Updates to focus on the latest two releases while retain
 - Keep user-facing patch notes separate from engineering handoff details.
 
 ## Recent work
+
+### v0.5.60 — Installed package integrity metadata
+
+Persists the verified release-package SHA-256 with installed builds and surfaces the exact package digest alongside patch notes.
+
+- Settings → Updates shows Package SHA-256 for a release whenever authoritative package metadata is available, with a one-click Copy control.
+- The normal updater writes release-info.json into the staged application only after the downloaded ZIP matches GitHub's published SHA-256.
+- Recovery updates persist the same release metadata after independently verifying the GitHub asset digest.
+- The release build emits a Torrent-Dashboard-<version>.release.json sidecar containing the final ZIP digest, version, repository, tag, and commit.
 
 ### v0.5.59 — Patch notes presentation cleanup
 
@@ -75,18 +86,15 @@ Prevented lost configuration updates by moving application-generated configurati
 - Configuration mutations now reload the latest config while holding the lock, apply the requested transformation, atomically replace config.json, and release the lock only after the write completes.
 - Profile, password, avatar, user, integration, settings, update-source, notification-sound, setup, and CLI password writes use the transaction path.
 
-### v0.5.55 — User and account backend modularization
-
-Started the backend modularization by extracting the user and account domain from dashboard.py into torrent_dashboard/users.py without intentional behavior changes.
-
-- Moved password hashing and verification, user normalization, profile editing, avatar handling, password changes, role helpers, and user CRUD into torrent_dashboard/users.py.
-- Preserved the existing dashboard.py call surface by importing and re-exporting the extracted helpers.
-
 ## What to do next
 
 1. **Extract configuration normalization and persistence** — Move config loading, migration, normalization, sanitization, and atomic persistence out of dashboard.py while preserving ConfigStore as the transaction coordinator.
 2. **Expand behavioral tests** — Add end-to-end authorization, account, CSRF, setup, and configuration mutation coverage around the new module boundaries.
 3. **Harden secrets at rest** — After the configuration module boundary is stable, add restrictive file permissions and a cleaner separation between ordinary configuration and stored credentials.
+
+## Known issues
+
+- A build installed by manually extracting a ZIP cannot know the ZIP's own digest until it obtains authoritative release metadata, because the archive cannot contain its own final hash.
 
 ## Handoff instructions for a new development session
 

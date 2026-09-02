@@ -65,9 +65,10 @@ CONFIG_PATH = APP_DIR / "config.json"
 DB_PATH = DATA_DIR / "torrent_desk.sqlite3"
 UPDATE_DIR = DATA_DIR / "updates"
 UPDATE_STATE_PATH = DATA_DIR / "update-status.json"
+RELEASE_INFO_PATH = APP_DIR / "release-info.json"
 CUSTOM_SOUND_BASENAME = "custom-notification-sound"
 MAX_CUSTOM_SOUND_BYTES = 2 * 1024 * 1024
-VERSION = "0.5.59"
+VERSION = "0.5.60"
 STATUS_REFRESH_SECONDS = 1.0
 DEFAULT_UPDATE_REPOSITORY = "CynicaGaming/TorrentDashboard"
 
@@ -1930,6 +1931,50 @@ def validate_update_repository(repository: str):
     return str(info.get("full_name") or repo)
 
 
+def _release_info_payload(version, package, sha256, repository="", release_url="", published_at="", channel="", commit=""):
+    digest=str(sha256 or "").strip().lower()
+    if not re.fullmatch(r"[0-9a-f]{64}",digest):
+        raise RuntimeError("Release package SHA-256 is invalid")
+    return {
+        "schema":1,
+        "version":str(version or "").strip().lstrip("vV"),
+        "package":str(package or "").strip(),
+        "sha256":digest,
+        "repository":str(repository or "").strip(),
+        "releaseUrl":str(release_url or "").strip(),
+        "publishedAt":str(published_at or "").strip(),
+        "channel":str(channel or "").strip(),
+        "commit":str(commit or "").strip(),
+    }
+
+
+def write_release_info(path, info):
+    path=Path(path)
+    path.parent.mkdir(parents=True,exist_ok=True)
+    payload=_release_info_payload(
+        info.get("version"),info.get("package"),info.get("sha256"),info.get("repository"),
+        info.get("releaseUrl"),info.get("publishedAt"),info.get("channel"),info.get("commit"),
+    )
+    tmp=path.with_suffix(path.suffix+".tmp")
+    tmp.write_text(json.dumps(payload,indent=2)+"\n",encoding="utf-8")
+    tmp.replace(path)
+    return payload
+
+
+def installed_release_info():
+    try:
+        raw=json.loads(RELEASE_INFO_PATH.read_text(encoding="utf-8"))
+        info=_release_info_payload(
+            raw.get("version"),raw.get("package"),raw.get("sha256"),raw.get("repository"),
+            raw.get("releaseUrl"),raw.get("publishedAt"),raw.get("channel"),raw.get("commit"),
+        )
+        if info.get("version") != VERSION:
+            return {}
+        return info
+    except Exception:
+        return {}
+
+
 def fetch_update_release(cfg):
     repo = validate_update_repository(update_repository(cfg))
     release=_latest_github_release(cfg,repo)
@@ -1960,6 +2005,14 @@ def fetch_update_release(cfg):
         "currentVersion":VERSION,
     }
     data["updateAvailable"]=is_newer_version(version)
+    if version == VERSION and not installed_release_info():
+        try:
+            write_release_info(RELEASE_INFO_PATH,_release_info_payload(
+                version,data["asset"]["name"],data["asset"]["sha256"],repo,data.get("releaseUrl",""),
+                data.get("publishedAt",""),data.get("channel",""),str(release.get("target_commitish") or ""),
+            ))
+        except Exception:
+            pass
     return data
 
 # Compatibility alias for older front-end/update-state code. The update
@@ -1996,10 +2049,15 @@ def local_release_history(latest_manifest=None,limit=2):
     except Exception: entries=[]
     if isinstance(latest_manifest,dict) and latest_manifest.get("version"):
         version=str(latest_manifest.get("version") or "").strip().lstrip("vV")
-        remote={"version":version,"title":str(latest_manifest.get("title") or f"Torrent Dashboard v{version}"),"summary":"","publishedAt":str(latest_manifest.get("publishedAt") or ""),"channel":str(latest_manifest.get("channel") or ""),"notes":str(latest_manifest.get("notes") or ""),"source":"github"}
+        remote={"version":version,"title":str(latest_manifest.get("title") or f"Torrent Dashboard v{version}"),"summary":"","publishedAt":str(latest_manifest.get("publishedAt") or ""),"channel":str(latest_manifest.get("channel") or ""),"notes":str(latest_manifest.get("notes") or ""),"sha256":str((latest_manifest.get("asset") or {}).get("sha256") or ""),"package":str((latest_manifest.get("asset") or {}).get("name") or ""),"source":"github"}
         idx=next((i for i,x in enumerate(entries) if x.get("version")==version),None)
         if idx is None: entries.append(remote)
         else: entries[idx]={**entries[idx],**{k:v for k,v in remote.items() if v}}
+    installed=installed_release_info()
+    if installed.get("version"):
+        idx=next((i for i,x in enumerate(entries) if x.get("version")==installed.get("version")),None)
+        if idx is not None:
+            entries[idx]={**entries[idx],"sha256":installed.get("sha256",""),"package":installed.get("package","")}
     try: entries.sort(key=lambda x:_version_key(x.get("version") or "0"),reverse=True)
     except Exception: entries.reverse()
     seen=set();out=[]
@@ -2089,6 +2147,10 @@ def stage_update(cfg):
             package.unlink(missing_ok=True)
             raise RuntimeError("Downloaded update size does not match the GitHub release asset")
         source=safe_extract_zip(package,stage/"extracted")
+        write_release_info(source/"release-info.json",_release_info_payload(
+            version,manifest["asset"]["name"],got,update_repository(cfg),manifest.get("releaseUrl",""),
+            manifest.get("publishedAt",""),manifest.get("channel",""),
+        ))
         payload={"state":"readyToInstall","version":version,"package":str(package),"source":str(source),"manifest":manifest,"sha256":got,"bytes":total}
         write_update_state(payload)
         return payload

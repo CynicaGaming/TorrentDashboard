@@ -1,5 +1,5 @@
 'use strict';
-const FRONTEND_BUILD='0.5.59';
+const FRONTEND_BUILD='0.5.60';
 const HTML_BUILD=document.querySelector('meta[name="torrent-dashboard-build"]')?.content||'';
 const RECOVERY_KEY=`td-frontend-recovery-${FRONTEND_BUILD}`;
 async function recoverFrontendBuild(reason){
@@ -498,7 +498,7 @@ function normalizedReleaseHistory(history=[],manifest={}){
   const entries=Array.isArray(history)?history.filter(x=>x&&x.version).map(x=>({...x,version:String(x.version).replace(/^v/i,'')})):[];
   if(manifest?.version){
     const version=String(manifest.version).replace(/^v/i,'');
-    const remote={version,title:manifest.title||`Torrent Dashboard v${version}`,publishedAt:manifest.publishedAt||'',channel:manifest.channel||'',notes:manifest.notes||'',source:'github'};
+    const remote={version,title:manifest.title||`Torrent Dashboard v${version}`,publishedAt:manifest.publishedAt||'',channel:manifest.channel||'',notes:manifest.notes||'',sha256:manifest.asset?.sha256||'',package:manifest.asset?.name||'',source:'github'};
     const i=entries.findIndex(x=>x.version===version);
     if(i>=0){const existing=entries[i];entries[i]={...existing,publishedAt:remote.publishedAt||existing.publishedAt,channel:remote.channel||existing.channel,notes:remote.notes||existing.notes,source:'github'}}
     else entries.push(remote);
@@ -526,8 +526,19 @@ function renderUpdateHistory(history=[],manifest={},currentVersion=''){
     copy.appendChild(meta);
     const chevron=document.createElement('span');chevron.className='update-release-chevron';chevron.textContent='⌄';summary.append(version,copy,chevron);
     const body=document.createElement('div');body.className=`update-release-body${open?'':' hidden'}`;
+    if(/^[0-9a-f]{64}$/i.test(String(entry.sha256||''))){
+      const integrity=document.createElement('div');integrity.className='update-release-integrity';
+      const integrityCopy=document.createElement('div');integrityCopy.className='update-release-integrity-copy';
+      const integrityLabel=document.createElement('span');integrityLabel.textContent='Package SHA-256';
+      const integrityHash=document.createElement('code');integrityHash.textContent=String(entry.sha256).toLowerCase();
+      integrityCopy.append(integrityLabel,integrityHash);
+      const copyButton=document.createElement('button');copyButton.type='button';copyButton.className='secondary small-btn update-hash-copy';copyButton.textContent='Copy';copyButton.title='Copy package SHA-256';
+      copyButton.addEventListener('click',async event=>{event.stopPropagation();try{await navigator.clipboard.writeText(integrityHash.textContent);toast('Package SHA-256 copied')}catch{toast('Could not copy SHA-256','error')}});
+      integrity.append(integrityCopy,copyButton);body.appendChild(integrity);
+    }
+    const notes=document.createElement('div');notes.className='update-release-notes';
     const noteText=String(entry.notes||entry.summary||'No patch notes were recorded for this revision.').replace(/^##\s+[^\n]+\n*/,'').trim();
-    renderPatchMarkdown(body,noteText||entry.summary||'No patch notes were recorded for this revision.');
+    renderPatchMarkdown(notes,noteText||entry.summary||'No patch notes were recorded for this revision.');body.appendChild(notes);
     summary.addEventListener('click',()=>{const next=body.classList.contains('hidden');body.classList.toggle('hidden',!next);summary.setAttribute('aria-expanded',String(next))});
     article.append(summary,body);list.appendChild(article)
   })
