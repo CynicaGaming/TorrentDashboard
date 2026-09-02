@@ -1968,11 +1968,22 @@ def installed_release_info():
             raw.get("version"),raw.get("package"),raw.get("sha256"),raw.get("repository"),
             raw.get("releaseUrl"),raw.get("publishedAt"),raw.get("channel"),raw.get("commit"),
         )
-        if info.get("version") != VERSION:
-            return {}
-        return info
+        if info.get("version") == VERSION:
+            return info
     except Exception:
-        return {}
+        pass
+    # The first update that introduces release-info.json is installed by the
+    # previous version's updater. That updater leaves the already verified ZIP
+    # under data/updates/<version>/, so recover the exact package digest from
+    # those retained bytes and persist it for all subsequent reads.
+    try:
+        package=UPDATE_DIR/VERSION/f"Torrent-Dashboard-{VERSION}.zip"
+        if package.is_file():
+            info=_release_info_payload(VERSION,package.name,sha256_file(package))
+            return write_release_info(RELEASE_INFO_PATH,info)
+    except Exception:
+        pass
+    return {}
 
 
 def fetch_update_release(cfg):
