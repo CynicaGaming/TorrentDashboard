@@ -54,6 +54,8 @@ jobs:
                   assert len(metadata.get('releases', [])) >= 5
               else:
                   assert len(history) >= 4
+          if dashboard.VERSION >= '0.5.60':
+              assert callable(dashboard.installed_release_info)
           PY
 
       - name: Determine Version
@@ -83,7 +85,6 @@ jobs:
           TAG: ${{ steps.version.outputs.tag }}
         shell: bash
         run: |
-          # Replace only this version when republishing. Keep older prereleases as revision history.
           gh release delete "$TAG" --cleanup-tag --yes >/dev/null 2>&1 || true
 
       - name: Build Release Package
@@ -94,13 +95,18 @@ jobs:
         run: |
           python release_tools/build_release.py --repo "$REPO" --tag "$TAG" --output dist
           ZIP="dist/Torrent-Dashboard-${{ steps.version.outputs.version }}.zip"
+          INFO="dist/Torrent-Dashboard-${{ steps.version.outputs.version }}.release.json"
           test -f "$ZIP"
+          test -f "$INFO"
           python - <<'PY'
+          import hashlib
+          import json
           import zipfile
           from pathlib import Path
 
           version='${{ steps.version.outputs.version }}'
           path=Path('dist') / f'Torrent-Dashboard-{version}.zip'
+          info_path=Path('dist') / f'Torrent-Dashboard-{version}.release.json'
           with zipfile.ZipFile(path) as z:
               names=[n for n in z.namelist() if not n.endswith('/')]
           assert any(n.endswith('/dashboard.py') for n in names)
@@ -112,6 +118,11 @@ jobs:
           assert any(n.endswith('/release_notes/releases.json') for n in names)
           assert any(n.endswith('/updater.py') for n in names)
           assert not any(n.endswith('apply_feature_update.py') for n in names)
+          info=json.loads(info_path.read_text(encoding='utf-8'))
+          digest=hashlib.sha256(path.read_bytes()).hexdigest()
+          assert info['version'] == version
+          assert info['package'] == path.name
+          assert info['sha256'] == digest
           PY
 
       - name: Publish GitHub Pre-Release
@@ -121,8 +132,9 @@ jobs:
         shell: bash
         run: |
           ZIP="dist/Torrent-Dashboard-${{ steps.version.outputs.version }}.zip"
+          INFO="dist/Torrent-Dashboard-${{ steps.version.outputs.version }}.release.json"
           gh release create "$TAG" \
-            "$ZIP" \
+            "$ZIP" "$INFO" \
             --target "$GITHUB_SHA" \
             --title "Torrent Dashboard $TAG Pre-Release" \
             --notes-file dist/release-notes.md \
