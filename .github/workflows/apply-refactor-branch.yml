@@ -37,14 +37,17 @@ jobs:
       - name: Validate transformed source
         shell: bash
         run: |
-          python -m py_compile dashboard.py torrent_dashboard/users.py
+          python -m py_compile dashboard.py torrent_dashboard/users.py torrent_dashboard/config_store.py
           python - <<'PY'
           import dashboard
-          assert dashboard.VERSION == '0.5.55'
+          assert dashboard.VERSION in {'0.5.55', '0.5.56'}
           assert callable(dashboard.normalize_user)
           assert callable(dashboard.save_user)
           assert callable(dashboard.session_is_admin)
           assert dashboard.normalize_user.__module__ == 'torrent_dashboard.users'
+          if dashboard.VERSION == '0.5.56':
+              assert callable(dashboard.mutate_config)
+              assert hasattr(dashboard, 'CONFIG_STORE')
           PY
 
       - name: Commit applied refactor
@@ -54,6 +57,6 @@ jobs:
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git add -A
-            git commit -m "Apply backend modularization user domain"
+            git commit -m "Apply backend modularization increment"
             git push origin HEAD:refactor/backend-modularization-users
           fi
