@@ -1,53 +1,25 @@
 #!/usr/bin/env python3
 from __future__ import annotations
-
-import copy
-import json
-import re
-import subprocess
+import copy, json, re, subprocess
 from pathlib import Path
+ROOT=Path(__file__).resolve().parents[1]
+OLD='0.5.73'; NEW='0.5.74'
+def read(p): return (ROOT/p).read_text(encoding='utf-8')
+def write(p,s): (ROOT/p).write_text(s,encoding='utf-8')
+def one(s,a,b,label):
+    if s.count(a)!=1: raise SystemExit(f'{label}: expected one match, found {s.count(a)}')
+    return s.replace(a,b,1)
 
-ROOT = Path(__file__).resolve().parents[1]
-OLD = "0.5.73"
-NEW = "0.5.74"
+# Dashboard chrome.
+html=read('static/index.html')
+html=one(html,'<header class="topbar">\n<div><h1 id="pageTitle">Dashboard</h1><p id="subtitle">Live Torrent Activity</p></div>','<header class="topbar dashboard-mode" id="topbar">\n<div class="topbar-heading"><h1 id="pageTitle">Dashboard</h1><p id="subtitle">Live Torrent Activity</p></div>','topbar')
+html=html.replace(OLD,NEW)
+write('static/index.html',html)
 
-
-def read(path: str) -> str:
-    return (ROOT / path).read_text(encoding="utf-8")
-
-
-def write(path: str, text: str) -> None:
-    (ROOT / path).write_text(text, encoding="utf-8")
-
-
-def replace_once(text: str, old: str, new: str, label: str) -> str:
-    count = text.count(old)
-    if count != 1:
-        raise SystemExit(f"{label}: expected one match, found {count}")
-    return text.replace(old, new, 1)
-
-
-# Dashboard top bar: keep global controls, suppress redundant dashboard title/subtitle.
-html = read("static/index.html")
-html = replace_once(
-    html,
-    '<header class="topbar">\n<div><h1 id="pageTitle">Dashboard</h1><p id="subtitle">Live Torrent Activity</p></div>',
-    '<header class="topbar dashboard-mode" id="topbar">\n<div class="topbar-heading"><h1 id="pageTitle">Dashboard</h1><p id="subtitle">Live Torrent Activity</p></div>',
-    "dashboard topbar markup",
-)
-html = html.replace(OLD, NEW)
-write("static/index.html", html)
-
-
-# Workspace height is now viewport-derived in both collapsed and expanded states.
-js = read("static/app.js")
-old_sync = re.compile(
-    r"function syncTorrentWorkspaceLayout\(\)\{.*?\n\}\nwindow\.addEventListener\('resize',\(\)=>requestAnimationFrame\(syncTorrentWorkspaceLayout\)\);",
-    re.S,
-)
-new_sync = '''function syncTorrentWorkspaceLayout(){
-  const workspace=$('.torrent-workspace');
-  if(!workspace)return;
+# Bottom-anchored workspace and view-specific topbar state.
+js=read('static/app.js')
+js,n=re.subn(r"function syncTorrentWorkspaceLayout\(\)\{.*?\n\}\nwindow\.addEventListener\('resize',\(\)=>requestAnimationFrame\(syncTorrentWorkspaceLayout\)\);",'''function syncTorrentWorkspaceLayout(){
+  const workspace=$('.torrent-workspace');if(!workspace)return;
   const mobile=window.matchMedia('(max-width:700px)').matches;
   if(mobile||!$('#view-dashboard')?.classList.contains('active')){workspace.style.removeProperty('--torrent-workspace-height');return}
   const top=Math.max(0,workspace.getBoundingClientRect().top);
@@ -55,26 +27,18 @@ new_sync = '''function syncTorrentWorkspaceLayout(){
   const value=`${available}px`;
   if(workspace.style.getPropertyValue('--torrent-workspace-height')!==value)workspace.style.setProperty('--torrent-workspace-height',value);
 }
-window.addEventListener('resize',()=>requestAnimationFrame(syncTorrentWorkspaceLayout));'''
-js, count = old_sync.subn(new_sync, js, count=1)
-if count != 1:
-    raise SystemExit(f"workspace sync function: expected one match, found {count}")
+window.addEventListener('resize',()=>requestAnimationFrame(syncTorrentWorkspaceLayout));''',js,count=1,flags=re.S)
+if n!=1: raise SystemExit('workspace layout function not replaced')
+old="function setView(view){if(view==='settings'&&!state.me?.can_manage){view='dashboard';toast('Administrator access is required','error')}const settingsView=view==='settings';$$('.view').forEach(v=>v.classList.toggle('active',v.id===`view-${view}`));$$('.nav-root,.mobile-nav button').forEach(b=>b.classList.toggle('active',b.dataset.view===view));setSettingsNavExpanded(settingsView);$('#pageTitle').textContent=uiText(view);$('#subtitle').textContent=uiText(view==='dashboard'?'liveTorrentActivity':view==='notifications'?'recentDashboardActivity':'dashboardConfiguration');if(view==='notifications')loadNotifications();if(settingsView){TDSettings.activate(localStorage.tdSettingsPage||'general');loadSettings().then(()=>TDSettings.loadExtras())}}"
+new="function setView(view){if(view==='settings'&&!state.me?.can_manage){view='dashboard';toast('Administrator access is required','error')}const settingsView=view==='settings',dashboardView=view==='dashboard';$$('.view').forEach(v=>v.classList.toggle('active',v.id===`view-${view}`));$$('.nav-root,.mobile-nav button').forEach(b=>b.classList.toggle('active',b.dataset.view===view));setSettingsNavExpanded(settingsView);$('#topbar')?.classList.toggle('dashboard-mode',dashboardView);$('#pageTitle').textContent=uiText(view);$('#subtitle').textContent=uiText(view==='dashboard'?'liveTorrentActivity':view==='notifications'?'recentDashboardActivity':'dashboardConfiguration');if(dashboardView)requestAnimationFrame(syncTorrentWorkspaceLayout);if(view==='notifications')loadNotifications();if(settingsView){TDSettings.activate(localStorage.tdSettingsPage||'general');loadSettings().then(()=>TDSettings.loadExtras())}}"
+js=one(js,old,new,'setView')
+js=js.replace(f"const FRONTEND_BUILD='{OLD}';",f"const FRONTEND_BUILD='{NEW}';",1)
+write('static/app.js',js)
 
-old_set_view = "function setView(view){if(view==='settings'&&!state.me?.can_manage){view='dashboard';toast('Administrator access is required','error')}const settingsView=view==='settings';$$('.view').forEach(v=>v.classList.toggle('active',v.id===`view-${view}`));$$('.nav-root,.mobile-nav button').forEach(b=>b.classList.toggle('active',b.dataset.view===view));setSettingsNavExpanded(settingsView);$('#pageTitle').textContent=uiText(view);$('#subtitle').textContent=uiText(view==='dashboard'?'liveTorrentActivity':view==='notifications'?'recentDashboardActivity':'dashboardConfiguration');if(view==='notifications')loadNotifications();if(settingsView){TDSettings.activate(localStorage.tdSettingsPage||'general');loadSettings().then(()=>TDSettings.loadExtras())}}"
-new_set_view = "function setView(view){if(view==='settings'&&!state.me?.can_manage){view='dashboard';toast('Administrator access is required','error')}const settingsView=view==='settings',dashboardView=view==='dashboard';$$('.view').forEach(v=>v.classList.toggle('active',v.id===`view-${view}`));$$('.nav-root,.mobile-nav button').forEach(b=>b.classList.toggle('active',b.dataset.view===view));setSettingsNavExpanded(settingsView);$('#topbar')?.classList.toggle('dashboard-mode',dashboardView);$('#pageTitle').textContent=uiText(view);$('#subtitle').textContent=uiText(view==='dashboard'?'liveTorrentActivity':view==='notifications'?'recentDashboardActivity':'dashboardConfiguration');if(dashboardView)requestAnimationFrame(syncTorrentWorkspaceLayout);if(view==='notifications')loadNotifications();if(settingsView){TDSettings.activate(localStorage.tdSettingsPage||'general');loadSettings().then(()=>TDSettings.loadExtras())}}"
-js = replace_once(js, old_set_view, new_set_view, "dashboard view topbar state")
-js = js.replace(f"const FRONTEND_BUILD='{OLD}';", f"const FRONTEND_BUILD='{NEW}';", 1)
-if "--torrent-workspace-open-height" in js:
-    raise SystemExit("obsolete open-only workspace height variable remains in app.js")
-write("static/app.js", js)
-
-
-# Replace the previous detail layout tail with the bottom-anchored client workspace.
-css = read("static/app.css")
-marker = "/* 0.5.73 persistent collapsible torrent details. */"
-if css.count(marker) != 1:
-    raise SystemExit("Could not find the v0.5.73 torrent detail layout block")
-css = css.split(marker, 1)[0].rstrip() + '''\n\n/* 0.5.74 bottom-anchored client workspace. */
+# Replace the current detail-layout tail.
+css=read('static/app.css'); marker='/* 0.5.73 persistent collapsible torrent details. */'
+if css.count(marker)!=1: raise SystemExit('v0.5.73 CSS marker missing')
+css=css.split(marker,1)[0].rstrip()+'''\n\n/* 0.5.74 bottom-anchored client workspace. */
 .topbar.dashboard-mode{justify-content:flex-end;margin-bottom:12px}
 .topbar.dashboard-mode .topbar-heading{display:none}
 .torrent-list-region{min-width:0;min-height:0}
@@ -103,91 +67,52 @@ css = css.split(marker, 1)[0].rstrip() + '''\n\n/* 0.5.74 bottom-anchored client
   .detail-general-grid{grid-template-columns:1fr}.torrent-detail-tabs{overflow:auto}
 }
 '''
-write("static/app.css", css)
+write('static/app.css',css)
 
+# Durable design/testing guidance.
+design=read('DESIGN_LANGUAGE.md')
+if '## Client-style dashboard chrome' not in design:
+    design+='''\n\n## Client-style dashboard chrome\n\nOn the Dashboard view, navigation already establishes location, so the redundant Dashboard title/subtitle is hidden while server, torrent-control, and account actions remain visible. On desktop/tablet, the torrent workspace fills the actual remaining viewport so the persistent Torrent details disclosure stays anchored to the bottom. Collapsed it reads as a compact client-style bar; expanded it grows upward while the torrent list scrolls above it.\n'''
+write('DESIGN_LANGUAGE.md',design)
+testing=read('TESTING.md')
+if '### Bottom-anchored torrent dock' not in testing:
+    testing+='''\n\n### Bottom-anchored torrent dock\n\n- Verify Dashboard / Live torrent activity is not visible on Dashboard while top-right controls remain available.\n- With details collapsed, verify the disclosure bar sits at the bottom of the visible dashboard workspace.\n- Expand details and verify the inspector grows upward from the same anchor while the torrent list scrolls above it.\n- Resize desktop/tablet and verify both states remain bottom-aligned without overlaying torrent rows.\n- Verify mobile retains the persistent collapsed bar above mobile navigation and expands into the sheet.\n'''
+write('TESTING.md',testing)
 
-# Update durable interaction/design guidance.
-design = read("DESIGN_LANGUAGE.md")
-design += '''\n\n## Client-style dashboard chrome\n\nThe dashboard should prioritize live client state over repeated navigation labels. On the Dashboard view, the sidebar/mobile navigation already establishes location, so the redundant page title/subtitle is hidden while server, torrent-control, and account actions remain available.\n\nOn desktop and tablet, the torrent workspace occupies the actual remaining viewport. The persistent Torrent details disclosure is anchored at the bottom of that workspace in both states: collapsed it reads as a compact client-style status/disclosure bar; expanded it grows upward while the torrent list remains scrollable above it. The inspector must not float over torrent rows.\n'''
-write("DESIGN_LANGUAGE.md", design)
+# Update superseded UI contracts and add the new one.
+v=read('release_tools/validate_ui_strings.py')
+v=v.replace('assert ".torrent-workspace{display:flex;flex-direction:column;gap:12px;overflow:visible;height:min(460px,44dvh)}" in app_css','assert ".torrent-workspace{display:flex;flex-direction:column;gap:12px;overflow:visible;height:var(--torrent-workspace-height,min(720px,calc(100dvh - 220px)))}" in app_css')
+v=v.replace('assert ".torrent-workspace.detail-expanded{height:var(--torrent-workspace-open-height,min(720px,calc(100dvh - 280px)))}" in app_css','assert ".topbar.dashboard-mode .topbar-heading{display:none}" in app_css')
+v=v.replace('assert "--torrent-workspace-open-height" in app_js','assert "--torrent-workspace-height" in app_js')
+v=v.replace("assert '0.5.73 persistent collapsible torrent details' in app_css","assert '0.5.74 bottom-anchored client workspace' in app_css")
+needle="    # 0.5.73 supersedes v0.5.72's open/close-only inspector. The dock is\n"
+if needle not in v: raise SystemExit('late inspector validator marker missing')
+pos=v.index(needle)
+extra='''    # 0.5.74 bottom-anchors the persistent disclosure and removes redundant Dashboard chrome.\n    assert 'id="topbar"' in html and 'class="topbar dashboard-mode"' in html and 'class="topbar-heading"' in html\n    assert "$('#topbar')?.classList.toggle('dashboard-mode',dashboardView)" in app_js\n    assert "if(dashboardView)requestAnimationFrame(syncTorrentWorkspaceLayout)" in app_js\n    assert "--torrent-workspace-height" in app_js and "--torrent-workspace-open-height" not in app_js\n    assert "const available=Math.max(360,Math.floor(window.innerHeight-top-16))" in app_js\n    assert '.topbar.dashboard-mode{justify-content:flex-end;margin-bottom:12px}' in app_css\n    assert '.topbar.dashboard-mode .topbar-heading{display:none}' in app_css\n    assert '## Client-style dashboard chrome' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')\n    assert '### Bottom-anchored torrent dock' in (ROOT / 'TESTING.md').read_text(encoding='utf-8')\n\n'''
+v=v[:pos]+extra+v[pos:]
+write('release_tools/validate_ui_strings.py',v)
 
-testing = read("TESTING.md")
-testing += '''\n\n### Bottom-anchored torrent dock\n\n- On Dashboard at desktop/tablet width, verify the redundant Dashboard / Live torrent activity heading is not visible and the server/action/account controls remain aligned at the top.\n- With Torrent details collapsed, verify the disclosure bar sits at the bottom of the visible dashboard workspace rather than immediately following the last torrent row.\n- Expand Torrent details and verify it grows upward from the same bottom anchor while the torrent list remains independently scrollable above it.\n- Resize the browser and verify the collapsed and expanded dock remain bottom-aligned without covering torrent rows.\n- On mobile, verify the persistent collapsed bar remains reachable above mobile navigation and expands into the existing sheet treatment.\n'''
-write("TESTING.md", testing)
+# Version/cache synchronization.
+d=read('dashboard.py'); d=one(d,f'VERSION = "{OLD}"',f'VERSION = "{NEW}"','dashboard version'); write('dashboard.py',d)
+sw=read('static/sw.js')
+sw=re.sub(r"const CACHE='torrent-dashboard-v\d+';", "const CACHE='torrent-dashboard-v0574';", sw, count=1)
+sw=sw.replace('v=0.5.73','v=0.5.74')
+write('static/sw.js',sw)
 
-
-# UI regression contract for v0.5.74.
-validator = read("release_tools/validate_ui_strings.py")
-validator = validator.replace(
-    'assert ".torrent-workspace{display:flex;flex-direction:column;gap:12px;overflow:visible;height:min(460px,44dvh)}" in app_css',
-    'assert ".torrent-workspace{display:flex;flex-direction:column;gap:12px;overflow:visible;height:var(--torrent-workspace-height,min(720px,calc(100dvh - 220px)))}" in app_css',
-)
-validator = validator.replace(
-    'assert ".torrent-workspace.detail-expanded{height:var(--torrent-workspace-open-height,min(720px,calc(100dvh - 280px)))}" in app_css',
-    'assert ".topbar.dashboard-mode .topbar-heading{display:none}" in app_css',
-)
-validator = validator.replace(
-    'assert "--torrent-workspace-open-height" in app_js',
-    'assert "--torrent-workspace-height" in app_js',
-)
-late_marker = "    # 0.5.73 supersedes v0.5.72's open/close-only inspector. The dock is\n"
-if late_marker not in validator:
-    raise SystemExit("Could not find v0.5.73 validator contract")
-insert_at = validator.index(late_marker)
-validator = validator[:insert_at] + '''    # 0.5.74 anchors the persistent disclosure at the bottom of the live dashboard workspace and removes redundant dashboard chrome.\n    assert 'id="topbar"' in html and 'class="topbar dashboard-mode"' in html and 'class="topbar-heading"' in html\n    assert "$('#topbar')?.classList.toggle('dashboard-mode',dashboardView)" in app_js\n    assert "if(dashboardView)requestAnimationFrame(syncTorrentWorkspaceLayout)" in app_js\n    assert "--torrent-workspace-height" in app_js and "--torrent-workspace-open-height" not in app_js\n    assert "const available=Math.max(360,Math.floor(window.innerHeight-top-16))" in app_js\n    assert '0.5.74 bottom-anchored client workspace' in app_css\n    assert '.topbar.dashboard-mode{justify-content:flex-end;margin-bottom:12px}' in app_css\n    assert '.topbar.dashboard-mode .topbar-heading{display:none}' in app_css\n    assert '.torrent-workspace{display:flex;flex-direction:column;gap:12px;overflow:visible;height:var(--torrent-workspace-height' in app_css\n    assert '## Client-style dashboard chrome' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')\n    assert '### Bottom-anchored torrent dock' in (ROOT / 'TESTING.md').read_text(encoding='utf-8')\n\n''' + validator[insert_at:]
-write("release_tools/validate_ui_strings.py", validator)
-
-
-# Version synchronization.
-dashboard = read("dashboard.py")
-dashboard = replace_once(dashboard, f'VERSION = "{OLD}"', f'VERSION = "{NEW}"', "dashboard version")
-write("dashboard.py", dashboard)
-
-sw = read("static/sw.js")
-sw = sw.replace(OLD, NEW)
-write("static/sw.js", sw)
-
-
-# Structured release metadata; inherit durable architecture/roadmap context.
-meta_path = ROOT / "release_notes" / "releases.json"
-meta = json.loads(meta_path.read_text(encoding="utf-8"))
-releases = meta["releases"]
-if any(r.get("version") == NEW for r in releases):
-    raise SystemExit(f"release {NEW} already exists")
-previous = releases[-1]
-entry = {
-    "version": NEW,
-    "date": "2026-09-02",
-    "status": "prerelease",
-    "title": "Bottom-anchored torrent details",
-    "summary": "Anchors the persistent Torrent details disclosure to the bottom of the visible dashboard workspace and removes redundant Dashboard heading chrome to reclaim vertical space.",
-    "highlights": [
-        "Desktop and tablet torrent workspaces now measure the remaining viewport in both collapsed and expanded detail states, keeping the disclosure bar at the bottom edge like a native torrent client.",
-        "Expanding Torrent details grows the inspector upward from its bottom anchor while the torrent list remains the flexible scroll region above it.",
-        "The Dashboard / Live torrent activity heading is hidden on the Dashboard view because navigation already establishes location; server, torrent-control, and account actions remain visible.",
-        "Other application views retain their page heading context."
-    ],
-    "fixes": [
-        "Collapsed Torrent details no longer appears to collapse upward immediately beneath the torrent list.",
-        "Reclaims vertical dashboard space previously consumed by redundant page title and subtitle text."
-    ],
-    "technical": [
-        "syncTorrentWorkspaceLayout now computes one --torrent-workspace-height value for all non-mobile dashboard disclosure states rather than sizing only the expanded inspector.",
-        "The global topbar toggles a dashboard-mode class so heading visibility is view-specific without removing headings from Settings or Notifications."
-    ],
-    "validation": [
-        "The UI regression audit verifies the bottom-anchored workspace variable, dashboard-mode heading suppression, viewport measurement, persistent disclosure behavior, and responsive mobile treatment.",
-        "Existing backend tests, source validation, JavaScript syntax checks, generated documentation checks, and release package integrity remain required."
-    ],
-    "known_issues": [],
-}
-for key in ("architecture", "decisions", "next_steps"):
-    if key in previous:
-        entry[key] = copy.deepcopy(previous[key])
-releases.append(entry)
-meta_path.write_text(json.dumps(meta, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-
-# Regenerate public continuity/release documents deterministically.
-subprocess.run(["python", "release_tools/generate_release_notes.py", "--version", NEW], cwd=ROOT, check=True)
-
-print(f"Applied Torrent Dashboard v{NEW} bottom-anchored detail dock")
+# Release metadata and generated continuity files.
+p=ROOT/'release_notes/releases.json'; meta=json.loads(p.read_text(encoding='utf-8')); rel=meta['releases']
+if any(x.get('version')==NEW for x in rel): raise SystemExit('v0.5.74 already authored')
+prev=rel[-1]
+e={
+ 'version':NEW,'date':'2026-09-02','status':'prerelease','title':'Bottom-anchored torrent details',
+ 'summary':'Anchors the persistent Torrent details disclosure to the bottom of the visible dashboard workspace and removes redundant Dashboard heading chrome to reclaim vertical space.',
+ 'highlights':['Desktop and tablet torrent workspaces now use the actual remaining viewport in both collapsed and expanded states, keeping Torrent details anchored to the bottom like a native client.','Expanding Torrent details grows upward while the torrent list remains the flexible scroll region above it.','The redundant Dashboard / Live torrent activity heading is hidden on Dashboard while server, torrent-control, and account actions remain visible.','Other views retain their page headings.'],
+ 'fixes':['Collapsed Torrent details no longer appears immediately beneath the last torrent row.','Reclaims vertical dashboard space previously consumed by duplicated page-location text.'],
+ 'technical':['syncTorrentWorkspaceLayout now computes a shared --torrent-workspace-height for all desktop/tablet disclosure states.','The topbar uses a dashboard-mode class so heading visibility is view-specific.'],
+ 'validation':['UI regression checks cover bottom anchoring, dashboard heading suppression, viewport measurement, persistent disclosure behavior, and mobile treatment.','Existing backend tests, source validation, JavaScript syntax checks, generated documentation checks, and package-integrity gates remain required.'],
+ 'known_issues':[]}
+for k in ('architecture','decisions','next_steps'):
+    if k in prev: e[k]=copy.deepcopy(prev[k])
+rel.append(e); p.write_text(json.dumps(meta,indent=2,ensure_ascii=False)+'\n',encoding='utf-8')
+subprocess.run(['python','release_tools/generate_release_notes.py','--version',NEW],cwd=ROOT,check=True)
+print('Applied Torrent Dashboard v0.5.74 bottom-anchored client workspace')
