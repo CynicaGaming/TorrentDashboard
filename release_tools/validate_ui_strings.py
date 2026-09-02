@@ -283,7 +283,7 @@ def main():
     assert "toast('clientSettingsSaved')" not in settings_js
 
     # 0.5.34 usability, health, notification rules, accessibility, and scale.
-    assert 'LARGE_LIBRARY_THRESHOLD=300' in app_js and 'renderTorrentRows' in app_js and 'rowRenderCache' in app_js
+    assert 'LARGE_LIBRARY_THRESHOLD' not in app_js and 'renderTorrentRows' not in app_js and 'rowRenderCache' not in app_js
     assert 'registerDirtyScope' in app_js and 'Unsaved changes' in app_js and "beforeunload" in app_js
     assert 'id="settingsSaveState"' in html and 'id="settingsSaveButton"' in html
     assert 'accountProfileSaveState' in html and 'clientSettingsSaveState' in html
@@ -298,6 +298,9 @@ def main():
     assert 'role="tab"' in html and 'role="tabpanel"' in html and 'aria-selected="true"' in html
     assert 'trapSurfaceFocus' in app_js and 'showSurface' in app_js and ':focus-visible' in app_css
     assert 'role="status" aria-live="polite"' in html
+    assert 'if(!errorEnabled&&!stalledEnabled)' in app_js
+    assert 'CRASH_LOG_PATH' in dashboard_py and 'faulthandler.enable' in dashboard_py and 'threading.excepthook' in dashboard_py
+    assert 'previous = list(old_cache.get("torrents", []))' not in dashboard_py
     assert "return[key,el.type||el.tagName,value]" not in app_js
     assert "el.dataset.interfaceId&&!el.checked" in app_js
     assert 'Save or remove current integration changes before adding another.' in settings_js

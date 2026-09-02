@@ -23,6 +23,8 @@ import threading
 import tempfile
 import time
 import urllib.error
+import faulthandler
+import traceback
 import urllib.parse
 import urllib.request
 import uuid
@@ -41,11 +43,13 @@ DB_PATH = DATA_DIR / "torrent_desk.sqlite3"
 UPDATE_DIR = DATA_DIR / "updates"
 UPDATE_STATE_PATH = DATA_DIR / "update-status.json"
 CUSTOM_SOUND_BASENAME = "custom-notification-sound"
+CRASH_LOG_PATH = DATA_DIR / "crash.log"
+_CRASH_LOG_HANDLE = None
 MAX_CUSTOM_SOUND_BYTES = 2 * 1024 * 1024
 AVATAR_DIR = DATA_DIR / "avatars"
 MAX_AVATAR_BYTES = 4 * 1024 * 1024
 PROFILE_AVATAR_TYPES = {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp"}
-VERSION = "0.5.34"
+VERSION = "0.5.35"
 STATUS_REFRESH_SECONDS = 1.0
 DEFAULT_UPDATE_REPOSITORY = "CynicaGaming/TorrentDashboard"
 
@@ -1705,6 +1709,7 @@ CACHE_LOCK = threading.RLock()
 CACHE = {}
 CLIENTS = {}
 LAST_COMPLETION_EVENT = set()
+TORRENT_NOTICE_CACHE = {}
 
 
 def torrent_runtime_notice_state(torrent):
@@ -1844,7 +1849,7 @@ def collector_loop(stop_event):
             started = time.perf_counter()
             with CACHE_LOCK:
                 old_cache = dict(CACHE.get(sid, {}))
-                previous = list(old_cache.get("torrents", []))
+                previous = old_cache.get("torrents", [])
                 previous_ok = old_cache.get("ok") if old_cache else None
             try:
                 client = get_client(cfg, sid)
@@ -1875,16 +1880,23 @@ def collector_loop(stop_event):
                     }
                 if previous_ok is False:
                     HISTORY.event(sid, "client_recovered", server.get("name", sid), "", {"latency_ms": latency_ms})
-                previous_by_hash = {str(t.get("hash") or ""): t for t in previous if t.get("hash")}
+                # Keep only abnormal states between polls instead of building a full
+                # hash->torrent map for the entire library every second. This preserves
+                # transition events while keeping the added 0.5.34 work proportional to
+                # the number of abnormal torrents rather than the total library size.
+                current_notices = {}
                 for torrent in torrents:
                     hash_ = str(torrent.get("hash") or "")
-                    prior = previous_by_hash.get(hash_)
-                    if not prior:
+                    if not hash_:
                         continue
-                    current_notice = torrent_runtime_notice_state(torrent)
-                    previous_notice = torrent_runtime_notice_state(prior)
-                    if current_notice and current_notice != previous_notice:
-                        HISTORY.event(sid, f"torrent_{current_notice}", torrent.get("name", "Torrent"), hash_, {})
+                    notice = torrent_runtime_notice_state(torrent)
+                    if notice:
+                        current_notices[hash_] = (notice, torrent.get("name", "Torrent"))
+                previous_notices = TORRENT_NOTICE_CACHE.get(sid, {})
+                for hash_, (notice, name) in current_notices.items():
+                    if previous_notices.get(hash_) != notice:
+                        HISTORY.event(sid, f"torrent_{notice}", name, hash_, {})
+                TORRENT_NOTICE_CACHE[sid] = {hash_: notice for hash_, (notice, _name) in current_notices.items()}
                 HISTORY.sample(sid, torrents, transfer, disk_free, sample_every)
                 for h in newly:
                     torrent = next((x for x in torrents if x.get("hash") == h), None)
@@ -2834,6 +2846,41 @@ def set_password_cli(password):
     print("Dashboard password updated.")
 
 
+def enable_crash_logging():
+    global _CRASH_LOG_HANDLE
+    try:
+        DATA_DIR.mkdir(exist_ok=True)
+        _CRASH_LOG_HANDLE = open(CRASH_LOG_PATH, "a", encoding="utf-8", buffering=1)
+        _CRASH_LOG_HANDLE.write(f"\n--- Torrent Dashboard {VERSION} start {time.strftime('%Y-%m-%d %H:%M:%S')} ---\n")
+        faulthandler.enable(_CRASH_LOG_HANDLE, all_threads=True)
+
+        def log_thread_exception(args):
+            try:
+                _CRASH_LOG_HANDLE.write(f"\nUnhandled thread exception in {getattr(args.thread, 'name', 'thread')}:\n")
+                traceback.print_exception(args.exc_type, args.exc_value, args.exc_traceback, file=_CRASH_LOG_HANDLE)
+            except Exception:
+                pass
+
+        threading.excepthook = log_thread_exception
+    except Exception:
+        _CRASH_LOG_HANDLE = None
+
+
+def log_unhandled_exception():
+    try:
+        handle = _CRASH_LOG_HANDLE
+        if handle is None:
+            DATA_DIR.mkdir(exist_ok=True)
+            handle = open(CRASH_LOG_PATH, "a", encoding="utf-8")
+        handle.write(f"\nUnhandled main-thread exception {time.strftime('%Y-%m-%d %H:%M:%S')}:\n")
+        traceback.print_exc(file=handle)
+        handle.flush()
+        if handle is not _CRASH_LOG_HANDLE:
+            handle.close()
+    except Exception:
+        pass
+
+
 def main():
     parser=argparse.ArgumentParser(description="Torrent Dashboard")
     parser.add_argument("--no-browser",action="store_true")
@@ -2880,4 +2927,12 @@ def main():
     except KeyboardInterrupt: pass
     finally: stop.set(); server.server_close()
 
-if __name__=="__main__": main()
+if __name__=="__main__":
+    enable_crash_logging()
+    try:
+        main()
+    except (KeyboardInterrupt, SystemExit):
+        raise
+    except BaseException:
+        log_unhandled_exception()
+        raise
