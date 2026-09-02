@@ -38,12 +38,10 @@ jobs:
       - name: Validate Source
         shell: bash
         run: |
-          python -m py_compile dashboard.py updater.py release_tools/build_release.py
+          python release_tools/validate_source.py
+          python release_tools/validate_ui_strings.py
           node --check static/app.js
           node --check static/settings.js
-
-          # Syntax alone did not catch the 0.5.2 TDSettings regression. This
-          # verifies that the settings module actually initializes its public API.
           node - <<'JS'
           global.window = {};
           const fs = require('fs');
@@ -52,150 +50,6 @@ jobs:
             throw new Error('settings.js did not initialize window.TDSettings');
           }
           JS
-
-          python - <<'PY'
-          import pathlib
-          import re
-          import dashboard
-
-          version = dashboard.VERSION
-          assert re.fullmatch(r'0\.\d+\.\d+', version), version
-          assert callable(dashboard.normalize_qbittorrent_server)
-          assert callable(dashboard.normalize_integration)
-          assert callable(dashboard.normalize_user)
-          assert hasattr(dashboard, 'SingleInstanceLock')
-          first_lock = dashboard.SingleInstanceLock()
-          second_lock = dashboard.SingleInstanceLock()
-          assert first_lock.acquire() is True
-          try:
-              assert second_lock.acquire() is False
-          finally:
-              first_lock.release()
-          third_lock = dashboard.SingleInstanceLock()
-          assert third_lock.acquire() is True
-          third_lock.release()
-          assert dashboard.DEFAULT_CONFIG.get('integrations') == []
-          assert dashboard.DEFAULT_CONFIG.get('users') == []
-          assert {'discord','ntfy','generic_webhook'} <= set(dashboard.INTEGRATION_TYPES)
-
-          sample = dashboard.normalize_qbittorrent_server({
-              'base_url': 'http://127.0.0.1:8080',
-              'auth_method': 'api_key',
-              'api_key': 'qbt_' + ('A' * 28),
-              'name': 'Desktop',
-          })
-          assert sample['name'] == 'Desktop'
-          assert dashboard.normalize_qbittorrent_proxy_type(4) == 'socks5'
-          assert dashboard.normalize_qbittorrent_proxy_type('SOCKS4') == 'socks4'
-          assert dashboard.encode_qbittorrent_proxy_type('http', True, 1) == 3
-          assert dashboard.encode_qbittorrent_proxy_type('socks5', False, 'SOCKS5') == 'SOCKS5'
-
-          user = dashboard.normalize_user({
-              'username': 'admin2',
-              'password': 'test-password',
-              'group': 'administrator',
-          }, require_password=True)
-          assert user['group'] == 'administrator' and user['password_hash']
-
-          integ = dashboard.normalize_integration({
-              'type': 'sonarr',
-              'name': 'Sonarr',
-              'url': 'http://127.0.0.1:8989',
-              'api_key': 'abc123',
-          })
-          assert integ['type'] == 'sonarr'
-
-          html = pathlib.Path('static/index.html').read_text(encoding='utf-8')
-          js = pathlib.Path('static/settings.js').read_text(encoding='utf-8')
-          app_js = pathlib.Path('static/app.js').read_text(encoding='utf-8')
-          app_css = pathlib.Path('static/app.css').read_text(encoding='utf-8')
-          css = pathlib.Path('static/settings.css').read_text(encoding='utf-8')
-          dashboard_source = pathlib.Path('dashboard.py').read_text(encoding='utf-8')
-          sw = pathlib.Path('static/sw.js').read_text(encoding='utf-8')
-          sound = pathlib.Path('static/default-completion.wav')
-
-          assert 'API Key (qBitTorrent 5.2+)' in html
-          assert ('User Management' in html) or ('managed under Users.' in html)
-          assert 'integrationTypeSelect' in html
-          assert '<b>Local Dashboard Address</b>' in html
-          assert 'Local IP Address' not in html
-          assert '>IP Address<input id="wLocalIp"' in html
-          assert '<label>IP Address<input id="sLocalIp"' in html
-          assert f'/static/settings.js?v={version}' in html
-          assert f'/static/settings.css?v={version}' in html
-          assert f'/static/app.js?v={version}' in html
-          assert f'?v={version}' in sw
-          assert 'Read Only Mode' not in html
-          assert 'iSonarrUrl' not in html
-          assert 'Standard Users have read-only dashboard access' in js
-          assert "const SECRET_MASK = '••••••••••';" in js
-          assert "const CONFIGURED_SECRET_MASK='••••••••••';" in app_js
-          assert "input.value=configured?CONFIGURED_SECRET_MASK:''" in app_js
-          assert "btn.hidden=stored" in app_js
-          assert 'function secretToggleSvg' in app_js and 'material-symbol-icon' in app_js
-          assert "visibility_lock" in app_js and "visibility'" in app_js
-          assert 'material-symbols-outlined' not in app_css
-          assert '.secret-input.stored-secret' in app_css
-          assert '.secret-toggle:disabled' not in css
-          assert 'fonts.googleapis.com' not in html
-          assert 'fonts.gstatic.com' not in dashboard_source
-          assert 'id="loginPass"' in html
-          assert 'id="passwordConfirmModal"' in html
-          assert 'accountProfilePassword' not in html and 'accountProfilePassword' not in app_js
-          assert 'accountAvatarBtn' not in html and 'accountAvatarBtn' not in app_js
-          assert '<option value="default">Default</option>' in html
-          assert 'Default Torrent Dashboard Sound' not in html
-          assert 'Current user' in js and ' · You' not in js
-          assert '<h2>Settings</h2><p id="clientSettingsClientName">qBitTorrent</p>' in html
-          assert 'class="client-switch"' in html
-          assert 'data-client-settings-tab="speed"' in html
-          assert 'data-client-settings-tab="connection"' in html
-          assert 'data-client-settings-tab="proxy"' in html
-          assert 'clientAltDl' in html and 'clientAltUl' in html
-          assert 'clientListenPort' in html and 'clientProxyType' in html and 'clientProxyPassword' in html
-          assert '/api/client-settings' in dashboard_source and '/api/client-settings' in js
-          assert 'def client_settings(self):' in dashboard_source
-          assert 'def update_client_settings(self, data):' in dashboard_source
-          assert '/api/v2/app/setPreferences' in dashboard_source
-          assert 'preferences = client.preferences()' in dashboard_source
-          assert 'disk_free = disk_free_for(preferences)' in dashboard_source
-          assert '>Client Settings</button>' not in app_js
-          assert '>Settings</button>' in app_js
-          assert 'Configured — Leave Blank To Keep' not in js
-          assert 'Token Configured — Leave Blank To Keep' not in js
-          assert '.settings-page .settings-card{max-width:none;width:100%}' in css
-          assert 'id="updateAction"' in html
-          assert 'id="checkUpdate"' not in html
-          assert 'id="downloadUpdate"' not in html
-          assert 'id="installUpdate"' not in html
-          assert 'function showLogin(reset=false)' in app_js
-          assert 'async function handleUpdateAction()' in app_js
-          assert 'function applySentenceCaseUi' in app_js
-          assert 'applyTitleCaseUi' not in app_js
-          assert 'id="actionDialogModal"' in html
-          assert 'showActionDialog' in app_js
-          assert not re.search(r'(?<!\.)\bprompt\s*\(', app_js)
-          assert not re.search(r'\bconfirm\s*\(', app_js)
-          assert '@media(min-width:821px){.settings-nav{margin-top:0}}' in css
-          assert 'margin-top:52px' not in css
-          assert all(old not in html for old in ('id="nWebhook"','id="nDiscord"','id="nNtfy"','id="testNotify"'))
-          assert all(new in html for new in ('id="nSoundMode"','id="nSoundFile"','id="testNotification"'))
-          assert 'settingsNotifyPermission' not in html
-          assert 'id="notifyPermission"' not in html
-          assert 'async function testNotification()' in js
-          assert 'Notification.requestPermission()' in js
-          assert 'async function showBrowserNotification' in app_js
-          assert 'CREATE_NO_WINDOW' in dashboard_source
-          assert 'uploadNotificationSoundIfNeeded' in js
-          assert 'playCompletionSound' in app_js
-          assert 'function beep()' not in app_js
-          assert sound.exists() and sound.read_bytes().startswith(b'RIFF') and sound.stat().st_size > 1000
-          assert 'update-manifest.json' not in html
-
-          leftovers = list(pathlib.Path('release_tools').glob('cleanup.part*'))
-          assert not leftovers, f'Temporary cleanup files remain: {leftovers}'
-          assert not pathlib.Path('release_tools/update-manifest.example.json').exists()
-          PY
 
       - name: Commit Applied Feature Update
         id: source
@@ -223,15 +77,20 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
 
+      - name: Generate Release Notes
+        shell: bash
+        run: |
+          python release_tools/generate_release_notes.py \
+            --version "${{ steps.version.outputs.version }}" \
+            --release-body dist/release-notes.md \
+            --check
+
       - name: Replace Existing Pre-Release
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.version.outputs.tag }}
         shell: bash
         run: |
-          for old_tag in $(gh api "repos/${{ github.repository }}/releases?per_page=100" --jq '.[] | select(.prerelease == true) | .tag_name'); do
-            gh release delete "$old_tag" --cleanup-tag --yes >/dev/null 2>&1 || true
-          done
           gh release delete "$TAG" --cleanup-tag --yes >/dev/null 2>&1 || true
 
       - name: Build Release Package
@@ -242,22 +101,43 @@ jobs:
         run: |
           python release_tools/build_release.py --repo "$REPO" --tag "$TAG" --output dist
           ZIP="dist/Torrent-Dashboard-${{ steps.version.outputs.version }}.zip"
+          INFO="dist/Torrent-Dashboard-${{ steps.version.outputs.version }}.release.json"
           test -f "$ZIP"
+          test -f "$INFO"
           python - <<'PY'
+          import hashlib
+          import json
           import zipfile
           from pathlib import Path
+
           version='${{ steps.version.outputs.version }}'
           path=Path('dist') / f'Torrent-Dashboard-{version}.zip'
+          info_path=Path('dist') / f'Torrent-Dashboard-{version}.release.json'
           with zipfile.ZipFile(path) as z:
               names=[n for n in z.namelist() if not n.endswith('/')]
-          assert not any('cleanup.part' in n for n in names)
-          assert not any(n.endswith('update-manifest.json') or n.endswith('update-manifest.example.json') for n in names)
+          required=(
+              '/dashboard.py',
+              '/updater.py',
+              '/torrent_dashboard/__init__.py',
+              '/torrent_dashboard/users.py',
+              '/torrent_dashboard/config_store.py',
+              '/ARCHITECTURE.md',
+              '/PROJECT_STATE.md',
+              '/CHANGELOG.md',
+              '/release_notes/releases.json',
+              '/static/index.html',
+              '/static/app.js',
+              '/static/settings.js',
+          )
+          for suffix in required:
+              assert any(n.endswith(suffix) for n in names), suffix
           assert not any(n.endswith('apply_feature_update.py') for n in names)
-          assert any(n.endswith('/dashboard.py') for n in names)
-          assert any(n.endswith('/static/index.html') for n in names)
-          assert any(n.endswith('/static/settings.js') for n in names)
-          assert any(n.endswith('/static/settings.css') for n in names)
-          assert any(n.endswith('/static/default-completion.wav') for n in names)
+          assert not any('cleanup.part' in n for n in names)
+          info=json.loads(info_path.read_text(encoding='utf-8'))
+          digest=hashlib.sha256(path.read_bytes()).hexdigest()
+          assert info['version'] == version
+          assert info['package'] == path.name
+          assert info['sha256'] == digest
           PY
 
       - name: Publish GitHub Pre-Release
@@ -268,9 +148,10 @@ jobs:
         shell: bash
         run: |
           ZIP="dist/Torrent-Dashboard-${{ steps.version.outputs.version }}.zip"
+          INFO="dist/Torrent-Dashboard-${{ steps.version.outputs.version }}.release.json"
           gh release create "$TAG" \
-            "$ZIP" \
+            "$ZIP" "$INFO" \
             --target "$RELEASE_SHA" \
-            --title "Torrent Dashboard Pre-Release" \
-            --notes "Development prerelease. Version: $TAG" \
+            --title "Torrent Dashboard $TAG Pre-Release" \
+            --notes-file dist/release-notes.md \
             --prerelease
