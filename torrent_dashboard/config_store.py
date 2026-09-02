@@ -1,3 +1,5 @@
+"""Thread-safe coordination for configuration reads and mutations."""
+
 from __future__ import annotations
 
 import threading

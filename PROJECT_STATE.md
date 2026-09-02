@@ -4,7 +4,7 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.62** (prerelease)
+- Latest documented build: **v0.5.63** (prerelease)
 - Repository: `CynicaGaming/TorrentDashboard`
 - Development branch: `refactor/backend-modularization-users`
 - Prerelease branch: `prerelease/backend-modularization`
@@ -12,7 +12,7 @@
 
 ### Latest release summary
 
-Makes the previous release's Package SHA-256 populate reliably by caching authoritative GitHub release digests and refreshing them automatically when the Updates page opens.
+Adds a maintenance checkpoint for architecture documentation, reusable source validation, user-domain tests, and release-workflow consistency without intentionally changing dashboard behavior.
 
 ## Architecture state
 
@@ -24,6 +24,8 @@ Makes the previous release's Package SHA-256 populate reliably by caching author
 - Update history is sourced from bundled structured release metadata and supplemented with the latest GitHub release manifest during update checks.
 - Installed release provenance is stored in root release-info.json and is replaced/rolled back with application files; release build provenance is also published as a sidecar JSON asset.
 - Authoritative historical release digests are cached under data/release-integrity.json and merged into the locally bundled patch-note history.
+- ARCHITECTURE.md now documents module ownership, dependency direction, configuration transactions, testing, and the extraction roadmap.
+- Reusable source validation lives in release_tools/validate_source.py and is intended to be shared by development and release workflows.
 
 ## Current engineering decisions
 
@@ -35,6 +37,9 @@ Makes the previous release's Package SHA-256 populate reliably by caching author
 - Treat Package SHA-256 as release provenance metadata sourced only from the finalized GitHub asset or a verified local download, never as manually authored patch-note content.
 - Populate historical package digests from retained GitHub release assets at update-check time rather than storing mutable package hashes in authored patch-note metadata.
 - Persist remote release-integrity metadata under data/ so historical hashes remain available across browser sessions and application updates without treating hashes as authored patch-note fields.
+- Run periodic maintenance checkpoints that improve tests, documentation, module boundaries, and release tooling without bundling unrelated product changes.
+- Treat dashboard.py as the composition root; modules under torrent_dashboard must not import dashboard.py.
+- Run standard-library unit tests and reusable architecture validation as part of release packaging, not only ad-hoc source-string assertions.
 
 ## Development principles
 
@@ -44,6 +49,15 @@ Makes the previous release's Package SHA-256 populate reliably by caching author
 - Keep user-facing patch notes separate from engineering handoff details.
 
 ## Recent work
+
+### v0.5.63 — Code health and release guardrails
+
+Adds a maintenance checkpoint for architecture documentation, reusable source validation, user-domain tests, and release-workflow consistency without intentionally changing dashboard behavior.
+
+- Added ARCHITECTURE.md with explicit module ownership, dependency direction, configuration-transaction rules, testing guidance, and the next extraction boundaries.
+- Added release_tools/validate_source.py so development and release automation can share architecture, version-synchronization, compilation, and unit-test checks.
+- Added behavioral unit tests for password verification, username validation, duplicate users, last-administrator protection, self-service profile security, and password changes.
+- Refreshed README development, Linux startup, update provenance, and local-secret guidance.
 
 ### v0.5.62 — Persistent historical package integrity
 
@@ -79,24 +93,16 @@ Simplified Settings → Updates to focus on the latest two releases while retain
 - The expanded release no longer repeats the version/title heading inside the patch-note body.
 - The full structured release history remains preserved in release_notes/releases.json, CHANGELOG.md, and PROJECT_STATE.md.
 
-### v0.5.58 — Collapsible revision patch notes
-
-Expanded Settings → Updates from a single latest-release note block into a collapsible patch-note history for every documented Torrent Dashboard revision.
-
-- Settings → Updates now shows one collapsible patch-note entry per documented revision, ordered newest first.
-- Bundled release metadata is available immediately when the Updates page opens; a newly discovered GitHub release is merged into the history before it is installed.
-- The newest revision opens by default and each older revision can be expanded independently.
-- Future prerelease publication preserves older prereleases instead of deleting the complete prerelease history.
-
 ## What to do next
 
-1. **Extract configuration normalization and persistence** — Move config loading, migration, normalization, sanitization, and atomic persistence out of dashboard.py while preserving ConfigStore as the transaction coordinator.
-2. **Expand behavioral tests** — Add end-to-end authorization, account, CSRF, setup, and configuration mutation coverage around the new module boundaries.
-3. **Harden secrets at rest** — After the configuration module boundary is stable, add restrictive file permissions and a cleaner separation between ordinary configuration and stored credentials.
+1. **Extract configuration normalization and persistence** — Move config defaults, migration, normalization, sanitization, and atomic persistence into a dedicated torrent_dashboard module while preserving ConfigStore as the transaction coordinator.
+2. **Split release/update provenance from dashboard.py** — Move GitHub release parsing, installed release metadata, and historical digest caching behind a cohesive backend module after configuration extraction is stable.
+3. **Expand request-level behavioral tests** — Add authorization, CSRF, setup, account-route, and configuration-mutation coverage around the extracted domain boundaries.
+4. **Harden secrets at rest** — After configuration ownership is isolated, add restrictive filesystem permissions and a cleaner separation between ordinary configuration and stored credentials.
 
 ## Known issues
 
-- The first time an installation opens Updates with no prior integrity cache, GitHub must be reachable before a historical digest can be populated. Once fetched, the digest remains available from the local cache.
+- dashboard.py and static/app.js remain larger than the intended steady-state architecture; this checkpoint adds guardrails before the next extraction rather than attempting multiple large refactors at once.
 
 ## Handoff instructions for a new development session
 

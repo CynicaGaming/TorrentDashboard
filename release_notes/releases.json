@@ -413,6 +413,83 @@
           "detail": "After the configuration module boundary is stable, add restrictive file permissions and a cleaner separation between ordinary configuration and stored credentials."
         }
       ]
+    },
+    {
+      "version": "0.5.63",
+      "date": "2026-09-02",
+      "status": "prerelease",
+      "title": "Code health and release guardrails",
+      "summary": "Adds a maintenance checkpoint for architecture documentation, reusable source validation, user-domain tests, and release-workflow consistency without intentionally changing dashboard behavior.",
+      "highlights": [
+        "Added ARCHITECTURE.md with explicit module ownership, dependency direction, configuration-transaction rules, testing guidance, and the next extraction boundaries.",
+        "Added release_tools/validate_source.py so development and release automation can share architecture, version-synchronization, compilation, and unit-test checks.",
+        "Added behavioral unit tests for password verification, username validation, duplicate users, last-administrator protection, self-service profile security, and password changes.",
+        "Refreshed README development, Linux startup, update provenance, and local-secret guidance."
+      ],
+      "fixes": [
+        "Removed the unused dashboard save_config compatibility wrapper so stale-snapshot saves cannot quietly re-enter request code.",
+        "Release packaging now runs the reusable source validator before building an artifact."
+      ],
+      "technical": [
+        "Package modules are required to have module docstrings and are prevented by validation from importing the dashboard composition root.",
+        "Source validation rejects duplicate top-level dashboard definitions and any direct save_config() calls.",
+        "Code-health metrics for dashboard.py, app.js, settings.js, and package modules are printed in validation logs to make growth visible during maintenance checkpoints."
+      ],
+      "validation": [
+        "Python package compilation and unittest discovery run through release_tools/validate_source.py.",
+        "Existing UI regression contracts continue to run alongside the new architecture-focused checks.",
+        "Frontend build metadata, static asset query versions, app.js build identity, and service-worker cache generation must remain synchronized."
+      ],
+      "known_issues": [
+        "dashboard.py and static/app.js remain larger than the intended steady-state architecture; this checkpoint adds guardrails before the next extraction rather than attempting multiple large refactors at once."
+      ],
+      "architecture": [
+        "The application remains a Python standard-library ThreadingHTTPServer service with most HTTP routing still in dashboard.py.",
+        "User and account domain logic lives in torrent_dashboard/users.py.",
+        "Configuration transaction coordination lives in torrent_dashboard/config_store.py while config normalization and migration logic still lives in dashboard.py.",
+        "The updater consumes public GitHub Releases and already exposes each release body as manifest.notes.",
+        "Completed development increments are published from prerelease/backend-modularization; active refactor work remains on refactor/backend-modularization-users.",
+        "Update history is sourced from bundled structured release metadata and supplemented with the latest GitHub release manifest during update checks.",
+        "Installed release provenance is stored in root release-info.json and is replaced/rolled back with application files; release build provenance is also published as a sidecar JSON asset.",
+        "Authoritative historical release digests are cached under data/release-integrity.json and merged into the locally bundled patch-note history.",
+        "ARCHITECTURE.md now documents module ownership, dependency direction, configuration transactions, testing, and the extraction roadmap.",
+        "Reusable source validation lives in release_tools/validate_source.py and is intended to be shared by development and release workflows."
+      ],
+      "decisions": [
+        "Continue modularization in behavior-preserving increments rather than combining refactors with unrelated feature changes.",
+        "Use structured release metadata rather than commit-message inference as the authoritative source for release notes.",
+        "Keep PROJECT_STATE.md generated and read-only so it cannot drift from release metadata.",
+        "Preserve future GitHub prereleases instead of deleting all older prereleases during publication.",
+        "Keep complete release history in repository metadata while limiting the in-app Updates view to the two most recent releases.",
+        "Treat Package SHA-256 as release provenance metadata sourced only from the finalized GitHub asset or a verified local download, never as manually authored patch-note content.",
+        "Populate historical package digests from retained GitHub release assets at update-check time rather than storing mutable package hashes in authored patch-note metadata.",
+        "Persist remote release-integrity metadata under data/ so historical hashes remain available across browser sessions and application updates without treating hashes as authored patch-note fields.",
+        "Run periodic maintenance checkpoints that improve tests, documentation, module boundaries, and release tooling without bundling unrelated product changes.",
+        "Treat dashboard.py as the composition root; modules under torrent_dashboard must not import dashboard.py.",
+        "Run standard-library unit tests and reusable architecture validation as part of release packaging, not only ad-hoc source-string assertions."
+      ],
+      "next_steps": [
+        {
+          "priority": 1,
+          "title": "Extract configuration normalization and persistence",
+          "detail": "Move config defaults, migration, normalization, sanitization, and atomic persistence into a dedicated torrent_dashboard module while preserving ConfigStore as the transaction coordinator."
+        },
+        {
+          "priority": 2,
+          "title": "Split release/update provenance from dashboard.py",
+          "detail": "Move GitHub release parsing, installed release metadata, and historical digest caching behind a cohesive backend module after configuration extraction is stable."
+        },
+        {
+          "priority": 3,
+          "title": "Expand request-level behavioral tests",
+          "detail": "Add authorization, CSRF, setup, account-route, and configuration-mutation coverage around the extracted domain boundaries."
+        },
+        {
+          "priority": 4,
+          "title": "Harden secrets at rest",
+          "detail": "After configuration ownership is isolated, add restrictive filesystem permissions and a cleaner separation between ordinary configuration and stored credentials."
+        }
+      ]
     }
   ]
 }

@@ -1,3 +1,5 @@
+"""User, account, password, and profile domain operations."""
+
 from __future__ import annotations
 
 import base64

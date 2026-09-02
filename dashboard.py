@@ -69,7 +69,7 @@ RELEASE_INFO_PATH = APP_DIR / "release-info.json"
 RELEASE_INTEGRITY_CACHE_PATH = DATA_DIR / "release-integrity.json"
 CUSTOM_SOUND_BASENAME = "custom-notification-sound"
 MAX_CUSTOM_SOUND_BYTES = 2 * 1024 * 1024
-VERSION = "0.5.62"
+VERSION = "0.5.63"
 STATUS_REFRESH_SECONDS = 1.0
 DEFAULT_UPDATE_REPOSITORY = "CynicaGaming/TorrentDashboard"
 
@@ -320,9 +320,6 @@ CONFIG_STORE = ConfigStore(_load_config_unlocked, _save_config_unlocked)
 def load_config():
     return CONFIG_STORE.load()
 
-
-def save_config(cfg):
-    return CONFIG_STORE.save(cfg)
 
 
 def mutate_config(transform):
