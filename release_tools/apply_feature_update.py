@@ -82,7 +82,7 @@ function renderUpdateHistory(history=[],manifest={},currentVersion=''){
   })
 }
 function renderUpdateInfo'''
-app, count = pattern.subn(replacement, app, count=1)
+app, count = pattern.subn(lambda _match: replacement, app, count=1)
 if count != 1:
     raise RuntimeError("Could not replace release history renderer")
 write("static/app.js", app)
