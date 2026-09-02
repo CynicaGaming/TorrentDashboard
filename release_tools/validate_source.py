@@ -116,6 +116,9 @@ def validate_documentation() -> None:
 def run_unit_tests() -> None:
     if not TESTS_DIR.is_dir():
         fail("tests directory is missing")
+    root_text = str(ROOT)
+    if root_text not in sys.path:
+        sys.path.insert(0, root_text)
     suite = unittest.defaultTestLoader.discover(str(TESTS_DIR), pattern="test_*.py")
     result = unittest.TextTestRunner(verbosity=2).run(suite)
     if not result.wasSuccessful():
