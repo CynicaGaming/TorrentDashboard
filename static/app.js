@@ -1,5 +1,5 @@
 'use strict';
-const FRONTEND_BUILD='0.5.58';
+const FRONTEND_BUILD='0.5.59';
 const HTML_BUILD=document.querySelector('meta[name="torrent-dashboard-build"]')?.content||'';
 const RECOVERY_KEY=`td-frontend-recovery-${FRONTEND_BUILD}`;
 async function recoverFrontendBuild(reason){
@@ -493,8 +493,45 @@ function renderPatchMarkdown(box,markdown=''){
 }
 function updateVersionParts(value=''){return String(value||'').replace(/^v/i,'').split(/[+-]/,1)[0].split('.').map(x=>Number(x)||0)}
 function compareUpdateVersions(a,b){const aa=updateVersionParts(a),bb=updateVersionParts(b),n=Math.max(aa.length,bb.length);for(let i=0;i<n;i++){const d=(aa[i]||0)-(bb[i]||0);if(d)return d}return 0}
-function normalizedReleaseHistory(history=[],manifest={}){const entries=Array.isArray(history)?history.filter(x=>x&&x.version).map(x=>({...x,version:String(x.version).replace(/^v/i,'')})):[];if(manifest?.version){const version=String(manifest.version).replace(/^v/i,'');const remote={version,title:manifest.title||`Torrent Dashboard v${version}`,publishedAt:manifest.publishedAt||'',channel:manifest.channel||'',notes:manifest.notes||'',source:'github'};const i=entries.findIndex(x=>x.version===version);if(i>=0)entries[i]={...entries[i],...Object.fromEntries(Object.entries(remote).filter(([,v])=>v!==''))};else entries.push(remote)}const seen=new Set();return entries.sort((a,b)=>compareUpdateVersions(b.version,a.version)).filter(x=>{if(seen.has(x.version))return false;seen.add(x.version);return true})}
-function renderUpdateHistory(history=[],manifest={},currentVersion=''){const wrap=$('#updateNotesWrap'),list=$('#updateNotesList');if(!wrap||!list)return;const entries=normalizedReleaseHistory(history,manifest);wrap.classList.toggle('hidden',!entries.length);list.replaceChildren();entries.forEach((entry,index)=>{const article=document.createElement('article');article.className='update-release';const summary=document.createElement('button');summary.type='button';summary.className='update-release-summary';const open=index===0;summary.setAttribute('aria-expanded',String(open));const copy=document.createElement('span');copy.className='update-release-copy';const title=document.createElement('strong');title.textContent=`v${entry.version}${entry.title?` · ${entry.title}`:''}`;copy.appendChild(title);const meta=document.createElement('small');const parts=[];const current=String(currentVersion||'').replace(/^v/i,'');if(entry.version===current)parts.push('Installed');if(manifest?.version&&entry.version===String(manifest.version).replace(/^v/i,'')&&entry.version!==current)parts.push('Latest available');if(entry.channel)parts.push(entry.channel==='prerelease'?'Pre-release':'Stable');if(entry.publishedAt)parts.push(String(entry.publishedAt).slice(0,10));meta.textContent=parts.join(' · ');copy.appendChild(meta);const chevron=document.createElement('span');chevron.className='update-release-chevron';chevron.textContent='⌄';summary.append(copy,chevron);const body=document.createElement('div');body.className=`update-release-body${open?'':' hidden'}`;renderPatchMarkdown(body,entry.notes||entry.summary||'No patch notes were recorded for this revision.');summary.addEventListener('click',()=>{const next=body.classList.contains('hidden');body.classList.toggle('hidden',!next);summary.setAttribute('aria-expanded',String(next))});article.append(summary,body);list.appendChild(article)})}
+function releaseDisplayDate(value=''){if(!value)return'';const raw=String(value);const date=new Date(/^\d{4}-\d{2}-\d{2}$/.test(raw)?`${raw}T12:00:00Z`:raw);if(Number.isNaN(date.getTime()))return raw.slice(0,10);return new Intl.DateTimeFormat(undefined,{year:'numeric',month:'short',day:'numeric'}).format(date)}
+function normalizedReleaseHistory(history=[],manifest={}){
+  const entries=Array.isArray(history)?history.filter(x=>x&&x.version).map(x=>({...x,version:String(x.version).replace(/^v/i,'')})):[];
+  if(manifest?.version){
+    const version=String(manifest.version).replace(/^v/i,'');
+    const remote={version,title:manifest.title||`Torrent Dashboard v${version}`,publishedAt:manifest.publishedAt||'',channel:manifest.channel||'',notes:manifest.notes||'',source:'github'};
+    const i=entries.findIndex(x=>x.version===version);
+    if(i>=0){const existing=entries[i];entries[i]={...existing,publishedAt:remote.publishedAt||existing.publishedAt,channel:remote.channel||existing.channel,notes:remote.notes||existing.notes,source:'github'}}
+    else entries.push(remote);
+  }
+  const seen=new Set();
+  return entries.sort((a,b)=>compareUpdateVersions(b.version,a.version)).filter(x=>{if(seen.has(x.version))return false;seen.add(x.version);return true}).slice(0,2)
+}
+function renderUpdateHistory(history=[],manifest={},currentVersion=''){
+  const wrap=$('#updateNotesWrap'),list=$('#updateNotesList');if(!wrap||!list)return;
+  const entries=normalizedReleaseHistory(history,manifest);wrap.classList.toggle('hidden',!entries.length);list.replaceChildren();
+  const current=String(currentVersion||'').replace(/^v/i,'');
+  entries.forEach((entry,index)=>{
+    const article=document.createElement('article');article.className=`update-release${index===0?' featured':''}`;
+    const summary=document.createElement('button');summary.type='button';summary.className='update-release-summary';
+    const open=index===0;summary.setAttribute('aria-expanded',String(open));
+    const version=document.createElement('span');version.className='update-release-version';version.textContent=`v${entry.version}`;
+    const copy=document.createElement('span');copy.className='update-release-copy';
+    const title=document.createElement('strong');title.textContent=entry.title||`Torrent Dashboard ${entry.version}`;copy.appendChild(title);
+    const meta=document.createElement('span');meta.className='update-release-meta';
+    const badge=(text,kind='')=>{const el=document.createElement('span');el.className=`update-release-badge${kind?` ${kind}`:''}`;el.textContent=text;meta.appendChild(el)};
+    if(index===0)badge('Latest release','latest');
+    if(entry.version===current)badge('Installed','installed');
+    if(entry.channel)badge(entry.channel==='prerelease'?'Pre-release':'Stable',entry.channel==='prerelease'?'prerelease':'stable');
+    if(entry.publishedAt){const date=document.createElement('small');date.className='update-release-date';date.textContent=releaseDisplayDate(entry.publishedAt);meta.appendChild(date)}
+    copy.appendChild(meta);
+    const chevron=document.createElement('span');chevron.className='update-release-chevron';chevron.textContent='⌄';summary.append(version,copy,chevron);
+    const body=document.createElement('div');body.className=`update-release-body${open?'':' hidden'}`;
+    const noteText=String(entry.notes||entry.summary||'No patch notes were recorded for this revision.').replace(/^##\s+[^\n]+\n*/,'').trim();
+    renderPatchMarkdown(body,noteText||entry.summary||'No patch notes were recorded for this revision.');
+    summary.addEventListener('click',()=>{const next=body.classList.contains('hidden');body.classList.toggle('hidden',!next);summary.setAttribute('aria-expanded',String(next))});
+    article.append(summary,body);list.appendChild(article)
+  })
+}
 function renderUpdateInfo(data){state.updateInfo=data||null;const current=data?.currentVersion||state.me?.version||'—',manifest=data?.manifest||{},st=data?.state||state.settings?.runtime?.updateState||{};$('#updateCurrent').textContent=current;$('#updateLatest').textContent=manifest.version||st.version||uiText('notChecked');$('#updateState').textContent=uiText(st.state||'idle');const msg=$('#updateMessage');msg.className='muted update-message';let text='';if(data?.error){text=data.error;msg.classList.add('bad')}else if(data?.configured===false){text=data?.error||'Enter and save a public GitHub repository under Updates before checking for updates'}else if(st.state==='readyToInstall'){text=`updateReadyToInstall ${st.version||manifest.version||''}`;msg.classList.add('ok')}else if(data?.updateAvailable){text=`updateAvailable ${manifest.version}${manifest.publishedAt?` · ${manifest.publishedAt}`:''}`;msg.classList.add('ok')}else if(manifest.version){text=`upToDate ${current}`;msg.classList.add('ok')}else if(st.state&&st.state!=='idle'){text=st.error||st.state}else{text='checkForUpdatesWhenReady'}msg.textContent=data?.error?text:uiText(text);renderUpdateHistory(data?.releaseHistory||state.settings?.runtime?.releaseHistory||[],manifest,current);updateActionButton(data)}
 async function checkForUpdates(silent=false){try{const d=await api('/api/update-check');renderUpdateInfo(d);if(!silent&&d.updateAvailable)toast(`updateAvailable ${d.manifest.version}`);else if(!silent&&!d.error)toast(d.configured===false?'updatesNotConfigured':'updateCheckComplete');return d}catch(e){renderUpdateInfo({currentVersion:state.me?.version,error:e.message,state:state.settings?.runtime?.updateState||{}});if(!silent)toast(e.message,'error');throw e}}
 async function downloadUpdate(){const b=$('#updateAction');if(b){b.disabled=true;b.textContent=uiText('downloading…')}try{const d=await post('/api/update-download',{});renderUpdateInfo({configured:true,currentVersion:state.me?.version,manifest:d.manifest,updateAvailable:true,state:d});toast('updateReadyToInstall');return d}catch(e){toast(e.message,'error');throw e}finally{if(state.updateInfo)renderUpdateInfo(state.updateInfo)}}

@@ -4,7 +4,7 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.58** (prerelease)
+- Latest documented build: **v0.5.59** (prerelease)
 - Repository: `CynicaGaming/TorrentDashboard`
 - Development branch: `refactor/backend-modularization-users`
 - Prerelease branch: `prerelease/backend-modularization`
@@ -12,7 +12,7 @@
 
 ### Latest release summary
 
-Expanded Settings → Updates from a single latest-release note block into a collapsible patch-note history for every documented Torrent Dashboard revision.
+Simplified Settings → Updates to focus on the latest two releases while retaining the complete release history for changelog and project handoff purposes, with a cleaner release-card presentation.
 
 ## Architecture state
 
@@ -29,6 +29,7 @@ Expanded Settings → Updates from a single latest-release note block into a col
 - Use structured release metadata rather than commit-message inference as the authoritative source for release notes.
 - Keep PROJECT_STATE.md generated and read-only so it cannot drift from release metadata.
 - Preserve future GitHub prereleases instead of deleting all older prereleases during publication.
+- Keep complete release history in repository metadata while limiting the in-app Updates view to the two most recent releases.
 
 ## Development principles
 
@@ -38,6 +39,15 @@ Expanded Settings → Updates from a single latest-release note block into a col
 - Keep user-facing patch notes separate from engineering handoff details.
 
 ## Recent work
+
+### v0.5.59 — Patch notes presentation cleanup
+
+Simplified Settings → Updates to focus on the latest two releases while retaining the complete release history for changelog and project handoff purposes, with a cleaner release-card presentation.
+
+- Settings → Updates now shows only the latest release and the immediately previous release instead of the complete historical list.
+- Release cards now use a dedicated version badge, release-status badges, publication date, clearer typography, and improved spacing.
+- The expanded release no longer repeats the version/title heading inside the patch-note body.
+- The full structured release history remains preserved in release_notes/releases.json, CHANGELOG.md, and PROJECT_STATE.md.
 
 ### v0.5.58 — Collapsible revision patch notes
 
@@ -77,10 +87,6 @@ Started the backend modularization by extracting the user and account domain fro
 1. **Extract configuration normalization and persistence** — Move config loading, migration, normalization, sanitization, and atomic persistence out of dashboard.py while preserving ConfigStore as the transaction coordinator.
 2. **Expand behavioral tests** — Add end-to-end authorization, account, CSRF, setup, and configuration mutation coverage around the new module boundaries.
 3. **Harden secrets at rest** — After the configuration module boundary is stable, add restrictive file permissions and a cleaner separation between ordinary configuration and stored credentials.
-
-## Known issues
-
-- Structured historical notes begin at v0.5.55 because earlier releases predate the release metadata pipeline.
 
 ## Handoff instructions for a new development session
 

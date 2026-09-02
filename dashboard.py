@@ -67,7 +67,7 @@ UPDATE_DIR = DATA_DIR / "updates"
 UPDATE_STATE_PATH = DATA_DIR / "update-status.json"
 CUSTOM_SOUND_BASENAME = "custom-notification-sound"
 MAX_CUSTOM_SOUND_BYTES = 2 * 1024 * 1024
-VERSION = "0.5.58"
+VERSION = "0.5.59"
 STATUS_REFRESH_SECONDS = 1.0
 DEFAULT_UPDATE_REPOSITORY = "CynicaGaming/TorrentDashboard"
 
@@ -1984,7 +1984,7 @@ def _release_history_markdown(item):
     return "\n".join(lines).strip()+"\n"
 
 
-def local_release_history(latest_manifest=None,limit=30):
+def local_release_history(latest_manifest=None,limit=2):
     entries=[]
     try:
         data=json.loads((APP_DIR/"release_notes"/"releases.json").read_text(encoding="utf-8"))
