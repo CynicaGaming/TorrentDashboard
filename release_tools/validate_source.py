@@ -126,7 +126,7 @@ def validate_frontend_version() -> None:
 
 
 def validate_documentation() -> None:
-    for name in ("README.md", "ARCHITECTURE.md", "PROJECT_STATE.md", "CHANGELOG.md"):
+    for name in ("README.md", "ARCHITECTURE.md", "DESIGN_LANGUAGE.md", "PROJECT_STATE.md", "CHANGELOG.md"): 
         if not (ROOT / name).is_file():
             fail(f"Required project documentation is missing: {name}")
 

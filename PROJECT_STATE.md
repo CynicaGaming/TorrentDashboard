@@ -4,7 +4,7 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.64** (prerelease)
+- Latest documented build: **v0.5.65** (prerelease)
 - Repository: `CynicaGaming/TorrentDashboard`
 - Development branch: `refactor/backend-modularization-users`
 - Prerelease branch: `prerelease/backend-modularization`
@@ -12,25 +12,21 @@
 
 ### Latest release summary
 
-Moves configuration lifecycle and integration-provider ownership out of dashboard.py into dedicated package modules while preserving existing dashboard behavior.
+Aligns Settings, account, and action feedback around one content-design contract so identical actions use identical language and scoped dialogs avoid redundant success notifications.
 
 ## Architecture state
 
-- dashboard.py is the composition root and HTTP adapter; configuration schema/persistence and integration definitions are no longer implemented there.
-- User and account logic lives in torrent_dashboard/users.py.
-- Configuration defaults, migrations, browser sanitization, repository normalization, and atomic persistence live in torrent_dashboard/config.py.
-- Configuration transaction coordination lives in torrent_dashboard/config_store.py.
-- Integration provider definitions, normalization, redaction, connection tests, and CRUD transforms live in torrent_dashboard/integrations.py.
-- Runtime LAN detection is injected into ConfigRepository rather than reversing dependency direction to dashboard.py.
-- Release/update provenance remains in dashboard.py and is the next planned extraction.
+- DESIGN_LANGUAGE.md is the durable source for user-facing content conventions, while release_tools/validate_ui_strings.py enforces high-value regression contracts.
+- Core Settings pages share one form-level save language even when an individual page uses a specialized backend endpoint.
+- Scoped dialogs own their persistent inline status and do not duplicate successful completion in the global toast layer.
+- Backend module boundaries from v0.5.64 remain unchanged.
 
 ## Current engineering decisions
 
-- Continue behavior-preserving modularization in small prerelease increments.
-- Package modules must not import dashboard.py.
-- Keep ConfigStore focused on transaction coordination and ConfigRepository focused on configuration file lifecycle.
-- Inject runtime-only dependencies into package modules instead of importing the process adapter.
-- Keep integration provider configuration separate from notification delivery.
+- Use the same words for the same action and result throughout the product.
+- Use sentence case for interface copy except established product names and acronyms.
+- Use one success feedback channel per interaction rather than stacking inline status and toast confirmations.
+- Keep feature-specific success language for entity CRUD where the saved object is materially different from core dashboard settings.
 
 ## Development principles
 
@@ -38,8 +34,19 @@ Moves configuration lifecycle and integration-provider ownership out of dashboar
 - Validate the applied source, not only staging scripts.
 - Use the built-in updater to test each completed prerelease increment.
 - Keep user-facing patch notes separate from engineering handoff details.
+- Use the same user-facing language for the same action and outcome across every surface.
 
 ## Recent work
+
+### v0.5.65 — Interface language consistency
+
+Aligns Settings, account, and action feedback around one content-design contract so identical actions use identical language and scoped dialogs avoid redundant success notifications.
+
+- Core Settings saves now confirm with the exact message 'Settings saved' on General, Access, Clients, Updates, and Notifications.
+- Updates no longer exposes its backend-specific save path through a separate 'Update source saved' confirmation.
+- Settings validation, empty states, dynamic labels, and common action feedback were normalized to sentence case while preserving proper product names and acronyms.
+- Account and qBitTorrent client dialogs now rely on their persistent inline success status instead of duplicating the same outcome with a toast.
+- Added DESIGN_LANGUAGE.md as the durable content-design contract for future UI work.
 
 ### v0.5.64 — Configuration and integrations module extraction
 
@@ -75,26 +82,16 @@ Moves package integrity metadata below each patch-note body and backfills SHA-25
 - Update checks enrich both displayed revisions with authoritative GitHub ZIP digests instead of enriching only the newest release.
 - The frontend also preserves SHA-256 and package fields when merging a matching GitHub manifest into bundled release history.
 
-### v0.5.60 — Installed package integrity metadata
-
-Persists the verified release-package SHA-256 with installed builds and surfaces the exact package digest alongside patch notes.
-
-- Settings → Updates shows Package SHA-256 for a release whenever authoritative package metadata is available, with a one-click Copy control.
-- The normal updater writes release-info.json into the staged application only after the downloaded ZIP matches GitHub's published SHA-256.
-- Recovery updates persist the same release metadata after independently verifying the GitHub asset digest.
-- The release build emits a Torrent-Dashboard-<version>.release.json sidecar containing the final ZIP digest, version, repository, tag, and commit.
-
 ## What to do next
 
 1. **Extract release and update provenance** — Move GitHub release parsing, installed release metadata, package-integrity normalization, and historical digest caching out of dashboard.py.
 2. **Extract qBitTorrent transport and normalization** — Move QBitClient, server normalization, proxy/preference translation, and Web API transport away from HTTP routing.
 3. **Expand request-level behavioral tests** — Add authorization, CSRF, setup, account-route, and settings-mutation coverage around extracted service boundaries.
-4. **Harden secrets at rest** — Use the configuration boundary to add restrictive file permissions and separate ordinary configuration from stored credentials.
+4. **Retire legacy UI copy tokens incrementally** — Replace older uiText token-derived user messages with explicit display copy when each surface is next modified, preserving the new design-language contract.
 
 ## Known issues
 
-- dashboard.py and static/app.js remain larger than the intended steady-state architecture; release/update metadata and qBitTorrent transport are the next high-value extraction boundaries.
-- ConfigStore coordinates only the running process; an external editor writing config.json concurrently is not cross-process locked.
+- Some older application surfaces still use uiText token normalization internally even though their rendered copy is sentence case; these can be converted to explicit display strings incrementally without changing behavior.
 
 ## Handoff instructions for a new development session
 

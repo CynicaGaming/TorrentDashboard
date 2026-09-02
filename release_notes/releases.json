@@ -8,7 +8,8 @@
       "Keep refactors behavior-preserving and split them into small prerelease increments.",
       "Validate the applied source, not only staging scripts.",
       "Use the built-in updater to test each completed prerelease increment.",
-      "Keep user-facing patch notes separate from engineering handoff details."
+      "Keep user-facing patch notes separate from engineering handoff details.",
+      "Use the same user-facing language for the same action and outcome across every surface."
     ]
   },
   "releases": [
@@ -555,6 +556,70 @@
           "priority": 4,
           "title": "Harden secrets at rest",
           "detail": "Use the configuration boundary to add restrictive file permissions and separate ordinary configuration from stored credentials."
+        }
+      ]
+    },
+    {
+      "version": "0.5.65",
+      "date": "2026-09-02",
+      "status": "prerelease",
+      "title": "Interface language consistency",
+      "summary": "Aligns Settings, account, and action feedback around one content-design contract so identical actions use identical language and scoped dialogs avoid redundant success notifications.",
+      "highlights": [
+        "Core Settings saves now confirm with the exact message 'Settings saved' on General, Access, Clients, Updates, and Notifications.",
+        "Updates no longer exposes its backend-specific save path through a separate 'Update source saved' confirmation.",
+        "Settings validation, empty states, dynamic labels, and common action feedback were normalized to sentence case while preserving proper product names and acronyms.",
+        "Account and qBitTorrent client dialogs now rely on their persistent inline success status instead of duplicating the same outcome with a toast.",
+        "Added DESIGN_LANGUAGE.md as the durable content-design contract for future UI work."
+      ],
+      "fixes": [
+        "Saving the Updates page no longer uses different success language from the rest of the core Settings form.",
+        "Removed several legacy title-case error and empty-state strings that could make adjacent surfaces feel like different products."
+      ],
+      "technical": [
+        "release_tools/validate_ui_strings.py now enforces the shared Settings-save confirmation and rejects known legacy wording that caused drift.",
+        "Changed Settings feedback is authored as explicit display copy instead of camelCase message tokens; uiText remains only as a compatibility layer for older surfaces.",
+        "Release source validation now requires DESIGN_LANGUAGE.md alongside the architecture and generated handoff documentation."
+      ],
+      "validation": [
+        "UI string validation checks the exact core Settings save contract, sentence-case replacements, and removal of redundant modal success toasts.",
+        "Frontend build identity, service-worker cache generation, JavaScript syntax, backend behavioral tests, and generated release metadata remain part of the release gate."
+      ],
+      "known_issues": [
+        "Some older application surfaces still use uiText token normalization internally even though their rendered copy is sentence case; these can be converted to explicit display strings incrementally without changing behavior."
+      ],
+      "architecture": [
+        "DESIGN_LANGUAGE.md is the durable source for user-facing content conventions, while release_tools/validate_ui_strings.py enforces high-value regression contracts.",
+        "Core Settings pages share one form-level save language even when an individual page uses a specialized backend endpoint.",
+        "Scoped dialogs own their persistent inline status and do not duplicate successful completion in the global toast layer.",
+        "Backend module boundaries from v0.5.64 remain unchanged."
+      ],
+      "decisions": [
+        "Use the same words for the same action and result throughout the product.",
+        "Use sentence case for interface copy except established product names and acronyms.",
+        "Use one success feedback channel per interaction rather than stacking inline status and toast confirmations.",
+        "Keep feature-specific success language for entity CRUD where the saved object is materially different from core dashboard settings."
+      ],
+      "next_steps": [
+        {
+          "priority": 1,
+          "title": "Extract release and update provenance",
+          "detail": "Move GitHub release parsing, installed release metadata, package-integrity normalization, and historical digest caching out of dashboard.py."
+        },
+        {
+          "priority": 2,
+          "title": "Extract qBitTorrent transport and normalization",
+          "detail": "Move QBitClient, server normalization, proxy/preference translation, and Web API transport away from HTTP routing."
+        },
+        {
+          "priority": 3,
+          "title": "Expand request-level behavioral tests",
+          "detail": "Add authorization, CSRF, setup, account-route, and settings-mutation coverage around extracted service boundaries."
+        },
+        {
+          "priority": 4,
+          "title": "Retire legacy UI copy tokens incrementally",
+          "detail": "Replace older uiText token-derived user messages with explicit display copy when each surface is next modified, preserving the new design-language contract."
         }
       ]
     }

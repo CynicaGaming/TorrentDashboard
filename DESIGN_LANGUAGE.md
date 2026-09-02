@@ -1,0 +1,37 @@
+# Torrent Dashboard Design Language
+
+Torrent Dashboard uses a single content language across desktop and responsive surfaces. These rules apply to static HTML, dynamically generated controls, dialogs, status messages, notifications, and toasts.
+
+## Core rules
+
+- Use **sentence case** for headings, labels, buttons, empty states, validation, and status text. Preserve product names and established acronyms such as Torrent Dashboard, qBitTorrent, GitHub, API, IP, URL, HTTPS, and SHA-256.
+- Use the **same words for the same action and outcome**. A Save action in the core Settings save bar confirms with **“Settings saved”** regardless of which Settings page is active.
+- Use feature-specific success copy only when the saved object is materially different from dashboard settings, such as **“User saved”** or **“Integration saved”**.
+- Use **one success channel per interaction**. Page-level saves use a toast. Scoped dialogs that already keep a visible inline status do not also emit a duplicate success toast.
+- Loading and in-progress states use an active verb plus an ellipsis, for example **“Saving client settings…”** or **“Checking for updates…”**.
+- Toasts are short outcome statements without terminal punctuation. Persistent inline status and explanatory copy use complete sentences with punctuation.
+- Validation and errors state what the user needs to do in plain language. Avoid internal field names, implementation terminology, camelCase tokens, and title-case error sentences.
+- Destructive controls use a direct verb and object, and confirmations identify what will be deleted or removed.
+
+## Settings feedback contract
+
+The core Settings pages are General, Access, Clients, Updates, and Notifications. They share the same form save bar and the same successful outcome language:
+
+> Settings saved
+
+Updates may use a different backend endpoint, but that implementation detail must not change the user-facing confirmation.
+
+Integrations and Users are record-management surfaces rather than core form pages. Their successful record operations remain scoped:
+
+- Integration saved
+- Integration deleted
+- User saved
+- User deleted
+
+qBitTorrent client settings and account dialogs keep their result visible inside the dialog, so they do not duplicate successful completion with a toast.
+
+## Source and validation
+
+New user-facing copy should be authored in its final display form rather than relying on token-to-text conversion. The existing `uiText()` normalizer remains a compatibility layer for older surfaces and may be retired incrementally.
+
+`release_tools/validate_ui_strings.py` enforces the high-value copy contracts that have caused drift before, including the core Settings save confirmation and known title-case legacy strings.

@@ -43,6 +43,52 @@ def validate_javascript(name: str, text: str):
         raise SystemExit(f"{name}: camelCase UI strings remain: " + ", ".join(offenders))
 
 
+
+def validate_design_language(app_js: str, settings_js: str):
+    if settings_js.count("toast('Settings saved');") != 2:
+        raise SystemExit("Core Settings pages must share the exact 'Settings saved' confirmation")
+
+    forbidden_settings = (
+        "updateSourceSaved",
+        "settingsSaved",
+        "clientSettingsSaved",
+        "Save The Client Before Opening Client Settings",
+        "Enter A GitHub Repository",
+        "Choose An Integration Type",
+        "Enter A Username",
+        "Passwords Do Not Match",
+        "No Integrations Added",
+        "No Users Found",
+        "Testing Connection…",
+        "Not Tested Yet",
+    )
+    leaked = [value for value in forbidden_settings if value in settings_js]
+    if leaked:
+        raise SystemExit("Legacy Settings language remains: " + ", ".join(leaked))
+
+    redundant_modal_toasts = (
+        "toast('profileSaved')",
+        "toast('passwordChanged')",
+        "toast('profilePictureUpdated')",
+        "toast('profilePictureRemoved')",
+    )
+    leaked = [value for value in redundant_modal_toasts if value in app_js]
+    if leaked:
+        raise SystemExit("Duplicate modal success toasts remain: " + ", ".join(leaked))
+
+    required = (
+        "toast('Address copied')",
+        "toast('Integration saved')",
+        "toast('Integration deleted')",
+        "toast('User saved')",
+        "toast('User deleted')",
+        "toast('Administrator access is required','error')",
+        "toast('Choose a specific server first','error')",
+    )
+    missing = [value for value in required if value not in app_js and value not in settings_js]
+    if missing:
+        raise SystemExit("Required canonical interface language is missing: " + ", ".join(missing))
+
 def main():
     html = (ROOT / "static" / "index.html").read_text(encoding="utf-8")
     app_js = (ROOT / "static" / "app.js").read_text(encoding="utf-8")
@@ -58,6 +104,7 @@ def main():
     validate_html_attributes(html)
     validate_javascript("static/app.js", app_js)
     validate_javascript("static/settings.js", settings_js)
+    validate_design_language(app_js, settings_js)
 
     assert 'placeholder="Search torrents…"' in html
     assert 'id="savedView"' not in html

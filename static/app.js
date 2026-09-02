@@ -1,5 +1,5 @@
 'use strict';
-const FRONTEND_BUILD='0.5.64';
+const FRONTEND_BUILD='0.5.65';
 const HTML_BUILD=document.querySelector('meta[name="torrent-dashboard-build"]')?.content||'';
 const RECOVERY_KEY=`td-frontend-recovery-${FRONTEND_BUILD}`;
 async function recoverFrontendBuild(reason){
@@ -404,7 +404,7 @@ async function loadAddTorrentClientDefaults(){
   }catch(error){console.error('[Torrent Dashboard] Could not load Add Torrent client defaults',error)}
 }
 function openAddTorrent(){
-  if(state.server==='all')return toast('chooseSpecificServerFirst','error');
+  if(state.server==='all')return toast('Choose a specific server first','error');
   $('#addModal').classList.remove('hidden');
   syncAddTorrentOptions();
   loadAddTorrentClientDefaults();
@@ -481,7 +481,7 @@ function bindUI(){if(bound)return;
 }
 
 function setSettingsNavExpanded(expanded){const group=$('#settingsNavGroup'),submenu=$('#settingsSubnav');if(!group||!submenu)return;group.classList.toggle('expanded',!!expanded);submenu.classList.toggle('hidden',!expanded)}
-function setView(view){if(view==='settings'&&!state.me?.can_manage){view='dashboard';toast('Administrator Access Is Required','error')}const settingsView=view==='settings';$$('.view').forEach(v=>v.classList.toggle('active',v.id===`view-${view}`));$$('.nav-root,.mobile-nav button').forEach(b=>b.classList.toggle('active',b.dataset.view===view));setSettingsNavExpanded(settingsView);$('#pageTitle').textContent=uiText(view);$('#subtitle').textContent=uiText(view==='dashboard'?'liveTorrentActivity':view==='notifications'?'recentDashboardActivity':'dashboardConfiguration');if(view==='notifications')loadNotifications();if(settingsView){TDSettings.activate(localStorage.tdSettingsPage||'general');loadSettings().then(()=>TDSettings.loadExtras())}}
+function setView(view){if(view==='settings'&&!state.me?.can_manage){view='dashboard';toast('Administrator access is required','error')}const settingsView=view==='settings';$$('.view').forEach(v=>v.classList.toggle('active',v.id===`view-${view}`));$$('.nav-root,.mobile-nav button').forEach(b=>b.classList.toggle('active',b.dataset.view===view));setSettingsNavExpanded(settingsView);$('#pageTitle').textContent=uiText(view);$('#subtitle').textContent=uiText(view==='dashboard'?'liveTorrentActivity':view==='notifications'?'recentDashboardActivity':'dashboardConfiguration');if(view==='notifications')loadNotifications();if(settingsView){TDSettings.activate(localStorage.tdSettingsPage||'general');loadSettings().then(()=>TDSettings.loadExtras())}}
 
 async function loadServers(){const d=await api('/api/servers');const sel=$('#serverSelect');sel.innerHTML='<option value="all">allServers</option>'+d.servers.filter(s=>s.enabled).map(s=>`<option value="${esc(s.id)}">${esc(s.name)}</option>`).join('');sel.value=state.server}
 async function loadSettings(){try{state.settings=await api('/api/settings');fillSettings()}catch(e){toast(e.message,'error')}}
@@ -700,7 +700,7 @@ function closeRemoveDialog(result=null){const modal=$('#removeModal');if(modal)m
 function showRemoveDialog(targets){targets=(targets||[]).filter(x=>x&&x.hash);if(!targets.length)return Promise.resolve(null);if(removeDialogResolve)closeRemoveDialog(null);const one=targets.length===1;const name=targets[0]?.name||targets[0]?.hash||'this torrent';$('#removePrompt').textContent=one?`Are you sure you want to remove “${name}” from the transfer list?`:`Are you sure you want to remove ${targets.length} torrents from the transfer list?`;const list=$('#removeTargets');if(list){if(one){list.classList.add('hidden');list.innerHTML=''}else{const shown=targets.slice(0,6);list.innerHTML=shown.map(x=>`<div>${esc(x.name||x.hash)}</div>`).join('')+(targets.length>shown.length?`<small>+${targets.length-shown.length} more</small>`:'');list.classList.remove('hidden')}}const files=$('#removeFiles');if(files)files.checked=false;$('#removeModal').classList.remove('hidden');return new Promise(resolve=>{removeDialogResolve=resolve;setTimeout(()=>$('#removeForm .remove-confirm')?.focus(),0)})}
 async function removeTorrentTargets(targets){const choice=await showRemoveDialog(targets);if(!choice)return false;const grouped={};for(const item of targets){(grouped[item.server]??=[]).push(item.hash)}for(const [server,hashes] of Object.entries(grouped))await doAction('delete',{server,hashes,delete_files:!!choice.deleteFiles});return true}
 
-async function doAction(action,payload={}){if(!state.me?.can_manage)return toast('Administrator access is required','error');try{let server=payload.server||state.server;if(server==='all')throw new Error('chooseSpecificServerForAction');await post('/api/action',{server,action,...payload});toast('actionSent');setTimeout(refreshStatus,300)}catch(e){toast(e.message,'error')}}
+async function doAction(action,payload={}){if(!state.me?.can_manage)return toast('Administrator access is required','error');try{let server=payload.server||state.server;if(server==='all')throw new Error('Choose a specific server for this action');await post('/api/action',{server,action,...payload});toast('Action sent');setTimeout(refreshStatus,300)}catch(e){toast(e.message,'error')}}
 async function globalAction(a){if(state.server==='all'){for(const s of [...new Set(state.torrents.map(t=>t._server_id).filter(Boolean))])await doAction(a,{server:s,hashes:['all']})}else await doAction(a,{hashes:['all']})}
 async function bulkAction(a){if(a==='delete'){const targets=[...state.selected].map(k=>{let [sid,...rest]=k.split(':');const hash=rest.join(':');const t=state.torrents.find(x=>(x._server_id||state.server)===sid&&x.hash===hash);return{server:sid,hash,name:t?.name||hash}});const removed=await removeTorrentTargets(targets);if(removed){state.selected.clear();render()}return}let grouped={};for(const k of state.selected){let [sid,...rest]=k.split(':');(grouped[sid]??=[]).push(rest.join(':'))}for(const [sid,hashes]of Object.entries(grouped))await doAction(a,{server:sid,hashes});state.selected.clear();render()}
 
@@ -723,7 +723,7 @@ function addTorrentOptions(){return{auto_tmm:$('#addAutoTmm').value==='true',sav
 function appendAddTorrentFields(fd,o){fd.append('autoTMM',String(o.auto_tmm));fd.append('savepath',o.savepath);fd.append('useDownloadPath',String(o.use_download_path));fd.append('downloadPath',o.download_path);fd.append('rename',o.rename);fd.append('category',o.category);fd.append('tags',o.tags);fd.append('stopped',String(o.stopped));fd.append('stopCondition',o.stop_condition);fd.append('addToTopOfQueue',String(o.add_to_top));fd.append('seedMode',String(o.seed_mode));fd.append('sequentialDownload',String(o.sequential));fd.append('firstLastPiecePrio',String(o.first_last));fd.append('contentLayout',o.content_layout);fd.append('dlLimit',String(o.dl_limit));fd.append('upLimit',String(o.ul_limit))}
 async function addTorrent(e){
   e.preventDefault();
-  if(state.server==='all')return toast('chooseSpecificServerFirst','error');
+  if(state.server==='all')return toast('Choose a specific server first','error');
   try{
     const options=addTorrentOptions(),f=$('#torrentFile').files[0];
     if(f){
@@ -737,7 +737,7 @@ async function addTorrent(e){
     $('#addForm').reset();
     syncAddTorrentOptions();
     renderAddMetadataIdle();
-    toast('torrentAdded');
+    toast('Torrent added');
     setTimeout(refreshStatus,500);
   }catch(err){toast(err.message,'error')}
 }
@@ -830,7 +830,7 @@ async function saveOwnProfile(e){
     }
     status.className='test-result muted';status.textContent='Saving profile…';
     const d=await post('/api/account',payload);
-    applyAccountUser(d.user);accountProfileSnapshot={...d.user};status.className='test-result ok';status.textContent='Profile saved.';toast('profileSaved');
+    applyAccountUser(d.user);accountProfileSnapshot={...d.user};status.className='test-result ok';status.textContent='Profile saved.';
   }catch(e){status.className='test-result bad';status.textContent=e.message}
 }
 async function changeOwnPassword(e){
@@ -846,7 +846,7 @@ async function changeOwnPassword(e){
     }
     status.className='test-result muted';status.textContent='Changing password…';
     await post('/api/account/password',{current_password:current,new_password:next});
-    $('#accountPasswordForm').reset();status.className='test-result ok';status.textContent='Password changed.';toast('passwordChanged');
+    $('#accountPasswordForm').reset();status.className='test-result ok';status.textContent='Password changed.';
   }catch(e){status.className='test-result bad';status.textContent=e.message}
 }
 async function uploadOwnAvatar(){
@@ -856,13 +856,13 @@ async function uploadOwnAvatar(){
   const form=new FormData();form.append('avatar',file,file.name);
   status.className='test-result muted';status.textContent='Uploading profile picture…';
   try{
-    const d=await api('/api/account/avatar',{method:'POST',body:form});applyAccountUser(d.user);status.className='test-result ok';status.textContent='Profile picture updated.';toast('profilePictureUpdated');
+    const d=await api('/api/account/avatar',{method:'POST',body:form});applyAccountUser(d.user);status.className='test-result ok';status.textContent='Profile picture updated.';
   }catch(e){status.className='test-result bad';status.textContent=e.message}
   finally{input.value=''}
 }
 async function removeOwnAvatar(){
   const status=$('#accountStatus');status.className='test-result muted';status.textContent='Removing profile picture…';
-  try{const d=await post('/api/account/avatar/delete',{});applyAccountUser(d.user);status.className='test-result ok';status.textContent='Profile picture removed.';toast('profilePictureRemoved')}catch(e){status.className='test-result bad';status.textContent=e.message}
+  try{const d=await post('/api/account/avatar/delete',{});applyAccountUser(d.user);status.className='test-result ok';status.textContent='Profile picture removed.'}catch(e){status.className='test-result bad';status.textContent=e.message}
 }
 async function signOut(){try{await post('/api/logout',{})}catch{}location.reload()}
 
