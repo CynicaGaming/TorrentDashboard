@@ -1,0 +1,108 @@
+name: Publish Refactor Pre-Release
+
+on:
+  push:
+    branches:
+      - refactor/backend-modularization-users
+
+permissions:
+  contents: write
+
+concurrency:
+  group: torrent-dashboard-refactor-prerelease
+  cancel-in-progress: true
+
+jobs:
+  build-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Set Up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+
+      - name: Validate Refactored Source
+        shell: bash
+        run: |
+          python -m py_compile dashboard.py updater.py release_tools/build_release.py torrent_dashboard/users.py
+          node --check static/app.js
+          node --check static/settings.js
+          python - <<'PY'
+          import dashboard
+          import torrent_dashboard.users as users
+
+          assert dashboard.VERSION == '0.5.55'
+          assert dashboard.normalize_user is users.normalize_user
+          assert dashboard.save_user is users.save_user
+          assert dashboard.session_is_admin is users.session_is_admin
+          assert callable(dashboard.normalize_qbittorrent_server)
+          assert callable(dashboard.normalize_integration)
+          PY
+
+      - name: Determine Version
+        id: version
+        shell: bash
+        run: |
+          VERSION=$(python - <<'PY'
+          import re
+          text=open('dashboard.py', encoding='utf-8').read()
+          print(re.search(r'^VERSION\s*=\s*["\']([^"\']+)', text, re.M).group(1))
+          PY
+          )
+          test "$VERSION" = "0.5.55"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Replace Existing Pre-Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+        shell: bash
+        run: |
+          for old_tag in $(gh api "repos/${{ github.repository }}/releases?per_page=100" --jq '.[] | select(.prerelease == true) | .tag_name'); do
+            gh release delete "$old_tag" --cleanup-tag --yes >/dev/null 2>&1 || true
+          done
+          gh release delete "$TAG" --cleanup-tag --yes >/dev/null 2>&1 || true
+
+      - name: Build Release Package
+        env:
+          REPO: ${{ github.repository }}
+          TAG: ${{ steps.version.outputs.tag }}
+        shell: bash
+        run: |
+          python release_tools/build_release.py --repo "$REPO" --tag "$TAG" --output dist
+          ZIP="dist/Torrent-Dashboard-${{ steps.version.outputs.version }}.zip"
+          test -f "$ZIP"
+          python - <<'PY'
+          import zipfile
+          from pathlib import Path
+
+          version='${{ steps.version.outputs.version }}'
+          path=Path('dist') / f'Torrent-Dashboard-{version}.zip'
+          with zipfile.ZipFile(path) as z:
+              names=[n for n in z.namelist() if not n.endswith('/')]
+          assert any(n.endswith('/dashboard.py') for n in names)
+          assert any(n.endswith('/torrent_dashboard/__init__.py') for n in names)
+          assert any(n.endswith('/torrent_dashboard/users.py') for n in names)
+          assert any(n.endswith('/updater.py') for n in names)
+          assert not any(n.endswith('apply_feature_update.py') for n in names)
+          PY
+
+      - name: Publish GitHub Pre-Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+        shell: bash
+        run: |
+          ZIP="dist/Torrent-Dashboard-${{ steps.version.outputs.version }}.zip"
+          gh release create "$TAG" \
+            "$ZIP" \
+            --target "$GITHUB_SHA" \
+            --title "Torrent Dashboard Pre-Release" \
+            --notes "Development prerelease. Version: $TAG\n\nBackend modularization: extracted the user/account domain into torrent_dashboard/users.py without intentional behavior changes." \
+            --prerelease
