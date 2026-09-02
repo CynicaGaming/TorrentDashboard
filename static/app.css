@@ -153,3 +153,6 @@ button,select,input,textarea{border:1px solid var(--border);background:var(--pan
 /* 0.5.28 secure account confirmation */
 .password-confirm-card{width:min(440px,calc(100% - 24px));padding-bottom:0}.password-confirm-card header p{margin:5px 0 0;color:var(--muted);font-size:10px;line-height:1.45}.password-confirm-body{display:grid;gap:8px;padding:18px}.password-confirm-body label{display:grid;gap:6px;margin:0;color:var(--muted);font-size:10px}.password-confirm-body input{width:100%;min-height:42px}.password-confirm-actions{display:flex;justify-content:flex-end;gap:8px;padding:13px 18px 18px;border-top:1px solid var(--border)}.password-confirm-actions button{min-width:104px}
 @media(max-width:560px){#passwordConfirmModal{place-items:end center;padding:0}.password-confirm-card{width:100%;border-radius:18px 18px 0 0;border-bottom:0}.password-confirm-actions{display:grid;grid-template-columns:1fr 1fr;padding:12px 16px calc(16px + env(safe-area-inset-bottom))}.password-confirm-actions button{width:100%;min-width:0}}
+
+/* 0.5.33 concise status surfaces */
+.test-result:empty{display:none}

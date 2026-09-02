@@ -165,6 +165,7 @@ def main():
     assert 'refreshMs' not in app_js and 'refresh_seconds' not in app_js and 'refresh_seconds' not in settings_js
     assert not re.search(r'(?<!\.)\bprompt\s*\(', app_js)
     assert not re.search(r'\bconfirm\s*\(', app_js)
+    assert not re.search(r'\bconfirm\s*\(', settings_js)
     assert 'STATUS_REFRESH_SECONDS = 1.0' in dashboard_py
     assert 'stop_event.wait(STATUS_REFRESH_SECONDS)' in dashboard_py
     assert '0.5.16 unified application dialog' in app_css
@@ -261,6 +262,23 @@ def main():
     assert 'preferences = client.preferences()' in dashboard_py and 'disk_free = disk_free_for(preferences)' in dashboard_py
     assert '0.5.26 qBitTorrent-style torrent toolbar' in app_css
     assert '0.5.28 advanced per-client qBitTorrent settings' in settings_css
+
+    # 0.5.33 concise copy and cross-site UI consistency.
+    assert 'Test successful: ' not in settings_js and "status.textContent='Test successful.'" in settings_js
+    assert 'Not Tested Yet' not in html and 'Not Tested Yet' not in app_js and 'Not Tested Yet' not in settings_js
+    assert 'No Custom Sound Uploaded' not in html and 'No Custom Sound Uploaded' not in settings_js
+    assert 'None uploaded' in html and 'None uploaded' in settings_js
+    assert 'User Management' not in html
+    assert '＋ Add Server' not in html and '＋ Add Client' in html
+    assert 'Test Connection' not in settings_js
+    assert '<span class="field-label">Role <span class="required-mark"' in settings_js
+    assert '.test-result:empty{display:none}' in app_css
+    assert '.client-settings-status:empty{display:none}' in settings_css
+    assert 'id="removeModalTitle"' in html and "$('#removeModalTitle').textContent" in app_js
+    assert 'aria-label="Close details"' in html and 'aria-label="Close add torrent"' in html
+    for duplicate in ("toast('profileSaved')", "toast('passwordChanged')", "toast('profilePictureUpdated')", "toast('profilePictureRemoved')"):
+        assert duplicate not in app_js
+    assert "toast('clientSettingsSaved')" not in settings_js
 
     print("UI string audit passed")
 

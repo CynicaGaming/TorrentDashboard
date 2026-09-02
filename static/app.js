@@ -152,7 +152,7 @@ function setupServer(){return{type:'qbittorrent',name:$('#wClientName').value.tr
 function setupPayload(){return{setup_code:$('#wSetupCode').value.trim(),dashboard:{title:$('#wTitle').value.trim()||'Torrent Dashboard',port:Number($('#wPort').value||state.setup?.port||8765)},auth:{mode:$('#wAuthMode').value,username:$('#wDashUser').value.trim()||'admin',password:$('#wDashPass').value,trusted_interfaces:selectedInterfaceIds('#wInterfaceList'),trusted_ips:parseWhitelist('#wTrustedIps')},servers:[setupServer()]}}
 
 function interfaceCard(item,checked){const label=item.interface||item.interface_id||'Network Interface',gateway=item.gateway?` · Gateway ${esc(item.gateway)}`:'',def=item.default?'<span class="interface-default">Default Route</span>':'';return`<label class="interface-card"><input type="checkbox" data-interface-id="${esc(item.interface_id||item.interface||'')}" ${checked?'checked':''}><div><div class="interface-title"><b>${esc(label)}</b>${def}</div><span>${esc(item.address||'—')} · ${esc(item.cidr||uiText('unknownSubnet'))}${gateway}</span><small>${esc(item.netmask||'')} ${item.range_start?`· ${esc(item.range_start)}–${esc(item.range_end)}`:''}</small></div></label>`}
-function renderInterfaceList(target,interfaces,selected=[],autoSelectDefault=false){const el=$(target);if(!el)return;interfaces=interfaces||[];const selectedSet=new Set(selected||[]);if(autoSelectDefault&&!selectedSet.size&&interfaces.length){const d=interfaces.find(x=>x.default)||interfaces[0];if(d)selectedSet.add(d.interface_id||d.interface)}if(!interfaces.length){el.innerHTML='<div class="interface-empty"><b>No Network Interfaces Detected</b><span>You can still use the IP address whitelist below.</span></div>';return}el.innerHTML=interfaces.map(x=>interfaceCard(x,selectedSet.has(x.interface_id||x.interface))).join('')}
+function renderInterfaceList(target,interfaces,selected=[],autoSelectDefault=false){const el=$(target);if(!el)return;interfaces=interfaces||[];const selectedSet=new Set(selected||[]);if(autoSelectDefault&&!selectedSet.size&&interfaces.length){const d=interfaces.find(x=>x.default)||interfaces[0];if(d)selectedSet.add(d.interface_id||d.interface)}if(!interfaces.length){el.innerHTML='<div class="interface-empty"><b>No network interfaces</b><span>You can still use the IP address whitelist below.</span></div>';return}el.innerHTML=interfaces.map(x=>interfaceCard(x,selectedSet.has(x.interface_id||x.interface))).join('')}
 async function refreshSetupInterfaces(force=false){const current=selectedInterfaceIds('#wInterfaceList');const d=await rawJson(`/api/setup/network-interfaces?refresh=${force?'1':'0'}`);state.setup.network_interfaces=d.interfaces||[];renderInterfaceList('#wInterfaceList',state.setup.network_interfaces,current,current.length===0&&!state.setupInterfaceSelectionInitialized);state.setupInterfaceSelectionInitialized=true}
 async function refreshSettingsInterfaces(force=false){const current=selectedInterfaceIds('#sInterfaceList');const d=await api(`/api/network/interfaces?refresh=${force?'1':'0'}`);if(state.settings?.runtime)state.settings.runtime.network_interfaces=d.interfaces||[];renderInterfaceList('#sInterfaceList',d.interfaces||[],current,false)}
 
@@ -166,10 +166,10 @@ function renderSetupReview(){
   $('#wReview').innerHTML=`<div><span>Dashboard</span><b>${esc(p.dashboard.title)}</b><small>${esc($('#wLocalIp').value)}:${p.dashboard.port}</small></div><div><span>Dashboard Access</span><b>${esc(mode)}</b><small>${esc(interfaceNames)} · ${esc(whitelist)}</small></div><div><span>Administrator</span><b>${esc(p.auth.username)}</b><small>The first setup account is an Administrator.</small></div><div><span>Download Client</span><b>${esc(client.name)}</b><small>${esc(client.base_url)}</small></div><div><span>qBitTorrent Authentication</span><b>${esc(clientAuth)}</b><small>${client.auth_method==='api_key'?'Bearer API Key · No Login Cookie':esc(client.username)}</small></div>`;
   applySentenceCaseUi($('#wReview'));
 }
-function updateWizardClientAuth(){const useApi=$('#wClientAuth').value==='api_key';$('#wClientApiWrap').classList.toggle('hidden',!useApi);$('#wClientPasswordWrap').classList.toggle('hidden',useApi);$('#wClientResult').className='test-result muted';$('#wClientResult').textContent='Not Tested Yet'}
+function updateWizardClientAuth(){const useApi=$('#wClientAuth').value==='api_key';$('#wClientApiWrap').classList.toggle('hidden',!useApi);$('#wClientPasswordWrap').classList.toggle('hidden',useApi);$('#wClientResult').className='test-result muted';$('#wClientResult').textContent=''}
 function updateWizardLanVisibility(){const enabled=$('#wAuthMode').value==='lan_bypass';$('#wLanTrust').classList.toggle('hidden',!enabled)}
-async function testSetupClient(){const out=$('#wClientResult');out.className='test-result muted';out.textContent=uiText('testing…');try{const d=await rawJson('/api/setup/test-client',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({setup_code:$('#wSetupCode').value.trim(),server:setupServer()})});out.className='test-result ok';out.textContent=`connected · qBitTorrent ${d.version||'unknown'} · webApi ${d.api_version||'unknown'}`}catch(e){out.className='test-result bad';out.textContent=e.message;throw e}}
-async function finishSetup(e){if(e?.preventDefault)e.preventDefault();$('#setupError').textContent='';const btn=$('#wNext');try{validateSetupThrough(2);btn.disabled=true;btn.textContent='Testing And Saving…';await rawJson('/api/setup/complete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(setupPayload())});location.reload()}catch(err){$('#setupError').textContent=err.message||'Setup Could Not Be Completed';btn.disabled=false;btn.textContent='Finish';$('#setupError').scrollIntoView({behavior:'smooth',block:'nearest'})}}
+async function testSetupClient(){const out=$('#wClientResult');out.className='test-result muted';out.textContent='Testing…';try{const d=await rawJson('/api/setup/test-client',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({setup_code:$('#wSetupCode').value.trim(),server:setupServer()})});out.className='test-result ok';out.textContent=`connected · qBitTorrent ${d.version||'unknown'} · webApi ${d.api_version||'unknown'}`}catch(e){out.className='test-result bad';out.textContent=e.message;throw e}}
+async function finishSetup(e){if(e?.preventDefault)e.preventDefault();$('#setupError').textContent='';const btn=$('#wNext');try{validateSetupThrough(2);btn.disabled=true;btn.textContent='Finishing…';await rawJson('/api/setup/complete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(setupPayload())});location.reload()}catch(err){$('#setupError').textContent=err.message||'Setup failed.';btn.disabled=false;btn.textContent='Finish';$('#setupError').scrollIntoView({behavior:'smooth',block:'nearest'})}}
 function bindPublicUI(){if(window.__tdPublicBound)return;window.__tdPublicBound=true;$('#loginForm').addEventListener('submit',async e=>{e.preventDefault();$('#loginError').textContent='';try{await post('/api/login',{username:$('#loginUser').value,password:$('#loginPass').value});location.reload()}catch(err){$('#loginError').textContent=err.message}});$('#setupForm').addEventListener('submit',e=>e.preventDefault());$('#wBack').addEventListener('click',()=>goToSetupStep(state.setupStep-1));$('#wNext').addEventListener('click',()=>{const last=$$('.setup-page').length-1;if(state.setupStep===last){finishSetup();return}goToSetupStep(state.setupStep+1)});$('#setupSteps').addEventListener('click',e=>{const b=e.target.closest('[data-setup-step]');if(b)goToSetupStep(Number(b.dataset.setupStep))});$('#wTestClient').addEventListener('click',()=>testSetupClient().catch(()=>{}));$('#wClientAuth').addEventListener('change',updateWizardClientAuth);$('#wAuthMode').addEventListener('change',()=>{$('#wizardAccount').classList.toggle('hidden',$('#wAuthMode').value==='disabled');updateWizardLanVisibility()});$('#wRefreshInterfaces').addEventListener('click',()=>refreshSetupInterfaces(true).catch(e=>$('#setupError').textContent=e.message));}
 
 async function bootstrap(){
@@ -374,7 +374,7 @@ function showActionDialog(options={}){bindActionDialog();if(actionDialogResolve)
 
 let removeDialogResolve=null;
 function closeRemoveDialog(result=null){const modal=$('#removeModal');if(modal)modal.classList.add('hidden');const resolve=removeDialogResolve;removeDialogResolve=null;if(resolve)resolve(result)}
-function showRemoveDialog(targets){targets=(targets||[]).filter(x=>x&&x.hash);if(!targets.length)return Promise.resolve(null);if(removeDialogResolve)closeRemoveDialog(null);const one=targets.length===1;const name=targets[0]?.name||targets[0]?.hash||'this torrent';$('#removePrompt').textContent=one?`Are you sure you want to remove “${name}” from the transfer list?`:`Are you sure you want to remove ${targets.length} torrents from the transfer list?`;const list=$('#removeTargets');if(list){if(one){list.classList.add('hidden');list.innerHTML=''}else{const shown=targets.slice(0,6);list.innerHTML=shown.map(x=>`<div>${esc(x.name||x.hash)}</div>`).join('')+(targets.length>shown.length?`<small>+${targets.length-shown.length} more</small>`:'');list.classList.remove('hidden')}}const files=$('#removeFiles');if(files)files.checked=false;$('#removeModal').classList.remove('hidden');return new Promise(resolve=>{removeDialogResolve=resolve;setTimeout(()=>$('#removeForm .remove-confirm')?.focus(),0)})}
+function showRemoveDialog(targets){targets=(targets||[]).filter(x=>x&&x.hash);if(!targets.length)return Promise.resolve(null);if(removeDialogResolve)closeRemoveDialog(null);const one=targets.length===1;const name=targets[0]?.name||targets[0]?.hash||'this torrent';$('#removeModalTitle').textContent=one?'Remove torrent':'Remove torrents';$('#removePrompt').textContent=one?`Remove “${name}” from qBitTorrent?`:`Remove ${targets.length} torrents from qBitTorrent?`;const list=$('#removeTargets');if(list){if(one){list.classList.add('hidden');list.innerHTML=''}else{const shown=targets.slice(0,6);list.innerHTML=shown.map(x=>`<div>${esc(x.name||x.hash)}</div>`).join('')+(targets.length>shown.length?`<small>+${targets.length-shown.length} more</small>`:'');list.classList.remove('hidden')}}const files=$('#removeFiles');if(files)files.checked=false;$('#removeModal').classList.remove('hidden');return new Promise(resolve=>{removeDialogResolve=resolve;setTimeout(()=>$('#removeForm .remove-confirm')?.focus(),0)})}
 async function removeTorrentTargets(targets){const choice=await showRemoveDialog(targets);if(!choice)return false;const grouped={};for(const item of targets){(grouped[item.server]??=[]).push(item.hash)}for(const [server,hashes] of Object.entries(grouped))await doAction('delete',{server,hashes,delete_files:!!choice.deleteFiles});return true}
 
 async function doAction(action,payload={}){if(!state.me?.can_manage)return toast('Administrator access is required','error');try{let server=payload.server||state.server;if(server==='all')throw new Error('chooseSpecificServerForAction');await post('/api/action',{server,action,...payload});toast('actionSent');setTimeout(refreshStatus,300)}catch(e){toast(e.message,'error')}}
@@ -407,7 +407,7 @@ function addServerRow(s={id:'',name:'',base_url:'http://127.0.0.1:8080',auth_met
   d.querySelector('[data-k="auth_method"]').addEventListener('change',sync);sync();d.querySelector('.danger').onclick=()=>d.remove();d.querySelector('.test-server').onclick=()=>testServerRow(d);d.querySelector('.client-settings').onclick=()=>TDSettings.openClientSettings(d.querySelector('[data-k="id"]').value);$('#serverSettings').append(d);applySentenceCaseUi(d);decorateSecretFields(d)
 }
 function serverRowData(r){let o={enabled:true};r.querySelectorAll('[data-k]').forEach(i=>o[i.dataset.k]=i.type==='password'?secretFieldValue(i,'<configured>'):i.value);return o}
-async function testServerRow(r){const out=r.querySelector('.server-test-result');out.textContent=uiText('testing…');out.className='server-test-result';try{const d=await post('/api/client-test',serverRowData(r));out.textContent=`Connected · qBitTorrent ${d.version||'Unknown'} · Web API ${d.api_version||'Unknown'} · ${serverRowData(r).auth_method==='api_key'?'API Key':'Password'}`;out.className='server-test-result ok'}catch(e){out.textContent=e.message;out.className='server-test-result bad'}}
+async function testServerRow(r){const out=r.querySelector('.server-test-result');out.textContent='Testing…';out.className='server-test-result';try{const d=await post('/api/client-test',serverRowData(r));out.textContent=`Connected · qBitTorrent ${d.version||'Unknown'} · Web API ${d.api_version||'Unknown'} · ${serverRowData(r).auth_method==='api_key'?'API Key':'Password'}`;out.className='server-test-result ok'}catch(e){out.textContent=e.message;out.className='server-test-result bad'}}
 async function saveSettings(e){return TDSettings.saveCore(e)}
 
 async function loadIntegrations(){return TDSettings.loadIntegrations()}
@@ -448,7 +448,7 @@ function applyAccountUser(user){
 let accountProfileSnapshot=null,passwordConfirmationResolve=null,passwordConfirmationBound=false;
 function closePasswordConfirmation(result=null){const modal=$('#passwordConfirmModal');modal?.classList.add('hidden');const input=$('#passwordConfirmInput');if(input){input.value='';input.type='password';syncSecretToggle(input)}const status=$('#passwordConfirmStatus');if(status)status.textContent='';const resolve=passwordConfirmationResolve;passwordConfirmationResolve=null;if(resolve)resolve(result)}
 function bindPasswordConfirmation(){if(passwordConfirmationBound)return;passwordConfirmationBound=true;$('#passwordConfirmForm')?.addEventListener('submit',e=>{e.preventDefault();const input=$('#passwordConfirmInput');if(!input?.reportValidity())return;closePasswordConfirmation(input.value)});$$('[data-password-confirm-cancel]').forEach(x=>x.addEventListener('click',()=>closePasswordConfirmation(null)))}
-function requestPasswordConfirmation(message){bindPasswordConfirmation();if(passwordConfirmationResolve)closePasswordConfirmation(null);const modal=$('#passwordConfirmModal'),input=$('#passwordConfirmInput'),copy=$('#passwordConfirmMessage');if(copy)copy.textContent=message||'Enter your current password to continue with this secure account change.';if(input){input.value='';input.type='password';syncSecretToggle(input)}modal?.classList.remove('hidden');return new Promise(resolve=>{passwordConfirmationResolve=resolve;setTimeout(()=>input?.focus(),0)})}
+function requestPasswordConfirmation(message){bindPasswordConfirmation();if(passwordConfirmationResolve)closePasswordConfirmation(null);const modal=$('#passwordConfirmModal'),input=$('#passwordConfirmInput'),copy=$('#passwordConfirmMessage');if(copy)copy.textContent=message||'Enter your current password to continue.';if(input){input.value='';input.type='password';syncSecretToggle(input)}modal?.classList.remove('hidden');return new Promise(resolve=>{passwordConfirmationResolve=resolve;setTimeout(()=>input?.focus(),0)})}
 async function loadAccount(){
   const d=await api('/api/account');
   applyAccountUser(d.user);accountProfileSnapshot={...d.user};
@@ -476,13 +476,13 @@ async function saveOwnProfile(e){
   const secureChange=!!accountProfileSnapshot&&(payload.username!==String(accountProfileSnapshot.username||'')||payload.email!==String(accountProfileSnapshot.email||''));
   try{
     if(secureChange&&accountProfileSnapshot?.password_configured){
-      const password=await requestPasswordConfirmation('Confirm your current password to change your username or email address.');
+      const password=await requestPasswordConfirmation('Confirm your password to change your username or email.');
       if(password===null)return;
       payload.current_password=password;
     }
     status.className='test-result muted';status.textContent='Saving profile…';
     const d=await post('/api/account',payload);
-    applyAccountUser(d.user);accountProfileSnapshot={...d.user};status.className='test-result ok';status.textContent='Profile saved.';toast('profileSaved');
+    applyAccountUser(d.user);accountProfileSnapshot={...d.user};status.className='test-result ok';status.textContent='Profile saved.';
   }catch(e){status.className='test-result bad';status.textContent=e.message}
 }
 async function changeOwnPassword(e){
@@ -492,13 +492,13 @@ async function changeOwnPassword(e){
   try{
     let current='';
     if(accountProfileSnapshot?.password_configured){
-      const confirmed=await requestPasswordConfirmation('Confirm your current password to change your password.');
+      const confirmed=await requestPasswordConfirmation('Confirm your password to change it.');
       if(confirmed===null)return;
       current=confirmed;
     }
     status.className='test-result muted';status.textContent='Changing password…';
     await post('/api/account/password',{current_password:current,new_password:next});
-    $('#accountPasswordForm').reset();status.className='test-result ok';status.textContent='Password changed.';toast('passwordChanged');
+    $('#accountPasswordForm').reset();status.className='test-result ok';status.textContent='Password changed.';
   }catch(e){status.className='test-result bad';status.textContent=e.message}
 }
 async function uploadOwnAvatar(){
@@ -508,13 +508,13 @@ async function uploadOwnAvatar(){
   const form=new FormData();form.append('avatar',file,file.name);
   status.className='test-result muted';status.textContent='Uploading profile picture…';
   try{
-    const d=await api('/api/account/avatar',{method:'POST',body:form});applyAccountUser(d.user);status.className='test-result ok';status.textContent='Profile picture updated.';toast('profilePictureUpdated');
+    const d=await api('/api/account/avatar',{method:'POST',body:form});applyAccountUser(d.user);status.className='test-result ok';status.textContent='Profile picture updated.';
   }catch(e){status.className='test-result bad';status.textContent=e.message}
   finally{input.value=''}
 }
 async function removeOwnAvatar(){
   const status=$('#accountStatus');status.className='test-result muted';status.textContent='Removing profile picture…';
-  try{const d=await post('/api/account/avatar/delete',{});applyAccountUser(d.user);status.className='test-result ok';status.textContent='Profile picture removed.';toast('profilePictureRemoved')}catch(e){status.className='test-result bad';status.textContent=e.message}
+  try{const d=await post('/api/account/avatar/delete',{});applyAccountUser(d.user);status.className='test-result ok';status.textContent='Profile picture removed.'}catch(e){status.className='test-result bad';status.textContent=e.message}
 }
 async function signOut(){try{await post('/api/logout',{})}catch{}location.reload()}
 
