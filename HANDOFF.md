@@ -7,14 +7,14 @@
 This handoff is intentionally portable across public forks. Verify the current checkout's Git remote, branch, and open work before using upstream references as instructions.
 
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
-- Last documented upstream build: **v0.5.74** (prerelease)
+- Last documented upstream build: **v0.5.75** (prerelease)
 - Upstream development branch: `refactor/backend-modularization-users`
 - Upstream prerelease branch: `prerelease/backend-modularization`
 - Upstream active PR: **#25**
 
 ## Last known-good state
 
-Anchors the persistent Torrent details disclosure to the bottom of the visible dashboard workspace and removes redundant Dashboard heading chrome to reclaim vertical space.
+Restores the Dashboard heading, quiets the empty Torrent details disclosure, and makes GitHub update checks explicitly user-initiated.
 
 The released-state details and recent history are in `PROJECT_STATE.md`; architectural constraints are in `ARCHITECTURE.md`.
 

@@ -139,7 +139,7 @@ def main():
     assert "state.detailExpanded=true" in app_js
     assert "(!state.detailExpanded&&!force)" in app_js
     assert ".torrent-workspace{display:flex;flex-direction:column;gap:12px;overflow:visible;height:var(--torrent-workspace-height,min(720px,calc(100dvh - 220px)))}" in app_css
-    assert ".topbar.dashboard-mode .topbar-heading{display:none}" in app_css
+    assert ".topbar.dashboard-mode .topbar-heading{display:none}" not in app_css
     assert ".torrent-list-panel{display:flex;flex:1 1 auto;min-height:0;overflow:hidden}" in app_css
     assert ".torrent-detail-pane:not(.collapsed){min-height:240px;flex:0 1 clamp(260px,46%,420px)}" in app_css
     assert ".torrent-detail-pane.collapsed{min-height:48px!important;max-height:48px!important;flex-basis:48px!important}" in app_css
@@ -491,16 +491,24 @@ def main():
     assert '.client-setting-copy>span{font-size:11.5px' in settings_css
     assert '## Desktop legibility' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')
 
-    # 0.5.74 bottom-anchors the persistent disclosure and removes redundant Dashboard chrome.
-    assert 'id="topbar"' in html and 'class="topbar dashboard-mode"' in html and 'class="topbar-heading"' in html
-    assert "$('#topbar')?.classList.toggle('dashboard-mode',dashboardView)" in app_js
+    # 0.5.75 retains bottom anchoring, restores Dashboard hierarchy, quiets the empty disclosure, and makes update checks explicit.
+    assert 'id="topbar"' in html and 'class="topbar" id="topbar"' in html and 'class="topbar-heading"' in html
+    assert "classList.toggle('dashboard-mode'" not in app_js
     assert "if(dashboardView)requestAnimationFrame(syncTorrentWorkspaceLayout)" in app_js
     assert "--torrent-workspace-height" in app_js and "--torrent-workspace-open-height" not in app_js
     assert "const available=Math.max(360,Math.floor(window.innerHeight-top-16))" in app_js
-    assert '.topbar.dashboard-mode{justify-content:flex-end;margin-bottom:12px}' in app_css
-    assert '.topbar.dashboard-mode .topbar-heading{display:none}' in app_css
-    assert '## Client-style dashboard chrome' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')
+    assert '.topbar.dashboard-mode' not in app_css
+    assert '.topbar.dashboard-mode .topbar-heading{display:none}' not in app_css
+    assert '## Client-style dashboard workspace' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')
     assert '### Bottom-anchored torrent dock' in (ROOT / 'TESTING.md').read_text(encoding='utf-8')
+    assert 'class="topbar dashboard-mode"' not in html
+    assert 'id="detailHandleSelection"></span>' in html
+    assert 'No torrent selected' not in html and 'No torrent selected' not in app_js
+    assert '.torrent-detail-handle-selection:empty{display:none}' in app_css
+    assert 'updateIntegrityRefreshAt' not in settings_js and 'updateIntegrityRefreshPromise' not in settings_js
+    assert 'checkForUpdates(true)' not in settings_js
+    assert '## Explicit update checks' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')
+    assert '### Update-check intent and empty detail disclosure' in (ROOT / 'TESTING.md').read_text(encoding='utf-8')
 
     # 0.5.73 supersedes v0.5.72's open/close-only inspector. The dock is
     # persistent, selection and disclosure are independent, and the full bar is

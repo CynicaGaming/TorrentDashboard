@@ -4,10 +4,10 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#0b0d10" name="theme-color"/>
-<meta content="0.5.74" name="torrent-dashboard-build"/>
+<meta content="0.5.75" name="torrent-dashboard-build"/>
 <link href="/manifest.webmanifest" rel="manifest"/>
-<link href="/static/app.css?v=0.5.74" rel="stylesheet"/>
-<link href="/static/settings.css?v=0.5.74" rel="stylesheet"/>
+<link href="/static/app.css?v=0.5.75" rel="stylesheet"/>
+<link href="/static/settings.css?v=0.5.75" rel="stylesheet"/>
 <title>Torrent Dashboard</title>
 </head>
 <body>
@@ -97,7 +97,7 @@
 <div class="sidebar-foot"><small id="version">—</small></div>
 </aside>
 <main class="main">
-<header class="topbar dashboard-mode" id="topbar">
+<header class="topbar" id="topbar">
 <div class="topbar-heading"><h1 id="pageTitle">Dashboard</h1><p id="subtitle">Live Torrent Activity</p></div>
 <div class="top-actions">
 <select id="serverSelect"></select>
@@ -153,13 +153,13 @@
 </section>
 <section class="torrent-detail-pane collapsed" id="torrentDetailPane" aria-label="Torrent details">
 <button class="torrent-detail-handle" id="detailHandle" type="button" aria-expanded="false" aria-controls="detailPanelContent">
-<span class="torrent-detail-handle-label">Torrent details</span><span class="torrent-detail-handle-selection" id="detailHandleSelection">No torrent selected</span>
+<span class="torrent-detail-handle-label">Torrent details</span><span class="torrent-detail-handle-selection" id="detailHandleSelection"></span>
 <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m6 15 6-6 6 6"/></svg>
 </button>
 <div class="torrent-detail-content" id="detailPanelContent">
-<div class="torrent-detail-context"><strong id="detailName">No torrent selected</strong><span id="detailMeta">Select a torrent to view details.</span></div>
+<div class="torrent-detail-context"><strong id="detailName"></strong><span id="detailMeta">Select a torrent to view details.</span></div>
 <div class="torrent-detail-tabs" role="tablist" aria-label="Torrent information"><button class="active" data-detailtab="general" type="button">General</button><button data-detailtab="trackers" type="button">Trackers</button><button data-detailtab="peers" type="button">Peers</button><button data-detailtab="webseeds" type="button">HTTP Sources</button><button data-detailtab="content" type="button">Content</button></div>
-<div class="torrent-detail-body" id="detailBody"><div class="empty detail-empty"><strong>No torrent selected</strong><span>Select a torrent to view details.</span></div></div>
+<div class="torrent-detail-body" id="detailBody"><div class="empty detail-empty"><span>Select a torrent to view details.</span></div></div>
 </div>
 </section>
 </div>
@@ -261,7 +261,7 @@
 <div class="menu account-menu hidden" id="accountMenu" role="menu"><div class="account-menu-head"><span class="profile-avatar profile-avatar-menu"><img alt="" class="hidden" data-avatar-image/><span class="avatar-default" data-avatar-default aria-hidden="true"></span></span><div><strong id="accountMenuName">Account</strong><small id="accountMenuGroup">User</small></div></div><div class="menu-separator" role="separator"></div><button id="accountSettingsBtn" type="button">Account settings</button><button class="hidden" id="installPwa" type="button">Install app</button><div class="menu-separator" role="separator"></div><button id="logoutBtn" type="button">Sign out</button></div>
 <div class="menu hidden" id="contextMenu"></div>
 <div class="toasts" id="toasts"></div>
-<script src="/static/settings.js?v=0.5.74"></script>
-<script src="/static/app.js?v=0.5.74"></script>
+<script src="/static/settings.js?v=0.5.75"></script>
+<script src="/static/app.js?v=0.5.75"></script>
 </body>
 </html>

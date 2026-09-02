@@ -132,3 +132,11 @@ Do not use this file as a test-results log; it is a stable testing contract for 
 - Expand details and verify the inspector grows upward from the same anchor while the torrent list scrolls above it.
 - Resize desktop/tablet and verify both states remain bottom-aligned without overlaying torrent rows.
 - Verify mobile retains the persistent collapsed bar above mobile navigation and expands into the sheet.
+
+
+### Update-check intent and empty detail disclosure
+
+- Open Settings → Updates and verify no GitHub update request is initiated solely by entering the page; cached/local release history may render immediately.
+- Press Check for updates and verify the normal GitHub update lookup occurs and refreshes update/release-integrity information.
+- With no torrent selected, verify the collapsed Torrent details bar contains no “No torrent selected” helper text.
+- Select a torrent and verify the selected torrent name may appear in the disclosure context and the inspector expands normally.

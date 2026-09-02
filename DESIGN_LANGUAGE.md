@@ -87,6 +87,13 @@ On non-mobile layouts, a docked list/detail workspace should use the actual rema
 
 
 
-## Client-style dashboard chrome
+## Client-style dashboard workspace
 
-On the Dashboard view, navigation already establishes location, so the redundant Dashboard title/subtitle is hidden while server, torrent-control, and account actions remain visible. On desktop/tablet, the torrent workspace fills the actual remaining viewport so the persistent Torrent details disclosure stays anchored to the bottom. Collapsed it reads as a compact client-style bar; expanded it grows upward while the torrent list scrolls above it.
+The Dashboard retains its page title and short activity subtitle for visual hierarchy and orientation. Navigation also establishes location, but removing the heading does not materially increase usable torrent space and weakens the page hierarchy. On desktop/tablet, the torrent workspace fills the actual remaining viewport so the persistent Torrent details disclosure stays anchored to the bottom. Collapsed it reads as a compact client-style bar; expanded it grows upward while the torrent list scrolls above it.
+
+
+## Explicit update checks
+
+Settings → Updates must not initiate a GitHub network check merely because the page is opened. Cached/local release information may render immediately, but freshness is user-directed through the Check for updates action. This keeps network activity predictable and preserves a clear distinction between viewing update settings and requesting an update check.
+
+When the Torrent details disclosure has no selected torrent, the compact handle should remain visually quiet: show only the stable Torrent details label and disclosure affordance. Selection-specific copy appears only when a torrent is actually selected.

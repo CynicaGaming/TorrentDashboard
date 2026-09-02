@@ -1190,6 +1190,69 @@
           "detail": "Use the configuration boundary to add restrictive file permissions and separate ordinary configuration from stored credentials."
         }
       ]
+    },
+    {
+      "version": "0.5.75",
+      "date": "2026-09-02",
+      "status": "prerelease",
+      "title": "Dashboard hierarchy and explicit update checks",
+      "summary": "Restores the Dashboard heading, quiets the empty Torrent details disclosure, and makes GitHub update checks explicitly user-initiated.",
+      "highlights": [
+        "Dashboard / Live torrent activity is visible again because removing it did not materially improve usable workspace height and weakened page hierarchy.",
+        "The collapsed Torrent details disclosure shows only Torrent details when no torrent is selected; selection-specific copy appears only for an actual selection.",
+        "Opening Settings → Updates no longer contacts GitHub automatically; Check for updates is the explicit freshness/network action.",
+        "The bottom-anchored desktop/tablet torrent workspace and mobile disclosure behavior remain unchanged."
+      ],
+      "fixes": [
+        "Removes the unnecessary No torrent selected helper from the persistent collapsed disclosure.",
+        "Prevents passive navigation to Updates from performing an update-network request."
+      ],
+      "technical": [
+        "Removed the updateIntegrityRefreshAt/updateIntegrityRefreshPromise page-entry refresh state from settings.js.",
+        "Retired dashboard-mode heading suppression while preserving viewport-derived --torrent-workspace-height sizing.",
+        "The optional detailHandleSelection label is hidden when empty."
+      ],
+      "validation": [
+        "UI regression checks require visible Dashboard hierarchy, absence of passive Updates-page checks, quiet empty detail disclosure, and continued bottom anchoring.",
+        "Existing backend tests, source validation, JavaScript syntax checks, generated documentation checks, and release package-integrity gates remain required."
+      ],
+      "known_issues": [],
+      "architecture": [
+        "Torrent Dashboard remains a Python standard-library application with dashboard.py as the HTTP composition root.",
+        "Configuration, integrations, users, and configuration transaction coordination remain separated into torrent_dashboard package modules.",
+        "Torrent detail presentation remains frontend-owned and continues to use the existing /api/detail contract.",
+        "Desktop/tablet use separate docked list and detail panels; mobile uses a bottom-sheet presentation."
+      ],
+      "decisions": [
+        "Prefer two visually distinct surfaces for list/detail hierarchy rather than joining them with only an internal divider.",
+        "Do not expose Collapse when the detail inspector is already bounded, scrollable, and dismissible with Close.",
+        "Keep viewport-derived docking and independent list/detail scrolling.",
+        "Keep active backend modularization work separate from this presentation correction.",
+        "Treat torrent-detail selection and inspector disclosure as independent state: collapse changes presentation, not selection.",
+        "Keep the torrent-detail dock persistently discoverable and use the full disclosure bar as the primary keyboard/touch interaction target."
+      ],
+      "next_steps": [
+        {
+          "priority": 1,
+          "title": "Extract release and update provenance",
+          "detail": "Move GitHub release parsing, installed release metadata, package-integrity normalization, and historical digest caching out of dashboard.py."
+        },
+        {
+          "priority": 2,
+          "title": "Extract qBitTorrent transport and normalization",
+          "detail": "Move QBitClient, server normalization, proxy/preference translation, and Web API transport away from HTTP routing."
+        },
+        {
+          "priority": 3,
+          "title": "Expand request-level behavioral tests",
+          "detail": "Add authorization, CSRF, setup, account-route, and settings-mutation coverage around extracted service boundaries."
+        },
+        {
+          "priority": 4,
+          "title": "Harden secrets at rest",
+          "detail": "Use the configuration boundary to add restrictive file permissions and separate ordinary configuration from stored credentials."
+        }
+      ]
     }
   ]
 }

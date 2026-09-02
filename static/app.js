@@ -1,5 +1,5 @@
 'use strict';
-const FRONTEND_BUILD='0.5.74';
+const FRONTEND_BUILD='0.5.75';
 const HTML_BUILD=document.querySelector('meta[name="torrent-dashboard-build"]')?.content||'';
 const RECOVERY_KEY=`td-frontend-recovery-${FRONTEND_BUILD}`;
 async function recoverFrontendBuild(reason){
@@ -481,7 +481,7 @@ function bindUI(){if(bound)return;
 }
 
 function setSettingsNavExpanded(expanded){const group=$('#settingsNavGroup'),submenu=$('#settingsSubnav');if(!group||!submenu)return;group.classList.toggle('expanded',!!expanded);submenu.classList.toggle('hidden',!expanded)}
-function setView(view){if(view==='settings'&&!state.me?.can_manage){view='dashboard';toast('Administrator access is required','error')}const settingsView=view==='settings',dashboardView=view==='dashboard';$$('.view').forEach(v=>v.classList.toggle('active',v.id===`view-${view}`));$$('.nav-root,.mobile-nav button').forEach(b=>b.classList.toggle('active',b.dataset.view===view));setSettingsNavExpanded(settingsView);$('#topbar')?.classList.toggle('dashboard-mode',dashboardView);$('#pageTitle').textContent=uiText(view);$('#subtitle').textContent=uiText(view==='dashboard'?'liveTorrentActivity':view==='notifications'?'recentDashboardActivity':'dashboardConfiguration');if(dashboardView)requestAnimationFrame(syncTorrentWorkspaceLayout);if(view==='notifications')loadNotifications();if(settingsView){TDSettings.activate(localStorage.tdSettingsPage||'general');loadSettings().then(()=>TDSettings.loadExtras())}}
+function setView(view){if(view==='settings'&&!state.me?.can_manage){view='dashboard';toast('Administrator access is required','error')}const settingsView=view==='settings',dashboardView=view==='dashboard';$$('.view').forEach(v=>v.classList.toggle('active',v.id===`view-${view}`));$$('.nav-root,.mobile-nav button').forEach(b=>b.classList.toggle('active',b.dataset.view===view));setSettingsNavExpanded(settingsView);$('#pageTitle').textContent=uiText(view);$('#subtitle').textContent=uiText(view==='dashboard'?'liveTorrentActivity':view==='notifications'?'recentDashboardActivity':'dashboardConfiguration');if(dashboardView)requestAnimationFrame(syncTorrentWorkspaceLayout);if(view==='notifications')loadNotifications();if(settingsView){TDSettings.activate(localStorage.tdSettingsPage||'general');loadSettings().then(()=>TDSettings.loadExtras())}}
 
 async function loadServers(){const d=await api('/api/servers');const sel=$('#serverSelect');sel.innerHTML='<option value="all">allServers</option>'+d.servers.filter(s=>s.enabled).map(s=>`<option value="${esc(s.id)}">${esc(s.name)}</option>`).join('');sel.value=state.server}
 async function loadSettings(){try{state.settings=await api('/api/settings');fillSettings()}catch(e){toast(e.message,'error')}}
@@ -726,12 +726,12 @@ async function bulkAction(a){if(a==='delete'){const targets=[...state.selected].
 
 async function loadMeta(){if(state.server==='all')return;try{state.meta=await api(`/api/meta?server=${encodeURIComponent(state.server)}`)}catch(e){toast(e.message,'error')}}
 let detailRefreshAt=0;
-function detailEmptyMarkup(){return '<div class="empty detail-empty"><strong>No torrent selected</strong><span>Select a torrent to view details.</span></div>'}
+function detailEmptyMarkup(){return '<div class="empty detail-empty"><span>Select a torrent to view details.</span></div>'}
 function syncDetailDock(){
   const pane=$('#torrentDetailPane'),handle=$('#detailHandle'),workspace=pane?.closest('.torrent-workspace');if(!pane||!handle)return;
   const expanded=!!state.detailExpanded,selected=!!state.detail;
   pane.classList.toggle('collapsed',!expanded);pane.classList.toggle('has-selection',selected);workspace?.classList.toggle('detail-expanded',expanded);
-  handle.setAttribute('aria-expanded',String(expanded));const selection=$('#detailHandleSelection');if(selection)selection.textContent=selected?($('#detailName')?.textContent||'Selected torrent'):'No torrent selected';
+  handle.setAttribute('aria-expanded',String(expanded));const selection=$('#detailHandleSelection');if(selection)selection.textContent=selected?($('#detailName')?.textContent||'Selected torrent'):'';
   syncTorrentWorkspaceLayout();
 }
 async function toggleDetailPane(){
@@ -739,7 +739,7 @@ async function toggleDetailPane(){
   if(state.detailExpanded&&state.detail){if(state.detail.data)renderDetail();await refreshDetailData(true)}
 }
 function resetDetailPane(){
-  state.detail=null;state.detailExpanded=false;detailRefreshAt=0;$('#detailName').textContent='No torrent selected';$('#detailMeta').textContent='Select a torrent to view details.';$('#detailHandleSelection').textContent='No torrent selected';$('#detailBody').innerHTML=detailEmptyMarkup();syncDetailDock();render();
+  state.detail=null;state.detailExpanded=false;detailRefreshAt=0;$('#detailName').textContent='';$('#detailMeta').textContent='Select a torrent to view details.';$('#detailHandleSelection').textContent='';$('#detailBody').innerHTML=detailEmptyMarkup();syncDetailDock();render();
 }
 async function openDetail(server,hash){
   const same=state.detail?.server===server&&state.detail?.hash===hash;state.detail={server,hash,data:same?state.detail?.data:null};state.detailExpanded=true;state.detailTab=state.detailTab||'general';

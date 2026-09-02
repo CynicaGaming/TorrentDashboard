@@ -6,7 +6,7 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.74** (prerelease)
+- Latest documented build: **v0.5.75** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 - Upstream development branch: `refactor/backend-modularization-users`
 - Upstream prerelease branch: `prerelease/backend-modularization`
@@ -14,7 +14,7 @@
 
 ### Latest release summary
 
-Anchors the persistent Torrent details disclosure to the bottom of the visible dashboard workspace and removes redundant Dashboard heading chrome to reclaim vertical space.
+Restores the Dashboard heading, quiets the empty Torrent details disclosure, and makes GitHub update checks explicitly user-initiated.
 
 ## Architecture state
 
@@ -42,6 +42,15 @@ Anchors the persistent Torrent details disclosure to the bottom of the visible d
 - Keep public development continuity portable across forks; label canonical repository/branch/PR references as upstream context rather than local identity.
 
 ## Recent work
+
+### v0.5.75 — Dashboard hierarchy and explicit update checks
+
+Restores the Dashboard heading, quiets the empty Torrent details disclosure, and makes GitHub update checks explicitly user-initiated.
+
+- Dashboard / Live torrent activity is visible again because removing it did not materially improve usable workspace height and weakened page hierarchy.
+- The collapsed Torrent details disclosure shows only Torrent details when no torrent is selected; selection-specific copy appears only for an actual selection.
+- Opening Settings → Updates no longer contacts GitHub automatically; Check for updates is the explicit freshness/network action.
+- The bottom-anchored desktop/tablet torrent workspace and mobile disclosure behavior remain unchanged.
 
 ### v0.5.74 — Bottom-anchored torrent details
 
@@ -79,17 +88,6 @@ Corrects the desktop torrent details layout so the inspector docks to the bottom
 - The detail inspector receives a larger desktop allocation, preventing General and table-based detail tabs from being compressed into a shallow strip.
 - The torrent list remains the flexible scroll region above the inspector, while the detail body scrolls independently when its content exceeds the available inspector height.
 - List-only sizing remains bounded and mobile retains the existing bottom-sheet behavior.
-
-### v0.5.70 — Fork-safe development continuity
-
-Adds a public, fork-safe development continuity layer so a new developer or AI can recover both the last known-good release state and unfinished engineering intent without relying on prior chat history.
-
-- Added DEVELOPMENT.md as the durable contributor and fork workflow, including validation, versioning, publication, generated-file, and definition-of-done guidance.
-- Added TESTING.md with the automated baseline and a manual smoke-test matrix for setup, roles, torrent operations, details, Add Torrent, Settings, updates, recovery, and responsive behavior.
-- Added development/current.json as a public-safe active-work record for objectives, acceptance criteria, decisions, blockers, scope, affected areas, and the exact next action.
-- Added generated HANDOFF.md, combining the last documented release state with active development intent into one portable resume document.
-- Added lightweight architectural decision records under docs/decisions/ so important rationale survives chats, maintainers, and forks.
-- Canonical repository, branch, and PR references are now labeled as upstream context instead of being presented as the identity of every checkout.
 
 ## What to do next
 

@@ -7,8 +7,6 @@ window.TDSettings = (() => {
   let users = [];
   let currentUserId = '';
   let clientSettingsServerId = '';
-  let updateIntegrityRefreshAt = 0;
-  let updateIntegrityRefreshPromise = null;
 
   const corePages = new Set(['general','access','clients','updates','notifications']);
   const SECRET_MASK = '••••••••••';
@@ -28,16 +26,6 @@ window.TDSettings = (() => {
     if (mobilePage && mobilePage.value !== page) mobilePage.value = page;
     const savebar = document.querySelector('#settingsSavebar');
     if (savebar) savebar.classList.toggle('hidden', !corePages.has(page));
-    if (page === 'updates' && state.settings && typeof checkForUpdates === 'function') {
-      const now = Date.now();
-      if (!updateIntegrityRefreshPromise && now - updateIntegrityRefreshAt > 60000) {
-        updateIntegrityRefreshAt = now;
-        updateIntegrityRefreshPromise = Promise.resolve()
-          .then(() => checkForUpdates(true))
-          .catch(() => null)
-          .finally(() => { updateIntegrityRefreshPromise = null; });
-      }
-    }
   }
 
   function bind() {
