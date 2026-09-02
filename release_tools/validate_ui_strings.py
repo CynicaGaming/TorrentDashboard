@@ -462,6 +462,22 @@ def main():
     assert '.client-setting-copy>span{font-size:11.5px' in settings_css
     assert '## Desktop legibility' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')
 
+    # 0.5.67 docks torrent details into the torrent workspace. The list must
+    # remain the flexible scroll region and collapse must preserve selection.
+    assert 'class="torrent-panel torrent-workspace"' in html
+    assert 'class="torrent-list-region"' in html
+    assert 'id="detailToggle"' in html and 'aria-label="Collapse torrent details"' in html
+    assert "detailCollapsed:localStorage.tdDetailCollapsed==='1'" in app_js
+    assert 'function syncDetailPaneState()' in app_js and 'async function toggleDetailPane()' in app_js
+    assert "localStorage.tdDetailCollapsed=state.detailCollapsed?'1':'0'" in app_js
+    assert "if(!state.detailCollapsed)await refreshDetailData(true)" in app_js
+    assert "state.detailCollapsed&&!force" in app_js
+    assert '0.5.67 docked collapsible torrent details' in app_css
+    assert '.torrent-list-region .table-wrap{flex:1 1 auto;min-height:0;overflow:auto' in app_css
+    assert '.torrent-detail-pane{position:static;inset:auto' in app_css
+    assert '.torrent-detail-pane.collapsed{flex:0 0 58px!important' in app_css
+    assert '@media(max-width:700px)' in app_css and 'top:auto!important;height:58px!important' in app_css
+
     print("UI string audit passed")
 
 

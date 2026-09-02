@@ -47,3 +47,14 @@ Desktop layouts should use available space before shrinking text. At viewport wi
 - Forms and navigation should gain spacing and hit area before their text is reduced. The desktop canvas should be used rather than preserving large unused margins.
 - Compact density may reduce row height and spacing, but it should not restore the former undersized text baseline.
 - Tablet and mobile breakpoints remain independently tuned; desktop typography rules must not simply scale responsive layouts upward.
+
+
+## Docked inspectors
+
+On desktop and tablet layouts, secondary inspection surfaces that describe a selected item should preserve access to the primary list instead of covering it.
+
+- Torrent details dock to the bottom edge of the torrent workspace and share the same outer surface.
+- The primary torrent list remains independently scrollable while details are expanded.
+- Collapse preserves the current torrent selection and only reduces the inspector to its header; Close clears the inspector entirely.
+- Collapse state may be remembered as a user preference, but selecting a torrent must continue to update the docked header even while collapsed.
+- Mobile may use a bottom-sheet treatment when the available viewport cannot support a useful split workspace.

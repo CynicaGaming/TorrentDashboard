@@ -4,10 +4,10 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#0b0d10" name="theme-color"/>
-<meta content="0.5.66" name="torrent-dashboard-build"/>
+<meta content="0.5.67" name="torrent-dashboard-build"/>
 <link href="/manifest.webmanifest" rel="manifest"/>
-<link href="/static/app.css?v=0.5.66" rel="stylesheet"/>
-<link href="/static/settings.css?v=0.5.66" rel="stylesheet"/>
+<link href="/static/app.css?v=0.5.67" rel="stylesheet"/>
+<link href="/static/settings.css?v=0.5.67" rel="stylesheet"/>
 <title>Torrent Dashboard</title>
 </head>
 <body>
@@ -139,7 +139,8 @@
 </div>
 </section>
 <section class="bulkbar hidden" id="bulkbar" aria-live="polite"><span class="bulk-summary"><b id="selectedCount">0</b> Selected</span><div class="bulk-actions"><button data-bulk="start">Resume</button><button data-bulk="stop">Pause</button><button data-bulk="recheck">Recheck</button><button class="danger" data-bulk="delete">Delete</button><button class="bulk-clear" data-bulk-clear="1" type="button" aria-label="Clear selection" title="Clear selection">×</button></div></section>
-<section class="torrent-panel">
+<section class="torrent-panel torrent-workspace">
+<div class="torrent-list-region">
 <div class="table-wrap">
 <table id="torrentTable">
 <thead><tr><th class="check"><input id="selectAll" type="checkbox"/></th><th data-col="name">Torrent</th><th data-col="progress">Progress</th><th data-col="state">Status</th><th data-col="down">Down</th><th data-col="up">Up</th><th data-col="eta">ETA</th><th data-col="ratio">Ratio</th><th></th></tr></thead>
@@ -147,11 +148,12 @@
 </table>
 </div>
 <div class="empty hidden" id="empty"><strong>No Torrents Match This View</strong><span>Change the filter or search query.</span></div>
-</section>
+</div>
 <section class="torrent-detail-pane hidden" id="torrentDetailPane" aria-label="Torrent details">
-<header class="torrent-detail-header"><div><strong id="detailName">Torrent</strong><span id="detailMeta">—</span></div><button class="detail-pane-close" id="detailClose" type="button" aria-label="Close torrent details">×</button></header>
+<header class="torrent-detail-header"><div><strong id="detailName">Torrent</strong><span id="detailMeta">—</span></div><div class="detail-pane-actions"><button class="detail-pane-toggle" id="detailToggle" type="button" aria-expanded="true" aria-label="Collapse torrent details" title="Collapse torrent details"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></button><button class="detail-pane-close" id="detailClose" type="button" aria-label="Close torrent details" title="Close torrent details">×</button></div></header>
 <div class="torrent-detail-tabs" role="tablist" aria-label="Torrent information"><button class="active" data-detailtab="general" type="button">General</button><button data-detailtab="trackers" type="button">Trackers</button><button data-detailtab="peers" type="button">Peers</button><button data-detailtab="webseeds" type="button">HTTP Sources</button><button data-detailtab="content" type="button">Content</button></div>
 <div class="torrent-detail-body" id="detailBody"><div class="empty">Select a torrent to view details.</div></div>
+</section>
 </section>
 </section>
 <section class="view" id="view-notifications">
@@ -251,7 +253,7 @@
 <div class="menu account-menu hidden" id="accountMenu" role="menu"><div class="account-menu-head"><span class="profile-avatar profile-avatar-menu"><img alt="" class="hidden" data-avatar-image/><span class="avatar-default" data-avatar-default aria-hidden="true"></span></span><div><strong id="accountMenuName">Account</strong><small id="accountMenuGroup">User</small></div></div><div class="menu-separator" role="separator"></div><button id="accountSettingsBtn" type="button">Account settings</button><button class="hidden" id="installPwa" type="button">Install app</button><div class="menu-separator" role="separator"></div><button id="logoutBtn" type="button">Sign out</button></div>
 <div class="menu hidden" id="contextMenu"></div>
 <div class="toasts" id="toasts"></div>
-<script src="/static/settings.js?v=0.5.66"></script>
-<script src="/static/app.js?v=0.5.66"></script>
+<script src="/static/settings.js?v=0.5.67"></script>
+<script src="/static/app.js?v=0.5.67"></script>
 </body>
 </html>

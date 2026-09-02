@@ -684,6 +684,66 @@
           "detail": "Use the configuration boundary to add restrictive file permissions and separate ordinary configuration from stored credentials."
         }
       ]
+    },
+    {
+      "version": "0.5.67",
+      "date": "2026-09-02",
+      "status": "prerelease",
+      "title": "Docked collapsible torrent details",
+      "summary": "Reworks torrent details into a docked, collapsible inspector attached to the bottom of the torrent workspace so the torrent list remains visible and independently scrollable.",
+      "highlights": [
+        "Torrent details now share the torrent panel's outer surface instead of appearing as a separate floating card on desktop and tablet layouts.",
+        "The torrent table is the flexible scroll region above the inspector, so expanding details reduces the list viewport rather than covering torrent rows.",
+        "The detail header now provides separate Collapse and Close controls; collapse preserves the selected torrent while Close clears the inspector.",
+        "The collapsed preference is remembered locally, and mobile retains its existing bottom-sheet presentation with matching collapse behavior."
+      ],
+      "fixes": [
+        "Torrent details no longer compete visually with the torrent list as a second detached panel on larger displays.",
+        "Long torrent lists remain usable while details are open because the table area scrolls independently."
+      ],
+      "technical": [
+        "The detail pane is now nested inside torrent-panel/torrent-workspace with torrent-list-region owning scroll behavior.",
+        "Collapsed detail panes skip periodic detail-data refreshes until expanded, reducing unnecessary API work while the inspector is hidden.",
+        "DESIGN_LANGUAGE.md now records the docked-inspector interaction contract for future selection/detail surfaces."
+      ],
+      "validation": [
+        "The UI regression audit verifies the nested workspace structure, independent table scrolling, collapse state persistence, refresh suppression while collapsed, and mobile fallback.",
+        "Existing backend tests, JavaScript syntax validation, generated release metadata, and frontend/service-worker build synchronization remain release gates."
+      ],
+      "known_issues": [],
+      "architecture": [
+        "Torrent Dashboard remains a Python standard-library application with dashboard.py as the HTTP composition root.",
+        "Configuration, integrations, users, and configuration transaction coordination remain separated into torrent_dashboard package modules.",
+        "The torrent detail inspector remains frontend-owned; this release changes layout/state behavior without changing the /api/detail contract.",
+        "Desktop and tablet use a docked split workspace while mobile retains a bottom-sheet detail presentation."
+      ],
+      "decisions": [
+        "Prefer docked inspectors over overlays when users need to compare selected-item details with a primary list.",
+        "Keep Collapse and Close as distinct actions: collapse preserves selection, close clears the detail context.",
+        "Keep the torrent table independently scrollable whenever the detail inspector is expanded."
+      ],
+      "next_steps": [
+        {
+          "priority": 1,
+          "title": "Extract release and update provenance",
+          "detail": "Move GitHub release parsing, installed release metadata, package-integrity normalization, and historical digest caching out of dashboard.py."
+        },
+        {
+          "priority": 2,
+          "title": "Extract qBitTorrent transport and normalization",
+          "detail": "Move QBitClient, server normalization, proxy/preference translation, and Web API transport away from HTTP routing."
+        },
+        {
+          "priority": 3,
+          "title": "Expand request-level behavioral tests",
+          "detail": "Add authorization, CSRF, setup, account-route, and settings-mutation coverage around extracted service boundaries."
+        },
+        {
+          "priority": 4,
+          "title": "Harden secrets at rest",
+          "detail": "Use the configuration boundary to add restrictive file permissions and separate ordinary configuration from stored credentials."
+        }
+      ]
     }
   ]
 }

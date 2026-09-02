@@ -4,7 +4,7 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.66** (prerelease)
+- Latest documented build: **v0.5.67** (prerelease)
 - Repository: `CynicaGaming/TorrentDashboard`
 - Development branch: `refactor/backend-modularization-users`
 - Prerelease branch: `prerelease/backend-modularization`
@@ -12,21 +12,20 @@
 
 ### Latest release summary
 
-Raises the desktop readability baseline across Torrent Dashboard and uses the available canvas more effectively without changing mobile behavior or removing compact density.
+Reworks torrent details into a docked, collapsible inspector attached to the bottom of the torrent workspace so the torrent list remains visible and independently scrollable.
 
 ## Architecture state
 
-- dashboard.py remains the composition root and HTTP adapter.
-- Configuration lifecycle, configuration transactions, integrations, and users/accounts remain isolated in torrent_dashboard package modules.
-- Desktop presentation now has an explicit design-language readability contract separate from responsive/mobile tuning.
-- Release/update provenance remains the next planned backend extraction.
+- Torrent Dashboard remains a Python standard-library application with dashboard.py as the HTTP composition root.
+- Configuration, integrations, users, and configuration transaction coordination remain separated into torrent_dashboard package modules.
+- The torrent detail inspector remains frontend-owned; this release changes layout/state behavior without changing the /api/detail contract.
+- Desktop and tablet use a docked split workspace while mobile retains a bottom-sheet detail presentation.
 
 ## Current engineering decisions
 
-- Use available desktop space before reducing type size.
-- Treat 1024 px and above as the desktop legibility breakpoint while preserving existing responsive rules below it.
-- Keep compact density as a spacing preference rather than a license to use hard-to-read text.
-- Continue behavior-preserving modularization independently from presentation-quality passes.
+- Prefer docked inspectors over overlays when users need to compare selected-item details with a primary list.
+- Keep Collapse and Close as distinct actions: collapse preserves selection, close clears the detail context.
+- Keep the torrent table independently scrollable whenever the detail inspector is expanded.
 
 ## Development principles
 
@@ -37,6 +36,15 @@ Raises the desktop readability baseline across Torrent Dashboard and uses the av
 - Use the same user-facing language for the same action and outcome across every surface.
 
 ## Recent work
+
+### v0.5.67 — Docked collapsible torrent details
+
+Reworks torrent details into a docked, collapsible inspector attached to the bottom of the torrent workspace so the torrent list remains visible and independently scrollable.
+
+- Torrent details now share the torrent panel's outer surface instead of appearing as a separate floating card on desktop and tablet layouts.
+- The torrent table is the flexible scroll region above the inspector, so expanding details reduces the list viewport rather than covering torrent rows.
+- The detail header now provides separate Collapse and Close controls; collapse preserves the selected torrent while Close clears the inspector.
+- The collapsed preference is remembered locally, and mobile retains its existing bottom-sheet presentation with matching collapse behavior.
 
 ### v0.5.66 — Desktop legibility and workspace use
 
@@ -75,24 +83,12 @@ Adds a maintenance checkpoint for architecture documentation, reusable source va
 - Added behavioral unit tests for password verification, username validation, duplicate users, last-administrator protection, self-service profile security, and password changes.
 - Refreshed README development, Linux startup, update provenance, and local-secret guidance.
 
-### v0.5.62 — Persistent historical package integrity
-
-Makes the previous release's Package SHA-256 populate reliably by caching authoritative GitHub release digests and refreshing them automatically when the Updates page opens.
-
-- Successful GitHub release lookups persist authoritative package digests to data/release-integrity.json.
-- Normal Settings loads merge the persisted integrity cache into the two displayed patch-note revisions.
-- Opening Settings → Updates silently refreshes release metadata at most once per minute, so historical SHA-256 values self-populate without requiring a manual Check for updates click.
-
 ## What to do next
 
 1. **Extract release and update provenance** — Move GitHub release parsing, installed release metadata, package-integrity normalization, and historical digest caching out of dashboard.py.
 2. **Extract qBitTorrent transport and normalization** — Move QBitClient, server normalization, proxy/preference translation, and Web API transport away from HTTP routing.
 3. **Expand request-level behavioral tests** — Add authorization, CSRF, setup, account-route, and settings-mutation coverage around extracted service boundaries.
 4. **Harden secrets at rest** — Use the configuration boundary to add restrictive file permissions and separate ordinary configuration from stored credentials.
-
-## Known issues
-
-- The pass improves CSS typography and spacing but does not replace browser/device visual regression testing; unusually low-DPI displays may still benefit from OS-level text scaling.
 
 ## Handoff instructions for a new development session
 
