@@ -156,11 +156,3 @@ button,select,input,textarea{border:1px solid var(--border);background:var(--pan
 
 /* 0.5.33 concise status surfaces */
 .test-result:empty{display:none}
-
-
-/* 0.5.34 accessibility and adaptive-rendering interaction polish */
-.sr-only{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
-:where(button,input,select,textarea,a,[tabindex]):focus-visible{outline:2px solid color-mix(in srgb,var(--accent) 78%,white);outline-offset:2px}
-.modal[aria-hidden="true"],.drawer[aria-hidden="true"]{pointer-events:none}
-.form-save-state,.settings-save-state{font-size:9.5px;color:var(--muted);min-height:16px;display:inline-flex;align-items:center}.form-save-state.dirty,.settings-save-state.dirty{color:var(--warn)}.form-save-state.saved,.settings-save-state.saved{color:var(--good)}
-.account-form-actions{align-items:center;justify-content:space-between;gap:12px}

@@ -96,7 +96,7 @@ def main():
     assert 'updateSourceResult' not in settings_js
     assert 'id="updateSourceSave"' not in html
     assert 'Save Settings' not in html
-    assert 'id="settingsSaveState"' in html and 'id="settingsSaveButton"' in html and 'id="settingsSaveButton" type="submit" disabled' in html
+    assert '<div class="settings-savebar" id="settingsSavebar"><button class="primary" type="submit">Save</button></div>' in html
     # Settings navigation labels and card titles must use the same canonical names.
     for title in ('General','Access','Clients','Updates','Notifications','Integrations','Users'):
         assert f'<div class="panel-title">{title}</div>' in html
@@ -118,9 +118,7 @@ def main():
     assert 'async function showBrowserNotification' in app_js
     assert 'CREATE_NO_WINDOW' in dashboard_py and '**_windows_background_process_kwargs()' in dashboard_py
     assert "const corePages = new Set(['general','access','clients','updates','notifications']);" in settings_js
-    assert "if (activePage === 'updates') return saveUpdateSource();" not in settings_js
-    assert "const savedRepository = String(state.settings?.updates?.repository || '');" in settings_js
-    assert 'const source = await saveUpdateSource();' in settings_js
+    assert "if (activePage === 'updates') return saveUpdateSource();" in settings_js
     assert '#updateSourceSave' not in settings_js
     assert 'data-settings-page="updates" type="button">Updates</button>' in html
     assert 'data-settings-page="access" type="button">Access</button>' in html
@@ -281,32 +279,6 @@ def main():
     for duplicate in ("toast('profileSaved')", "toast('passwordChanged')", "toast('profilePictureUpdated')", "toast('profilePictureRemoved')"):
         assert duplicate not in app_js
     assert "toast('clientSettingsSaved')" not in settings_js
-
-    # 0.5.34 usability, health, notification rules, accessibility, and scale.
-    assert 'LARGE_LIBRARY_THRESHOLD' not in app_js and 'renderTorrentRows' not in app_js and 'rowRenderCache' not in app_js
-    assert 'registerDirtyScope' in app_js and 'Unsaved changes' in app_js and "beforeunload" in app_js
-    assert 'id="settingsSaveState"' in html and 'id="settingsSaveButton"' in html
-    assert 'accountProfileSaveState' in html and 'clientSettingsSaveState' in html
-    assert 'Discard changes?' in app_js and 'dirtyScopeNames:dirtyScopeNamesForSettings' in settings_js
-    assert 'client_health' in app_js or 'client-health' in app_js
-    assert 'client_health_snapshot' in dashboard_py and 'server_health' in dashboard_py and 'last_success' in dashboard_py
-    assert 'client_offline' in dashboard_py and 'client_recovered' in dashboard_py
-    for event_key in ('torrent_completed','torrent_error','torrent_stalled','client_offline','client_recovered','update_available','security_account'):
-        assert event_key in dashboard_py and f'data-notification-rule="{event_key}"' in html
-    assert 'default_notification_rules' in dashboard_py and 'normalize_notification_rules' in dashboard_py
-    assert 'id="testNotificationSound"' in html and 'async function testNotificationSound()' in settings_js
-    assert 'role="tab"' in html and 'role="tabpanel"' in html and 'aria-selected="true"' in html
-    assert 'trapSurfaceFocus' in app_js and 'showSurface' in app_js and ':focus-visible' in app_css
-    assert 'role="status" aria-live="polite"' in html
-    assert 'if(!errorEnabled&&!stalledEnabled)' in app_js
-    assert 'CRASH_LOG_PATH' in dashboard_py and 'faulthandler.enable' in dashboard_py and 'threading.excepthook' in dashboard_py
-    assert 'previous = list(old_cache.get("torrents", []))' not in dashboard_py
-    assert "return[key,el.type||el.tagName,value]" not in app_js
-    assert "el.dataset.interfaceId&&!el.checked" in app_js
-    assert 'Save or remove current integration changes before adding another.' in settings_js
-    assert 'Save or remove current user changes before adding another.' in settings_js
-    update_source_section = settings_js.split('async function saveUpdateSource()',1)[1].split('async function loadExtras()',1)[0]
-    assert "resetDirtyScope('settingsCore',true);" not in update_source_section
 
     print("UI string audit passed")
 

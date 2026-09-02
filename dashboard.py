@@ -23,8 +23,6 @@ import threading
 import tempfile
 import time
 import urllib.error
-import faulthandler
-import traceback
 import urllib.parse
 import urllib.request
 import uuid
@@ -43,46 +41,13 @@ DB_PATH = DATA_DIR / "torrent_desk.sqlite3"
 UPDATE_DIR = DATA_DIR / "updates"
 UPDATE_STATE_PATH = DATA_DIR / "update-status.json"
 CUSTOM_SOUND_BASENAME = "custom-notification-sound"
-CRASH_LOG_PATH = DATA_DIR / "crash.log"
-_CRASH_LOG_HANDLE = None
 MAX_CUSTOM_SOUND_BYTES = 2 * 1024 * 1024
 AVATAR_DIR = DATA_DIR / "avatars"
 MAX_AVATAR_BYTES = 4 * 1024 * 1024
 PROFILE_AVATAR_TYPES = {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp"}
-VERSION = "0.5.35"
+VERSION = "0.5.36"
 STATUS_REFRESH_SECONDS = 1.0
 DEFAULT_UPDATE_REPOSITORY = "CynicaGaming/TorrentDashboard"
-
-NOTIFICATION_RULE_KEYS = (
-    "torrent_completed",
-    "torrent_error",
-    "torrent_stalled",
-    "client_offline",
-    "client_recovered",
-    "update_available",
-    "security_account",
-)
-
-
-def default_notification_rules(browser=True, sound=False):
-    rules = {key: {"browser": False, "sound": False} for key in NOTIFICATION_RULE_KEYS}
-    rules["torrent_completed"] = {"browser": bool(browser), "sound": bool(sound)}
-    return rules
-
-
-def normalize_notification_rules(value, legacy_browser=True, legacy_sound=False):
-    defaults = default_notification_rules(legacy_browser, legacy_sound)
-    if not isinstance(value, dict):
-        return defaults
-    out = {}
-    for key in NOTIFICATION_RULE_KEYS:
-        source = value.get(key) if isinstance(value.get(key), dict) else {}
-        fallback = defaults[key]
-        out[key] = {
-            "browser": bool(source.get("browser", fallback["browser"])),
-            "sound": bool(source.get("sound", fallback["sound"])),
-        }
-    return out
 
 
 class SingleInstanceLock:
@@ -171,8 +136,7 @@ DEFAULT_CONFIG = {
         "sound_mode": "default",
         "custom_sound_file": "",
         "custom_sound_name": "",
-        "custom_sound_mime": "",
-        "rules": default_notification_rules(True, False),
+        "custom_sound_mime": ""
     },
     "integrations": []
 }
@@ -215,15 +179,6 @@ def load_config():
                 pass
 
     merged = deep_merge(DEFAULT_CONFIG, raw)
-    # 0.5.34 introduces fixed notification event rules while preserving the
-    # previous global browser/sound behavior for torrent-completion alerts.
-    raw_notifications = raw.get("notifications", {}) if isinstance(raw.get("notifications"), dict) else {}
-    merged_notifications = merged.setdefault("notifications", {})
-    legacy_browser = bool(raw_notifications.get("browser", merged_notifications.get("browser", True)))
-    legacy_sound = bool(raw_notifications.get("sound", merged_notifications.get("sound", False)))
-    merged_notifications["rules"] = normalize_notification_rules(raw_notifications.get("rules"), legacy_browser, legacy_sound)
-    merged_notifications["browser"] = merged_notifications["rules"]["torrent_completed"]["browser"]
-    merged_notifications["sound"] = merged_notifications["rules"]["torrent_completed"]["sound"]
     # 0.5.16 makes status collection a fixed one-second application behavior.
     # Ignore and retire any refresh_seconds value left by an older install.
     merged.setdefault("dashboard", {}).pop("refresh_seconds", None)
@@ -1709,59 +1664,6 @@ CACHE_LOCK = threading.RLock()
 CACHE = {}
 CLIENTS = {}
 LAST_COMPLETION_EVENT = set()
-TORRENT_NOTICE_CACHE = {}
-
-
-def torrent_runtime_notice_state(torrent):
-    state = str((torrent or {}).get("state") or "").lower()
-    if "error" in state or "missing" in state:
-        return "error"
-    try:
-        complete = float((torrent or {}).get("progress", 0) or 0) >= 0.999999
-    except (TypeError, ValueError):
-        complete = False
-    if "stall" in state and not complete:
-        return "stalled"
-    return ""
-
-
-def client_health_snapshot(cfg):
-    now = int(time.time())
-    with CACHE_LOCK:
-        cache = {key: dict(value) for key, value in CACHE.items()}
-    result = []
-    for server in cfg.get("servers", []):
-        sid = str(server.get("id") or "")
-        item = cache.get(sid, {})
-        enabled = bool(server.get("enabled", True))
-        if not enabled:
-            status = "disabled"
-            online = None
-        elif not item:
-            status = "connecting"
-            online = None
-        elif item.get("ok"):
-            status = "online"
-            online = True
-        else:
-            status = "offline"
-            online = False
-        result.append({
-            "id": sid,
-            "name": server.get("name", sid),
-            "enabled": enabled,
-            "status": status,
-            "online": online,
-            "app_version": str(item.get("app_version") or ""),
-            "api_version": str(item.get("api_version") or ""),
-            "auth_method": server.get("auth_method", "password"),
-            "last_success": int(item.get("last_success") or 0),
-            "last_attempt": int(item.get("last_attempt") or item.get("ts") or 0),
-            "latency_ms": int(item.get("latency_ms") or 0),
-            "error": str(item.get("error") or "") if status == "offline" else "",
-            "age_seconds": max(0, now - int(item.get("last_success") or now)) if item.get("last_success") else None,
-        })
-    return result
 
 
 def disk_free_for(preferences):
@@ -1843,84 +1745,36 @@ def collector_loop(stop_event):
         cfg = load_config()
         sample_every = max(5, int(cfg["dashboard"].get("history_sample_seconds", 10)))
         for server in cfg.get("servers", []):
-            if not server.get("enabled", True):
-                continue
+            if not server.get("enabled", True): continue
             sid = server.get("id")
-            started = time.perf_counter()
-            with CACHE_LOCK:
-                old_cache = dict(CACHE.get(sid, {}))
-                previous = old_cache.get("torrents", [])
-                previous_ok = old_cache.get("ok") if old_cache else None
             try:
                 client = get_client(cfg, sid)
                 torrents, transfer, app_version, api_version = client.info()
                 preferences = client.preferences()
                 meta = client.metadata()
                 disk_free = disk_free_for(preferences)
-                now = int(time.time())
-                latency_ms = max(1, int((time.perf_counter() - started) * 1000))
-                prev_completed = {t.get("hash") for t in previous if float(t.get("progress",0) or 0) >= .999999}
-                now_completed = {t.get("hash") for t in torrents if float(t.get("progress",0) or 0) >= .999999}
-                newly = now_completed - prev_completed if previous else set()
                 with CACHE_LOCK:
+                    previous = CACHE.get(sid, {}).get("torrents", [])
+                    prev_completed = {t.get("hash") for t in previous if float(t.get("progress",0) or 0) >= .999999}
+                    now_completed = {t.get("hash") for t in torrents if float(t.get("progress",0) or 0) >= .999999}
+                    newly = now_completed - prev_completed if previous else set()
                     CACHE[sid] = {
-                        "ok": True,
-                        "ts": now,
-                        "last_attempt": now,
-                        "last_success": now,
-                        "latency_ms": latency_ms,
-                        "server": {"id": sid, "name": server.get("name", sid)},
-                        "torrents": torrents,
-                        "transfer": transfer,
-                        "meta": meta,
-                        "app_version": app_version,
-                        "api_version": api_version,
-                        "disk_free": disk_free,
-                        "error": "",
+                        "ok": True, "ts": int(time.time()), "server": {"id":sid,"name":server.get("name",sid)},
+                        "torrents": torrents, "transfer": transfer, "meta": meta,
+                        "app_version": app_version, "api_version": api_version, "disk_free": disk_free
                     }
-                if previous_ok is False:
-                    HISTORY.event(sid, "client_recovered", server.get("name", sid), "", {"latency_ms": latency_ms})
-                # Keep only abnormal states between polls instead of building a full
-                # hash->torrent map for the entire library every second. This preserves
-                # transition events while keeping the added 0.5.34 work proportional to
-                # the number of abnormal torrents rather than the total library size.
-                current_notices = {}
-                for torrent in torrents:
-                    hash_ = str(torrent.get("hash") or "")
-                    if not hash_:
-                        continue
-                    notice = torrent_runtime_notice_state(torrent)
-                    if notice:
-                        current_notices[hash_] = (notice, torrent.get("name", "Torrent"))
-                previous_notices = TORRENT_NOTICE_CACHE.get(sid, {})
-                for hash_, (notice, name) in current_notices.items():
-                    if previous_notices.get(hash_) != notice:
-                        HISTORY.event(sid, f"torrent_{notice}", name, hash_, {})
-                TORRENT_NOTICE_CACHE[sid] = {hash_: notice for hash_, (notice, _name) in current_notices.items()}
                 HISTORY.sample(sid, torrents, transfer, disk_free, sample_every)
                 for h in newly:
-                    torrent = next((x for x in torrents if x.get("hash") == h), None)
-                    if torrent:
-                        send_notification(cfg, "Torrent completed", f"{torrent.get('name','Torrent')} finished on {server.get('name',sid)}")
-            except Exception as exc:
-                now = int(time.time())
+                    t = next((x for x in torrents if x.get("hash") == h), None)
+                    if t:
+                        send_notification(cfg, "Torrent completed", f"{t.get('name','Torrent')} finished on {server.get('name',sid)}")
+            except Exception as e:
                 with CACHE_LOCK:
-                    old = dict(CACHE.get(sid, {}))
-                    was_ok = old.get("ok") if old else None
-                    CACHE[sid] = {
-                        **old,
-                        "ok": False,
-                        "ts": now,
-                        "last_attempt": now,
-                        "server": {"id": sid, "name": server.get("name", sid)},
-                        "error": str(exc),
-                    }
-                if was_ok is not False:
-                    HISTORY.event(sid, "client_offline", server.get("name", sid), "", {"error": str(exc)[:1000]})
+                    old = CACHE.get(sid, {})
+                    CACHE[sid] = {**old, "ok": False, "ts": int(time.time()), "server": {"id":sid,"name":server.get("name",sid)}, "error": str(e)}
         try:
             HISTORY.cleanup(cfg["dashboard"].get("history_retention_days",30))
-        except Exception:
-            pass
+        except Exception: pass
         stop_event.wait(STATUS_REFRESH_SECONDS)
 
 
@@ -2039,19 +1893,6 @@ def configured_notification_sound(cfg):
         return None, None
     mime = str(n.get("custom_sound_mime") or mimetypes.guess_type(path.name)[0] or "application/octet-stream")
     return path, mime
-
-
-def public_notification_settings(cfg):
-    n = cfg.get("notifications", {}) if isinstance(cfg.get("notifications"), dict) else {}
-    rules = normalize_notification_rules(n.get("rules"), n.get("browser", True), n.get("sound", False))
-    sound_path, _ = configured_notification_sound(cfg)
-    return {
-        "browser": rules["torrent_completed"]["browser"],
-        "sound": rules["torrent_completed"]["sound"],
-        "sound_mode": "custom" if n.get("sound_mode") == "custom" else "default",
-        "custom_sound_configured": bool(sound_path),
-        "rules": rules,
-    }
 
 
 def normalize_github_repository(value: str) -> str:
@@ -2421,7 +2262,7 @@ class Handler(BaseHTTPRequestHandler):
             cfg,token,sess,new_cookie=self.auth()
             if not sess:
                 return self.send_json(401,{"authenticated":False,"auth_mode":cfg["auth"].get("mode")})
-            safe={"authenticated":True,"username":sess["username"],"display_name":sess.get("display_name") or sess["username"],"user_id":sess.get("user_id","") ,"group":sess.get("group","standard"),"group_label":USER_GROUPS.get(sess.get("group"),"Standard User"),"can_manage":session_is_admin(sess),"auth_kind":sess["auth_kind"],"csrf":sess["csrf"],"auth_mode":cfg["auth"].get("mode"),"title":cfg["dashboard"].get("title"),"version":VERSION,"lan_ip":local_lan_ip(),"port":cfg["dashboard"].get("port",8765),"scheme":"https" if cfg["dashboard"].get("https_enabled") else "http","notifications":public_notification_settings(cfg)}
+            safe={"authenticated":True,"username":sess["username"],"display_name":sess.get("display_name") or sess["username"],"user_id":sess.get("user_id","") ,"group":sess.get("group","standard"),"group_label":USER_GROUPS.get(sess.get("group"),"Standard User"),"can_manage":session_is_admin(sess),"auth_kind":sess["auth_kind"],"csrf":sess["csrf"],"auth_mode":cfg["auth"].get("mode"),"title":cfg["dashboard"].get("title"),"version":VERSION,"lan_ip":local_lan_ip(),"port":cfg["dashboard"].get("port",8765),"scheme":"https" if cfg["dashboard"].get("https_enabled") else "http"}
             return self.send_json(200,safe,new_cookie)
 
         ctx=self.require_auth(False)
@@ -2463,11 +2304,11 @@ class Handler(BaseHTTPRequestHandler):
                 "completed":sum(1 for t in payload.get("torrents",[]) if float(t.get("progress",0) or 0)>=.999999),
                 "paused":sum(1 for t in payload.get("torrents",[]) if "paused" in str(t.get("state","")).lower() or "stopped" in str(t.get("state","")).lower()),
             }
-            payload["server_health"] = client_health_snapshot(cfg)
             return self.send_json(200,payload,new_cookie)
 
         if path=="/api/servers":
-            return self.send_json(200,{"servers":client_health_snapshot(cfg)},new_cookie)
+            servers=[{"id":s.get("id"),"name":s.get("name",s.get("id")),"enabled":s.get("enabled",True)} for s in cfg.get("servers",[])]
+            return self.send_json(200,{"servers":servers},new_cookie)
 
         if path=="/api/detail":
             sid=qs.get("server",["local"])[0]; h=qs.get("hash",[""])[0]
@@ -2741,9 +2582,6 @@ def redacted_config(cfg):
     out["users"]=[public_user(u) for u in cfg.get("users",[])]
     out["integrations"]=redacted_integrations(cfg)
     n=out.get("notifications",{})
-    n["rules"] = normalize_notification_rules(n.get("rules"), n.get("browser", True), n.get("sound", False))
-    n["browser"] = n["rules"]["torrent_completed"]["browser"]
-    n["sound"] = n["rules"]["torrent_completed"]["sound"]
     for secret in ("gotify_token","telegram_bot_token"):
         if n.get(secret): n[secret]="<configured>"
     out["runtime"]={
@@ -2794,43 +2632,8 @@ def apply_settings_update(cfg,data):
             new.append(item)
         out["servers"]=new
     if "notifications" in data:
-        incoming = data["notifications"] if isinstance(data["notifications"], dict) else {}
-        if "sound_mode" in incoming:
-            mode = str(incoming.get("sound_mode") or "default")
-            if mode not in ("default", "custom"):
-                raise RuntimeError("Invalid notification sound mode")
-            out["notifications"]["sound_mode"] = mode
-        if "rules" in incoming:
-            current_rules = normalize_notification_rules(
-                out["notifications"].get("rules"),
-                out["notifications"].get("browser", True),
-                out["notifications"].get("sound", False),
-            )
-            supplied = incoming.get("rules") if isinstance(incoming.get("rules"), dict) else {}
-            merged_rules = {key: dict(value) for key, value in current_rules.items()}
-            for key in NOTIFICATION_RULE_KEYS:
-                if key not in supplied or not isinstance(supplied[key], dict):
-                    continue
-                merged_rules[key] = {
-                    "browser": bool(supplied[key].get("browser", current_rules[key]["browser"])),
-                    "sound": bool(supplied[key].get("sound", current_rules[key]["sound"])),
-                }
-            out["notifications"]["rules"] = merged_rules
-            out["notifications"]["browser"] = merged_rules["torrent_completed"]["browser"]
-            out["notifications"]["sound"] = merged_rules["torrent_completed"]["sound"]
-        else:
-            # Keep compatibility with clients that still submit the 0.5.33
-            # global browser/sound fields.
-            legacy_browser = bool(incoming.get("browser", out["notifications"].get("browser", True)))
-            legacy_sound = bool(incoming.get("sound", out["notifications"].get("sound", False)))
-            rules = normalize_notification_rules(out["notifications"].get("rules"), legacy_browser, legacy_sound)
-            if "browser" in incoming:
-                rules["torrent_completed"]["browser"] = legacy_browser
-            if "sound" in incoming:
-                rules["torrent_completed"]["sound"] = legacy_sound
-            out["notifications"]["rules"] = rules
-            out["notifications"]["browser"] = rules["torrent_completed"]["browser"]
-            out["notifications"]["sound"] = rules["torrent_completed"]["sound"]
+        for k,v in data["notifications"].items():
+            if k in out["notifications"] and v!="<configured>": out["notifications"][k]=v
     sync_legacy_auth(out)
     return out
 
@@ -2844,41 +2647,6 @@ def set_password_cli(password):
         cfg.setdefault("users",[]).append(normalize_user({"username":cfg.get("auth",{}).get("username") or "admin","password":password,"group":"administrator"},require_password=True))
     sync_legacy_auth(cfg); save_config(cfg)
     print("Dashboard password updated.")
-
-
-def enable_crash_logging():
-    global _CRASH_LOG_HANDLE
-    try:
-        DATA_DIR.mkdir(exist_ok=True)
-        _CRASH_LOG_HANDLE = open(CRASH_LOG_PATH, "a", encoding="utf-8", buffering=1)
-        _CRASH_LOG_HANDLE.write(f"\n--- Torrent Dashboard {VERSION} start {time.strftime('%Y-%m-%d %H:%M:%S')} ---\n")
-        faulthandler.enable(_CRASH_LOG_HANDLE, all_threads=True)
-
-        def log_thread_exception(args):
-            try:
-                _CRASH_LOG_HANDLE.write(f"\nUnhandled thread exception in {getattr(args.thread, 'name', 'thread')}:\n")
-                traceback.print_exception(args.exc_type, args.exc_value, args.exc_traceback, file=_CRASH_LOG_HANDLE)
-            except Exception:
-                pass
-
-        threading.excepthook = log_thread_exception
-    except Exception:
-        _CRASH_LOG_HANDLE = None
-
-
-def log_unhandled_exception():
-    try:
-        handle = _CRASH_LOG_HANDLE
-        if handle is None:
-            DATA_DIR.mkdir(exist_ok=True)
-            handle = open(CRASH_LOG_PATH, "a", encoding="utf-8")
-        handle.write(f"\nUnhandled main-thread exception {time.strftime('%Y-%m-%d %H:%M:%S')}:\n")
-        traceback.print_exc(file=handle)
-        handle.flush()
-        if handle is not _CRASH_LOG_HANDLE:
-            handle.close()
-    except Exception:
-        pass
 
 
 def main():
@@ -2927,12 +2695,4 @@ def main():
     except KeyboardInterrupt: pass
     finally: stop.set(); server.server_close()
 
-if __name__=="__main__":
-    enable_crash_logging()
-    try:
-        main()
-    except (KeyboardInterrupt, SystemExit):
-        raise
-    except BaseException:
-        log_unhandled_exception()
-        raise
+if __name__=="__main__": main()
