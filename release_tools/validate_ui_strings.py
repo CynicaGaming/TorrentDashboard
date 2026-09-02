@@ -131,7 +131,7 @@ def main():
 
     # 0.5.52 adds read-only .torrent parsing without changing either stable add path.
     assert '/api/torrent-metadata/parse' in app_js
-    assert '/api/torrent-metadata/save' not in app_js
+    assert '/api/torrent-metadata/save' in app_js
     assert 'function parseAddTorrentFileMetadata' in app_js
     assert 'function parsedTorrentMetadata' in app_js
     assert "form.append('torrents',file,file.name)" in app_js
@@ -162,6 +162,19 @@ def main():
     assert "downloads.temp_path_enabled" in app_js
     assert 'Use another path for incomplete torrents' in html
     assert '.client-path-grid{grid-template-columns:1fr}' in settings_css
+
+    # 0.5.54 enables export only after metadata is complete. It must use
+    # qBitTorrent's native saveMetadata cache without changing torrent addition.
+    assert 'id="addSaveTorrent"' in html
+    assert 'Save as .torrent' in html
+    assert 'async function saveAddTorrentMetadata()' in app_js
+    assert "fetch(url,{method:'GET',cache:'no-store'})" in app_js
+    assert "renderAddMetadataComplete(result.metadata||{},source)" in app_js
+    assert "renderAddMetadataComplete(metadata,metadata?.hash||'')" in app_js
+    assert "link.download=addMetadataState.exportName||'torrent.torrent'" in app_js
+    assert "self._request(\"GET\", route, expect_json=False)" in dashboard_py
+    assert "fd.append('filePriorities'" not in app_js
+    assert 'add_cached_metadata' not in app_js
 
     # 0.5.47 frontend generation contract. Navigation HTML is never cached,
     # stale versioned scripts trigger recovery, and optional Add Torrent bindings
