@@ -4,7 +4,7 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.57** (prerelease)
+- Latest documented build: **v0.5.58** (prerelease)
 - Repository: `CynicaGaming/TorrentDashboard`
 - Development branch: `refactor/backend-modularization-users`
 - Prerelease branch: `prerelease/backend-modularization`
@@ -12,7 +12,7 @@
 
 ### Latest release summary
 
-Adds a structured release metadata pipeline that generates GitHub release notes, in-app patch notes, a cumulative changelog, and a durable project handoff document for future development sessions.
+Expanded Settings → Updates from a single latest-release note block into a collapsible patch-note history for every documented Torrent Dashboard revision.
 
 ## Architecture state
 
@@ -21,12 +21,14 @@ Adds a structured release metadata pipeline that generates GitHub release notes,
 - Configuration transaction coordination lives in torrent_dashboard/config_store.py while config normalization and migration logic still lives in dashboard.py.
 - The updater consumes public GitHub Releases and already exposes each release body as manifest.notes.
 - Completed development increments are published from prerelease/backend-modularization; active refactor work remains on refactor/backend-modularization-users.
+- Update history is sourced from bundled structured release metadata and supplemented with the latest GitHub release manifest during update checks.
 
 ## Current engineering decisions
 
 - Continue modularization in behavior-preserving increments rather than combining refactors with unrelated feature changes.
 - Use structured release metadata rather than commit-message inference as the authoritative source for release notes.
 - Keep PROJECT_STATE.md generated and read-only so it cannot drift from release metadata.
+- Preserve future GitHub prereleases instead of deleting all older prereleases during publication.
 
 ## Development principles
 
@@ -36,6 +38,15 @@ Adds a structured release metadata pipeline that generates GitHub release notes,
 - Keep user-facing patch notes separate from engineering handoff details.
 
 ## Recent work
+
+### v0.5.58 — Collapsible revision patch notes
+
+Expanded Settings → Updates from a single latest-release note block into a collapsible patch-note history for every documented Torrent Dashboard revision.
+
+- Settings → Updates now shows one collapsible patch-note entry per documented revision, ordered newest first.
+- Bundled release metadata is available immediately when the Updates page opens; a newly discovered GitHub release is merged into the history before it is installed.
+- The newest revision opens by default and each older revision can be expanded independently.
+- Future prerelease publication preserves older prereleases instead of deleting the complete prerelease history.
 
 ### v0.5.57 — Release notes and project handoff pipeline
 
@@ -66,6 +77,10 @@ Started the backend modularization by extracting the user and account domain fro
 1. **Extract configuration normalization and persistence** — Move config loading, migration, normalization, sanitization, and atomic persistence out of dashboard.py while preserving ConfigStore as the transaction coordinator.
 2. **Expand behavioral tests** — Add end-to-end authorization, account, CSRF, setup, and configuration mutation coverage around the new module boundaries.
 3. **Harden secrets at rest** — After the configuration module boundary is stable, add restrictive file permissions and a cleaner separation between ordinary configuration and stored credentials.
+
+## Known issues
+
+- Structured historical notes begin at v0.5.55 because earlier releases predate the release metadata pipeline.
 
 ## Handoff instructions for a new development session
 

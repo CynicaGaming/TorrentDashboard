@@ -67,7 +67,7 @@ UPDATE_DIR = DATA_DIR / "updates"
 UPDATE_STATE_PATH = DATA_DIR / "update-status.json"
 CUSTOM_SOUND_BASENAME = "custom-notification-sound"
 MAX_CUSTOM_SOUND_BYTES = 2 * 1024 * 1024
-VERSION = "0.5.57"
+VERSION = "0.5.58"
 STATUS_REFRESH_SECONDS = 1.0
 DEFAULT_UPDATE_REPOSITORY = "CynicaGaming/TorrentDashboard"
 
@@ -1949,6 +1949,7 @@ def fetch_update_release(cfg):
         "publishedAt":str(release.get("published_at") or release.get("created_at") or ""),
         "releaseUrl":str(release.get("html_url") or ""),
         "notes":str(release.get("body") or ""),
+        "title":str(release.get("name") or f"Torrent Dashboard v{version}"),
         "asset":{
             "name":str(asset.get("name") or f"Torrent-Dashboard-{version}.zip"),
             "githubApiUrl":api_url,
@@ -1966,6 +1967,48 @@ def fetch_update_release(cfg):
 # no external update-manifest.json asset.
 def fetch_update_manifest(cfg):
     return fetch_update_release(cfg)
+
+
+def _release_history_markdown(item):
+    version=str(item.get("version") or "").strip().lstrip("vV")
+    title=str(item.get("title") or f"Torrent Dashboard v{version}").strip()
+    summary=str(item.get("summary") or "").strip()
+    lines=[f"## v{version} — {title}"]
+    if summary:
+        lines.extend(["",summary])
+    for heading,values in (("What's changed",item.get("highlights") or []),("Fixes",item.get("fixes") or []),("Technical notes",item.get("technical") or []),("Validation",item.get("validation") or []),("Known issues",item.get("known_issues") or [])):
+        clean=[str(x).strip() for x in values if str(x).strip()]
+        if clean:
+            lines.extend(["",f"### {heading}",""])
+            lines.extend([""]+[f"- {value}" for value in clean])
+    return "\n".join(lines).strip()+"\n"
+
+
+def local_release_history(latest_manifest=None,limit=30):
+    entries=[]
+    try:
+        data=json.loads((APP_DIR/"release_notes"/"releases.json").read_text(encoding="utf-8"))
+        for raw in data.get("releases",[]):
+            if not isinstance(raw,dict): continue
+            version=str(raw.get("version") or "").strip().lstrip("vV")
+            if not re.fullmatch(r"\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?",version): continue
+            entries.append({"version":version,"title":str(raw.get("title") or f"Torrent Dashboard v{version}"),"summary":str(raw.get("summary") or ""),"publishedAt":str(raw.get("date") or ""),"channel":"prerelease" if raw.get("status")=="prerelease" else "stable","notes":_release_history_markdown(raw),"source":"bundled"})
+    except Exception: entries=[]
+    if isinstance(latest_manifest,dict) and latest_manifest.get("version"):
+        version=str(latest_manifest.get("version") or "").strip().lstrip("vV")
+        remote={"version":version,"title":str(latest_manifest.get("title") or f"Torrent Dashboard v{version}"),"summary":"","publishedAt":str(latest_manifest.get("publishedAt") or ""),"channel":str(latest_manifest.get("channel") or ""),"notes":str(latest_manifest.get("notes") or ""),"source":"github"}
+        idx=next((i for i,x in enumerate(entries) if x.get("version")==version),None)
+        if idx is None: entries.append(remote)
+        else: entries[idx]={**entries[idx],**{k:v for k,v in remote.items() if v}}
+    try: entries.sort(key=lambda x:_version_key(x.get("version") or "0"),reverse=True)
+    except Exception: entries.reverse()
+    seen=set();out=[]
+    for item in entries:
+        version=item.get("version")
+        if not version or version in seen: continue
+        seen.add(version);out.append(item)
+        if len(out)>=max(1,int(limit)): break
+    return out
 
 def update_state():
     if not UPDATE_STATE_PATH.exists(): return {"state":"idle","currentVersion":VERSION}
@@ -2528,12 +2571,12 @@ class Handler(BaseHTTPRequestHandler):
         try:
             repo = update_repository(cfg)
         except Exception as e:
-            return self.send_json(200,{"configured":False,"currentVersion":VERSION,"error":str(e),"state":update_state()},new_cookie)
+            return self.send_json(200,{"configured":False,"currentVersion":VERSION,"error":str(e),"state":update_state(),"releaseHistory":local_release_history()},new_cookie)
         try:
             manifest=fetch_update_manifest(cfg)
-            return self.send_json(200,{"configured":True,"repository":repo,"currentVersion":VERSION,"manifest":manifest,"updateAvailable":manifest.get("updateAvailable",False),"state":update_state()},new_cookie)
+            return self.send_json(200,{"configured":True,"repository":repo,"currentVersion":VERSION,"manifest":manifest,"updateAvailable":manifest.get("updateAvailable",False),"state":update_state(),"releaseHistory":local_release_history(manifest)},new_cookie)
         except Exception as e:
-            return self.send_json(502,{"configured":True,"repository":repo,"currentVersion":VERSION,"error":str(e),"state":update_state()},new_cookie)
+            return self.send_json(502,{"configured":True,"repository":repo,"currentVersion":VERSION,"error":str(e),"state":update_state(),"releaseHistory":local_release_history()},new_cookie)
 
 
 def redacted_config(cfg):
@@ -2555,6 +2598,7 @@ def redacted_config(cfg):
         "trusted_interface_networks": interface_networks(cfg.get("auth",{}).get("trusted_interfaces",[])),
         "effective_trusted_cidrs": effective_trusted_cidrs(cfg.get("auth",{})),
         "updateState": update_state(),
+        "releaseHistory": local_release_history(),
     }
     return out
 

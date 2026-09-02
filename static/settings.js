@@ -200,7 +200,7 @@ window.TDSettings = (() => {
 
     const updateRepository = s.updates?.repository || '';
     setValue('uRepository', updateRepository);
-    renderUpdateInfo({configured:!!updateRepository,repository:updateRepository,currentVersion:state.me?.version,state:s.runtime?.updateState||{}});
+    renderUpdateInfo({configured:!!updateRepository,repository:updateRepository,currentVersion:state.me?.version,state:s.runtime?.updateState||{},releaseHistory:s.runtime?.releaseHistory||[]});
 
     renderServerSettings(s.servers || []);
     [...document.querySelectorAll('.server-setting')].forEach((row, index) => {

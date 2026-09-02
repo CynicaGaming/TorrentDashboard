@@ -108,6 +108,65 @@
           "detail": "After the configuration module boundary is stable, add restrictive file permissions and a cleaner separation between ordinary configuration and stored credentials."
         }
       ]
+    },
+    {
+      "version": "0.5.58",
+      "date": "2026-09-02",
+      "status": "prerelease",
+      "title": "Collapsible revision patch notes",
+      "summary": "Expanded Settings \u2192 Updates from a single latest-release note block into a collapsible patch-note history for every documented Torrent Dashboard revision.",
+      "highlights": [
+        "Settings \u2192 Updates now shows one collapsible patch-note entry per documented revision, ordered newest first.",
+        "Bundled release metadata is available immediately when the Updates page opens; a newly discovered GitHub release is merged into the history before it is installed.",
+        "The newest revision opens by default and each older revision can be expanded independently.",
+        "Future prerelease publication preserves older prereleases instead of deleting the complete prerelease history."
+      ],
+      "fixes": [
+        "Patch notes are no longer limited to only the latest GitHub release body."
+      ],
+      "technical": [
+        "The backend exposes sanitized releaseHistory metadata from release_notes/releases.json and merges the current GitHub manifest into it.",
+        "The accordion renderer continues to build DOM nodes with textContent rather than injecting release HTML."
+      ],
+      "validation": [
+        "Python compilation validates the release-history helper and existing update path.",
+        "JavaScript syntax validation covers the accordion, version ordering, and safe Markdown-to-DOM renderer.",
+        "Generated CHANGELOG.md and PROJECT_STATE.md must match the v0.5.58 structured metadata before publication."
+      ],
+      "known_issues": [
+        "Structured historical notes begin at v0.5.55 because earlier releases predate the release metadata pipeline."
+      ],
+      "architecture": [
+        "The application remains a Python standard-library ThreadingHTTPServer service with most HTTP routing still in dashboard.py.",
+        "User and account domain logic lives in torrent_dashboard/users.py.",
+        "Configuration transaction coordination lives in torrent_dashboard/config_store.py while config normalization and migration logic still lives in dashboard.py.",
+        "The updater consumes public GitHub Releases and already exposes each release body as manifest.notes.",
+        "Completed development increments are published from prerelease/backend-modularization; active refactor work remains on refactor/backend-modularization-users.",
+        "Update history is sourced from bundled structured release metadata and supplemented with the latest GitHub release manifest during update checks."
+      ],
+      "decisions": [
+        "Continue modularization in behavior-preserving increments rather than combining refactors with unrelated feature changes.",
+        "Use structured release metadata rather than commit-message inference as the authoritative source for release notes.",
+        "Keep PROJECT_STATE.md generated and read-only so it cannot drift from release metadata.",
+        "Preserve future GitHub prereleases instead of deleting all older prereleases during publication."
+      ],
+      "next_steps": [
+        {
+          "priority": 1,
+          "title": "Extract configuration normalization and persistence",
+          "detail": "Move config loading, migration, normalization, sanitization, and atomic persistence out of dashboard.py while preserving ConfigStore as the transaction coordinator."
+        },
+        {
+          "priority": 2,
+          "title": "Expand behavioral tests",
+          "detail": "Add end-to-end authorization, account, CSRF, setup, and configuration mutation coverage around the new module boundaries."
+        },
+        {
+          "priority": 3,
+          "title": "Harden secrets at rest",
+          "detail": "After the configuration module boundary is stable, add restrictive file permissions and a cleaner separation between ordinary configuration and stored credentials."
+        }
+      ]
     }
   ]
 }
