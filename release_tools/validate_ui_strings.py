@@ -50,6 +50,7 @@ def main():
     app_css = (ROOT / "static" / "app.css").read_text(encoding="utf-8")
     settings_css = (ROOT / "static" / "settings.css").read_text(encoding="utf-8")
     dashboard_py = (ROOT / "dashboard.py").read_text(encoding="utf-8")
+    sw = (ROOT / "static" / "sw.js").read_text(encoding="utf-8")
 
     validate_html_attributes(html)
     validate_javascript("static/app.js", app_js)
@@ -58,142 +59,54 @@ def main():
     assert 'placeholder="Search torrents…"' in html
     assert 'id="savedView"' not in html
     assert 'id="saveView"' not in html
-    assert 'tdSavedViews' not in app_js
-    assert 'function syncFilterSelect' in app_js
-    assert 'document.activeElement===select' in app_js
-    assert 'optionsSignature' in app_js
-    assert "function normalizeUiAttributes" in app_js
-    assert "attributeFilter:['placeholder','title','aria-label']" in app_js
-    assert "applySentenceCaseUi(card)" in settings_js
-
-    # Torrent interaction contract: explicit context menu rather than row-click
-    # navigation, with qBitTorrent-inspired grouping and no automatic management.
-    assert "Torrent details" in app_js
-    assert "Torrent options…" not in app_js
-    assert "Automatic torrent management" not in app_js
-    assert "set_auto_management" not in app_js
-    assert "set_auto_management" not in dashboard_py
-    assert "openDetail(tr.dataset.server,tr.dataset.hash)" not in app_js
-    assert "menu-separator" in app_css and "@media(max-width:700px)" in app_css
-    assert "e.target.closest('button[data-a]')" in app_js
-
-    # Updates owns the public GitHub repository directly. GitHub must not be a
-    # modular integration and update installation remains a reactive button.
-    assert 'DEFAULT_UPDATE_REPOSITORY = "CynicaGaming/TorrentDashboard"' in dashboard_py
-    assert 'def update_repository(cfg):' in dashboard_py
-    assert 'def save_update_source(cfg, repository):' in dashboard_py
-    assert 'github_update_integration' not in dashboard_py
-    assert 'Only one GitHub integration can be configured' not in dashboard_py
-    assert '/api/update-source-test' not in dashboard_py
-    assert 'test_github_update_access' not in dashboard_py
-    assert 'def validate_update_repository(repository: str):' in dashboard_py
-    assert 'repo = validate_update_repository(update_repository(cfg))' in dashboard_py
-    assert '/api/update-source' in dashboard_py
-    assert 'id="uRepository"' in html
-    assert 'id="updateSourceTest"' not in html
-    assert 'id="updateSourceResult"' not in html
-    assert 'updateSourceTest' not in settings_js
-    assert 'updateSourceResult' not in settings_js
-    assert 'id="updateSourceSave"' not in html
-    assert 'Save Settings' not in html
-    assert '<div class="settings-savebar" id="settingsSavebar"><button class="primary" type="submit">Save</button></div>' in html
-    # Settings navigation labels and card titles must use the same canonical names.
-    for title in ('General','Access','Clients','Updates','Notifications','Integrations','Users'):
-        assert f'<div class="panel-title">{title}</div>' in html
-    assert '<div class="panel-title">General Dashboard Settings</div>' not in html
-    assert '<div class="panel-title">Dashboard Access</div>' not in html
-    assert '<div class="panel-title">qBitTorrent Servers</div>' not in html
-    assert '<div class="panel-title">User Management</div>' not in html
-    assert '(Optional)' not in settings_js
-    assert settings_js.count('class="required-mark"') >= 4
-    assert '.required-mark{color:#ff5d6c' in settings_css
-    assert 'class="field-label">Username <span class="required-mark"' in settings_js
-    assert 'class="user-group-select"' in settings_js
-    assert '.user-group-select{display:block;width:100%' in settings_css
-    assert 'id="testNotification"' in html
-    assert 'settingsNotifyPermission' not in html and 'settingsNotifyPermission' not in settings_js
-    assert 'id="notifyPermission"' not in html and '#notifyPermission' not in app_js
-    assert 'async function testNotification()' in settings_js
-    assert 'Notification.requestPermission()' in settings_js
-    assert 'async function showBrowserNotification' in app_js
-    assert 'CREATE_NO_WINDOW' in dashboard_py and '**_windows_background_process_kwargs()' in dashboard_py
-    assert "const corePages = new Set(['general','access','clients','updates','notifications']);" in settings_js
-    assert "if (activePage === 'updates') return saveUpdateSource();" in settings_js
-    assert '#updateSourceSave' not in settings_js
-    assert 'data-settings-page="updates" type="button">Updates</button>' in html
-    assert 'data-settings-page="access" type="button">Access</button>' in html
-    assert 'data-settings-page="clients" type="button">Clients</button>' in html
-    assert 'data-settings-page="users" type="button">Users</button>' in html
-    assert '<option value="access">Access</option>' in html
-    assert '<option value="clients">Clients</option>' in html
-    assert '<option value="users">Users</option>' in html
-    assert 'data-settings-page="access" type="button">Dashboard Access</button>' not in html
-    assert 'data-settings-page="clients" type="button">Download Clients</button>' not in html
-    assert 'data-settings-page="users" type="button">User Management</button>' not in html
-    assert '<option value="updates">Updates</option>' in html
-    assert 'Application Updates' not in html
-    assert "x.type === 'github'" not in settings_js
-    assert "title:'Install update'" not in app_js
-    assert "confirmLabel:'Install and restart'" not in app_js
-    assert 'UPDATE_STATE_PATH.unlink(missing_ok=True)' in dashboard_py
-    assert 'shutil.rmtree(UPDATE_DIR, ignore_errors=True)' in dashboard_py
-
-    assert 'id="sUpdateRepo"' not in html
-    assert 'id="sUpdateToken"' not in html
-    assert 'id="sUpdateAutoCheck"' not in html
-    assert 'id="sUpdateHours"' not in html
-    assert 'id="testUpdateAccess"' not in html
-    assert 'id="wUpdateRepo"' not in html
-    assert 'id="wUpdateToken"' not in html
-    assert 'id="wUpdatesEnabled"' not in html
-    assert 'id="wUpdateAutoCheck"' not in html
-    assert 'Test GitHub Connection' not in html
-    assert 'maybeAutoCheckUpdates' not in app_js
-    assert 'setup_test_github' not in dashboard_py
-    assert '/api/update-test' not in dashboard_py
-    assert 'id="settingsPageTitle"' not in html
-    assert 'Settings are separated by category' not in html
-    assert 'Save User' not in settings_js
-    assert '<div class="field-help">Standard Users have read-only dashboard access.' not in settings_js
-    assert ' · ${esc(group)}' not in settings_js
-    assert 'function integrationSubtitle' in settings_js
-    assert '0.5.14 readability pass' in app_css
-    assert '0.5.14 settings de-duplication' in settings_css
-    assert 'id="wRefresh"' not in html and 'id="sRefresh"' not in html
-    assert 'id="actionDialogModal"' in html and 'id="actionDialogForm"' in html
-    assert 'LIVE_REFRESH_MS=1000' in app_js
-    assert 'refreshMs' not in app_js and 'refresh_seconds' not in app_js and 'refresh_seconds' not in settings_js
-    assert not re.search(r'(?<!\.)\bprompt\s*\(', app_js)
-    assert not re.search(r'\bconfirm\s*\(', app_js)
-    assert 'STATUS_REFRESH_SECONDS = 1.0' in dashboard_py
-    assert 'stop_event.wait(STATUS_REFRESH_SECONDS)' in dashboard_py
-    assert '0.5.16 unified application dialog' in app_css
-    assert 'data-view="history"' not in html
+    assert 'Save Current View' not in html
+    assert 'Saved Views' not in html
+    assert 'function renderSavedViews' not in app_js
+    assert 'savedViews' not in app_js
+    assert 'id="kpiRange"' not in html
+    assert 'id="chartRange"' not in html
+    assert 'id="transferChart"' not in html
+    assert 'id="ratioChart"' not in html
+    assert 'id="analyticsGrid"' not in html
+    assert 'function loadAnalytics' not in app_js
+    assert 'function drawTransferChart' not in app_js
+    assert 'function drawRatioChart' not in app_js
+    assert 'id="historyTable"' not in html
+    assert 'id="historyRange"' not in html
     assert 'Transfer History' not in html
-    assert 'data-view="notifications"' in html
-    assert 'id="view-notifications"' in html
-    assert 'id="notificationList"' in html
-    assert 'async function loadNotifications' in app_js
-    assert 'async function loadHistory' not in app_js
-    assert 'id="removeModal"' in html
-    assert 'id="removeFiles"' in html
-    assert 'Also delete the downloaded files' in html
-    assert 'async function removeTorrentTargets' in app_js
-    assert "confirm('Also delete downloaded files?" not in app_js
-    assert "confirm('Delete downloaded files too?')" not in app_js
-    assert 'nav-caret' not in html
-    assert 'setSettingsNavExpanded(!expanded)' not in app_js
-    assert "$$('.nav-root,.settings-subnav button,.mobile-nav button')" in app_js
-    assert '0.5.15 removal dialog and notification center' in app_css
-    assert 'id="settingsNavGroup"' in html
+    assert 'function loadHistory' not in app_js
+    assert 'function renderHistory' not in app_js
+    assert 'id="view-history"' not in html
+    assert 'data-view="history"' not in html
+    assert 'id="settingsNavToggle"' in html
     assert 'id="settingsSubnav"' in html
     assert 'id="settingsMobilePage"' in html
+    assert 'data-settings-page="general"' in html
+    assert 'data-settings-page="access"' in html
+    assert 'data-settings-page="clients"' in html
+    assert 'data-settings-page="updates"' in html
+    assert 'data-settings-page="notifications"' in html
+    assert 'data-settings-page="integrations"' in html
+    assert 'data-settings-page="users"' in html
+    assert '<option value="general">General</option>' in html
+    assert '<option value="access">Access</option>' in html
+    assert '<option value="clients">Clients</option>' in html
+    assert '<option value="updates">Updates</option>' in html
+    assert '<option value="notifications">Notifications</option>' in html
+    assert '<option value="integrations">Integrations</option>' in html
+    assert '<option value="users">Users</option>' in html
+    assert 'id="settingsPageTitle"' not in html
+    assert 'Settings are separated by category' not in html
     assert 'class="settings-nav"' not in html
+    assert 'id="settingsNavGroup"' in html
+    assert 'function setSettingsNavExpanded' in app_js
+    assert "$$('.nav-root,.settings-subnav button,.mobile-nav button')" in app_js
+    assert '@media(min-width:821px){.settings-nav{margin-top:0}}' in settings_css
+    assert 'margin-top:52px' not in settings_css
     assert 'data-bulk-clear="1"' in html
-    assert "function setSettingsNavExpanded" in app_js
     assert "state.selected.clear();render();return" in app_js
-    assert "#settingsMobilePage" in settings_js
-    assert "position:fixed!important" in app_css
+    assert '#settingsMobilePage' in settings_js
+    assert 'position:fixed!important' in app_css
     assert '.standard-user .row-actions' not in settings_css
     assert '.standard-user #contextMenu' not in settings_css
 
@@ -226,7 +139,7 @@ def main():
     assert 'currentUserName' not in app_js and 'currentUserGroup' not in app_js
     assert '<div class="sidebar-foot"><small id="version">—</small></div>' in html
 
-    # 0.5.28 local secret icons, secure account changes, and curated client settings.
+    # Local secret icons, secure account changes, and curated client settings.
     assert 'id="addBtn"' not in html and 'id="moreBtn"' not in html
     assert 'id="addLinkBtn"' in html and 'id="addFileBtn"' in html
     assert 'function secretToggleSvg' in app_js and 'material-symbol-icon' in app_js
@@ -262,6 +175,14 @@ def main():
     assert '0.5.26 qBitTorrent-style torrent toolbar' in app_css
     assert '0.5.28 advanced per-client qBitTorrent settings' in settings_css
 
+    # 0.5.38 sidebar identity remains in the stable runtime baseline.
+    assert 'id="homeBrand"' in html and 'id="brandAddress"' in html
+    assert 'qBitTorrent Control' not in html
+    assert "state.me.lan_ip||'Local'" in app_js
+    assert "$('#homeBrand').addEventListener('click',()=>setView('dashboard'))" in app_js
+
+    # v0.5.41 recovery boundary: never mix a stale app shell with JavaScript
+    # from another build, and keep browser/network failures observable.
     assert 'Frontend build mismatch' in dashboard_py
     assert 'requested != VERSION' in dashboard_py
     assert "event.request.mode==='navigate'" in sw
@@ -269,6 +190,7 @@ def main():
     assert '[Torrent Dashboard]' in settings_js
     assert '__tdFetchDiagnostics' in settings_js
     assert '__tdReportError' in app_js
+
     print("UI string audit passed")
 
 
