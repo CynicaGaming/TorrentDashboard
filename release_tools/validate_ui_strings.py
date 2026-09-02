@@ -103,6 +103,19 @@ def main():
     assert '/api/torrent-metadata/fetch' not in dashboard_py
     assert 'addMetadataState' not in app_js
     assert 'Metadata retrieval complete' not in app_js
+    # 0.5.49 activates qBitTorrent add-time options while keeping metadata disabled.
+    assert 'id="addTorrentBtn"' in html
+    assert "function openAddTorrent(){" in app_js and "torrentFile').click()" not in app_js
+    for control in ('addAutoTmm','addUseDownloadPath','addDownloadPath','addRename','addStartTorrent','addStopCondition','addToTop','addSeedMode','addContentLayout','addDlLimit','addUlLimit'):
+        assert f'id="{control}"' in html
+    assert 'function addTorrentOptions()' in app_js and 'function appendAddTorrentFields' in app_js
+    assert "fd.append('autoTMM'" in app_js and "fd.append('contentLayout'" in app_js
+    assert '"autoTMM"' in dashboard_py and '"addToTopOfQueue"' in dashboard_py and '"seedMode"' in dashboard_py
+    assert '"stopCondition"' in dashboard_py and '"contentLayout"' in dashboard_py
+    assert '0.5.49 Add Torrent advanced options' in app_css
+    assert 'fetch_torrent_metadata' not in dashboard_py
+    assert '/api/torrent-metadata/fetch' not in dashboard_py
+    assert 'addMetadataState' not in app_js
     # 0.5.47 frontend generation contract. Navigation HTML is never cached,
     # stale versioned scripts trigger recovery, and optional Add Torrent bindings
     # cannot abort critical dashboard startup.
@@ -275,7 +288,7 @@ def main():
 
     # 0.5.28 local secret icons, secure account changes, and curated client settings.
     assert 'id="addBtn"' not in html and 'id="moreBtn"' not in html
-    assert 'id="addLinkBtn"' in html and 'id="addFileBtn"' in html
+    assert 'id="addTorrentBtn"' in html and 'id="addLinkBtn"' not in html and 'id="addFileBtn"' not in html
     assert 'function secretToggleSvg' in app_js and 'material-symbol-icon' in app_js
     assert 'visibility_lock' in app_js and "visibility'" in app_js
     assert 'material-symbols-outlined' not in app_css

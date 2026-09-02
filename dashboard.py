@@ -45,7 +45,7 @@ MAX_CUSTOM_SOUND_BYTES = 2 * 1024 * 1024
 AVATAR_DIR = DATA_DIR / "avatars"
 MAX_AVATAR_BYTES = 4 * 1024 * 1024
 PROFILE_AVATAR_TYPES = {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp"}
-VERSION = "0.5.48"
+VERSION = "0.5.49"
 STATUS_REFRESH_SECONDS = 1.0
 DEFAULT_UPDATE_REPOSITORY = "CynicaGaming/TorrentDashboard"
 
@@ -1544,14 +1544,30 @@ class QBitClient:
         if action == "create_tags":
             return self.post("/api/v2/torrents/createTags", {"tags": str(payload.get("tags", ""))[:1024]})
         if action == "add_magnet":
+            stop_condition = str(payload.get("stop_condition") or "None")
+            if stop_condition not in ("None", "MetadataReceived", "FilesChecked"):
+                raise RuntimeError("Unsupported torrent stop condition")
+            content_layout = str(payload.get("content_layout") or "Original")
+            if content_layout not in ("Original", "Subfolder", "NoSubfolder"):
+                raise RuntimeError("Unsupported torrent content layout")
             form = {
                 "urls": str(payload.get("urls", ""))[:16000],
+                "autoTMM": str(bool(payload.get("auto_tmm", False))).lower(),
                 "savepath": str(payload.get("savepath", ""))[:2048],
+                "useDownloadPath": str(bool(payload.get("use_download_path", False))).lower(),
+                "downloadPath": str(payload.get("download_path", ""))[:2048],
+                "rename": str(payload.get("rename", ""))[:512],
                 "category": str(payload.get("category", ""))[:256],
                 "tags": str(payload.get("tags", ""))[:1024],
                 "stopped": str(bool(payload.get("stopped", False))).lower(),
+                "stopCondition": stop_condition,
+                "addToTopOfQueue": str(bool(payload.get("add_to_top", False))).lower(),
+                "seedMode": str(bool(payload.get("seed_mode", False))).lower(),
                 "sequentialDownload": str(bool(payload.get("sequential", False))).lower(),
                 "firstLastPiecePrio": str(bool(payload.get("first_last", False))).lower(),
+                "contentLayout": content_layout,
+                "dlLimit": max(0, int(payload.get("dl_limit", 0) or 0)),
+                "upLimit": max(0, int(payload.get("ul_limit", 0) or 0)),
             }
             return self.post("/api/v2/torrents/add", form)
         raise RuntimeError(f"Unsupported action: {action}")
