@@ -98,10 +98,9 @@ write("static/app.css", css)
 
 
 design = read("DESIGN_LANGUAGE.md")
-design = design.replace(
-    "## Client-style dashboard chrome\n\nThe dashboard should prioritize live client state over repeated navigation labels. On the Dashboard view, the sidebar/mobile navigation already establishes location, so the redundant page title/subtitle is hidden while server, torrent-control, and account actions remain available.\n",
-    "## Client-style dashboard workspace\n\nThe Dashboard retains its page title and short activity subtitle for visual hierarchy and orientation. Navigation establishes location, but the heading is intentionally kept because removing it does not materially increase usable torrent space and weakens the page hierarchy.\n",
-)
+old_design_section = """## Client-style dashboard chrome\n\nOn the Dashboard view, navigation already establishes location, so the redundant Dashboard title/subtitle is hidden while server, torrent-control, and account actions remain visible. On desktop/tablet, the torrent workspace fills the actual remaining viewport so the persistent Torrent details disclosure stays anchored to the bottom. Collapsed it reads as a compact client-style bar; expanded it grows upward while the torrent list scrolls above it.\n"""
+new_design_section = """## Client-style dashboard workspace\n\nThe Dashboard retains its page title and short activity subtitle for visual hierarchy and orientation. Navigation also establishes location, but removing the heading does not materially increase usable torrent space and weakens the page hierarchy. On desktop/tablet, the torrent workspace fills the actual remaining viewport so the persistent Torrent details disclosure stays anchored to the bottom. Collapsed it reads as a compact client-style bar; expanded it grows upward while the torrent list scrolls above it.\n"""
+design = replace_once(design, old_design_section, new_design_section, "client-style dashboard design section")
 design += """\n\n## Explicit update checks\n\nSettings → Updates must not initiate a GitHub network check merely because the page is opened. Cached/local release information may render immediately, but freshness is user-directed through the Check for updates action. This keeps network activity predictable and preserves a clear distinction between viewing update settings and requesting an update check.\n\nWhen the Torrent details disclosure has no selected torrent, the compact handle should remain visually quiet: show only the stable Torrent details label and disclosure affordance. Selection-specific copy appears only when a torrent is actually selected.\n"""
 write("DESIGN_LANGUAGE.md", design)
 
