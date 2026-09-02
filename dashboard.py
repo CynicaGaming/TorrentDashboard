@@ -45,7 +45,7 @@ MAX_CUSTOM_SOUND_BYTES = 2 * 1024 * 1024
 AVATAR_DIR = DATA_DIR / "avatars"
 MAX_AVATAR_BYTES = 4 * 1024 * 1024
 PROFILE_AVATAR_TYPES = {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp"}
-VERSION = "0.5.41"
+VERSION = "0.5.42"
 STATUS_REFRESH_SECONDS = 1.0
 DEFAULT_UPDATE_REPOSITORY = "CynicaGaming/TorrentDashboard"
 
@@ -2233,30 +2233,6 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         path,_,query=self.path.partition("?"); qs=urllib.parse.parse_qs(query)
-        # A service worker can briefly retain an older HTML shell across an update.
-        # Static query versions are cache keys only, so without this guard an old
-        # shell could execute a newer app.js against incompatible DOM. When that
-        # happens, serve a tiny recovery script instead of mixed-generation code.
-        if path in ("/static/settings.js", "/static/app.js"):
-            requested = str(qs.get("v", [""])[0] or "")
-            if requested and requested != VERSION:
-                recovery = f"""
-console.warn('[Torrent Dashboard] Frontend build mismatch: requested {requested}, server {VERSION}. Clearing stale application caches.');
-(async()=>{{
-  try{{
-    if('serviceWorker' in navigator){{
-      const regs=await navigator.serviceWorker.getRegistrations();
-      await Promise.all(regs.map(reg=>reg.unregister()));
-    }}
-    if('caches' in window){{
-      const keys=await caches.keys();
-      await Promise.all(keys.filter(key=>key.startsWith('torrent-dashboard-')).map(key=>caches.delete(key)));
-    }}
-  }}catch(error){{console.error('[Torrent Dashboard] Cache recovery failed',error)}}
-  finally{{location.replace('/?td-recover={VERSION}&ts='+Date.now())}}
-}})();
-""".encode("utf-8")
-                return self.send_bytes(200,recovery,"application/javascript; charset=utf-8")
         if path=="/health": return self.send_json(200,{"ok":True,"version":VERSION,"pid":os.getpid(),"application":str(APP_DIR),"python":sys.executable})
         if path=="/manifest.webmanifest": return self.serve_static("manifest.webmanifest")
         if path=="/sw.js": return self.serve_static("sw.js","application/javascript; charset=utf-8")
