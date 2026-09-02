@@ -50,6 +50,7 @@ def main():
     app_css = (ROOT / "static" / "app.css").read_text(encoding="utf-8")
     settings_css = (ROOT / "static" / "settings.css").read_text(encoding="utf-8")
     dashboard_py = (ROOT / "dashboard.py").read_text(encoding="utf-8")
+    users_py = (ROOT / "torrent_dashboard" / "users.py").read_text(encoding="utf-8")
 
     validate_html_attributes(html)
     validate_javascript("static/app.js", app_js)
@@ -329,10 +330,10 @@ def main():
     assert "await post('/api/account/password'" in app_js
     assert "await api('/api/account/avatar',{method:'POST'" in app_js
     assert '0.5.24 self-service account menu' in app_css
-    assert 'MAX_AVATAR_BYTES = 4 * 1024 * 1024' in dashboard_py
-    assert 'def save_current_user_profile' in dashboard_py
-    assert 'def change_current_user_password' in dashboard_py
-    assert 'def store_user_avatar' in dashboard_py
+    assert 'MAX_AVATAR_BYTES = 4 * 1024 * 1024' in users_py
+    assert 'def save_current_user_profile' in users_py
+    assert 'def change_current_user_password' in users_py
+    assert 'def store_user_avatar' in users_py
     assert 'def remove_user_except(self, user_id, keep_token)' in dashboard_py
     assert 'if path=="/api/account/avatar":' in dashboard_py
     post_section = dashboard_py.split('    def do_POST(self):', 1)[1]
@@ -360,12 +361,12 @@ def main():
     assert 'id="accountGroup"' not in html and 'accountGroup' not in app_js
     profile_update_js = app_js.split('async function saveOwnProfile(e){', 1)[1].split('async function changeOwnPassword(e){', 1)[0]
     assert 'accountGroup' not in profile_update_js
-    assert '"group": existing.get("group"),' in dashboard_py
+    assert '"group": existing.get("group"),' in users_py
     password_update_js = app_js.split('async function changeOwnPassword(e){', 1)[1].split('async function uploadOwnAvatar(){', 1)[0]
     assert 'requestPasswordConfirmation' in password_update_js and 'current_password:current' in password_update_js
     assert 'id="accountProfilePassword"' not in html and 'accountProfilePassword' not in app_js
     assert 'id="passwordConfirmModal"' in html and 'requestPasswordConfirmation' in app_js
-    assert 'password_configured' in dashboard_py
+    assert 'password_configured' in users_py
     assert 'Default Torrent Dashboard Sound' not in html and '<option value="default">Default</option>' in html
     assert '<option value="custom">Custom</option>' in html and '<option value="custom">Custom Sound</option>' not in html
     assert '<div class="account-form-grid"><label class="account-full-field">Username<input autocomplete="username" id="accountUsername"' in html
