@@ -302,8 +302,8 @@ def main():
     assert "el.dataset.interfaceId&&!el.checked" in app_js
     assert 'Save or remove current integration changes before adding another.' in settings_js
     assert 'Save or remove current user changes before adding another.' in settings_js
-    assert "resetDirtyScope('settingsCore',true);
-      return d;" not in settings_js.split('async function saveUpdateSource()',1)[1].split('async function loadExtras()',1)[0]
+    update_source_section = settings_js.split('async function saveUpdateSource()',1)[1].split('async function loadExtras()',1)[0]
+    assert "resetDirtyScope('settingsCore',true);" not in update_source_section
 
     print("UI string audit passed")
 
