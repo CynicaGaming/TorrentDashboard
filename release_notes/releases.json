@@ -1,0 +1,113 @@
+{
+  "project": {
+    "repository": "CynicaGaming/TorrentDashboard",
+    "development_branch": "refactor/backend-modularization-users",
+    "prerelease_branch": "prerelease/backend-modularization",
+    "pull_request": 25,
+    "principles": [
+      "Keep refactors behavior-preserving and split them into small prerelease increments.",
+      "Validate the applied source, not only staging scripts.",
+      "Use the built-in updater to test each completed prerelease increment.",
+      "Keep user-facing patch notes separate from engineering handoff details."
+    ]
+  },
+  "releases": [
+    {
+      "version": "0.5.55",
+      "date": "2026-09-02",
+      "status": "prerelease",
+      "title": "User and account backend modularization",
+      "summary": "Started the backend modularization by extracting the user and account domain from dashboard.py into torrent_dashboard/users.py without intentional behavior changes.",
+      "highlights": [
+        "Moved password hashing and verification, user normalization, profile editing, avatar handling, password changes, role helpers, and user CRUD into torrent_dashboard/users.py.",
+        "Preserved the existing dashboard.py call surface by importing and re-exporting the extracted helpers."
+      ],
+      "fixes": [],
+      "technical": [
+        "Established torrent_dashboard as the package boundary for subsequent backend extraction work."
+      ],
+      "validation": [
+        "Python compilation and release source validation passed before the prerelease was published."
+      ],
+      "known_issues": []
+    },
+    {
+      "version": "0.5.56",
+      "date": "2026-09-02",
+      "status": "prerelease",
+      "title": "Serialized configuration mutations",
+      "summary": "Prevented lost configuration updates by moving application-generated configuration mutations onto a serialized read-modify-write transaction path.",
+      "highlights": [
+        "Added torrent_dashboard/config_store.py with a shared reentrant lock.",
+        "Configuration mutations now reload the latest config while holding the lock, apply the requested transformation, atomically replace config.json, and release the lock only after the write completes.",
+        "Profile, password, avatar, user, integration, settings, update-source, notification-sound, setup, and CLI password writes use the transaction path."
+      ],
+      "fixes": [
+        "Concurrent dashboard configuration writes can no longer silently overwrite unrelated changes made by another request."
+      ],
+      "technical": [
+        "First-run setup rechecks setup completion inside the transaction to prevent duplicate concurrent setup commits.",
+        "Development and prerelease publication were separated into dedicated branches so intermediate commits are not exposed through the updater."
+      ],
+      "validation": [
+        "Added concurrent mutation regression tests that verify two simultaneous changes both survive.",
+        "Added failed-mutation coverage to verify exceptions do not persist partial state."
+      ],
+      "known_issues": [
+        "The transaction lock protects writes made by the running Torrent Dashboard process; it does not coordinate an external editor modifying config.json at the same instant."
+      ]
+    },
+    {
+      "version": "0.5.57",
+      "date": "2026-09-02",
+      "status": "prerelease",
+      "title": "Release notes and project handoff pipeline",
+      "summary": "Adds a structured release metadata pipeline that generates GitHub release notes, in-app patch notes, a cumulative changelog, and a durable project handoff document for future development sessions.",
+      "highlights": [
+        "Added release_notes/releases.json as the single source of truth for release summaries and engineering handoff context.",
+        "Added release_tools/generate_release_notes.py to generate GitHub release bodies, CHANGELOG.md, and PROJECT_STATE.md deterministically.",
+        "The Updates page now displays patch notes returned in the existing GitHub release manifest.",
+        "Prerelease publication uses the generated release body instead of a hard-coded release description."
+      ],
+      "fixes": [],
+      "technical": [
+        "CI validates that CHANGELOG.md and PROJECT_STATE.md match the structured release metadata before publication.",
+        "Release metadata contains user-facing notes and separate engineering fields so future sessions can recover project state without relying on conversation history."
+      ],
+      "validation": [
+        "The generator validates semantic versions, duplicate versions, required release summaries, and next-step structure.",
+        "JavaScript syntax checks cover the patch-note renderer, which renders release Markdown through text nodes rather than injecting release HTML."
+      ],
+      "known_issues": [],
+      "architecture": [
+        "The application remains a Python standard-library ThreadingHTTPServer service with most HTTP routing still in dashboard.py.",
+        "User and account domain logic lives in torrent_dashboard/users.py.",
+        "Configuration transaction coordination lives in torrent_dashboard/config_store.py while config normalization and migration logic still lives in dashboard.py.",
+        "The updater consumes public GitHub Releases and already exposes each release body as manifest.notes.",
+        "Completed development increments are published from prerelease/backend-modularization; active refactor work remains on refactor/backend-modularization-users."
+      ],
+      "decisions": [
+        "Continue modularization in behavior-preserving increments rather than combining refactors with unrelated feature changes.",
+        "Use structured release metadata rather than commit-message inference as the authoritative source for release notes.",
+        "Keep PROJECT_STATE.md generated and read-only so it cannot drift from release metadata."
+      ],
+      "next_steps": [
+        {
+          "priority": 1,
+          "title": "Extract configuration normalization and persistence",
+          "detail": "Move config loading, migration, normalization, sanitization, and atomic persistence out of dashboard.py while preserving ConfigStore as the transaction coordinator."
+        },
+        {
+          "priority": 2,
+          "title": "Expand behavioral tests",
+          "detail": "Add end-to-end authorization, account, CSRF, setup, and configuration mutation coverage around the new module boundaries."
+        },
+        {
+          "priority": 3,
+          "title": "Harden secrets at rest",
+          "detail": "After the configuration module boundary is stable, add restrictive file permissions and a cleaner separation between ordinary configuration and stored credentials."
+        }
+      ]
+    }
+  ]
+}
