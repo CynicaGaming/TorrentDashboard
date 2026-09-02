@@ -1,5 +1,5 @@
 'use strict';
-const FRONTEND_BUILD='0.5.71';
+const FRONTEND_BUILD='0.5.72';
 const HTML_BUILD=document.querySelector('meta[name="torrent-dashboard-build"]')?.content||'';
 const RECOVERY_KEY=`td-frontend-recovery-${FRONTEND_BUILD}`;
 async function recoverFrontendBuild(reason){
@@ -134,7 +134,7 @@ function decorateSecretFields(root=document){
 const caseObserver=new MutationObserver(records=>{for(const r of records){if(r.type==='attributes'){applySentenceCaseUi(r.target);continue}for(const n of r.addedNodes){if(n.nodeType===Node.ELEMENT_NODE){applySentenceCaseUi(n);decorateSecretFields(n)}else if(n.nodeType===Node.TEXT_NODE&&n.parentElement){applySentenceCaseUi(n.parentElement)}}}});
 
 const LIVE_REFRESH_MS=1000;
-const state={me:null,csrf:'',setup:null,setupStep:0,setupMaxStep:0,server:'all',torrents:[],transfer:{},meta:{},filter:localStorage.tdFilter||'all',sort:localStorage.tdSort||'added_desc',search:localStorage.tdSearch||'',category:localStorage.tdCategory||'',tag:localStorage.tdTag||'',tracker:localStorage.tdTracker||'',selected:new Set(),detail:null,detailTab:'general',detailCollapsed:localStorage.tdDetailCollapsed==='1',settings:null,lastComplete:new Set(),deferredPrompt:null,setupInterfaceSelectionInitialized:false,settingsInterfaceSelectionInitialized:false,updateInfo:null,notificationEvents:[]};
+const state={me:null,csrf:'',setup:null,setupStep:0,setupMaxStep:0,server:'all',torrents:[],transfer:{},meta:{},filter:localStorage.tdFilter||'all',sort:localStorage.tdSort||'added_desc',search:localStorage.tdSearch||'',category:localStorage.tdCategory||'',tag:localStorage.tdTag||'',tracker:localStorage.tdTracker||'',selected:new Set(),detail:null,detailTab:'general',settings:null,lastComplete:new Set(),deferredPrompt:null,setupInterfaceSelectionInitialized:false,settingsInterfaceSelectionInitialized:false,updateInfo:null,notificationEvents:[]};
 
 function esc(v=''){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function bytes(n,d=1){n=Number(n);if(!Number.isFinite(n)||n<0)return'—';if(n===0)return'0 B';const u=['B','KB','MB','GB','TB','PB'];let i=Math.min(Math.floor(Math.log(n)/Math.log(1024)),u.length-1);return`${(n/1024**i).toFixed(i?d:0)} ${u[i]}`}
@@ -470,7 +470,7 @@ function bindUI(){if(bound)return;
   $('#torrentRows').addEventListener('click',rowClick);$('#torrentRows').addEventListener('change',rowChange);$('#torrentRows').addEventListener('contextmenu',rowContext);
   $('#bulkbar').addEventListener('click',e=>{if(e.target.closest('[data-bulk-clear]')){state.selected.clear();render();return}const a=e.target.closest('[data-bulk]')?.dataset.bulk;if(a)bulkAction(a)});
   bindAddTorrentUI();$('#removeForm')?.addEventListener('submit',e=>{e.preventDefault();closeRemoveDialog({deleteFiles:!!$('#removeFiles')?.checked})});$$('[data-remove-cancel]').forEach(x=>x.addEventListener('click',()=>closeRemoveDialog(null)));
-  $('#detailToggle').addEventListener('click',toggleDetailPane);$('#detailClose').addEventListener('click',closeDetailPane);$$('[data-detailtab]').forEach(x=>x.addEventListener('click',()=>{state.detailTab=x.dataset.detailtab;$$('[data-detailtab]').forEach(b=>b.classList.toggle('active',b===x));renderDetail()}));
+  $('#detailClose').addEventListener('click',closeDetailPane);$$('[data-detailtab]').forEach(x=>x.addEventListener('click',()=>{state.detailTab=x.dataset.detailtab;$$('[data-detailtab]').forEach(b=>b.classList.toggle('active',b===x));renderDetail()}));
   $('#profileBtn').addEventListener('click',e=>{showMenu($('#accountMenu'),e.currentTarget);e.currentTarget.setAttribute('aria-expanded','true')});document.addEventListener('click',e=>{if(!e.target.closest('.menu')&&!e.target.closest('#profileBtn')&&!e.target.closest('.more-row')){$$('.menu').forEach(m=>m.classList.add('hidden'));$('#profileBtn')?.setAttribute('aria-expanded','false')}});
   $('#accountSettingsBtn').addEventListener('click',()=>{hideAccountMenu();openAccountModal('profile')});$('#logoutBtn').addEventListener('click',()=>{hideAccountMenu();signOut()});$$('[data-account-close]').forEach(x=>x.addEventListener('click',closeAccountModal));$('#accountProfileForm').addEventListener('submit',saveOwnProfile);$('#accountPasswordForm').addEventListener('submit',changeOwnPassword);$('#accountChooseAvatar').addEventListener('click',()=>$('#accountAvatarInput').click());$('#accountAvatarInput').addEventListener('change',uploadOwnAvatar);$('#accountRemoveAvatar').addEventListener('click',removeOwnAvatar);bindPasswordConfirmation();
   $('#pauseAllBtn').addEventListener('click',()=>globalAction('stop'));$('#resumeAllBtn').addEventListener('click',()=>globalAction('start'));
@@ -729,24 +729,15 @@ async function bulkAction(a){if(a==='delete'){const targets=[...state.selected].
 
 async function loadMeta(){if(state.server==='all')return;try{state.meta=await api(`/api/meta?server=${encodeURIComponent(state.server)}`)}catch(e){toast(e.message,'error')}}
 let detailRefreshAt=0;
-function syncDetailPaneState(){
-  const pane=$('#torrentDetailPane'),toggle=$('#detailToggle');if(!pane||!toggle)return;
-  const collapsed=!!state.detailCollapsed;pane.classList.toggle('collapsed',collapsed);toggle.setAttribute('aria-expanded',String(!collapsed));
-  const label=collapsed?'Expand torrent details':'Collapse torrent details';toggle.setAttribute('aria-label',label);toggle.title=label;
-}
-async function toggleDetailPane(){
-  if(!state.detail)return;state.detailCollapsed=!state.detailCollapsed;localStorage.tdDetailCollapsed=state.detailCollapsed?'1':'0';syncDetailPaneState();
-  if(!state.detailCollapsed)await refreshDetailData(true);
-}
 async function openDetail(server,hash){
   const same=state.detail?.server===server&&state.detail?.hash===hash;state.detail={server,hash,data:same?state.detail?.data:null};state.detailTab=state.detailTab||'general';
-  const pane=$('#torrentDetailPane');pane.classList.remove('hidden');pane.closest('.torrent-workspace')?.classList.add('has-detail');syncDetailPaneState();syncTorrentWorkspaceLayout();$$('[data-detailtab]').forEach(b=>b.classList.toggle('active',b.dataset.detailtab===state.detailTab));
+  const pane=$('#torrentDetailPane');pane.classList.remove('hidden');pane.closest('.torrent-workspace')?.classList.add('has-detail');syncTorrentWorkspaceLayout();$$('[data-detailtab]').forEach(b=>b.classList.toggle('active',b.dataset.detailtab===state.detailTab));
   const t=state.torrents.find(x=>(x._server_id||state.server)===server&&x.hash===hash);$('#detailName').textContent=t?.name||hash;$('#detailMeta').textContent=`${t?._server_name||server} · ${hash}`;render();
-  if(!state.detailCollapsed)await refreshDetailData(true);
+  await refreshDetailData(true);
 }
 function closeDetailPane(){const pane=$('#torrentDetailPane');pane.classList.add('hidden');pane.closest('.torrent-workspace')?.classList.remove('has-detail');syncTorrentWorkspaceLayout();state.detail=null;render()}
 async function refreshDetailData(force=false){
-  if(!state.detail||state.detailCollapsed&&!force)return;const now=Date.now();if(!force&&now-detailRefreshAt<3000)return;detailRefreshAt=now;const {server,hash}=state.detail;
+  if(!state.detail)return;const now=Date.now();if(!force&&now-detailRefreshAt<3000)return;detailRefreshAt=now;const {server,hash}=state.detail;
   if(!state.detail.data)$('#detailBody').innerHTML='<div class="empty">Loading…</div>';
   try{const data=await api(`/api/detail?server=${encodeURIComponent(server)}&hash=${encodeURIComponent(hash)}`);if(!state.detail||state.detail.server!==server||state.detail.hash!==hash)return;state.detail.data=data;renderDetail()}catch(e){if(state.detail)$('#detailBody').innerHTML=`<div class="banner error">${esc(e.message)}</div>`}
 }

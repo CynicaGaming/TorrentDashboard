@@ -130,10 +130,15 @@ def main():
     assert "now-detailRefreshAt<3000" in app_js
     assert "pane.closest('.torrent-workspace')?.classList.add('has-detail')" in app_js
     assert "pane.closest('.torrent-workspace')?.classList.remove('has-detail')" in app_js
-    assert ".torrent-workspace{display:flex;flex-direction:column;overflow:hidden;height:min(460px,44dvh)}" in app_css
+    assert 'class="torrent-workspace"' in html and 'class="torrent-panel torrent-list-panel"' in html
+    assert 'id="detailToggle"' not in html and "detailCollapsed" not in app_js and "tdDetailCollapsed" not in app_js
+    assert "toggleDetailPane" not in app_js and "syncDetailPaneState" not in app_js
+    assert ".torrent-workspace{display:flex;flex-direction:column;gap:12px;overflow:visible;height:min(460px,44dvh)}" in app_css
     assert ".torrent-workspace.has-detail{height:var(--torrent-workspace-open-height,min(720px,calc(100dvh - 280px)))}" in app_css
-    assert "flex:0 0 clamp(240px,48%,420px)" in app_css
-    assert ".torrent-detail-pane{flex-basis:clamp(300px,48%,440px)}" in app_css
+    assert ".torrent-list-panel{display:flex;flex:1 1 auto;min-height:0;overflow:hidden}" in app_css
+    assert "border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);display:flex;flex:0 1 clamp(260px,46%,420px)" in app_css
+    assert ".torrent-detail-pane{flex-basis:clamp(300px,46%,440px)}" in app_css
+    assert ".torrent-detail-pane.collapsed" not in app_css and ".detail-pane-toggle" not in app_css
     assert "function syncTorrentWorkspaceLayout()" in app_js
     assert "window.innerHeight-top-16" in app_js
     assert "--torrent-workspace-open-height" in app_js
@@ -479,21 +484,20 @@ def main():
     assert '.client-setting-copy>span{font-size:11.5px' in settings_css
     assert '## Desktop legibility' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')
 
-    # 0.5.67 docks torrent details into the torrent workspace. The list must
-    # remain the flexible scroll region and collapse must preserve selection.
-    assert 'class="torrent-panel torrent-workspace"' in html
+    # 0.5.72 supersedes the original collapsible inspector contract. Torrent
+    # list and details are distinct sibling surfaces; details are open or closed.
+    assert 'class="torrent-workspace"' in html
+    assert 'class="torrent-panel torrent-list-panel"' in html
     assert 'class="torrent-list-region"' in html
-    assert 'id="detailToggle"' in html and 'aria-label="Collapse torrent details"' in html
-    assert "detailCollapsed:localStorage.tdDetailCollapsed==='1'" in app_js
-    assert 'function syncDetailPaneState()' in app_js and 'async function toggleDetailPane()' in app_js
-    assert "localStorage.tdDetailCollapsed=state.detailCollapsed?'1':'0'" in app_js
-    assert "if(!state.detailCollapsed)await refreshDetailData(true)" in app_js
-    assert "state.detailCollapsed&&!force" in app_js
-    assert '0.5.67 docked collapsible torrent details' in app_css
+    assert 'id="detailToggle"' not in html and 'Collapse torrent details' not in html
+    assert 'detailCollapsed' not in app_js and 'tdDetailCollapsed' not in app_js
+    assert 'function syncDetailPaneState()' not in app_js and 'toggleDetailPane' not in app_js
+    assert '0.5.72 separated viewport-docked torrent details' in app_css
     assert '.torrent-list-region .table-wrap{flex:1 1 auto;min-height:0;overflow:auto' in app_css
     assert '.torrent-detail-pane{position:static;inset:auto' in app_css
-    assert '.torrent-detail-pane.collapsed{flex:0 0 58px!important' in app_css
-    assert '@media(max-width:700px)' in app_css and 'top:auto!important;height:58px!important' in app_css
+    assert 'border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow)' in app_css
+    assert '.torrent-detail-pane.collapsed' not in app_css and '.detail-pane-toggle' not in app_css
+    assert '@media(max-width:700px)' in app_css
 
     print("UI string audit passed")
 

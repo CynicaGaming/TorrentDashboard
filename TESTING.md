@@ -58,7 +58,7 @@ Only run tests that are relevant and safe in your environment. Never commit real
 
 - Selecting a torrent opens the docked inspector on desktop/tablet.
 - Torrent list and detail body scroll independently when needed.
-- Collapse preserves the selected torrent; Close clears the detail context.
+- Details remain open while a torrent is selected; Close clears the detail context.
 - General, Trackers, Peers, HTTP Sources, and Content tabs render without errors.
 - Mobile retains the bottom-sheet detail presentation.
 
@@ -104,7 +104,7 @@ Mobile:
 
 - Navigation remains reachable.
 - Tables/cards do not introduce unusable horizontal overflow.
-- Torrent detail sheet can be opened, collapsed, and closed.
+- Torrent detail sheet can be opened and closed.
 - Dialogs remain operable with the on-screen keyboard present.
 
 ## Recording gaps
@@ -116,6 +116,6 @@ Do not use this file as a test-results log; it is a stable testing contract for 
 ### Desktop torrent inspector
 
 - With a torrent selected at normal desktop zoom, verify the torrent list and inspector both remain visible without scrolling the overall page.
-- Verify the torrent inspector reaches the bottom of the visible dashboard content instead of leaving a large unused gap below it.
+- Verify the torrent inspector reaches the bottom of the visible dashboard content and is visually separated from the torrent list as its own bordered panel.
 - Verify General, Trackers, Peers, HTTP Sources, and Content have a useful vertical viewport and scroll internally when needed.
 - Resize the browser and verify the dock recalculates without overlapping the viewport; mobile continues to use the bottom-sheet presentation.

@@ -116,9 +116,9 @@
       "date": "2026-09-02",
       "status": "prerelease",
       "title": "Collapsible revision patch notes",
-      "summary": "Expanded Settings \u2192 Updates from a single latest-release note block into a collapsible patch-note history for every documented Torrent Dashboard revision.",
+      "summary": "Expanded Settings → Updates from a single latest-release note block into a collapsible patch-note history for every documented Torrent Dashboard revision.",
       "highlights": [
-        "Settings \u2192 Updates now shows one collapsible patch-note entry per documented revision, ordered newest first.",
+        "Settings → Updates now shows one collapsible patch-note entry per documented revision, ordered newest first.",
         "Bundled release metadata is available immediately when the Updates page opens; a newly discovered GitHub release is merged into the history before it is installed.",
         "The newest revision opens by default and each older revision can be expanded independently.",
         "Future prerelease publication preserves older prereleases instead of deleting the complete prerelease history."
@@ -175,9 +175,9 @@
       "date": "2026-09-02",
       "status": "prerelease",
       "title": "Patch notes presentation cleanup",
-      "summary": "Simplified Settings \u2192 Updates to focus on the latest two releases while retaining the complete release history for changelog and project handoff purposes, with a cleaner release-card presentation.",
+      "summary": "Simplified Settings → Updates to focus on the latest two releases while retaining the complete release history for changelog and project handoff purposes, with a cleaner release-card presentation.",
       "highlights": [
-        "Settings \u2192 Updates now shows only the latest release and the immediately previous release instead of the complete historical list.",
+        "Settings → Updates now shows only the latest release and the immediately previous release instead of the complete historical list.",
         "Release cards now use a dedicated version badge, release-status badges, publication date, clearer typography, and improved spacing.",
         "The expanded release no longer repeats the version/title heading inside the patch-note body.",
         "The full structured release history remains preserved in release_notes/releases.json, CHANGELOG.md, and PROJECT_STATE.md."
@@ -235,7 +235,7 @@
       "title": "Installed package integrity metadata",
       "summary": "Persists the verified release-package SHA-256 with installed builds and surfaces the exact package digest alongside patch notes.",
       "highlights": [
-        "Settings \u2192 Updates shows Package SHA-256 for a release whenever authoritative package metadata is available, with a one-click Copy control.",
+        "Settings → Updates shows Package SHA-256 for a release whenever authoritative package metadata is available, with a one-click Copy control.",
         "The normal updater writes release-info.json into the staged application only after the downloaded ZIP matches GitHub's published SHA-256.",
         "Recovery updates persist the same release metadata after independently verifying the GitHub asset digest.",
         "The release build emits a Torrent-Dashboard-<version>.release.json sidecar containing the final ZIP digest, version, repository, tag, and commit."
@@ -360,7 +360,7 @@
       "highlights": [
         "Successful GitHub release lookups persist authoritative package digests to data/release-integrity.json.",
         "Normal Settings loads merge the persisted integrity cache into the two displayed patch-note revisions.",
-        "Opening Settings \u2192 Updates silently refreshes release metadata at most once per minute, so historical SHA-256 values self-populate without requiring a manual Check for updates click."
+        "Opening Settings → Updates silently refreshes release metadata at most once per minute, so historical SHA-256 values self-populate without requiring a manual Check for updates click."
       ],
       "fixes": [
         "The previous patch-note card no longer loses its SHA-256 when Settings is reloaded or opened in a new browser session after the remote metadata was fetched."
@@ -979,6 +979,67 @@
         "Keep active work state public-safe and repository-focused; do not archive chat transcripts as development state.",
         "Use the same developer-oriented documentation for humans and AI rather than maintaining vendor-specific AI instructions.",
         "Size an open desktop list/detail workspace from its actual viewport position rather than relying on a fixed dvh approximation."
+      ],
+      "next_steps": [
+        {
+          "priority": 1,
+          "title": "Extract release and update provenance",
+          "detail": "Move GitHub release parsing, installed release metadata, package-integrity normalization, and historical digest caching out of dashboard.py."
+        },
+        {
+          "priority": 2,
+          "title": "Extract qBitTorrent transport and normalization",
+          "detail": "Move QBitClient, server normalization, proxy/preference translation, and Web API transport away from HTTP routing."
+        },
+        {
+          "priority": 3,
+          "title": "Expand request-level behavioral tests",
+          "detail": "Add authorization, CSRF, setup, account-route, and settings-mutation coverage around extracted service boundaries."
+        },
+        {
+          "priority": 4,
+          "title": "Harden secrets at rest",
+          "detail": "Use the configuration boundary to add restrictive file permissions and separate ordinary configuration from stored credentials."
+        }
+      ]
+    },
+    {
+      "version": "0.5.72",
+      "date": "2026-09-02",
+      "status": "prerelease",
+      "title": "Separated docked torrent details",
+      "summary": "Simplifies the torrent inspector into an always-open-on-selection, visually distinct panel below the torrent list while preserving viewport docking and independent scrolling.",
+      "highlights": [
+        "Torrent list and torrent details are now separate sibling panels with their own borders, radius, background, shadow, and spacing instead of sharing one continuous surface.",
+        "Removed the torrent-detail Collapse action and remembered collapse preference; selecting a torrent opens details and Close dismisses them.",
+        "The shared workspace still uses the remaining desktop/tablet viewport so the list and detail panel remain visible together, with independent internal scrolling.",
+        "Mobile retains the existing bottom-sheet detail presentation without a collapse state."
+      ],
+      "fixes": [
+        "Removes the visually merged list/detail treatment that made the inspector feel like part of the torrent table.",
+        "Eliminates an unnecessary inspector state and the refresh-suppression behavior tied to collapse."
+      ],
+      "technical": [
+        "torrent-workspace is now a layout-only wrapper containing torrent-list-panel and torrent-detail-pane sibling surfaces.",
+        "Collapse DOM, JavaScript state, localStorage preference, CSS selectors, event bindings, and regression assertions were removed together.",
+        "Viewport-derived workspace sizing from v0.5.71 remains in place."
+      ],
+      "validation": [
+        "The UI contract requires separate list/detail surfaces, rejects collapse controls/state/selectors, and preserves viewport-derived docking and independent scrolling.",
+        "JavaScript syntax, frontend/service-worker version synchronization, backend tests, architecture validation, and generated release/handoff consistency remain release gates."
+      ],
+      "known_issues": [],
+      "architecture": [
+        "Torrent Dashboard remains a Python standard-library application with dashboard.py as the HTTP composition root.",
+        "Configuration, integrations, users, and configuration transaction coordination remain separated into torrent_dashboard package modules.",
+        "Torrent detail presentation remains frontend-owned and continues to use the existing /api/detail contract.",
+        "Desktop/tablet use separate docked list and detail panels; mobile uses a bottom-sheet presentation."
+      ],
+      "decisions": [
+        "Prefer two visually distinct surfaces for list/detail hierarchy rather than joining them with only an internal divider.",
+        "Do not expose Collapse when the detail inspector is already bounded, scrollable, and dismissible with Close.",
+        "Keep viewport-derived docking and independent list/detail scrolling.",
+        "Keep active backend modularization work separate from this presentation correction."
       ],
       "next_steps": [
         {

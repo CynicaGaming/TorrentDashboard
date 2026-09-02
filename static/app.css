@@ -257,32 +257,22 @@ button,select,input,textarea{border:1px solid var(--border);background:var(--pan
 }
 
 
-/* 0.5.67 docked collapsible torrent details. */
+/* 0.5.72 separated viewport-docked torrent details. */
 .torrent-list-region{min-width:0;min-height:0}
-.detail-pane-actions{display:flex;align-items:center;gap:4px;flex:0 0 auto}
-.detail-pane-toggle{width:32px;height:32px;padding:0;border:0;background:transparent;color:var(--muted);display:grid;place-items:center;border-radius:8px}
-.detail-pane-toggle:hover,.detail-pane-close:hover{background:var(--panel2);color:var(--text)}
-.detail-pane-toggle svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:transform .16s ease}
-.detail-pane-toggle[aria-expanded="true"] svg{transform:rotate(180deg)}
+.detail-pane-actions{display:flex;align-items:center;flex:0 0 auto}
+.detail-pane-close:hover{background:var(--panel2);color:var(--text)}
 @media(min-width:701px){
-  .torrent-workspace{display:flex;flex-direction:column;overflow:hidden;height:min(460px,44dvh)}
+  .torrent-workspace{display:flex;flex-direction:column;gap:12px;overflow:visible;height:min(460px,44dvh)}
   .torrent-workspace.has-detail{height:var(--torrent-workspace-open-height,min(720px,calc(100dvh - 280px)))}
+  .torrent-list-panel{display:flex;flex:1 1 auto;min-height:0;overflow:hidden}
   .torrent-list-region{position:relative;display:flex;flex:1 1 auto;min-height:0;flex-direction:column;overflow:hidden}
   .torrent-list-region .table-wrap{flex:1 1 auto;min-height:0;overflow:auto;overscroll-behavior:contain}
   .torrent-list-region>.empty{position:absolute;inset:44px 0 0;display:grid;place-content:center;padding:20px;text-align:center;pointer-events:none}
-  .torrent-detail-pane{position:static;inset:auto;width:auto;height:auto;margin:0;min-height:0;max-height:none;border:0;border-top:1px solid var(--border);border-radius:0;box-shadow:none;display:flex;flex:0 0 clamp(240px,48%,420px);flex-direction:column;background:var(--panel)}
-  .torrent-detail-header{flex:0 0 auto;border-bottom:1px solid var(--border)}
+  .torrent-detail-pane{position:static;inset:auto;width:auto;height:auto;margin:0;min-height:240px;max-height:none;border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);display:flex;flex:0 1 clamp(260px,46%,420px);flex-direction:column;background:var(--panel);overflow:hidden}
+  .torrent-detail-header{flex:0 0 auto;border-bottom:1px solid var(--border);background:var(--panel3)}
   .torrent-detail-tabs{flex:0 0 auto}
   .torrent-detail-body{flex:1 1 auto;min-height:0;overflow:auto}
-  .torrent-detail-pane.collapsed{flex:0 0 58px!important;min-height:58px!important;max-height:58px!important}
-  .torrent-detail-pane.collapsed .torrent-detail-tabs,.torrent-detail-pane.collapsed .torrent-detail-body{display:none}
-  .torrent-detail-pane.collapsed .torrent-detail-header{height:58px;border-bottom:0}
 }
 @media(min-width:1024px){
-  .torrent-detail-pane{flex-basis:clamp(300px,48%,440px)}
-}
-@media(max-width:700px){
-  .torrent-detail-pane.collapsed{top:auto!important;height:58px!important;min-height:58px!important;max-height:58px!important}
-  .torrent-detail-pane.collapsed .torrent-detail-tabs,.torrent-detail-pane.collapsed .torrent-detail-body{display:none}
-  .torrent-detail-pane.collapsed .torrent-detail-header{height:58px;border-bottom:0}
+  .torrent-detail-pane{flex-basis:clamp(300px,46%,440px)}
 }

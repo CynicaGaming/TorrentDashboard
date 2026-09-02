@@ -6,7 +6,7 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.71** (prerelease)
+- Latest documented build: **v0.5.72** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 - Upstream development branch: `refactor/backend-modularization-users`
 - Upstream prerelease branch: `prerelease/backend-modularization`
@@ -14,28 +14,21 @@
 
 ### Latest release summary
 
-Corrects the desktop torrent details layout so the inspector docks to the bottom of the visible dashboard and receives enough vertical space to remain useful while the torrent list scrolls above it.
+Simplifies the torrent inspector into an always-open-on-selection, visually distinct panel below the torrent list while preserving viewport docking and independent scrolling.
 
 ## Architecture state
 
 - Torrent Dashboard remains a Python standard-library application with dashboard.py as the HTTP composition root.
 - Configuration, integrations, users, and configuration transaction coordination remain separated into torrent_dashboard package modules.
-- The torrent detail inspector remains frontend-owned; this release changes layout/state behavior without changing the /api/detail contract.
-- Desktop and tablet use a docked split workspace while mobile retains a bottom-sheet detail presentation.
-- Development continuity is split between released state (release_notes/releases.json), authored active work (development/current.json), generated HANDOFF.md, durable architecture/testing guides, and short architectural decision records.
+- Torrent detail presentation remains frontend-owned and continues to use the existing /api/detail contract.
+- Desktop/tablet use separate docked list and detail panels; mobile uses a bottom-sheet presentation.
 
 ## Current engineering decisions
 
-- Prefer docked inspectors over overlays when users need to compare selected-item details with a primary list.
-- Keep Collapse and Close as distinct actions: collapse preserves selection, close clears the detail context.
-- Keep the torrent table independently scrollable whenever the detail inspector is expanded.
-- Desktop/tablet list-detail workspaces should fit within the initial viewport by default; internal scrolling is preferred over expanding the page vertically.
-- Per-poll timestamps are not primary dashboard metrics; stale/failed refresh conditions should be surfaced explicitly as health states.
-- Empty-state language must reflect the actual reason a collection is empty.
-- Treat canonical repository, branch, and pull-request references as upstream lineage rather than assumptions about a fork's local identity.
-- Keep active work state public-safe and repository-focused; do not archive chat transcripts as development state.
-- Use the same developer-oriented documentation for humans and AI rather than maintaining vendor-specific AI instructions.
-- Size an open desktop list/detail workspace from its actual viewport position rather than relying on a fixed dvh approximation.
+- Prefer two visually distinct surfaces for list/detail hierarchy rather than joining them with only an internal divider.
+- Do not expose Collapse when the detail inspector is already bounded, scrollable, and dismissible with Close.
+- Keep viewport-derived docking and independent list/detail scrolling.
+- Keep active backend modularization work separate from this presentation correction.
 
 ## Development principles
 
@@ -47,6 +40,15 @@ Corrects the desktop torrent details layout so the inspector docks to the bottom
 - Keep public development continuity portable across forks; label canonical repository/branch/PR references as upstream context rather than local identity.
 
 ## Recent work
+
+### v0.5.72 — Separated docked torrent details
+
+Simplifies the torrent inspector into an always-open-on-selection, visually distinct panel below the torrent list while preserving viewport docking and independent scrolling.
+
+- Torrent list and torrent details are now separate sibling panels with their own borders, radius, background, shadow, and spacing instead of sharing one continuous surface.
+- Removed the torrent-detail Collapse action and remembered collapse preference; selecting a torrent opens details and Close dismisses them.
+- The shared workspace still uses the remaining desktop/tablet viewport so the list and detail panel remain visible together, with independent internal scrolling.
+- Mobile retains the existing bottom-sheet detail presentation without a collapse state.
 
 ### v0.5.71 — Viewport-docked torrent inspector
 
@@ -85,15 +87,6 @@ Corrects the oversized v0.5.67 torrent workspace so the torrent list and docked 
 - Opening torrent details switches the shared workspace to a bounded 58dvh layout capped at 600 px, keeping both the list and inspector visible together on typical desktop/tablet displays.
 - The torrent inspector receives roughly 42% of the shared workspace while the torrent list remains the flexible scroll region above it.
 - The workspace tracks whether details are open so list-only and list-plus-inspector states can use different vertical allocations.
-
-### v0.5.67 — Docked collapsible torrent details
-
-Reworks torrent details into a docked, collapsible inspector attached to the bottom of the torrent workspace so the torrent list remains visible and independently scrollable.
-
-- Torrent details now share the torrent panel's outer surface instead of appearing as a separate floating card on desktop and tablet layouts.
-- The torrent table is the flexible scroll region above the inspector, so expanding details reduces the list viewport rather than covering torrent rows.
-- The detail header now provides separate Collapse and Close controls; collapse preserves the selected torrent while Close clears the inspector.
-- The collapsed preference is remembered locally, and mobile retains its existing bottom-sheet presentation with matching collapse behavior.
 
 ## What to do next
 
