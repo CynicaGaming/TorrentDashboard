@@ -1,0 +1,59 @@
+name: Apply Backend Refactor Branch
+
+on:
+  push:
+    branches:
+      - refactor/backend-modularization-users
+
+permissions:
+  contents: write
+
+concurrency:
+  group: torrent-dashboard-refactor-apply
+  cancel-in-progress: true
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set Up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Apply staged refactor
+        shell: bash
+        run: |
+          if [ -f release_tools/apply_feature_update.py ]; then
+            python release_tools/apply_feature_update.py
+            rm -f release_tools/apply_feature_update.py
+          fi
+
+      - name: Validate transformed source
+        shell: bash
+        run: |
+          python -m py_compile dashboard.py torrent_dashboard/users.py
+          python - <<'PY'
+          import dashboard
+          assert dashboard.VERSION == '0.5.55'
+          assert callable(dashboard.normalize_user)
+          assert callable(dashboard.save_user)
+          assert callable(dashboard.session_is_admin)
+          assert dashboard.normalize_user.__module__ == 'torrent_dashboard.users'
+          PY
+
+      - name: Commit applied refactor
+        shell: bash
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add -A
+            git commit -m "Apply backend modularization user domain"
+            git push origin HEAD:refactor/backend-modularization-users
+          fi
