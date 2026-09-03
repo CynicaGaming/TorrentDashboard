@@ -1457,6 +1457,69 @@
         "Prefer user-facing product concepts over legacy implementation terminology, including allowed IP addresses for access controls and client for client-management actions.",
         "Use qBitTorrent's parsed/cached metadata path when preselecting files from a local .torrent; raw multipart upload remains only as a compatibility fallback because qBitTorrent rejects filePriorities on raw uploaded torrents."
       ]
+    },
+    {
+      "version": "0.5.79",
+      "date": "2026-09-03",
+      "status": "prerelease",
+      "title": "Add Torrent startup hotfix",
+      "summary": "Fixes a v0.5.78 Add Torrent drag-and-drop event binding error that could prevent the Dashboard from initializing in browsers that enforce the EventTarget API argument contract.",
+      "highlights": [
+        "Corrects the dragenter, dragover, dragleave, and drop listeners so every addEventListener call receives both the event type and callback.",
+        "Restores normal Dashboard initialization while preserving the v0.5.78 selectable Add Torrent workflow, source tabs, file tree, and metadata export behavior."
+      ],
+      "fixes": [
+        "Fixes Dashboard failed to initialize: EventTarget.addEventListener: At least 2 arguments required, but only 1 passed."
+      ],
+      "technical": [
+        "The Add Torrent drag/drop loops now pass eventName as the first addEventListener argument instead of accidentally calling addEventListener with only a callback.",
+        "A source-level regression assertion now rejects the broken one-argument binding pattern so JavaScript syntax checks alone cannot allow this failure to recur."
+      ],
+      "validation": [
+        "The full source/unit-test gate and JavaScript syntax validation run after the hotfix is applied.",
+        "The UI contract explicitly requires both corrected drag/drop listener loops and rejects the one-argument EventTarget pattern."
+      ],
+      "known_issues": [],
+      "architecture": [
+        "Torrent Dashboard remains a Python standard-library application with dashboard.py as the HTTP composition root.",
+        "Configuration, integrations, users, and configuration transaction coordination remain separated into torrent_dashboard package modules.",
+        "Torrent detail presentation remains frontend-owned and continues to use the existing /api/detail contract.",
+        "Desktop/tablet use separate docked list and detail panels; mobile uses a bottom-sheet presentation."
+      ],
+      "next_steps": [
+        {
+          "priority": 1,
+          "title": "Extract release and update provenance",
+          "detail": "Move GitHub release parsing, installed release metadata, package-integrity normalization, and historical digest caching out of dashboard.py."
+        },
+        {
+          "priority": 2,
+          "title": "Extract qBitTorrent transport and normalization",
+          "detail": "Move QBitClient, server normalization, proxy/preference translation, and Web API transport away from HTTP routing."
+        },
+        {
+          "priority": 3,
+          "title": "Expand request-level behavioral tests",
+          "detail": "Add authorization, CSRF, setup, account-route, and settings-mutation coverage around extracted service boundaries."
+        },
+        {
+          "priority": 4,
+          "title": "Harden secrets at rest",
+          "detail": "Use the configuration boundary to add restrictive file permissions and separate ordinary configuration from stored credentials."
+        }
+      ],
+      "decisions": [
+        "Prefer two visually distinct surfaces for list/detail hierarchy rather than joining them with only an internal divider.",
+        "Keep viewport-derived docking and independent list/detail scrolling.",
+        "Keep active backend modularization work separate from this presentation correction.",
+        "Treat torrent-detail selection and inspector disclosure as independent state: collapse changes presentation, not selection.",
+        "Keep the torrent-detail dock persistently discoverable and use the full disclosure bar as the primary keyboard/touch interaction target.",
+        "Treat All servers as an aggregation mode: omit it when only one enabled client exists, and prefer the actual client so client-specific actions remain available.",
+        "Author user-facing copy in its final display form; runtime token normalization is compatibility behavior for legacy generated tokens, not a presentation system.",
+        "Use deliberate mixed capitalization: stable named destinations may read as product labels, while headings, field labels, actions, statuses, errors, and explanatory text generally use sentence case.",
+        "Prefer user-facing product concepts over legacy implementation terminology, including allowed IP addresses for access controls and client for client-management actions.",
+        "Use qBitTorrent's parsed/cached metadata path when preselecting files from a local .torrent; raw multipart upload remains only as a compatibility fallback because qBitTorrent rejects filePriorities on raw uploaded torrents."
+      ]
     }
   ]
 }

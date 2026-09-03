@@ -6,7 +6,7 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.78** (prerelease)
+- Latest documented build: **v0.5.79** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 - Upstream development branch: `refactor/backend-modularization-users`
 - Upstream prerelease branch: `prerelease/backend-modularization`
@@ -14,7 +14,7 @@
 
 ### Latest release summary
 
-Separates magnet and .torrent sources, adds qBitTorrent-style file and folder selection before download, and makes .torrent export reliable across cached and existing torrent metadata.
+Fixes a v0.5.78 Add Torrent drag-and-drop event binding error that could prevent the Dashboard from initializing in browsers that enforce the EventTarget API argument contract.
 
 ## Architecture state
 
@@ -46,6 +46,13 @@ Separates magnet and .torrent sources, adds qBitTorrent-style file and folder se
 - Keep public development continuity portable across forks; label canonical repository/branch/PR references as upstream context rather than local identity.
 
 ## Recent work
+
+### v0.5.79 — Add Torrent startup hotfix
+
+Fixes a v0.5.78 Add Torrent drag-and-drop event binding error that could prevent the Dashboard from initializing in browsers that enforce the EventTarget API argument contract.
+
+- Corrects the dragenter, dragover, dragleave, and drop listeners so every addEventListener call receives both the event type and callback.
+- Restores normal Dashboard initialization while preserving the v0.5.78 selectable Add Torrent workflow, source tabs, file tree, and metadata export behavior.
 
 ### v0.5.78 — Selectable Add Torrent workflow
 
@@ -85,15 +92,6 @@ Restores the Dashboard heading, quiets the empty Torrent details disclosure, and
 - The collapsed Torrent details disclosure shows only Torrent details when no torrent is selected; selection-specific copy appears only for an actual selection.
 - Opening Settings → Updates no longer contacts GitHub automatically; Check for updates is the explicit freshness/network action.
 - The bottom-anchored desktop/tablet torrent workspace and mobile disclosure behavior remain unchanged.
-
-### v0.5.74 — Bottom-anchored torrent details
-
-Anchors the persistent Torrent details disclosure to the bottom of the visible dashboard workspace and removes redundant Dashboard heading chrome to reclaim vertical space.
-
-- Desktop and tablet torrent workspaces now use the actual remaining viewport in both collapsed and expanded states, keeping Torrent details anchored to the bottom like a native client.
-- Expanding Torrent details grows upward while the torrent list remains the flexible scroll region above it.
-- The redundant Dashboard / Live torrent activity heading is hidden on Dashboard while server, torrent-control, and account actions remain visible.
-- Other views retain their page headings.
 
 ## What to do next
 

@@ -1,5 +1,5 @@
 'use strict';
-const FRONTEND_BUILD='0.5.78';
+const FRONTEND_BUILD='0.5.79';
 const HTML_BUILD=document.querySelector('meta[name="torrent-dashboard-build"]')?.content||'';
 const RECOVERY_KEY=`td-frontend-recovery-${FRONTEND_BUILD}`;
 async function recoverFrontendBuild(reason){
@@ -491,8 +491,8 @@ function bindAddTorrentUI(){
   $('#torrentFile').addEventListener('change',event=>setAddTorrentFile(event.target.files?.[0]||null));
   const drop=$('#addTorrentDrop');
   drop.addEventListener('click',()=>$('#torrentFile').click());
-  for(const eventName of ['dragenter','dragover'])drop.addEventListener(event=>{event.preventDefault();event.stopPropagation();drop.classList.add('dragover')});
-  for(const eventName of ['dragleave','drop'])drop.addEventListener(event=>{event.preventDefault();event.stopPropagation();drop.classList.remove('dragover')});
+  for(const eventName of ['dragenter','dragover'])drop.addEventListener(eventName,event=>{event.preventDefault();event.stopPropagation();drop.classList.add('dragover')});
+  for(const eventName of ['dragleave','drop'])drop.addEventListener(eventName,event=>{event.preventDefault();event.stopPropagation();drop.classList.remove('dragover')});
   drop.addEventListener('drop',event=>{const file=[...(event.dataTransfer?.files||[])].find(item=>String(item.name||'').toLowerCase().endsWith('.torrent'));if(file)setAddTorrentFile(file);else toast('Drop a .torrent file','error')});
   $('#addSelectAllFiles').addEventListener('change',event=>{for(const file of addMetadataState.files)file.selected=event.target.checked;renderAddTorrentContent()});
   $('#addContentBody').addEventListener('click',event=>{const toggle=event.target.closest('[data-add-folder-toggle]');if(!toggle)return;const path=toggle.dataset.addFolderToggle;if(addMetadataState.collapsedFolders.has(path))addMetadataState.collapsedFolders.delete(path);else addMetadataState.collapsedFolders.add(path);renderAddTorrentContent()});

@@ -272,6 +272,12 @@ def main():
     assert '## Add Torrent source and content workflow' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')
     assert '### Add Torrent source modes and file selection' in (ROOT / 'TESTING.md').read_text(encoding='utf-8')
 
+
+    # 0.5.79 fixes a startup-blocking EventTarget arity error in Add Torrent drag/drop binding.
+    assert "for(const eventName of ['dragenter','dragover'])drop.addEventListener(eventName,event=>" in app_js
+    assert "for(const eventName of ['dragleave','drop'])drop.addEventListener(eventName,event=>" in app_js
+    assert "drop.addEventListener(event=>" not in app_js
+
     # 0.5.47 frontend generation contract. Navigation HTML is never cached,
     # stale versioned scripts trigger recovery, and optional Add Torrent bindings
     # cannot abort critical dashboard startup.
