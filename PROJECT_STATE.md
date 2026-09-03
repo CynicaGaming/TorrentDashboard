@@ -6,7 +6,7 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.86** (prerelease)
+- Latest documented build: **v0.5.87** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 - Upstream development branch: `refactor/backend-modularization-users`
 - Upstream prerelease branch: `prerelease/backend-modularization`
@@ -14,7 +14,7 @@
 
 ### Latest release summary
 
-Moves torrent-column customization out of Settings and onto the torrent table itself with draggable headers, a right-click Columns menu, and Category retained in the default visible layout.
+Adds direct, persistent column-width resizing to the torrent table while preserving the existing drag-to-reorder and right-click visibility workflow.
 
 ## Architecture state
 
@@ -47,6 +47,7 @@ Moves torrent-column customization out of Settings and onto the torrent table it
 - Expose Seeds, Peers, and Tags in the default torrent table while keeping less frequently needed Size, Category, Tracker, and Added available but hidden by default.
 - Treat Category as core torrent-list context and include it in the default visible column set.
 - Manage torrent columns directly from the torrent header: drag visible headers to reorder and use the header context menu to show/hide optional columns; keep Name required and Category visible in the default layout.
+- Treat torrent column width as part of the browser-local table layout: resize from the header edge, preserve widths across refresh/reorder/visibility changes, and clear them with Reset columns.
 
 ## Development principles
 
@@ -58,6 +59,15 @@ Moves torrent-column customization out of Settings and onto the torrent table it
 - Keep public development continuity portable across forks; label canonical repository/branch/PR references as upstream context rather than local identity.
 
 ## Recent work
+
+### v0.5.87 — Resizable torrent columns
+
+Adds direct, persistent column-width resizing to the torrent table while preserving the existing drag-to-reorder and right-click visibility workflow.
+
+- Drag the right edge of any torrent data header to resize that column directly on the Dashboard.
+- Custom widths persist locally through one-second refreshes, browser reloads, column reordering, and hide/show changes.
+- Per-column minimum widths preserve readable Name, Progress, Status, transfer, category, tag, tracker, and date content.
+- Reset columns now restores default order/visibility and clears all custom widths.
 
 ### v0.5.86 — Direct torrent column controls
 
@@ -94,14 +104,6 @@ Uses locally embedded Material-style disclosure/file icons and simplifies the Ad
 - Add Torrent no longer repeats a Content heading above the live file/size summary.
 - The Name header is left-aligned at the beginning of its column.
 - Folder rows no longer display redundant descendant file counts in the Priority column.
-
-### v0.5.82 — Torrent tree alignment and detail header cleanup
-
-Corrects Add Torrent tree indentation by reserving a shared disclosure slot and removes redundant torrent identity metadata from the expanded details panel.
-
-- Add Torrent checkboxes remain aligned while file/folder labels now share a fixed expander slot before hierarchy indentation.
-- Files beneath folders visibly begin to the right of their parent folder label, including deeper nested levels.
-- Expanded Torrent details now starts directly with its information tabs; the persistent disclosure bar remains the single selected-torrent identity surface.
 
 ## What to do next
 

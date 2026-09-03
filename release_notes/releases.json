@@ -2034,6 +2034,86 @@
         "Treat Category as core torrent-list context and include it in the default visible column set.",
         "Manage torrent columns directly from the torrent header: drag visible headers to reorder and use the header context menu to show/hide optional columns; keep Name required and Category visible in the default layout."
       ]
+    },
+    {
+      "version": "0.5.87",
+      "date": "2026-09-03",
+      "status": "prerelease",
+      "title": "Resizable torrent columns",
+      "summary": "Adds direct, persistent column-width resizing to the torrent table while preserving the existing drag-to-reorder and right-click visibility workflow.",
+      "highlights": [
+        "Drag the right edge of any torrent data header to resize that column directly on the Dashboard.",
+        "Custom widths persist locally through one-second refreshes, browser reloads, column reordering, and hide/show changes.",
+        "Per-column minimum widths preserve readable Name, Progress, Status, transfer, category, tag, tracker, and date content.",
+        "Reset columns now restores default order/visibility and clears all custom widths."
+      ],
+      "fixes": [
+        "Keeps resizing separate from native header drag/drop so grabbing the resize edge does not accidentally reorder a column.",
+        "Existing v0.5.84-v0.5.86 column preferences migrate without intervention; layouts without width data retain automatic sizing until resized."
+      ],
+      "technical": [
+        "The existing tdColumns browser preference now carries an optional widths map alongside order and visibility.",
+        "Header resize handles use pointer capture and apply widths to matching header/body data-col cells, including rows recreated by live polling.",
+        "Selection and row-action columns remain fixed and are intentionally excluded from the resize contract."
+      ],
+      "validation": [
+        "The UI audit requires persisted width state, per-column minimums, resize handles, pointer-event bindings, refresh-time width application, and dedicated resize CSS.",
+        "Existing backend tests, JavaScript syntax checks, generated continuity files, frontend/service-worker synchronization, and package-integrity gates remain required."
+      ],
+      "known_issues": [],
+      "architecture": [
+        "Torrent Dashboard remains a Python standard-library application with dashboard.py as the HTTP composition root.",
+        "Configuration, integrations, users, and configuration transaction coordination remain separated into torrent_dashboard package modules.",
+        "Torrent detail presentation remains frontend-owned and continues to use the existing /api/detail contract.",
+        "Desktop/tablet use separate docked list and detail panels; mobile uses a bottom-sheet presentation."
+      ],
+      "next_steps": [
+        {
+          "priority": 1,
+          "title": "Extract release and update provenance",
+          "detail": "Move GitHub release parsing, installed release metadata, package-integrity normalization, and historical digest caching out of dashboard.py."
+        },
+        {
+          "priority": 2,
+          "title": "Extract qBitTorrent transport and normalization",
+          "detail": "Move QBitClient, server normalization, proxy/preference translation, and Web API transport away from HTTP routing."
+        },
+        {
+          "priority": 3,
+          "title": "Expand request-level behavioral tests",
+          "detail": "Add authorization, CSRF, setup, account-route, and settings-mutation coverage around extracted service boundaries."
+        },
+        {
+          "priority": 4,
+          "title": "Harden secrets at rest",
+          "detail": "Use the configuration boundary to add restrictive file permissions and separate ordinary configuration from stored credentials."
+        }
+      ],
+      "decisions": [
+        "Prefer two visually distinct surfaces for list/detail hierarchy rather than joining them with only an internal divider.",
+        "Keep viewport-derived docking and independent list/detail scrolling.",
+        "Keep active backend modularization work separate from this presentation correction.",
+        "Treat torrent-detail selection and inspector disclosure as independent state: collapse changes presentation, not selection.",
+        "Keep the torrent-detail dock persistently discoverable and use the full disclosure bar as the primary keyboard/touch interaction target.",
+        "Treat All servers as an aggregation mode: omit it when only one enabled client exists, and prefer the actual client so client-specific actions remain available.",
+        "Author user-facing copy in its final display form; runtime token normalization is compatibility behavior for legacy generated tokens, not a presentation system.",
+        "Use deliberate mixed capitalization: stable named destinations may read as product labels, while headings, field labels, actions, statuses, errors, and explanatory text generally use sentence case.",
+        "Prefer user-facing product concepts over legacy implementation terminology, including allowed IP addresses for access controls and client for client-management actions.",
+        "Use qBitTorrent's parsed/cached metadata path when preselecting files from a local .torrent; raw multipart upload remains only as a compatibility fallback because qBitTorrent rejects filePriorities on raw uploaded torrents.",
+        "A repeated click on the torrent currently shown in Torrent details clears the detail context; choosing a different torrent replaces it directly.",
+        "Keep Add Torrent checkboxes in one aligned selection column; communicate hierarchy by indenting folder/file labels while preserving aligned Size and Priority columns.",
+        "Reconcile Torrent details against every refreshed torrent list and clear the detail context when its selected server/hash no longer exists.",
+        "Reserve a fixed disclosure/expander slot for every Add Torrent content row; files use a spacer while folders use the chevron, and hierarchy indentation begins after that slot.",
+        "Use the persistent Torrent details disclosure bar as the sole selection identity surface; expanded details begin directly with tabs/content rather than repeating title/hash metadata.",
+        "Use locally embedded Material-style SVGs for common disclosure and file-source affordances rather than platform-dependent text glyphs or remote icon-font dependencies.",
+        "Keep the Add Torrent content preview visually minimal: left-align Name, omit redundant folder descendant counts, and let the live file/size summary replace a separate Content heading.",
+        "Treat torrent-table column layout as a browser-local presentation preference rather than shared application configuration.",
+        "Keep Name, the selection checkbox, and row actions fixed; allow the remaining torrent data columns to be hidden and reordered.",
+        "Expose Seeds, Peers, and Tags in the default torrent table while keeping less frequently needed Size, Category, Tracker, and Added available but hidden by default.",
+        "Treat Category as core torrent-list context and include it in the default visible column set.",
+        "Manage torrent columns directly from the torrent header: drag visible headers to reorder and use the header context menu to show/hide optional columns; keep Name required and Category visible in the default layout.",
+        "Treat torrent column width as part of the browser-local table layout: resize from the header edge, preserve widths across refresh/reorder/visibility changes, and clear them with Reset columns."
+      ]
     }
   ]
 }
