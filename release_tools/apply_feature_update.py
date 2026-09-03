@@ -6,7 +6,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve()
 previous = subprocess.check_output(
-    ["git", "show", "HEAD^:release_tools/apply_feature_update.py"],
+    ["git", "show", "HEAD^^:release_tools/apply_feature_update.py"],
     cwd=HERE.parents[1],
     text=True,
 )
@@ -15,8 +15,20 @@ exec(compile(previous, str(HERE), "exec"), namespace)
 
 validator = HERE.with_name("validate_ui_strings.py")
 text = validator.read_text(encoding="utf-8")
-old = "        'Download speed','HTTP sources','Accent color',\n"
-new = "        'HTTP sources','Accent color',\n"
-if old not in text:
-    raise RuntimeError("Could not retire the old Download speed copy assertion")
-validator.write_text(text.replace(old, new, 1), encoding="utf-8")
+replacements = [
+    (
+        "        'Download speed','HTTP sources','Accent color',\n",
+        "        'HTTP sources','Accent color',\n",
+        "Download speed copy assertion",
+    ),
+    (
+        "'applyColumnPrefs();applyTorrentColumnWidths();const empty='",
+        "'applyColumnPrefs();applyTorrentColumnWidths();syncTorrentSortHeaders();const empty='",
+        "torrent render column assertion",
+    ),
+]
+for old, new, label in replacements:
+    if old not in text:
+        raise RuntimeError(f"Could not retire the old {label}")
+    text = text.replace(old, new, 1)
+validator.write_text(text, encoding="utf-8")
