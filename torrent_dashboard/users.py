@@ -24,7 +24,7 @@ PROFILE_AVATAR_TYPES = {
 
 USER_GROUPS = {
     "administrator": "Administrator",
-    "standard": "Standard User",
+    "standard": "Standard user",
 }
 
 
@@ -89,7 +89,7 @@ def normalize_user(data, existing=None, require_password=False):
     elif group_raw in ("standard", "standard_user", "user"):
         group = "standard"
     else:
-        raise RuntimeError("User group must be Administrator or Standard User")
+        raise RuntimeError("Choose Administrator or Standard user for the user group")
     email = str(
         data.get("email")
         if data.get("email") is not None
@@ -143,7 +143,7 @@ def public_user(user):
         "last_name": str(user.get("last_name") or ""),
         "email": str(user.get("email") or ""),
         "group": "administrator" if user.get("group") == "administrator" else "standard",
-        "group_label": USER_GROUPS.get(user.get("group"), "Standard User"),
+        "group_label": USER_GROUPS.get(user.get("group"), "Standard user"),
         "display_name": user_display_name(user),
         "avatar_configured": bool(avatar_path),
         "avatar_version": str(user.get("avatar_version") or ""),

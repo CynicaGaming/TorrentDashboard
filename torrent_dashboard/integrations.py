@@ -13,35 +13,35 @@ INTEGRATION_TYPES = {
         "label": "Sonarr",
         "fields": [
             {"key": "url", "label": "URL", "placeholder": "http://host:8989", "required": True},
-            {"key": "api_key", "label": "API Key", "secret": True, "required": True},
+            {"key": "api_key", "label": "API key", "secret": True, "required": True},
         ],
     },
     "radarr": {
         "label": "Radarr",
         "fields": [
             {"key": "url", "label": "URL", "placeholder": "http://host:7878", "required": True},
-            {"key": "api_key", "label": "API Key", "secret": True, "required": True},
+            {"key": "api_key", "label": "API key", "secret": True, "required": True},
         ],
     },
     "lidarr": {
         "label": "Lidarr",
         "fields": [
             {"key": "url", "label": "URL", "placeholder": "http://host:8686", "required": True},
-            {"key": "api_key", "label": "API Key", "secret": True, "required": True},
+            {"key": "api_key", "label": "API key", "secret": True, "required": True},
         ],
     },
     "prowlarr": {
         "label": "Prowlarr",
         "fields": [
             {"key": "url", "label": "URL", "placeholder": "http://host:9696", "required": True},
-            {"key": "api_key", "label": "API Key", "secret": True, "required": True},
+            {"key": "api_key", "label": "API key", "secret": True, "required": True},
         ],
     },
     "jellyfin": {
         "label": "Jellyfin",
         "fields": [
             {"key": "url", "label": "URL", "placeholder": "http://host:8096", "required": True},
-            {"key": "api_key", "label": "API Key", "secret": True, "required": True},
+            {"key": "api_key", "label": "API key", "secret": True, "required": True},
         ],
     },
     "plex": {
@@ -61,11 +61,11 @@ INTEGRATION_TYPES = {
         "label": "ntfy",
         "fields": [
             {"key": "topic_url", "label": "Topic URL", "placeholder": "https://ntfy.sh/topic", "required": True},
-            {"key": "access_token", "label": "Access Token", "secret": True, "required": False},
+            {"key": "access_token", "label": "Access token", "secret": True, "required": False},
         ],
     },
     "generic_webhook": {
-        "label": "Generic Webhook",
+        "label": "Generic webhook",
         "fields": [
             {"key": "webhook_url", "label": "Webhook URL", "placeholder": "https://example.com/webhook", "secret": True, "required": True},
         ],

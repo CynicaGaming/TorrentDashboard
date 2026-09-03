@@ -149,3 +149,13 @@ Do not use this file as a test-results log; it is a stable testing contract for 
 - With two or more enabled clients, verify All servers is available as an aggregation choice.
 - With multiple clients, select a specific client, reload the dashboard, and verify the valid previous selection is restored.
 - Disable or remove the remembered client and verify the dashboard falls back to All servers when multiple clients remain, or automatically selects the sole remaining enabled client.
+
+
+### Product language and capitalization
+
+- Verify setup, sign-in, Dashboard, Settings, Add torrent, account, and client-settings surfaces after a copy-system change.
+- Confirm named destinations retain their intended label casing while headings, labels, actions, statuses, errors, and explanatory copy use natural sentence case.
+- Confirm qBitTorrent, Torrent Dashboard, GitHub, API, Web API, HTTP, IP, URL, SHA-256, and `.torrent` keep their established capitalization.
+- Confirm authored copy does not visibly change after JavaScript initializes or after dynamically generated controls are inserted.
+- Verify access controls say **Allowed IP addresses** rather than whitelist language and client-management actions use **client** where that is the user-facing concept.
+- Verify validation and toast messages contain no camelCase tokens, internal field names, or mechanically recased technical terms.

@@ -113,7 +113,7 @@ window.TDSettings = (() => {
 
   async function openClientSettings(serverId) {
     serverId = String(serverId || '').trim();
-    if (!serverId) return toast('Save the client before opening client settings','error');
+    if (!serverId) return toast('Save this client before opening its settings','error');
     const server = (state.settings?.servers || []).find(item => String(item.id || '') === serverId);
     clientSettingsServerId = serverId;
     const modal = document.querySelector('#clientSettingsModal');
@@ -125,7 +125,7 @@ window.TDSettings = (() => {
     try {
       const data = await api(`/api/client-settings?server=${encodeURIComponent(serverId)}`);
       fillClientSettings(data.settings || {});
-      setClientSettingsStatus('Live settings loaded from qBitTorrent.');
+      setClientSettingsStatus('Settings loaded from qBitTorrent.');
     } catch (e) {
       setClientSettingsStatus(e.message || 'Could not load client settings.', 'bad');
     }
@@ -154,7 +154,7 @@ window.TDSettings = (() => {
     const numeric=[payload.speed.download_limit_kb,payload.speed.upload_limit_kb,payload.speed.alternative_download_limit_kb,payload.speed.alternative_upload_limit_kb,payload.connection.max_connections,payload.connection.max_connections_per_torrent,payload.connection.max_upload_slots,payload.connection.max_upload_slots_per_torrent];
     if (!payload.connection.random_port) numeric.push(payload.connection.listen_port);
     if (payload.proxy.type !== 'none') numeric.push(payload.proxy.port);
-    if (numeric.some(x => Number.isNaN(x))) return setClientSettingsStatus('Enter valid whole numbers for the client limits and ports.', 'bad');
+    if (numeric.some(x => Number.isNaN(x))) return setClientSettingsStatus('Enter whole numbers for client limits and ports.', 'bad');
     const button = document.querySelector('#saveClientSettings');
     if (button) button.disabled = true;
     setClientSettingsStatus('Saving client settings…');
@@ -489,12 +489,12 @@ window.TDSettings = (() => {
       const card=document.createElement('article');
       card.className='settings-accordion user-item';
       card.dataset.id=user.id||'';
-      const group=user.group==='administrator'?'Administrator':'Standard User';
+      const group=user.group==='administrator'?'Administrator':'Standard user';
       const current=user.id && user.id===currentUserId;
       const display=userName(user);
       const username=user.username||'New user';
       const showUsername=!!user.username && display!==user.username;
-      card.innerHTML=`<button class="accordion-summary" type="button" aria-expanded="${index===0?'true':'false'}"><span><span class="user-name-line"><b>${esc(display)}</b>${current?'<span class="current-user-badge">Current user</span>':''}</span>${showUsername?`<small>${esc(username)}</small>`:''}</span><span class="user-group-badge ${user.group==='administrator'?'admin':'standard'}">${esc(group)}</span><span class="accordion-chevron">⌄</span></button><div class="accordion-body ${index===0?'':'hidden'}"><div class="settings-form-grid two-col"><label><span class="field-label">Username <span class="required-mark" aria-hidden="true">*</span></span><input data-user-field="username" value="${esc(user.username||'')}" maxlength="128" autocomplete="off" required></label><label><span class="field-label">User group <span class="required-mark" aria-hidden="true">*</span></span><select class="user-group-select" data-user-field="group" required><option value="administrator" ${user.group==='administrator'?'selected':''}>Administrator</option><option value="standard" ${user.group==='standard'?'selected':''}>Standard User</option></select></label><label>First name<input data-user-field="first_name" value="${esc(user.first_name||'')}" maxlength="128"></label><label>Last name<input data-user-field="last_name" value="${esc(user.last_name||'')}" maxlength="128"></label><label class="full-field">Email<input data-user-field="email" type="email" value="${esc(user.email||'')}" maxlength="254"></label><label><span class="field-label">Password <span class="required-mark" aria-hidden="true">*</span></span><input data-user-field="password" type="password" autocomplete="new-password" required ${user._new?'placeholder="Create password"':'class="secret-configured" data-configured-secret="1" value="'+SECRET_MASK+'"'}></label><label><span class="field-label">Confirm password <span class="required-mark" aria-hidden="true">*</span></span><input data-user-field="password2" type="password" autocomplete="new-password" required ${user._new?'placeholder="Confirm password"':'class="secret-configured" data-configured-secret="1" value="'+SECRET_MASK+'"'}></label></div><div class="settings-inline-actions"><button class="primary user-save" type="button">Save</button><button class="danger user-delete" type="button" ${current?'disabled':''}>Delete</button></div></div>`;
+      card.innerHTML=`<button class="accordion-summary" type="button" aria-expanded="${index===0?'true':'false'}"><span><span class="user-name-line"><b>${esc(display)}</b>${current?'<span class="current-user-badge">Current user</span>':''}</span>${showUsername?`<small>${esc(username)}</small>`:''}</span><span class="user-group-badge ${user.group==='administrator'?'admin':'standard'}">${esc(group)}</span><span class="accordion-chevron">⌄</span></button><div class="accordion-body ${index===0?'':'hidden'}"><div class="settings-form-grid two-col"><label><span class="field-label">Username <span class="required-mark" aria-hidden="true">*</span></span><input data-user-field="username" value="${esc(user.username||'')}" maxlength="128" autocomplete="off" required></label><label><span class="field-label">User group <span class="required-mark" aria-hidden="true">*</span></span><select class="user-group-select" data-user-field="group" required><option value="administrator" ${user.group==='administrator'?'selected':''}>Administrator</option><option value="standard" ${user.group==='standard'?'selected':''}>Standard user</option></select></label><label>First name<input data-user-field="first_name" value="${esc(user.first_name||'')}" maxlength="128"></label><label>Last name<input data-user-field="last_name" value="${esc(user.last_name||'')}" maxlength="128"></label><label class="full-field">Email<input data-user-field="email" type="email" value="${esc(user.email||'')}" maxlength="254"></label><label><span class="field-label">Password <span class="required-mark" aria-hidden="true">*</span></span><input data-user-field="password" type="password" autocomplete="new-password" required ${user._new?'placeholder="Create password"':'class="secret-configured" data-configured-secret="1" value="'+SECRET_MASK+'"'}></label><label><span class="field-label">Confirm password <span class="required-mark" aria-hidden="true">*</span></span><input data-user-field="password2" type="password" autocomplete="new-password" required ${user._new?'placeholder="Confirm password"':'class="secret-configured" data-configured-secret="1" value="'+SECRET_MASK+'"'}></label></div><div class="settings-inline-actions"><button class="primary user-save" type="button">Save</button><button class="danger user-delete" type="button" ${current?'disabled':''}>Delete</button></div></div>`;
       const summary=card.querySelector('.accordion-summary');
       summary.addEventListener('click',()=>{const body=card.querySelector('.accordion-body');const open=body.classList.contains('hidden');body.classList.toggle('hidden',!open);summary.setAttribute('aria-expanded',String(open))});
       card.querySelector('.user-save').addEventListener('click',()=>saveUser(card));
@@ -558,4 +558,4 @@ window.TDSettings = (() => {
   return {bind,activate,fill,saveCore,loadExtras,loadIntegrations,loadUsers,openClientSettings,closeClientSettings};
 })();
 
-// Standard Users have read-only dashboard access for management actions; self-service profile and password changes live in the account menu.
+// Standard users have read-only dashboard access for management actions; self-service profile and password changes live in the account menu.

@@ -6,7 +6,7 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.76** (prerelease)
+- Latest documented build: **v0.5.77** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 - Upstream development branch: `refactor/backend-modularization-users`
 - Upstream prerelease branch: `prerelease/backend-modularization`
@@ -14,7 +14,7 @@
 
 ### Latest release summary
 
-Makes single-client installations select their actual qBitTorrent server automatically while preserving All servers as a meaningful multi-client aggregation mode.
+Refines capitalization and wording across setup, Dashboard, Settings, dialogs, roles, and integrations while preserving intentionally authored copy instead of mechanically recasing it at runtime.
 
 ## Architecture state
 
@@ -31,6 +31,9 @@ Makes single-client installations select their actual qBitTorrent server automat
 - Treat torrent-detail selection and inspector disclosure as independent state: collapse changes presentation, not selection.
 - Keep the torrent-detail dock persistently discoverable and use the full disclosure bar as the primary keyboard/touch interaction target.
 - Treat All servers as an aggregation mode: omit it when only one enabled client exists, and prefer the actual client so client-specific actions remain available.
+- Author user-facing copy in its final display form; runtime token normalization is compatibility behavior for legacy generated tokens, not a presentation system.
+- Use deliberate mixed capitalization: stable named destinations may read as product labels, while headings, field labels, actions, statuses, errors, and explanatory text generally use sentence case.
+- Prefer user-facing product concepts over legacy implementation terminology, including allowed IP addresses for access controls and client for client-management actions.
 
 ## Development principles
 
@@ -42,6 +45,16 @@ Makes single-client installations select their actual qBitTorrent server automat
 - Keep public development continuity portable across forks; label canonical repository/branch/PR references as upstream context rather than local identity.
 
 ## Recent work
+
+### v0.5.77 — Product language polish
+
+Refines capitalization and wording across setup, Dashboard, Settings, dialogs, roles, and integrations while preserving intentionally authored copy instead of mechanically recasing it at runtime.
+
+- Introduces a deliberate mixed capitalization model: compact named destinations may read as product labels while headings, fields, actions, statuses, errors, and explanatory text use natural sentence case.
+- Polishes setup and sign-in language, including clearer authentication choices, natural validation messages, and consistent API key and Web API terminology.
+- Refines Dashboard and Settings labels such as Free disk space, HTTP sources, Dashboard name, Check for updates, Patch notes, Browser notifications, and Completion sound.
+- Uses Allowed IP addresses instead of whitelist language on user-facing access controls, and uses client terminology for client-management actions such as Add client.
+- Simplifies dialog and account copy, including Remove torrent/Remove torrents, Save .torrent file, Client settings, and more concise profile/password guidance.
 
 ### v0.5.76 — Single-client server defaults
 
@@ -79,15 +92,6 @@ Reworks torrent details into a persistent disclosure dock: the inspector can col
 - Selecting a torrent automatically expands the inspector; collapsing it preserves the selected torrent and expanding again restores the same context.
 - With no torrent selected, the dock remains available and can expand into a simple empty state rather than vanishing from the dashboard.
 - Mobile keeps the bottom-sheet detail presentation when expanded while retaining the persistent collapsed bar at the bottom of the interface.
-
-### v0.5.72 — Separated docked torrent details
-
-Simplifies the torrent inspector into an always-open-on-selection, visually distinct panel below the torrent list while preserving viewport docking and independent scrolling.
-
-- Torrent list and torrent details are now separate sibling panels with their own borders, radius, background, shadow, and spacing instead of sharing one continuous surface.
-- Removed the torrent-detail Collapse action and remembered collapse preference; selecting a torrent opens details and Close dismisses them.
-- The shared workspace still uses the remaining desktop/tablet viewport so the list and detail panel remain visible together, with independent internal scrolling.
-- Mobile retains the existing bottom-sheet detail presentation without a collapse state.
 
 ## What to do next
 

@@ -7,14 +7,14 @@
 This handoff is intentionally portable across public forks. Verify the current checkout's Git remote, branch, and open work before using upstream references as instructions.
 
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
-- Last documented upstream build: **v0.5.76** (prerelease)
+- Last documented upstream build: **v0.5.77** (prerelease)
 - Upstream development branch: `refactor/backend-modularization-users`
 - Upstream prerelease branch: `prerelease/backend-modularization`
 - Upstream active PR: **#25**
 
 ## Last known-good state
 
-Makes single-client installations select their actual qBitTorrent server automatically while preserving All servers as a meaningful multi-client aggregation mode.
+Refines capitalization and wording across setup, Dashboard, Settings, dialogs, roles, and integrations while preserving intentionally authored copy instead of mechanically recasing it at runtime.
 
 The released-state details and recent history are in `PROJECT_STATE.md`; architectural constraints are in `ARCHITECTURE.md`.
 

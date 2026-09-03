@@ -1317,6 +1317,74 @@
         "Keep the torrent-detail dock persistently discoverable and use the full disclosure bar as the primary keyboard/touch interaction target.",
         "Treat All servers as an aggregation mode: omit it when only one enabled client exists, and prefer the actual client so client-specific actions remain available."
       ]
+    },
+    {
+      "version": "0.5.77",
+      "date": "2026-09-02",
+      "status": "prerelease",
+      "title": "Product language polish",
+      "summary": "Refines capitalization and wording across setup, Dashboard, Settings, dialogs, roles, and integrations while preserving intentionally authored copy instead of mechanically recasing it at runtime.",
+      "highlights": [
+        "Introduces a deliberate mixed capitalization model: compact named destinations may read as product labels while headings, fields, actions, statuses, errors, and explanatory text use natural sentence case.",
+        "Polishes setup and sign-in language, including clearer authentication choices, natural validation messages, and consistent API key and Web API terminology.",
+        "Refines Dashboard and Settings labels such as Free disk space, HTTP sources, Dashboard name, Check for updates, Patch notes, Browser notifications, and Completion sound.",
+        "Uses Allowed IP addresses instead of whitelist language on user-facing access controls, and uses client terminology for client-management actions such as Add client.",
+        "Simplifies dialog and account copy, including Remove torrent/Remove torrents, Save .torrent file, Client settings, and more concise profile/password guidance."
+      ],
+      "fixes": [
+        "Stops the runtime sentence-case normalizer from rewriting intentionally authored UI strings and technical forms such as SHA-256.",
+        "Removes inconsistent title-cased actions and awkward phrases such as Remove torrent(s), Check For Updates, Sign In To Dashboard, and Not Tested Yet.",
+        "Normalizes Standard user, API key, and Access token labels where those values appear directly in browser forms or validation."
+      ],
+      "technical": [
+        "uiText remains available for legacy camelCase/underscore tokens, but authored HTML and JavaScript copy is now preserved verbatim.",
+        "DESIGN_LANGUAGE.md now defines a Firefox-inspired capitalization and product-voice model with explicit guidance for destinations, headings, actions, technical names, and terminology.",
+        "The UI validator enforces high-value polished strings, rejects known legacy capitalization, and verifies that runtime normalization is limited to legacy tokens."
+      ],
+      "validation": [
+        "The UI audit verifies polished setup, Dashboard, Settings, dialog, integration, and account terminology plus authored-text preservation.",
+        "Existing backend behavioral tests, JavaScript syntax checks, generated handoff/release-note validation, frontend/service-worker synchronization, and package-integrity gates remain required."
+      ],
+      "known_issues": [],
+      "architecture": [
+        "Torrent Dashboard remains a Python standard-library application with dashboard.py as the HTTP composition root.",
+        "Configuration, integrations, users, and configuration transaction coordination remain separated into torrent_dashboard package modules.",
+        "Torrent detail presentation remains frontend-owned and continues to use the existing /api/detail contract.",
+        "Desktop/tablet use separate docked list and detail panels; mobile uses a bottom-sheet presentation."
+      ],
+      "next_steps": [
+        {
+          "priority": 1,
+          "title": "Extract release and update provenance",
+          "detail": "Move GitHub release parsing, installed release metadata, package-integrity normalization, and historical digest caching out of dashboard.py."
+        },
+        {
+          "priority": 2,
+          "title": "Extract qBitTorrent transport and normalization",
+          "detail": "Move QBitClient, server normalization, proxy/preference translation, and Web API transport away from HTTP routing."
+        },
+        {
+          "priority": 3,
+          "title": "Expand request-level behavioral tests",
+          "detail": "Add authorization, CSRF, setup, account-route, and settings-mutation coverage around extracted service boundaries."
+        },
+        {
+          "priority": 4,
+          "title": "Harden secrets at rest",
+          "detail": "Use the configuration boundary to add restrictive file permissions and separate ordinary configuration from stored credentials."
+        }
+      ],
+      "decisions": [
+        "Prefer two visually distinct surfaces for list/detail hierarchy rather than joining them with only an internal divider.",
+        "Keep viewport-derived docking and independent list/detail scrolling.",
+        "Keep active backend modularization work separate from this presentation correction.",
+        "Treat torrent-detail selection and inspector disclosure as independent state: collapse changes presentation, not selection.",
+        "Keep the torrent-detail dock persistently discoverable and use the full disclosure bar as the primary keyboard/touch interaction target.",
+        "Treat All servers as an aggregation mode: omit it when only one enabled client exists, and prefer the actual client so client-specific actions remain available.",
+        "Author user-facing copy in its final display form; runtime token normalization is compatibility behavior for legacy generated tokens, not a presentation system.",
+        "Use deliberate mixed capitalization: stable named destinations may read as product labels, while headings, field labels, actions, statuses, errors, and explanatory text generally use sentence case.",
+        "Prefer user-facing product concepts over legacy implementation terminology, including allowed IP addresses for access controls and client for client-management actions."
+      ]
     }
   ]
 }

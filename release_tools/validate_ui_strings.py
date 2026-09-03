@@ -83,7 +83,7 @@ def validate_design_language(app_js: str, settings_js: str):
         "toast('User saved')",
         "toast('User deleted')",
         "toast('Administrator access is required','error')",
-        "toast('Choose a specific server first','error')",
+        "toast('Select a specific client first','error')",
     )
     missing = [value for value in required if value not in app_js and value not in settings_js]
     if missing:
@@ -122,7 +122,7 @@ def main():
     assert 'id="torrentDetailPane"' in html
     assert 'id="drawer"' not in html
     assert all(f'data-detailtab="{tab}"' in html for tab in ('general','trackers','peers','webseeds','content'))
-    assert 'HTTP Sources' in html and '>Content</button>' in html
+    assert 'HTTP sources' in html and '>Content</button>' in html
     assert "Torrent details" not in app_js
     assert "openDetail(tr.dataset.server,tr.dataset.hash)" in app_js
     assert "torrent-detail-selected" in app_js and "torrent-detail-selected" in app_css
@@ -246,7 +246,7 @@ def main():
     # 0.5.54 enables export only after metadata is complete. It must use
     # qBitTorrent's native saveMetadata cache without changing torrent addition.
     assert 'id="addSaveTorrent"' in html
-    assert 'Save as .torrent' in html
+    assert 'Save .torrent file' in html
     assert 'async function saveAddTorrentMetadata()' in app_js
     assert "fetch(url,{method:'GET',cache:'no-store'})" in app_js
     assert "renderAddMetadataComplete(result.metadata||{},source)" in app_js
@@ -377,7 +377,7 @@ def main():
     assert 'async function loadHistory' not in app_js
     assert 'id="removeModal"' in html
     assert 'id="removeFiles"' in html
-    assert 'Also delete the downloaded files' in html
+    assert 'Delete downloaded files too' in html
     assert 'async function removeTorrentTargets' in app_js
     assert "confirm('Also delete downloaded files?" not in app_js
     assert "confirm('Delete downloaded files too?')" not in app_js
@@ -519,6 +519,45 @@ def main():
     assert "if(state.server!=='all')await loadMeta()" in app_js
     assert '## Server-selection defaults' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')
     assert '### Server-selection defaults' in (ROOT / 'TESTING.md').read_text(encoding='utf-8')
+
+
+    # 0.5.77 preserves intentionally authored display copy and confines runtime
+    # normalization to legacy generated tokens.
+    assert 'function isLegacyUiToken' in app_js and 'function displayUiText' in app_js
+    assert 'if(trim&&isLegacyUiToken(trim))' in app_js
+    assert 'el.textContent=displayUiText(msg)' in app_js
+    assert 'trim.length<80&&/[A-Za-z]/.test(trim)' not in app_js
+    for copy in (
+        'First-run setup','Step 1 of 4','Set up your dashboard','Dashboard name',
+        'Local dashboard address','Authentication mode','Allowed IP addresses',
+        'Username and password','Test connection','Not tested yet','Review and finish',
+        'Sign in to Torrent Dashboard','Live torrent activity','Free disk space',
+        'All categories','Download speed','HTTP sources','Accent color',
+        'Visible desktop columns','Copy address','Add client','GitHub repository',
+        'Current version','Not checked','Check for updates','Patch notes',
+        'Browser notifications','Completion sound','Add integration','Add user',
+        'Save .torrent file','Delete downloaded files too','Client settings',
+    ):
+        assert copy in html, f'missing polished interface copy: {copy}'
+    for legacy in (
+        'First Run Setup','Step 1 Of 4','Set Up Your Dashboard','Authentication Mode',
+        'IP Address Whitelist','Username And Password','Not Tested Yet','Review And Finish',
+        'Sign In To Dashboard','Live Torrent Activity','Disk Free','All Categories',
+        'Download Speed','HTTP Sources','Dashboard Title','Accent Color',
+        'Visible Desktop Columns','Copy Address','＋ Add Server','GitHub Repository',
+        'Current Version','Latest Version','Not Checked','Update State','Check For Updates',
+        'Patch Notes','Browser Notifications','Completion Sound','Custom Sound File',
+        'No Custom Sound Uploaded','Test Notification','Choose Integration…',
+        '＋ Add Integration','Standard Users','＋ Add User','Remove torrent(s)',
+    ):
+        assert legacy not in html, f'legacy capitalization remains: {legacy}'
+    assert 'No Network Interfaces Detected' not in app_js
+    assert 'Testing And Saving…' not in app_js and 'Setup Could Not Be Completed' not in app_js
+    assert 'Standard User' not in settings_js
+    assert '"standard": "Standard user"' in users_py
+    assert '"API key"' in integrations_py and '"Access token"' in integrations_py
+    assert '## Capitalization and product voice' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')
+    assert '### Product language and capitalization' in (ROOT / 'TESTING.md').read_text(encoding='utf-8')
 
     # 0.5.73 supersedes v0.5.72's open/close-only inspector. The dock is
     # persistent, selection and disclosure are independent, and the full bar is
