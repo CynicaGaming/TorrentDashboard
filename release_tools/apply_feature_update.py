@@ -124,6 +124,11 @@ new_detail_assert = '    assert ".torrent-detail-pane:not(.collapsed){min-height
 if old_detail_assert not in validator:
     raise RuntimeError("Could not find fixed desktop detail-pane assertion")
 validator = validator.replace(old_detail_assert, new_detail_assert, 1)
+old_view_assert = '    assert "if(dashboardView)requestAnimationFrame(syncTorrentWorkspaceLayout)" in app_js\n'
+new_view_assert = '    assert "if(dashboardView)requestAnimationFrame(()=>{syncTorrentWorkspaceLayout();syncDesktopDetailPaneHeight()})" in app_js\n'
+if old_view_assert not in validator:
+    raise RuntimeError("Could not find dashboard workspace callback assertion")
+validator = validator.replace(old_view_assert, new_view_assert, 1)
 anchor = '    assert "window.innerHeight-top-16" not in app_js\n'
 checks = (
     anchor
