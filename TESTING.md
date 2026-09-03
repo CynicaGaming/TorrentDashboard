@@ -266,3 +266,15 @@ Do not use this file as a test-results log; it is a stable testing contract for 
 - Scroll the document past the Dashboard heading, metrics, and filters, then back to the top and verify the torrent-list height never changes.
 - Expand/collapse Torrent details and switch General/Trackers/Peers/HTTP sources/Content; verify the torrent-list height remains unchanged and the existing detail scrolling contracts remain intact.
 - Repeat at mobile width and verify the six-row desktop sizing rule is not applied to mobile torrent cards.
+
+
+### Adaptive desktop torrent viewport fit
+
+- At the top of the Dashboard on a viewport around 840 px tall, expand General and verify the page keeps the Dashboard heading, metrics, filters, torrent list, and complete General pane inside the viewport when the measured geometry permits it; the list should reduce from six rows to the largest whole-row count that fits.
+- Verify the torrent list never shows a clipped partial row: its height must be the rendered table header plus an integer number of rendered torrent rows.
+- Resize the browser taller and shorter and verify the list moves between three and six whole rows as needed while General retains natural height.
+- Switch between comfortable and compact density and verify the row calculation is recomputed from the live rendered row height.
+- Scroll the document after sizing and verify the torrent-list height does not grow or shrink merely because the workspace's viewport-relative top changed.
+- Expand/collapse Torrent details and switch General/Trackers/Peers/HTTP sources/Content; verify the list recomputes against the rendered detail-pane height and long-data tabs keep their internal scrolling.
+- Opening Torrent details from the disclosure or a torrent row must not automatically scroll the document.
+- Repeat at mobile width and verify the adaptive desktop rule does not alter the mobile bottom sheet or torrent cards.

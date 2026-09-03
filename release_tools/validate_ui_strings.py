@@ -773,26 +773,29 @@ def main():
     assert '### Responsive torrent detail records' in design
     assert '### Responsive tracker and peer details' in testing
 
-    # 0.5.110 reveals the fixed desktop torrent workspace when details open beneath top-of-page chrome.
-    assert 'function revealDesktopTorrentWorkspace()' in app_js
-    assert "workspace.getBoundingClientRect().top+(window.scrollY||window.pageYOffset||0)-8" in app_js
-    assert "window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'" in app_js
-    assert 'if(state.detailExpanded)requestAnimationFrame(revealDesktopTorrentWorkspace)' in app_js
-    assert 'const wasExpanded=state.detailExpanded' in app_js and 'if(!wasExpanded)requestAnimationFrame(revealDesktopTorrentWorkspace)' in app_js
-    assert 'Desktop Torrent details viewport reveal' in design
-    assert 'Desktop Torrent details viewport reveal' in testing
-
-    # 0.5.111 makes the desktop torrent list an exact six-row viewport.
-    assert 'const TORRENT_DESKTOP_VISIBLE_ROWS=6;' in app_js
-    assert "const table=$('#torrentTable'),firstRow=$('#torrentRows tr');" in app_js
+    # 0.5.112 adapts the preferred six-row list to the real remaining desktop viewport.
+    assert 'const TORRENT_DESKTOP_PREFERRED_ROWS=6;' in app_js
+    assert 'const TORRENT_DESKTOP_MIN_ROWS=3;' in app_js
+    assert 'const TORRENT_DESKTOP_BOTTOM_GAP=12;' in app_js
+    assert "const table=$('#torrentTable'),firstRow=$('#torrentRows tr'),pane=$('#torrentDetailPane');" in app_js
     assert "parseFloat(rootStyle.getPropertyValue('--row'))||62" in app_js
     assert "table?.tHead?.getBoundingClientRect().height||34" in app_js
     assert "firstRow?.getBoundingClientRect().height||fallbackRow" in app_js
-    assert 'headerHeight+(rowHeight*TORRENT_DESKTOP_VISIBLE_ROWS)+2' in app_js
-    assert 'window.innerHeight-documentTop-16' not in app_js
+    assert "workspace.getBoundingClientRect().top+(window.scrollY||window.pageYOffset||0)" in app_js
+    assert 'window.innerHeight-documentTop-TORRENT_DESKTOP_BOTTOM_GAP' in app_js
+    assert 'parseFloat(workspaceStyle.rowGap||workspaceStyle.gap)||12' in app_js
+    assert "pane?.getBoundingClientRect().height||0" in app_js
+    assert 'viewportBudget-paneHeight-gap' in app_js
+    assert 'Math.floor((rawListBudget-headerHeight-borderAllowance)/rowHeight)' in app_js
+    assert 'Math.max(TORRENT_DESKTOP_MIN_ROWS,Math.min(TORRENT_DESKTOP_PREFERRED_ROWS' in app_js
+    assert "pane.style.removeProperty('--torrent-detail-expanded-height');\n  syncTorrentWorkspaceLayout();" in app_js
+    assert "requestAnimationFrame(syncDesktopDetailPaneHeight)" in app_js
+    assert "window.addEventListener('resize',()=>requestAnimationFrame(()=>{applyFixedTorrentColumnLayout();syncDesktopDetailPaneHeight();syncMobileBulkbarOffset()}))" in app_js
+    assert 'function revealDesktopTorrentWorkspace()' not in app_js
+    assert 'requestAnimationFrame(revealDesktopTorrentWorkspace)' not in app_js
     assert '.torrent-list-panel{display:flex;flex:0 0 var(--torrent-list-height,456px);height:var(--torrent-list-height,456px);min-height:0;overflow:hidden}' in app_css
-    assert 'Six-row desktop torrent viewport' in design
-    assert 'Six-row desktop torrent viewport' in testing
+    assert 'Adaptive desktop torrent viewport fit' in design
+    assert 'Adaptive desktop torrent viewport fit' in testing
 
     print("UI string audit passed")
 

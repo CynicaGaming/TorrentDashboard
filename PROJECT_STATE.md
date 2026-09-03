@@ -6,7 +6,7 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.111** (prerelease)
+- Latest documented build: **v0.5.112** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 - Upstream development branch: `refactor/backend-modularization-users`
 - Upstream prerelease branch: `prerelease/backend-modularization`
@@ -14,7 +14,7 @@
 
 ### Latest release summary
 
-Makes the desktop torrent list a deterministic six-row scroll viewport instead of deriving its height from the remaining browser viewport below Dashboard panels.
+Reconciles viewport sizing with whole-row torrent geometry so the desktop list shrinks below six rows when the expanded detail pane would otherwise push the Dashboard past the viewport.
 
 ## Current engineering decisions
 
@@ -61,6 +61,7 @@ Makes the desktop torrent list a deterministic six-row scroll viewport instead o
 - Keep browser/PWA branding self-contained with a local favicon/logo asset and no external icon dependency.
 - Reveal the desktop torrent workspace when Torrent details is explicitly opened from a collapsed state instead of resizing the list/detail surfaces around the header and metrics stack.
 - Size the desktop torrent list from one rendered row and the table header so exactly six rows are visible, independent of surrounding Dashboard panels or viewport remainder.
+- Treat six desktop torrent rows as a preferred maximum and size the list from the stable viewport budget remaining after the actual rendered Torrent details pane.
 
 ## Development principles
 
@@ -72,6 +73,14 @@ Makes the desktop torrent list a deterministic six-row scroll viewport instead o
 - Keep public development continuity portable across forks; label canonical repository/branch/PR references as upstream context rather than local identity.
 
 ## Recent work
+
+### v0.5.112 — Adaptive desktop viewport fit
+
+Reconciles viewport sizing with whole-row torrent geometry so the desktop list shrinks below six rows when the expanded detail pane would otherwise push the Dashboard past the viewport.
+
+- The torrent list now uses up to six complete rows, reducing to the largest whole-row count that fits beside the actual rendered Torrent details pane.
+- Viewport budgeting uses the workspace's stable document position, so ordinary document scrolling cannot make the torrent list resize during live polling.
+- Opening Torrent details no longer forces a document scroll; the layout itself is responsible for fitting the visible Dashboard stack.
 
 ### v0.5.111 — Six-row desktop torrent viewport
 
@@ -104,14 +113,6 @@ Expands the finite desktop General detail view to its rendered content height in
 - Fits the expanded desktop General tab to its complete rendered content whenever the current workspace has enough room.
 - Takes the additional height from the torrent-list region while keeping the overall torrent workspace fixed and preserving the list's independent scrollbar.
 - Keeps Peers, Trackers, HTTP sources, and Content bounded and independently scrollable because those datasets can be arbitrarily long.
-
-### v0.5.107 — Stable desktop torrent workspace height
-
-Keeps the desktop torrent workspace and torrent list at a stable bounded height while document scrolling occurs, preserving the list's independent internal scrollbar.
-
-- Makes desktop torrent workspace height independent of document scroll position while preserving viewport-resize responsiveness.
-- Keeps the torrent list bounded and continues to use its existing internal vertical scrollbar for torrent navigation.
-- Preserves the existing Torrent details space-sharing behavior and mobile bottom-sheet layout.
 
 ## What to do next
 

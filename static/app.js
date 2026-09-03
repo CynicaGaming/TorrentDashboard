@@ -1,5 +1,5 @@
 'use strict';
-const FRONTEND_BUILD='0.5.111';
+const FRONTEND_BUILD='0.5.112';
 const HTML_BUILD=document.querySelector('meta[name="torrent-dashboard-build"]')?.content||'';
 const RECOVERY_KEY=`td-frontend-recovery-${FRONTEND_BUILD}`;
 async function recoverFrontendBuild(reason){
@@ -671,6 +671,7 @@ function bindUI(){if(bound)return;
   $('#pauseAllBtn').addEventListener('click',()=>globalAction('stop'));$('#resumeAllBtn').addEventListener('click',()=>globalAction('start'));
   $('#notificationFilter')?.addEventListener('change',renderNotifications);$('#refreshNotifications')?.addEventListener('click',loadNotifications);
   if(state.me?.can_manage)TDSettings.bind();
+  window.addEventListener('resize',()=>requestAnimationFrame(()=>{applyFixedTorrentColumnLayout();syncDesktopDetailPaneHeight();syncMobileBulkbarOffset()}));
   window.addEventListener('keydown',e=>{if(e.key==='/'&&!['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName)){e.preventDefault();$('#search').focus()}if(e.key==='Escape'){if(!$('#passwordConfirmModal')?.classList.contains('hidden')){closePasswordConfirmation(null);return}if(!$('#clientSettingsModal')?.classList.contains('hidden')){TDSettings.closeClientSettings();return}if(!$('#accountModal')?.classList.contains('hidden')){closeAccountModal();return}if(!$('#accountMenu')?.classList.contains('hidden')){hideAccountMenu();return}if(!$('#actionDialogModal')?.classList.contains('hidden')){closeActionDialog(null);return}if(!$('#removeModal')?.classList.contains('hidden')){closeRemoveDialog(null);return}if(!$('#addModal')?.classList.contains('hidden')){closeAddTorrent();return}if(state.selected.size){state.selected.clear();render();return}if(state.detailExpanded){state.detailExpanded=false;syncDetailDock()}}});
   bound=true;
 }
@@ -755,7 +756,7 @@ async function handleUpdateAction(){const st=state.updateInfo?.state||state.sett
 async function installUpdate(){const version=state.updateInfo?.state?.version||state.settings?.runtime?.updateState?.version||$('#updateLatest').textContent;const b=$('#updateAction');if(b){b.disabled=true;b.textContent=uiText('restarting…')}try{await post('/api/update-install',{version});$('#updateMessage').textContent=`${uiText('installing')} ${version} · ${uiText('torrentDashboardWillRestart')}`;$('#updateState').textContent=uiText('installing');toast('installingUpdate');waitForUpdatedServer(version)}catch(e){if(b){b.disabled=false;b.textContent=uiText('installUpdate')}toast(e.message,'error')}}
 function waitForUpdatedServer(version){const started=Date.now();const timer=setInterval(async()=>{if(Date.now()-started>60000){clearInterval(timer);$('#updateMessage').textContent=uiText('updateRestartTakingLongerThanExpected');return}try{const r=await fetch('/health',{cache:'no-store'});if(!r.ok)return;const d=await r.json();if(String(d.version)===String(version)){clearInterval(timer);location.reload()}}catch{}},1200)}
 
-function applyPrefs(){let theme=localStorage.tdTheme||'dark';if(theme==='system')theme=matchMedia('(prefers-color-scheme:light)').matches?'light':'dark';document.documentElement.dataset.theme=theme;document.documentElement.dataset.density=localStorage.tdDensity||'comfortable';document.documentElement.style.setProperty('--accent',localStorage.tdAccent||'#72a9ff');applyFixedTorrentColumnLayout()}
+function applyPrefs(){let theme=localStorage.tdTheme||'dark';if(theme==='system')theme=matchMedia('(prefers-color-scheme:light)').matches?'light':'dark';document.documentElement.dataset.theme=theme;document.documentElement.dataset.density=localStorage.tdDensity||'comfortable';document.documentElement.style.setProperty('--accent',localStorage.tdAccent||'#72a9ff');applyFixedTorrentColumnLayout();requestAnimationFrame(syncDesktopDetailPaneHeight)}
 
 let refreshTimer;
 function scheduleRefresh(){clearInterval(refreshTimer);refreshTimer=setInterval(refreshStatus,LIVE_REFRESH_MS)}
@@ -783,17 +784,25 @@ function visibleTorrents(){
   });
   return arr;
 }
-const TORRENT_DESKTOP_VISIBLE_ROWS=6;
+const TORRENT_DESKTOP_PREFERRED_ROWS=6;
+const TORRENT_DESKTOP_MIN_ROWS=3;
+const TORRENT_DESKTOP_BOTTOM_GAP=12;
 function syncTorrentWorkspaceLayout(){
   const workspace=$('.torrent-workspace');if(!workspace)return;
-  const mobile=window.matchMedia('(max-width:700px)').matches;
-  if(mobile||!$('#view-dashboard')?.classList.contains('active')){workspace.style.removeProperty('--torrent-list-height');return}
-  const table=$('#torrentTable'),firstRow=$('#torrentRows tr');
-  const rootStyle=getComputedStyle(document.documentElement);
+  const desktop=window.matchMedia('(min-width:701px)').matches;
+  if(!desktop||!$('#view-dashboard')?.classList.contains('active')){workspace.style.removeProperty('--torrent-list-height');return}
+  const table=$('#torrentTable'),firstRow=$('#torrentRows tr'),pane=$('#torrentDetailPane');
+  const rootStyle=getComputedStyle(document.documentElement),workspaceStyle=getComputedStyle(workspace);
   const fallbackRow=Math.max(1,parseFloat(rootStyle.getPropertyValue('--row'))||62);
   const headerHeight=Math.max(1,Math.ceil(table?.tHead?.getBoundingClientRect().height||34));
   const rowHeight=Math.max(1,Math.ceil(firstRow?.getBoundingClientRect().height||fallbackRow));
-  const available=headerHeight+(rowHeight*TORRENT_DESKTOP_VISIBLE_ROWS)+2;
+  const documentTop=Math.max(0,Math.ceil(workspace.getBoundingClientRect().top+(window.scrollY||window.pageYOffset||0)));
+  const viewportBudget=Math.max(0,Math.floor(window.innerHeight-documentTop-TORRENT_DESKTOP_BOTTOM_GAP));
+  const gap=Math.max(0,parseFloat(workspaceStyle.rowGap||workspaceStyle.gap)||12);
+  const paneHeight=Math.max(0,Math.ceil(pane?.getBoundingClientRect().height||0));
+  const borderAllowance=2,rawListBudget=Math.max(0,viewportBudget-paneHeight-gap);
+  const wholeRows=Math.max(TORRENT_DESKTOP_MIN_ROWS,Math.min(TORRENT_DESKTOP_PREFERRED_ROWS,Math.floor((rawListBudget-headerHeight-borderAllowance)/rowHeight)));
+  const available=headerHeight+(rowHeight*wholeRows)+borderAllowance;
   const value=`${available}px`;
   if(workspace.style.getPropertyValue('--torrent-list-height')!==value)workspace.style.setProperty('--torrent-list-height',value);
 }
@@ -802,13 +811,7 @@ function syncDesktopDetailPaneHeight(){
   const fitGeneral=window.matchMedia('(min-width:701px)').matches&&state.detailExpanded&&state.detailTab==='general'&&!!state.detail?.data;
   pane.classList.toggle('detail-general-fit',fitGeneral);
   pane.style.removeProperty('--torrent-detail-expanded-height');
-}
-function revealDesktopTorrentWorkspace(){
-  const workspace=$('.torrent-workspace');if(!workspace||!window.matchMedia('(min-width:701px)').matches)return;
-  const top=Math.max(0,Math.round(workspace.getBoundingClientRect().top+(window.scrollY||window.pageYOffset||0)-8));
-  if(Math.abs((window.scrollY||window.pageYOffset||0)-top)<8)return;
-  const behavior=window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth';
-  window.scrollTo({top,behavior});
+  syncTorrentWorkspaceLayout();
 }
 function syncMobileBulkbarOffset(){
   const bulk=$('#bulkbar'),pane=$('#torrentDetailPane');if(!bulk||!pane)return;
@@ -988,7 +991,6 @@ function syncDetailDock(){
 }
 async function toggleDetailPane(){
   state.detailExpanded=!state.detailExpanded;syncDetailDock();
-  if(state.detailExpanded)requestAnimationFrame(revealDesktopTorrentWorkspace);
   if(state.detailExpanded&&state.detail){if(state.detail.data)renderDetail();await refreshDetailData(true)}
 }
 function resetDetailPane(renderList=true){
@@ -1000,8 +1002,8 @@ function reconcileDetailSelection(){
   if(!exists)resetDetailPane(false);
 }
 async function openDetail(server,hash){
-  const wasExpanded=state.detailExpanded,same=state.detail?.server===server&&state.detail?.hash===hash;state.detail={server,hash,data:same?state.detail?.data:null};state.detailExpanded=true;state.detailTab=state.detailTab||'general';
-  syncDetailDock();if(!wasExpanded)requestAnimationFrame(revealDesktopTorrentWorkspace);$$('[data-detailtab]').forEach(b=>b.classList.toggle('active',b.dataset.detailtab===state.detailTab));render();
+  const same=state.detail?.server===server&&state.detail?.hash===hash;state.detail={server,hash,data:same?state.detail?.data:null};state.detailExpanded=true;state.detailTab=state.detailTab||'general';
+  syncDetailDock();$$('[data-detailtab]').forEach(b=>b.classList.toggle('active',b.dataset.detailtab===state.detailTab));render();
   await refreshDetailData(true);
 }
 async function refreshDetailData(force=false){

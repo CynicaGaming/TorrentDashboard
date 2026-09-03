@@ -193,3 +193,8 @@ The fixed desktop torrent-list height and natural-height General detail model re
 ### Six-row desktop torrent viewport
 
 The desktop torrent list is a deterministic data viewport rather than a remainder of the browser viewport. Its height is the rendered torrent-table header plus exactly six normal torrent rows, including the current density's row height and the panel border allowance. Header, metric, filter, login/profile, and Torrent details geometry must not change that list height. If fewer than six rows are visible, leaving unused whitespace in the list is acceptable. If more than six rows are visible, the list scrolls internally. Torrent details remains a separate surface below the list; General may use natural document height while long-data tabs retain bounded internal scrolling.
+
+
+### Adaptive desktop torrent viewport fit
+
+The desktop torrent list uses six rows as a preferred maximum, not an unconditional fixed height. The dashboard computes a stable viewport budget from the torrent workspace's document position and the browser height, then subtracts the currently rendered Torrent details pane and the workspace gap. The remaining space is snapped down to a whole number of rendered torrent rows, with three rows as the minimum useful desktop list. This keeps the expanded General pane and the torrent list inside the original top-of-page viewport whenever the available geometry permits, without making the list react to document scrolling. General remains natural-height; long-data detail tabs retain their bounded internal scrolling. Opening Torrent details must not force the document to scroll because the layout itself is responsible for fitting the workspace.
