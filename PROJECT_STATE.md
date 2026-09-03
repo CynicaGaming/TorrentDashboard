@@ -6,7 +6,7 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.103** (prerelease)
+- Latest documented build: **v0.5.104** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 - Upstream development branch: `refactor/backend-modularization-users`
 - Upstream prerelease branch: `prerelease/backend-modularization`
@@ -14,7 +14,7 @@
 
 ### Latest release summary
 
-Keeps mobile bulk-selection controls above the persistent Torrent details dock or sheet instead of allowing the two bottom overlays to cover one another.
+Restores consistent mobile torrent-card metadata alignment after desktop numeric-column alignment leaked into responsive card labels.
 
 ## Current engineering decisions
 
@@ -54,6 +54,7 @@ Keeps mobile bulk-selection controls above the persistent Torrent details dock o
 - Temporarily prefer one fixed torrent-table column set and deterministic proportional sizing over resize/reorder/visibility customization while the interaction model is simplified.
 - Keep torrent row commands contextual instead of reserving a permanent Actions column: use right-click on pointer interfaces and a movement-cancellable long press on touch while retaining the shared menu implementation.
 - Treat the mobile bulk-selection overlay and Torrent details as stacked bottom surfaces: bulk actions must remain fully visible above the current detail pane instead of competing for the same layer and screen region.
+- Keep desktop torrent-column alignment breakpoint-scoped: mobile cards use a consistent left-label/right-value metadata grid regardless of desktop numeric alignment.
 
 ## Development principles
 
@@ -65,6 +66,14 @@ Keeps mobile bulk-selection controls above the persistent Torrent details dock o
 - Keep public development continuity portable across forks; label canonical repository/branch/PR references as upstream context rather than local identity.
 
 ## Recent work
+
+### v0.5.104 — Mobile torrent metadata alignment
+
+Restores consistent mobile torrent-card metadata alignment after desktop numeric-column alignment leaked into responsive card labels.
+
+- Scopes Size, Seeds, Peers, Down, Up, ETA, and Ratio right-alignment to desktop/tablet layouts only.
+- Keeps every mobile metadata field label anchored to the left side of the card while its value stays anchored to the right.
+- Applies the same mobile value alignment to Category and Tags so the metadata list reads as one consistent two-sided grid.
 
 ### v0.5.103 — Mobile bulk action layering
 
@@ -100,15 +109,6 @@ Keeps v0.5.99's native-feeling independent resizing while preventing the rightmo
 - The rightmost visible data column now receives a gesture-specific ceiling derived from the live torrent viewport after reserving the frozen 40 px selection rail, frozen 48 px Actions rail, and every other visible data column.
 - A fitting layout can use all remaining spacer width, but the rightmost boundary stops when it reaches Actions instead of generating a new horizontal scrollbar.
 - Already-wide browser-local layouts are not rewritten; overflow from earlier columns remains scrollable and no unrelated column is shrunk automatically.
-
-### v0.5.99 — Frozen edge rails and scroll-native column resizing
-
-Removes the artificial right-side resize ceiling so a torrent column can be resized independently while the fixed selection and Actions controls remain pinned at the viewport edges.
-
-- Removes the v0.5.98 viewport-derived maximum width from resize gestures; the active column can again follow the pointer up to the existing safety maximum without requiring space to be freed from other columns first.
-- Makes the 40 px selection checkbox column sticky on the left, matching the existing fixed 48 px Actions surface on the right.
-- Keeps the flexible spacer for layouts that fit, but allows deliberately wider browser-local data layouts to use the torrent viewport's internal horizontal scroll area.
-- Preserves one-edge resizing, polling deferral, browser-local tdColumns persistence, header sorting/reordering, and mobile reset behavior.
 
 ## What to do next
 

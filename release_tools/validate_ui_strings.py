@@ -710,6 +710,17 @@ def main():
     assert 'bottom:var(--torrent-bulk-bottom,116px)!important;z-index:74' in app_css
     assert 'bulk-selection overlay must clear the current Torrent details pane' in design
     assert 'bulk action bar is fully visible above the disclosure bar' in testing
+
+    # 0.5.104 keeps desktop numeric alignment out of the mobile card grid and
+    # gives every mobile metadata row a stable left-label/right-value contract.
+    desktop_numeric = '@media(min-width:821px){#torrentTable [data-col="size"],#torrentTable [data-col="seeds"],#torrentTable [data-col="peers"],#torrentTable [data-col="down"],#torrentTable [data-col="up"],#torrentTable [data-col="eta"],#torrentTable [data-col="ratio"]{text-align:right;white-space:nowrap}}'
+    assert desktop_numeric in app_css
+    assert '0.5.104 mobile torrent metadata alignment' in app_css
+    assert '#torrentTable td.mobile-grid{text-align:left!important}' in app_css
+    assert '#torrentTable td.mobile-grid:before{justify-self:start;text-align:left}' in app_css
+    assert '#torrentTable td.mobile-grid>span{justify-self:end;text-align:right;max-width:100%}' in app_css
+    assert 'consistent left-label/right-value grid' in design
+    assert 'desktop right-alignment rules must not move numeric labels toward the center divider' in testing
     print("UI string audit passed")
 
 
