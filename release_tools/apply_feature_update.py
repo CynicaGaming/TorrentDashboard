@@ -204,6 +204,12 @@ def update_validator() -> None:
         "assert 'internal horizontal scrollbar appears without page-level overflow' in (ROOT / 'TESTING.md').read_text(encoding='utf-8')",
         "manual scroll validator",
     )
+    replace_once(
+        path,
+        "assert 'flexible spacer immediately before it absorbs unused table width' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')",
+        "assert 'flexible spacer immediately before Actions absorbs unused center width' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')",
+        "spacer design validator",
+    )
 
 
 def update_release_metadata() -> None:
