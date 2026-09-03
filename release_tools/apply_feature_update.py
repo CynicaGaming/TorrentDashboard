@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import json
-import re
 import subprocess
 import sys
 from pathlib import Path
@@ -74,18 +73,18 @@ app_css += r'''
 write("static/app.css", app_css)
 
 # Update the durable design/test contract.
-design = read("DESIGN_LANGUAGE.md")ndesign = design
+design = read("DESIGN_LANGUAGE.md")
 old_resize = "- Drag the right edge of a visible data header to resize that column. The resize edge uses a forgiving hit target and takes exclusive control of the pointer so it cannot simultaneously initiate header reordering. The in-progress width must survive the one-second live refresh while the pointer remains down; committed widths are stored with the same browser-local column layout and survive visibility changes, reordering, and reloads."
 new_resize = "- Drag the right edge of a visible data header to resize that column. The resize gutter stays entirely inside the data header, uses a forgiving hit target, and takes exclusive control of the pointer so it cannot overlap an adjacent column or simultaneously initiate header reordering. The in-progress width must survive the one-second live refresh while the pointer remains down; committed widths are stored with the same browser-local column layout and survive visibility changes, reordering, and reloads."
-if old_resize not in ndesign:
+if old_resize not in design:
     raise RuntimeError("Could not find configurable-column resize design rule")
-ndesign = ndesign.replace(old_resize, new_resize, 1)
+design = design.replace(old_resize, new_resize, 1)
 needle = "- Column resizing has per-column minimums that preserve legibility and a bounded maximum width. Name can shrink to a compact readable width; the fixed selection and row-actions columns are not user-resizable."
 replacement = needle + "\n- The Name cell must not impose a historical fixed truncation width. It may use all space assigned to its column and should show an ellipsis only when the rendered cell is actually narrower than the torrent name.\n- The row-actions column has a fixed width and remains pinned to the right edge of the torrent viewport. It never exposes a resize gutter and must not cause the dashboard page itself to overflow horizontally; excess data-column width is contained by the torrent table's own scroll region."
-if needle not in ndesign:
+if needle not in design:
     raise RuntimeError("Could not find configurable-column sizing design rule")
-ndesign = ndesign.replace(needle, replacement, 1)
-write("DESIGN_LANGUAGE.md", ndesign)
+design = design.replace(needle, replacement, 1)
+write("DESIGN_LANGUAGE.md", design)
 
 testing = read("TESTING.md")
 needle = "- Verify the resize edge is easy to acquire without pixel-perfect positioning. Start resizing near the divider and verify header reordering cannot begin until the resize gesture is released; then drag from the body of the same header and verify normal reordering still works and does not discard its saved width."
