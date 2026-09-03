@@ -46,6 +46,7 @@ write("static/sw.js", sw)
 # Make resize state exclusive from header reordering and preserve the live width
 # through the one-second table refresh while the pointer is still down.
 app_js = read("static/app.js")
+app_js = replace_once(app_js, f"const FRONTEND_BUILD='{OLD}';", f"const FRONTEND_BUILD='{NEW}';", "frontend build marker")
 old_apply = "function applyTorrentColumnWidths(prefs=torrentColumnPreferences()){for(const column of TORRENT_COLUMN_DEFS)applyTorrentColumnWidth(column.key,prefs.widths?.[column.key])}"
 new_apply = """function applyTorrentColumnWidths(prefs=torrentColumnPreferences()){
   for(const column of TORRENT_COLUMN_DEFS){
