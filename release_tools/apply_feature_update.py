@@ -49,18 +49,38 @@ css = replace_once(
 css += '\n/* 0.5.115 inline torrent sort chevrons */\n'
 write("static/app.css", css)
 
-# Replace the v0.5.114 validator contract with the inline-group contract.
+# Update only the v0.5.114 assertions whose behavioral contract changed.
 validator = read("release_tools/validate_ui_strings.py")
-new_validator = '''    # 0.5.115 keeps every sort chevron immediately after its owning label while preserving body-aligned header groups.\n    numeric_heading = '#torrentTable thead th[data-col=\\"size\\"] .torrent-sort-heading,#torrentTable thead th[data-col=\\"seeds\\"] .torrent-sort-heading,#torrentTable thead th[data-col=\\"peers\\"] .torrent-sort-heading,#torrentTable thead th[data-col=\\"down\\"] .torrent-sort-heading,#torrentTable thead th[data-col=\\"up\\"] .torrent-sort-heading,#torrentTable thead th[data-col=\\"eta\\"] .torrent-sort-heading,#torrentTable thead th[data-col=\\"ratio\\"] .torrent-sort-heading{justify-content:flex-end}'\n    assert numeric_heading in app_css\n    assert '.torrent-sort-heading{position:relative;display:flex;width:100%;min-width:0;align-items:center;justify-content:flex-start;gap:5px' in app_css\n    assert '.torrent-sort-icon{position:static;flex:0 0 14px;' in app_css\n    assert '.torrent-sort-icon{position:absolute' not in app_css\n    assert 'padding-right:18px;cursor:pointer;pointer-events:auto' not in app_css\n    assert '0.5.115 inline torrent sort chevrons' in app_css\n    assert '### Torrent sort indicator grouping' in design_language\n    assert 'Inline torrent sort indicator grouping' in testing_md\n'''
-validator, count = re.subn(
-    r"    # 0\.5\.114 uses a single trailing-edge sort affordance while preserving body-aligned header labels\.\n.*?    assert '### Torrent sort chevrons' in design_language\n",
-    lambda _match: new_validator,
+validator = replace_once(
     validator,
-    count=1,
-    flags=re.S,
+    "    # 0.5.114 uses a single trailing-edge sort affordance while preserving body-aligned header labels.",
+    "    # 0.5.115 keeps each chevron inline with its owning label while preserving body-aligned header groups.",
+    "sort validator comment",
 )
-if count != 1:
-    raise SystemExit(f"v0.5.114 sort validator: expected one bounded block, found {count}")
+validator = replace_once(
+    validator,
+    "    assert '.torrent-sort-heading{position:relative;display:flex;width:100%;min-width:0;align-items:center;justify-content:flex-start;padding-right:18px' in app_css",
+    "    assert '.torrent-sort-heading{position:relative;display:flex;width:100%;min-width:0;align-items:center;justify-content:flex-start;gap:5px' in app_css",
+    "sort heading validator",
+)
+validator = replace_once(
+    validator,
+    "    assert '.torrent-sort-icon{position:absolute;right:0;' in app_css",
+    "    assert '.torrent-sort-icon{position:static;flex:0 0 14px;' in app_css\n    assert '.torrent-sort-icon{position:absolute' not in app_css",
+    "sort icon validator",
+)
+validator = replace_once(
+    validator,
+    "    assert '0.5.114 consistent trailing-edge torrent sort chevrons' in app_css",
+    "    assert '0.5.114 consistent trailing-edge torrent sort chevrons' in app_css\n    assert '0.5.115 inline torrent sort chevrons' in app_css",
+    "sort release marker validator",
+)
+validator = replace_once(
+    validator,
+    "    assert '### Torrent sort chevrons' in design_language",
+    "    assert '### Torrent sort chevrons' in design_language\n    assert '### Torrent sort indicator grouping' in design_language\n    assert 'Inline torrent sort indicator grouping' in testing_md",
+    "sort documentation validator",
+)
 write("release_tools/validate_ui_strings.py", validator)
 
 # Synchronize application/frontend/cache version identifiers.
