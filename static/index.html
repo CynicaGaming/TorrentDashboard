@@ -30,7 +30,7 @@
 <div class="setup-code hidden" id="setupCodeWrap"><label>Remote setup code<input autocomplete="one-time-code" id="wSetupCode" maxlength="16" placeholder="Shown in console"/></label><small>This is required only when the first setup is being performed from another device.</small></div>
 </section>
 <section class="setup-page" data-step="1">
-<span class="eyebrow">Step 2 of 4</span><h1>Protect dashboard access</h1><p class="setup-copy">Choose which network adapters are trusted. Every selected adapter contributes its current subnet, and you can add individual IP addresses or CIDRs to the whitelist.</p>
+<span class="eyebrow">Step 2 of 4</span><h1>Protect dashboard access</h1><p class="setup-copy">Choose which network adapters are trusted. Every selected adapter contributes its current subnet, and you can also allow individual IP addresses or CIDRs.</p>
 <label>Authentication mode<select id="wAuthMode"><option selected="" value="lan_bypass">Bypass password for trusted addresses</option><option value="required">Require password everywhere</option><option value="disabled">Disable dashboard authentication</option></select></label>
 <div class="dashboard-account" id="wizardAccount"><label>Dashboard username<input autocomplete="off" id="wDashUser" value="admin"/></label><div class="two"><label>Dashboard password<input autocomplete="new-password" id="wDashPass" placeholder="Create password" type="password"/></label><label>Confirm password<input autocomplete="new-password" id="wDashPass2" type="password"/></label></div></div>
 <div id="wLanTrust">
@@ -56,7 +56,7 @@
 <section class="setup-page" data-step="3">
 <span class="eyebrow">Step 4 of 4</span><h1>Review and finish</h1><p class="setup-copy">Torrent Dashboard will re-test qBitTorrent once more, save the settings, and start collecting torrent status.</p>
 <div class="review-grid" id="wReview"></div>
-<div class="setup-note">You can add additional qBitTorrent instances, notifications, integrations, themes, trusted interfaces, and whitelist entries later under Settings.</div>
+<div class="setup-note">You can add additional qBitTorrent instances, notifications, integrations, themes, trusted interfaces, and allowed IP addresses later under Settings.</div>
 </section>
 <div class="form-error" id="setupError"></div>
 <footer class="setup-actions"><button class="secondary hidden" id="wBack" type="button">Back</button><div></div><button class="primary" id="wNext" type="button">Next</button></footer>
@@ -138,7 +138,7 @@
 <select id="sort"><option value="added_desc">Newest</option><option value="name_asc">Name</option><option value="progress_desc">Progress</option><option value="down_desc">Download speed</option><option value="up_desc">Upload speed</option><option value="eta_asc">ETA</option><option value="size_desc">Size</option><option value="ratio_desc">Ratio</option></select>
 </div>
 </section>
-<section class="bulkbar hidden" id="bulkbar" aria-live="polite"><span class="bulk-summary"><b id="selectedCount">0</b> Selected</span><div class="bulk-actions"><button data-bulk="start">Resume</button><button data-bulk="stop">Pause</button><button data-bulk="recheck">Recheck</button><button class="danger" data-bulk="delete">Delete</button><button class="bulk-clear" data-bulk-clear="1" type="button" aria-label="Clear selection" title="Clear selection">×</button></div></section>
+<section class="bulkbar hidden" id="bulkbar" aria-live="polite"><span class="bulk-summary"><b id="selectedCount">0</b> selected</span><div class="bulk-actions"><button data-bulk="start">Resume</button><button data-bulk="stop">Pause</button><button data-bulk="recheck">Recheck</button><button class="danger" data-bulk="delete">Delete</button><button class="bulk-clear" data-bulk-clear="1" type="button" aria-label="Clear selection" title="Clear selection">×</button></div></section>
 <div class="torrent-workspace">
 <section class="torrent-panel torrent-list-panel">
 <div class="torrent-list-region">

@@ -558,6 +558,8 @@ def main():
     assert '"API key"' in integrations_py and '"Access token"' in integrations_py
     assert '## Capitalization and product voice' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')
     assert '### Product language and capitalization' in (ROOT / 'TESTING.md').read_text(encoding='utf-8')
+    assert 'whitelist' not in html.lower()
+    assert '<b id="selectedCount">0</b> selected' in html
 
     # 0.5.73 supersedes v0.5.72's open/close-only inspector. The dock is
     # persistent, selection and disclosure are independent, and the full bar is
