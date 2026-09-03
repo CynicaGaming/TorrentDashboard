@@ -47,6 +47,17 @@ Owns in-process configuration transaction coordination. `mutate()` acquires the 
 
 Owns the integration provider catalog, field validation and normalization, configured-secret redaction, connection tests, and integration CRUD transforms. Provider definitions no longer live in the HTTP adapter.
 
+### `torrent_dashboard/release_provenance.py`
+
+Owns release/update provenance behavior:
+
+- GitHub release ZIP selection and finalized asset-digest normalization
+- installed `release-info.json` validation, persistence, and retained-package recovery
+- `data/release-integrity.json` normalization and atomic cache persistence
+- bundled/GitHub release-history merging, including installed-package precedence
+
+Runtime paths, the running version, and the default upstream repository are injected by `dashboard.py`; the module does not import the composition root or perform GitHub network requests.
+
 ### `updater.py`
 
 Owns out-of-process update replacement, restart verification, and rollback. It should remain independent from dashboard HTTP routing so a failed application update can still be recovered.
@@ -139,10 +150,9 @@ Continuity files are public engineering artifacts. They must not contain credent
 
 The next useful boundaries are:
 
-1. **Release/update metadata** — GitHub release parsing, installed provenance, and integrity-history persistence.
-2. **qBitTorrent client/domain operations** — isolate Web API transport, server normalization, and preference translation from HTTP routes.
-3. **Request/application services** — move setup and settings transformations behind testable service functions so HTTP handlers remain adapters.
-4. **Notification delivery** — separate delivery dispatch from provider configuration now that integration definitions are isolated.
-5. **Frontend feature modules** — reduce the responsibility of `static/app.js` after backend boundaries stabilize.
+1. **qBitTorrent client/domain operations** — isolate Web API transport, server normalization, and preference translation from HTTP routes.
+2. **Request/application services** — move setup and settings transformations behind testable service functions so HTTP handlers remain adapters.
+3. **Notification delivery** — separate delivery dispatch from provider configuration now that integration definitions are isolated.
+4. **Frontend feature modules** — reduce the responsibility of `static/app.js` after backend boundaries stabilize.
 
 Extraction should remain incremental. A refactor should not simultaneously redesign unrelated user-facing behavior unless the behavior change is independently required and tested.

@@ -7,36 +7,36 @@
 This handoff is intentionally portable across public forks. Verify the current checkout's Git remote, branch, and open work before using upstream references as instructions.
 
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
-- Last documented upstream build: **v0.5.94** (prerelease)
+- Last documented upstream build: **v0.5.95** (prerelease)
 - Upstream development branch: `refactor/backend-modularization-users`
 - Upstream prerelease branch: `prerelease/backend-modularization`
 - Upstream active PR: **#25**
 
 ## Last known-good state
 
-Removes the remaining resize lag and gesture ambiguity by separating reorder and resize hit surfaces, centering headers, starting resize math from the visible width, and consolidating the accumulated column CSS rules.
+Moves release/update provenance parsing, installed package metadata, integrity-history persistence, and release-history merging out of dashboard.py without changing the updater protocol or Updates UI.
 
 The released-state details and recent history are in `PROJECT_STATE.md`; architectural constraints are in `ARCHITECTURE.md`.
 
 ## Active development intent
 
 - Status: **ready**
-- Objective: **Extract release and update provenance from dashboard.py**
-- Why: Release parsing, installed package provenance, SHA-256 normalization, and integrity-history persistence form one cohesive domain that is still mixed into the HTTP composition root.
+- Objective: **Extract qBitTorrent transport and server normalization from dashboard.py**
+- Why: QBitClient, Web API transport details, server normalization, and preference/proxy translation form the next cohesive backend boundary still mixed into the HTTP composition root.
 
 ### Acceptance criteria
 
-- GitHub release parsing and asset-digest normalization live in a focused torrent_dashboard module rather than dashboard.py.
-- Installed release-info.json and data/release-integrity.json read/write behavior is owned behind a small tested interface.
-- dashboard.py composes the release/provenance service and retains routing/orchestration rather than domain parsing logic.
-- The existing public GitHub update protocol, two-release patch-note history, package SHA-256 display, and updater behavior remain unchanged.
-- Behavioral tests cover normalization, cache merge/persistence, malformed metadata, and installed-release precedence.
+- qBitTorrent Web API transport and QBitClient behavior live under torrent_dashboard rather than dashboard.py.
+- Server normalization and qBitTorrent preference/proxy translation move behind a small tested interface without changing configured client behavior.
+- dashboard.py composes the qBitTorrent client/service boundary and retains HTTP routing and request orchestration.
+- Existing Add Torrent, torrent actions, live polling, client settings, and server-selection behavior remain unchanged.
+- Behavioral tests cover transport URL/auth handling, server normalization, and preference/proxy translation edge cases.
 
 ### Decisions already made
 
-- Keep the extraction behavior-preserving; do not redesign the updater UI in the same increment.
-- Keep updater.py independent so failed application updates can still recover out of process.
-- Treat GitHub's finalized asset digest or a previously verified local package digest as authoritative package provenance.
+- Keep the extraction behavior-preserving; do not redesign qBitTorrent-facing UI or server-selection semantics in the same increment.
+- Keep qBitTorrent transport dependency-light and standard-library based.
+- Preserve the current configuration schema and browser-local server-selection behavior.
 
 ### Expected areas of change
 
@@ -53,12 +53,12 @@ None currently recorded.
 
 - Secret-at-rest changes.
 - Authorization-role changes.
-- Changing the public GitHub release/update protocol.
-- Frontend redesign unrelated to release provenance.
+- Frontend redesign unrelated to the qBitTorrent boundary.
+- Changing the public update protocol.
 
 ## Exact next action
 
-Inventory the release/provenance helpers still defined in dashboard.py, define the public interface for a torrent_dashboard release/provenance module, and add characterization tests before moving implementations.
+Inventory QBitClient, server normalization, and qBitTorrent preference/proxy helpers still defined in dashboard.py, then add characterization tests before moving implementations.
 
 ## Resume checklist
 

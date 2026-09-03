@@ -41,6 +41,14 @@ from torrent_dashboard.config import (
     public_config,
 )
 from torrent_dashboard.config_store import ConfigStore
+from torrent_dashboard.release_provenance import (
+    ReleaseProvenance,
+    asset_sha256 as _asset_sha256,
+    find_dashboard_asset as _find_dashboard_asset,
+    github_release_integrity as _github_release_integrity,
+    release_info_payload as _release_info_payload,
+    version_key as _version_key,
+)
 from torrent_dashboard.integrations import (
     INTEGRATION_TYPES,
     delete_integration,
@@ -85,8 +93,22 @@ RELEASE_INFO_PATH = APP_DIR / "release-info.json"
 RELEASE_INTEGRITY_CACHE_PATH = DATA_DIR / "release-integrity.json"
 CUSTOM_SOUND_BASENAME = "custom-notification-sound"
 MAX_CUSTOM_SOUND_BYTES = 2 * 1024 * 1024
-VERSION = "0.5.94"
+VERSION = "0.5.95"
 STATUS_REFRESH_SECONDS = 1.0
+
+RELEASE_PROVENANCE = ReleaseProvenance(
+    release_info_path=RELEASE_INFO_PATH,
+    integrity_cache_path=RELEASE_INTEGRITY_CACHE_PATH,
+    updates_dir=UPDATE_DIR,
+    release_notes_path=APP_DIR / "release_notes" / "releases.json",
+    version=VERSION,
+    default_repository=DEFAULT_UPDATE_REPOSITORY,
+)
+cached_release_integrity = RELEASE_PROVENANCE.cached_release_integrity
+write_release_integrity_cache = RELEASE_PROVENANCE.write_release_integrity_cache
+write_release_info = RELEASE_PROVENANCE.write_release_info
+installed_release_info = RELEASE_PROVENANCE.installed_release_info
+local_release_history = RELEASE_PROVENANCE.local_release_history
 
 
 class SingleInstanceLock:
@@ -1469,16 +1491,6 @@ def _urlopen_bytes(url: str, timeout=15, headers=None, max_bytes=8*1024*1024):
         return data
 
 
-def _version_key(value: str):
-    raw = str(value or "0").strip().lstrip("vV")
-    main, sep, pre = raw.partition("-")
-    nums=[]
-    for part in main.split("."):
-        m=re.match(r"^(\d+)",part)
-        nums.append(int(m.group(1)) if m else 0)
-    nums=(nums+[0,0,0,0])[:4]
-    pre_key=(1,"") if not sep else (0,pre.lower())
-    return (*nums, *pre_key)
 
 
 def is_newer_version(candidate: str, current: str = VERSION) -> bool:
@@ -1508,96 +1520,16 @@ def _latest_github_release(cfg, repo: str):
     return releases[0]
 
 
-def _find_dashboard_asset(release):
-    assets=release.get("assets") or []
-    candidates=[a for a in assets if re.fullmatch(r"Torrent-Dashboard-[0-9A-Za-z.+-]+\.zip", str(a.get("name") or ""))]
-    if not candidates:
-        candidates=[a for a in assets if str(a.get("name") or "").lower().endswith(".zip")]
-    return candidates[0] if candidates else None
 
 
-def _asset_sha256(asset):
-    digest=str((asset or {}).get("digest") or "").strip().lower()
-    if digest.startswith("sha256:"):
-        digest=digest.split(":",1)[1]
-    if not re.fullmatch(r"[0-9a-f]{64}",digest):
-        raise RuntimeError("GitHub did not provide a SHA-256 digest for the release ZIP")
-    return digest
 
 
-def _github_release_integrity(releases, limit=2):
-    rows=[]
-    for release in releases if isinstance(releases,list) else []:
-        if release.get("draft"):
-            continue
-        version=str(release.get("tag_name") or "").strip().lstrip("vV")
-        if not re.fullmatch(r"\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?",version):
-            continue
-        asset=_find_dashboard_asset(release)
-        if not asset:
-            continue
-        try:
-            digest=_asset_sha256(asset)
-        except Exception:
-            continue
-        rows.append({
-            "version":version,
-            "sha256":digest,
-            "package":str(asset.get("name") or f"Torrent-Dashboard-{version}.zip"),
-            "publishedAt":str(release.get("published_at") or release.get("created_at") or ""),
-            "channel":"prerelease" if release.get("prerelease") else "stable",
-            "releaseUrl":str(release.get("html_url") or ""),
-        })
-        if len(rows)>=max(1,int(limit)):
-            break
-    return rows
 
 
-def _normalized_release_integrity(rows, limit=20):
-    out=[]; seen=set()
-    for raw in rows if isinstance(rows,list) else []:
-        if not isinstance(raw,dict):
-            continue
-        version=str(raw.get("version") or "").strip().lstrip("vV")
-        digest=str(raw.get("sha256") or "").strip().lower()
-        if not re.fullmatch(r"\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?",version):
-            continue
-        if not re.fullmatch(r"[0-9a-f]{64}",digest) or version in seen:
-            continue
-        seen.add(version)
-        out.append({
-            "version":version,
-            "sha256":digest,
-            "package":str(raw.get("package") or f"Torrent-Dashboard-{version}.zip"),
-            "publishedAt":str(raw.get("publishedAt") or ""),
-            "channel":str(raw.get("channel") or ""),
-            "releaseUrl":str(raw.get("releaseUrl") or ""),
-        })
-        if len(out)>=max(1,int(limit)):
-            break
-    return out
 
 
-def cached_release_integrity():
-    try:
-        payload=json.loads(RELEASE_INTEGRITY_CACHE_PATH.read_text(encoding="utf-8"))
-        if not isinstance(payload,dict) or int(payload.get("schema") or 0) != 1:
-            return []
-        return _normalized_release_integrity(payload.get("releases") or [],20)
-    except Exception:
-        return []
 
 
-def write_release_integrity_cache(rows):
-    clean=_normalized_release_integrity(rows,20)
-    if not clean:
-        return []
-    DATA_DIR.mkdir(parents=True,exist_ok=True)
-    payload={"schema":1,"repository":DEFAULT_UPDATE_REPOSITORY,"updatedAt":int(time.time()),"releases":clean}
-    tmp=RELEASE_INTEGRITY_CACHE_PATH.with_suffix(".tmp")
-    tmp.write_text(json.dumps(payload,indent=2)+"\n",encoding="utf-8")
-    tmp.replace(RELEASE_INTEGRITY_CACHE_PATH)
-    return clean
 
 
 def validate_update_repository(repository: str):
@@ -1617,59 +1549,10 @@ def validate_update_repository(repository: str):
     return str(info.get("full_name") or repo)
 
 
-def _release_info_payload(version, package, sha256, repository="", release_url="", published_at="", channel="", commit=""):
-    digest=str(sha256 or "").strip().lower()
-    if not re.fullmatch(r"[0-9a-f]{64}",digest):
-        raise RuntimeError("Release package SHA-256 is invalid")
-    return {
-        "schema":1,
-        "version":str(version or "").strip().lstrip("vV"),
-        "package":str(package or "").strip(),
-        "sha256":digest,
-        "repository":str(repository or "").strip(),
-        "releaseUrl":str(release_url or "").strip(),
-        "publishedAt":str(published_at or "").strip(),
-        "channel":str(channel or "").strip(),
-        "commit":str(commit or "").strip(),
-    }
 
 
-def write_release_info(path, info):
-    path=Path(path)
-    path.parent.mkdir(parents=True,exist_ok=True)
-    payload=_release_info_payload(
-        info.get("version"),info.get("package"),info.get("sha256"),info.get("repository"),
-        info.get("releaseUrl"),info.get("publishedAt"),info.get("channel"),info.get("commit"),
-    )
-    tmp=path.with_suffix(path.suffix+".tmp")
-    tmp.write_text(json.dumps(payload,indent=2)+"\n",encoding="utf-8")
-    tmp.replace(path)
-    return payload
 
 
-def installed_release_info():
-    try:
-        raw=json.loads(RELEASE_INFO_PATH.read_text(encoding="utf-8"))
-        info=_release_info_payload(
-            raw.get("version"),raw.get("package"),raw.get("sha256"),raw.get("repository"),
-            raw.get("releaseUrl"),raw.get("publishedAt"),raw.get("channel"),raw.get("commit"),
-        )
-        if info.get("version") == VERSION:
-            return info
-    except Exception:
-        pass
-    # The first update that introduces release-info.json is installed by the
-    # previous version's updater. That updater leaves the already verified ZIP
-    # under data/updates/<version>/, so recover the exact package digest from
-    # those retained bytes and persist it for all subsequent reads.
-    try:
-        package=UPDATE_DIR/VERSION/f"Torrent-Dashboard-{VERSION}.zip"
-        if package.is_file():
-            info=_release_info_payload(VERSION,package.name,sha256_file(package))
-            return write_release_info(RELEASE_INFO_PATH,info)
-    except Exception:
-        pass
-    return {}
 
 
 def fetch_update_release(cfg):
@@ -1728,81 +1611,8 @@ def fetch_update_manifest(cfg):
     return fetch_update_release(cfg)
 
 
-def _release_history_markdown(item):
-    version=str(item.get("version") or "").strip().lstrip("vV")
-    title=str(item.get("title") or f"Torrent Dashboard v{version}").strip()
-    summary=str(item.get("summary") or "").strip()
-    lines=[f"## v{version} — {title}"]
-    if summary:
-        lines.extend(["",summary])
-    for heading,values in (("What's changed",item.get("highlights") or []),("Fixes",item.get("fixes") or []),("Technical notes",item.get("technical") or []),("Validation",item.get("validation") or []),("Known issues",item.get("known_issues") or [])):
-        clean=[str(x).strip() for x in values if str(x).strip()]
-        if clean:
-            lines.extend(["",f"### {heading}",""])
-            lines.extend([""]+[f"- {value}" for value in clean])
-    return "\n".join(lines).strip()+"\n"
 
 
-def local_release_history(latest_manifest=None,limit=2):
-    entries=[]
-    try:
-        data=json.loads((APP_DIR/"release_notes"/"releases.json").read_text(encoding="utf-8"))
-        for raw in data.get("releases",[]):
-            if not isinstance(raw,dict): continue
-            version=str(raw.get("version") or "").strip().lstrip("vV")
-            if not re.fullmatch(r"\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?",version): continue
-            entries.append({"version":version,"title":str(raw.get("title") or f"Torrent Dashboard v{version}"),"summary":str(raw.get("summary") or ""),"publishedAt":str(raw.get("date") or ""),"channel":"prerelease" if raw.get("status")=="prerelease" else "stable","notes":_release_history_markdown(raw),"source":"bundled"})
-    except Exception: entries=[]
-    for integrity in cached_release_integrity():
-        iv=str(integrity.get("version") or "").strip().lstrip("vV")
-        idx=next((i for i,x in enumerate(entries) if x.get("version")==iv),None)
-        if idx is None:
-            continue
-        digest=str(integrity.get("sha256") or "").strip().lower()
-        if re.fullmatch(r"[0-9a-f]{64}",digest):
-            entries[idx]={
-                **entries[idx],
-                "sha256":digest,
-                "package":str(integrity.get("package") or entries[idx].get("package") or ""),
-                "publishedAt":str(integrity.get("publishedAt") or entries[idx].get("publishedAt") or ""),
-                "channel":str(integrity.get("channel") or entries[idx].get("channel") or ""),
-            }
-    if isinstance(latest_manifest,dict) and latest_manifest.get("version"):
-        version=str(latest_manifest.get("version") or "").strip().lstrip("vV")
-        remote={"version":version,"title":str(latest_manifest.get("title") or f"Torrent Dashboard v{version}"),"summary":"","publishedAt":str(latest_manifest.get("publishedAt") or ""),"channel":str(latest_manifest.get("channel") or ""),"notes":str(latest_manifest.get("notes") or ""),"sha256":str((latest_manifest.get("asset") or {}).get("sha256") or ""),"package":str((latest_manifest.get("asset") or {}).get("name") or ""),"source":"github"}
-        idx=next((i for i,x in enumerate(entries) if x.get("version")==version),None)
-        if idx is None: entries.append(remote)
-        else: entries[idx]={**entries[idx],**{k:v for k,v in remote.items() if v}}
-        for integrity in latest_manifest.get("releaseHistory") or []:
-            if not isinstance(integrity,dict):
-                continue
-            iv=str(integrity.get("version") or "").strip().lstrip("vV")
-            idx=next((i for i,x in enumerate(entries) if x.get("version")==iv),None)
-            if idx is None:
-                continue
-            digest=str(integrity.get("sha256") or "").strip().lower()
-            if re.fullmatch(r"[0-9a-f]{64}",digest):
-                entries[idx]={
-                    **entries[idx],
-                    "sha256":digest,
-                    "package":str(integrity.get("package") or entries[idx].get("package") or ""),
-                    "publishedAt":str(integrity.get("publishedAt") or entries[idx].get("publishedAt") or ""),
-                    "channel":str(integrity.get("channel") or entries[idx].get("channel") or ""),
-                }
-    installed=installed_release_info()
-    if installed.get("version"):
-        idx=next((i for i,x in enumerate(entries) if x.get("version")==installed.get("version")),None)
-        if idx is not None:
-            entries[idx]={**entries[idx],"sha256":installed.get("sha256",""),"package":installed.get("package","")}
-    try: entries.sort(key=lambda x:_version_key(x.get("version") or "0"),reverse=True)
-    except Exception: entries.reverse()
-    seen=set();out=[]
-    for item in entries:
-        version=item.get("version")
-        if not version or version in seen: continue
-        seen.add(version);out.append(item)
-        if len(out)>=max(1,int(limit)): break
-    return out
 
 def update_state():
     if not UPDATE_STATE_PATH.exists(): return {"state":"idle","currentVersion":VERSION}
@@ -1824,11 +1634,6 @@ def write_update_state(data):
     return payload
 
 
-def sha256_file(path: Path):
-    h=hashlib.sha256()
-    with path.open("rb") as f:
-        for chunk in iter(lambda:f.read(1024*1024),b""): h.update(chunk)
-    return h.hexdigest()
 
 
 def safe_extract_zip(zip_path: Path, dest: Path):

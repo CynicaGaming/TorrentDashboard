@@ -19,7 +19,7 @@ For a release candidate also verify generated documentation:
 python release_tools/generate_release_notes.py --version X.Y.Z --check
 ```
 
-The Python suite uses only the standard library and currently covers extracted domain behavior, configuration transactions, and source/architecture contracts.
+The Python suite uses only the standard library and currently covers extracted domain behavior, configuration transactions, release/provenance parsing and persistence, and source/architecture contracts.
 
 ## Manual smoke-test matrix
 

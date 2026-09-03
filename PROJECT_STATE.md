@@ -6,7 +6,7 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.94** (prerelease)
+- Latest documented build: **v0.5.95** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 - Upstream development branch: `refactor/backend-modularization-users`
 - Upstream prerelease branch: `prerelease/backend-modularization`
@@ -14,7 +14,7 @@
 
 ### Latest release summary
 
-Removes the remaining resize lag and gesture ambiguity by separating reorder and resize hit surfaces, centering headers, starting resize math from the visible width, and consolidating the accumulated column CSS rules.
+Moves release/update provenance parsing, installed package metadata, integrity-history persistence, and release-history merging out of dashboard.py without changing the updater protocol or Updates UI.
 
 ## Architecture state
 
@@ -22,6 +22,7 @@ Removes the remaining resize lag and gesture ambiguity by separating reorder and
 - Configuration, integrations, users, and configuration transaction coordination remain separated into torrent_dashboard package modules.
 - Torrent detail presentation remains frontend-owned and continues to use the existing /api/detail contract.
 - Desktop/tablet use separate docked list and detail panels; mobile uses a bottom-sheet presentation.
+- Release/update provenance parsing, installed release-info persistence, integrity-history caching, and bundled/GitHub history merging live in torrent_dashboard/release_provenance.py.
 
 ## Current engineering decisions
 
@@ -51,6 +52,7 @@ Removes the remaining resize lag and gesture ambiguity by separating reorder and
 - Keep torrent resize hit targets inside their owning data header, allow Name to consume its actual assigned width before ellipsizing, and hard-lock the row-actions column as a fixed right-edge control surface.
 - Use the torrent header as the single sorting surface and the unified text search as the single metadata filter: preserve status tabs, retire Category/Tags/Tracker and sort selects, clear obsolete facet preferences, and keep sort direction browser-local.
 - Keep torrent header labels centered, isolate native reordering to the header-label drag surface, reserve a separate inward-only resize gutter, and begin resizing from the exact rendered width so pointer movement maps immediately to column movement.
+- Keep GitHub network/update orchestration in dashboard.py while the torrent_dashboard release-provenance module owns parsing and filesystem provenance behavior behind injected runtime paths.
 
 ## Development principles
 
@@ -62,6 +64,14 @@ Removes the remaining resize lag and gesture ambiguity by separating reorder and
 - Keep public development continuity portable across forks; label canonical repository/branch/PR references as upstream context rather than local identity.
 
 ## Recent work
+
+### v0.5.95 — Release provenance module extraction
+
+Moves release/update provenance parsing, installed package metadata, integrity-history persistence, and release-history merging out of dashboard.py without changing the updater protocol or Updates UI.
+
+- Added torrent_dashboard/release_provenance.py as the focused owner of GitHub release asset/digest parsing and package provenance normalization.
+- Installed release-info.json and data/release-integrity.json reads/writes now flow through one injected ReleaseProvenance service.
+- The existing two-release Updates history keeps its bundled/GitHub merge behavior and gives installed package metadata final precedence for the running version.
 
 ### v0.5.94 — Deterministic torrent column gestures
 
@@ -98,20 +108,11 @@ Finishes the torrent-column resize interaction by centering header labels and pr
 - The resize hit target grows to 20 px while remaining entirely inside the owning data header.
 - Torrent-row DOM rendering is deferred during an active resize and reconciled once on release, eliminating polling-driven resize jumps.
 
-### v0.5.90 — Torrent column boundary polish
-
-Refines torrent-table resizing so the gutter never overlaps adjacent controls, long names use their assigned space before truncating, and the far-right actions column remains fixed and contained.
-
-- The resize gutter remains a forgiving 14 px target but now lives entirely inside the owning data header instead of extending into its neighbor.
-- Torrent names no longer inherit the historical 470/620 px truncation cap; ellipsis appears only when the actual Name cell is too narrow.
-- The far-right actions column is explicitly fixed at 48 px and pinned to the right edge of the torrent viewport.
-
 ## What to do next
 
-1. **Extract release and update provenance** — Move GitHub release parsing, installed release metadata, package-integrity normalization, and historical digest caching out of dashboard.py.
-2. **Extract qBitTorrent transport and normalization** — Move QBitClient, server normalization, proxy/preference translation, and Web API transport away from HTTP routing.
-3. **Expand request-level behavioral tests** — Add authorization, CSRF, setup, account-route, and settings-mutation coverage around extracted service boundaries.
-4. **Harden secrets at rest** — Use the configuration boundary to add restrictive file permissions and separate ordinary configuration from stored credentials.
+1. **Extract qBitTorrent transport and normalization** — Move QBitClient, Web API transport, server normalization, and preference/proxy translation out of dashboard.py while preserving route and client behavior.
+2. **Expand request-level behavioral tests** — Add authorization, CSRF, setup, account-route, and settings-mutation coverage around the extracted service boundaries.
+3. **Harden secrets at rest** — Use the configuration boundary to add restrictive file permissions and separate ordinary configuration from stored credentials.
 
 ## Handoff instructions for a new development session
 

@@ -69,6 +69,8 @@ def validate_dashboard_contract() -> None:
         fail("dashboard.py must consume the extracted configuration module")
     if "from torrent_dashboard.integrations import" not in source:
         fail("dashboard.py must consume the extracted integrations module")
+    if "from torrent_dashboard.release_provenance import" not in source:
+        fail("dashboard.py must consume the extracted release provenance module")
     if "from torrent_dashboard.config_store import ConfigStore" not in source:
         fail("dashboard.py must use ConfigStore for configuration coordination")
 
@@ -79,12 +81,26 @@ def validate_dashboard_contract() -> None:
         "def redacted_integrations",
         "def normalize_github_repository",
         "INTEGRATION_TYPES = {",
+        "def _version_key",
+        "def _find_dashboard_asset",
+        "def _asset_sha256",
+        "def _github_release_integrity",
+        "def _normalized_release_integrity",
+        "def cached_release_integrity",
+        "def write_release_integrity_cache",
+        "def _release_info_payload",
+        "def write_release_info",
+        "def installed_release_info",
+        "def _release_history_markdown",
+        "def local_release_history",
     )
     leftovers = [marker for marker in forbidden_ownership if marker in source]
     if leftovers:
         fail("dashboard.py still owns extracted configuration/integration behavior: " + ", ".join(leftovers))
     if "CONFIG_STORE = ConfigStore(CONFIG_REPOSITORY.load, CONFIG_REPOSITORY.save)" not in source:
         fail("dashboard.py must coordinate ConfigRepository through ConfigStore")
+    if "RELEASE_PROVENANCE = ReleaseProvenance(" not in source:
+        fail("dashboard.py must compose ReleaseProvenance with runtime paths")
 
 
 def app_version() -> str:
