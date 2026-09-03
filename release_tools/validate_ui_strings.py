@@ -696,12 +696,24 @@ def main():
     assert "th.draggable=false;th.classList.add('column-resizing')" in app_js
     assert "if(resize.th)resize.th.draggable=true" in app_js
     assert "event.stopImmediatePropagation()" in app_js
-    assert "event.clientX>=rect.right-14&&event.clientX<=rect.right+8" in app_js
+    assert "event.clientX>=rect.right-14&&event.clientX<=rect.right" in app_js
     assert "if(torrentColumnResize||event.target.closest('.column-resize-handle'))" in app_js
     assert '.column-resize-handle{right:-8px;width:16px}' in app_css
     assert '0.5.89 stable torrent-column resize gesture' in app_css
     assert 'Hold at least one resize gesture open for several seconds' in (ROOT / 'TESTING.md').read_text(encoding='utf-8')
     assert 'takes exclusive control of the pointer' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')
+    # 0.5.90 keeps the forgiving resize gutter inside the data header,
+    # removes the historical Name truncation cap, and hard-locks row actions.
+    assert '.column-resize-handle{right:0;width:14px}' in app_css
+    assert '.column-resize-handle::after{right:0}' in app_css
+    assert '#torrentTable td[data-col="name"] .torrent-name{max-width:none;width:100%;min-width:0}' in app_css
+    assert '#torrentTable th.row-actions-head,#torrentTable td.row-actions{width:48px!important;min-width:48px!important;max-width:48px!important}' in app_css
+    assert '#torrentTable th.row-actions-head{position:sticky;right:0;z-index:8;background:var(--panel3);overflow:hidden}' in app_css
+    assert '#torrentTable td.row-actions{display:table-cell!important;position:sticky;right:0;z-index:3;text-align:right;background:var(--panel)' in app_css
+    assert '.torrent-list-region,.torrent-list-region .table-wrap{min-width:0;max-width:100%}' in app_css
+    assert '<th class="row-actions-head"></th>' in html and 'data-col="actions"' not in html
+    assert 'ellipsis only when the rendered cell is actually narrower' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')
+    assert 'actions column must never show resize behavior or change width' in (ROOT / 'TESTING.md').read_text(encoding='utf-8')
 
     print("UI string audit passed")
 

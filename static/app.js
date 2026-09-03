@@ -1,5 +1,5 @@
 'use strict';
-const FRONTEND_BUILD='0.5.89';
+const FRONTEND_BUILD='0.5.90';
 const HTML_BUILD=document.querySelector('meta[name="torrent-dashboard-build"]')?.content||'';
 const RECOVERY_KEY=`td-frontend-recovery-${FRONTEND_BUILD}`;
 async function recoverFrontendBuild(reason){
@@ -219,7 +219,7 @@ function bindTorrentColumnHeaderUI(){
   head.addEventListener('pointerdown',event=>{
     if(event.button!==0)return;const th=event.target.closest('th[data-col]');if(!th)return;
     const rect=th.getBoundingClientRect(),handle=event.target.closest('.column-resize-handle')||th.querySelector('.column-resize-handle');
-    const nearResizeEdge=event.clientX>=rect.right-14&&event.clientX<=rect.right+8;
+    const nearResizeEdge=event.clientX>=rect.right-14&&event.clientX<=rect.right;
     if(handle&&(event.target.closest('.column-resize-handle')||nearResizeEdge))startTorrentColumnResize(event,handle);
   },true);
   head.addEventListener('pointermove',moveTorrentColumnResize);head.addEventListener('pointerup',finishTorrentColumnResize);head.addEventListener('pointercancel',finishTorrentColumnResize);
