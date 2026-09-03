@@ -112,6 +112,12 @@ write("TESTING.md", testing)
 
 # UI regression contract.
 validator = read("release_tools/validate_ui_strings.py")
+validator = replace_once(
+    validator,
+    '    assert "openDetail(tr.dataset.server,tr.dataset.hash)" in app_js\n',
+    '    assert "openDetail(server,hash)" in app_js\n',
+    "superseded torrent detail invocation assertion",
+)
 anchor = '    print("UI string audit passed")\n'
 block = r'''    # 0.5.80 makes Add Torrent hierarchy visible at the checkbox level and
     # treats a repeated click on the active torrent row as detail deselection.
