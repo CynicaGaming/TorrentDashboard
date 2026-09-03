@@ -335,7 +335,7 @@ button,select,input,textarea{border:1px solid var(--border);background:var(--pan
 @media(max-width:820px){.torrent-column-text{justify-self:end;max-width:min(58vw,260px);text-align:right}.torrent-column-hidden{display:none!important}}
 
 
-/* 0.5.98 pinned actions with bounded torrent-column resizing. */
+/* 0.5.99 frozen edge rails and scroll-native torrent-column resizing. */
 #torrentTable thead th[data-col]{cursor:default;user-select:none;-webkit-user-select:none;text-align:left;padding-left:12px;padding-right:28px;outline:none}
 #torrentTable thead th[data-col="seeds"],#torrentTable thead th[data-col="peers"]{text-align:right}
 .torrent-sort-heading{position:relative;display:flex;width:100%;min-width:0;align-items:center;justify-content:flex-start;padding-right:18px;cursor:grab;pointer-events:auto}
@@ -363,6 +363,10 @@ body.torrent-column-resizing,body.torrent-column-resizing *{cursor:col-resize!im
 #torrentTable td[data-col="name"] .torrent-name{max-width:none;min-width:0;width:auto}
 #torrentTable td.torrent-column-sized[data-col="name"] .torrent-name{max-width:none;width:100%}
 #torrentTable td.torrent-column-sized .torrent-column-text{max-width:none}
+#torrentTable th.check,#torrentTable td.check{width:40px!important;min-width:40px!important;max-width:40px!important;inline-size:40px!important;min-inline-size:40px!important;max-inline-size:40px!important;position:sticky;left:0;box-sizing:border-box;box-shadow:1px 0 0 color-mix(in srgb,var(--border) 78%,transparent)}
+#torrentTable th.check{z-index:9;background:var(--panel3)}
+#torrentTable td.check{z-index:4;background:var(--panel)}
+#torrentTable tbody tr:hover td.check{background:color-mix(in srgb,var(--panel2) 50%,var(--panel))}
 #torrentTable th.row-spacer-head,#torrentTable td.row-spacer{width:auto!important;min-width:0!important;max-width:none!important;inline-size:auto!important;min-inline-size:0!important;max-inline-size:none!important;padding-left:0;padding-right:0}
 #torrentTable th.row-actions-head,#torrentTable td.row-actions{width:48px!important;min-width:48px!important;max-width:48px!important;inline-size:48px!important;min-inline-size:48px!important;max-inline-size:48px!important;white-space:nowrap;box-sizing:border-box;box-shadow:-1px 0 0 color-mix(in srgb,var(--border) 78%,transparent)}
 #torrentTable th.row-actions-head{position:sticky;right:0;z-index:8;background:var(--panel3);overflow:hidden;cursor:default!important;padding-left:0;padding-right:0}
@@ -382,5 +386,5 @@ body.torrent-column-resizing,body.torrent-column-resizing *{cursor:col-resize!im
 .column-menu-reset:hover{color:var(--text)!important}
 .controls-panel .filters{margin-left:auto}
 .controls-panel .filters input{width:min(360px,36vw)}
-@media(max-width:820px){.column-resize-handle{display:none!important}#torrentTable td.row-spacer{display:none!important}}
+@media(max-width:820px){.column-resize-handle{display:none!important}#torrentTable td.row-spacer{display:none!important}#torrentTable th.check,#torrentTable td.check{position:static;left:auto;box-shadow:none}}
 @media(max-width:700px){.controls-panel .filters{width:100%;margin-left:0}.controls-panel .filters input{width:100%}}

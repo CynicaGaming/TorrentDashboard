@@ -7,14 +7,14 @@
 This handoff is intentionally portable across public forks. Verify the current checkout's Git remote, branch, and open work before using upstream references as instructions.
 
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
-- Last documented upstream build: **v0.5.98** (prerelease)
+- Last documented upstream build: **v0.5.99** (prerelease)
 - Upstream development branch: `refactor/backend-modularization-users`
 - Upstream prerelease branch: `prerelease/backend-modularization`
 - Upstream active PR: **#25**
 
 ## Last known-good state
 
-Stops torrent-column resize gestures at the pinned Actions boundary so widening a column cannot create new horizontal overflow.
+Removes the artificial right-side resize ceiling so a torrent column can be resized independently while the fixed selection and Actions controls remain pinned at the viewport edges.
 
 The released-state details and recent history are in `PROJECT_STATE.md`; architectural constraints are in `ARCHITECTURE.md`.
 

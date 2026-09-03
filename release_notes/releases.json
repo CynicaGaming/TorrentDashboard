@@ -3016,6 +3016,92 @@
         "Keep the 48 px row-actions surface pinned to the torrent viewport edge with a non-interactive flexible spacer; customized data widths may scroll internally but must not move Actions offscreen or create page-level horizontal overflow.",
         "Treat the pinned Actions edge as the maximum width boundary for new torrent-column resize gestures; consume spacer slack first, then stop rather than creating new horizontal overflow or shrinking unrelated columns."
       ]
+    },
+    {
+      "version": "0.5.99",
+      "date": "2026-09-03",
+      "status": "prerelease",
+      "title": "Frozen edge rails and scroll-native column resizing",
+      "summary": "Removes the artificial right-side resize ceiling so a torrent column can be resized independently while the fixed selection and Actions controls remain pinned at the viewport edges.",
+      "highlights": [
+        "Removes the v0.5.98 viewport-derived maximum width from resize gestures; the active column can again follow the pointer up to the existing safety maximum without requiring space to be freed from other columns first.",
+        "Makes the 40 px selection checkbox column sticky on the left, matching the existing fixed 48 px Actions surface on the right.",
+        "Keeps the flexible spacer for layouts that fit, but allows deliberately wider browser-local data layouts to use the torrent viewport's internal horizontal scroll area.",
+        "Preserves one-edge resizing, polling deferral, browser-local tdColumns persistence, header sorting/reordering, and mobile reset behavior."
+      ],
+      "fixes": [
+        "Eliminates the constrained resize behavior where a user had to shrink other columns before widening the column they actually wanted to change.",
+        "Keeps both non-configurable control columns available while wide data layouts scroll between them instead of pushing the surrounding dashboard wider."
+      ],
+      "technical": [
+        "The resize state no longer carries a gesture-specific maxWidth and moveTorrentColumnResize clamps only to the per-gesture minimum plus the existing absolute 8192 px safety maximum.",
+        "The table min-width still follows the sum of persisted visible data widths plus fixed control widths, so overflow is represented as table-wrap scrollWidth rather than page-level layout growth.",
+        "The left selection cells now use sticky left:0 with opaque row/header backgrounds and the same edge-separation treatment as the sticky Actions column; responsive layouts clear that desktop stickiness."
+      ],
+      "validation": [
+        "The UI audit rejects reintroduction of torrentColumnResizeMaxWidth/resize.maxWidth and requires frozen 40 px selection plus 48 px Actions rails.",
+        "Manual coverage verifies a column continues widening after spacer slack is exhausted, an internal horizontal scrollbar appears when required, neither fixed rail moves, and no unrelated data column changes width.",
+        "Existing backend tests, JavaScript syntax checks, generated continuity files, frontend/service-worker synchronization, and package-integrity gates remain required."
+      ],
+      "known_issues": [],
+      "architecture": [
+        "Torrent Dashboard remains a Python standard-library application with dashboard.py as the HTTP composition root.",
+        "Configuration, integrations, users, and configuration transaction coordination remain separated into torrent_dashboard package modules.",
+        "Torrent detail presentation remains frontend-owned and continues to use the existing /api/detail contract.",
+        "Desktop/tablet use separate docked list and detail panels; mobile uses a bottom-sheet presentation.",
+        "Release/update provenance parsing, installed release-info persistence, integrity-history caching, and bundled/GitHub history merging live in torrent_dashboard/release_provenance.py."
+      ],
+      "next_steps": [
+        {
+          "priority": 1,
+          "title": "Extract qBitTorrent transport and normalization",
+          "detail": "Move QBitClient, Web API transport, server normalization, and preference/proxy translation out of dashboard.py while preserving route and client behavior."
+        },
+        {
+          "priority": 2,
+          "title": "Expand request-level behavioral tests",
+          "detail": "Add authorization, CSRF, setup, account-route, and settings-mutation coverage around the extracted service boundaries."
+        },
+        {
+          "priority": 3,
+          "title": "Harden secrets at rest",
+          "detail": "Use the configuration boundary to add restrictive file permissions and separate ordinary configuration from stored credentials."
+        }
+      ],
+      "decisions": [
+        "Prefer two visually distinct surfaces for list/detail hierarchy rather than joining them with only an internal divider.",
+        "Keep viewport-derived docking and independent list/detail scrolling.",
+        "Keep active backend modularization work separate from this presentation correction.",
+        "Treat torrent-detail selection and inspector disclosure as independent state: collapse changes presentation, not selection.",
+        "Keep the torrent-detail dock persistently discoverable and use the full disclosure bar as the primary keyboard/touch interaction target.",
+        "Treat All servers as an aggregation mode: omit it when only one enabled client exists, and prefer the actual client so client-specific actions remain available.",
+        "Author user-facing copy in its final display form; runtime token normalization is compatibility behavior for legacy generated tokens, not a presentation system.",
+        "Use deliberate mixed capitalization: stable named destinations may read as product labels, while headings, field labels, actions, statuses, errors, and explanatory text generally use sentence case.",
+        "Prefer user-facing product concepts over legacy implementation terminology, including allowed IP addresses for access controls and client for client-management actions.",
+        "Use qBitTorrent's parsed/cached metadata path when preselecting files from a local .torrent; raw multipart upload remains only as a compatibility fallback because qBitTorrent rejects filePriorities on raw uploaded torrents.",
+        "A repeated click on the torrent currently shown in Torrent details clears the detail context; choosing a different torrent replaces it directly.",
+        "Keep Add Torrent checkboxes in one aligned selection column; communicate hierarchy by indenting folder/file labels while preserving aligned Size and Priority columns.",
+        "Reconcile Torrent details against every refreshed torrent list and clear the detail context when its selected server/hash no longer exists.",
+        "Reserve a fixed disclosure/expander slot for every Add Torrent content row; files use a spacer while folders use the chevron, and hierarchy indentation begins after that slot.",
+        "Use the persistent Torrent details disclosure bar as the sole selection identity surface; expanded details begin directly with tabs/content rather than repeating title/hash metadata.",
+        "Use locally embedded Material-style SVGs for common disclosure and file-source affordances rather than platform-dependent text glyphs or remote icon-font dependencies.",
+        "Keep the Add Torrent content preview visually minimal: left-align Name, omit redundant folder descendant counts, and let the live file/size summary replace a separate Content heading.",
+        "Treat torrent-table column layout as a browser-local presentation preference rather than shared application configuration.",
+        "Expose Seeds, Peers, and Tags in the default torrent table while keeping less frequently needed Size, Category, Tracker, and Added available but hidden by default.",
+        "Treat Category as core torrent-list context and include it in the default visible column set.",
+        "Treat torrent column width as part of the browser-local table layout: resize from the header edge, preserve widths across refresh/reorder/visibility changes, and clear them with Reset columns.",
+        "Treat Name as a normal torrent data column: keep it visible by default but allow users to hide, reorder, and resize it; only the selection checkbox and row-actions columns remain fixed.",
+        "Treat torrent-column resizing as an exclusive pointer gesture: use a forgiving edge target, suppress native header drag until release, and preserve the live width through polling before committing it to browser-local preferences.",
+        "Keep torrent resize hit targets inside their owning data header, allow Name to consume its actual assigned width before ellipsizing, and hard-lock the row-actions column as a fixed right-edge control surface.",
+        "Use the torrent header as the single sorting surface and the unified text search as the single metadata filter: preserve status tabs, retire Category/Tags/Tracker and sort selects, clear obsolete facet preferences, and keep sort direction browser-local.",
+        "Keep torrent header labels centered, isolate native reordering to the header-label drag surface, reserve a separate inward-only resize gutter, and begin resizing from the exact rendered width so pointer movement maps immediately to column movement.",
+        "Keep GitHub network/update orchestration in dashboard.py while the torrent_dashboard release-provenance module owns parsing and filesystem provenance behavior behind injected runtime paths.",
+        "Align torrent data headers with their body content rather than centering every label.",
+        "When resizing, snapshot visible data-column widths and change table width with the active column so only the grabbed right boundary moves; keep selection and actions outside that model.",
+        "Keep the 48 px row-actions surface pinned to the torrent viewport edge with a non-interactive flexible spacer; customized data widths may scroll internally but must not move Actions offscreen or create page-level horizontal overflow.",
+        "Treat the pinned Actions edge as the maximum width boundary for new torrent-column resize gestures; consume spacer slack first, then stop rather than creating new horizontal overflow or shrinking unrelated columns.",
+        "Prefer native single-column resizing over a viewport-derived resize ceiling: fixed selection/actions rails remain pinned while user-chosen data widths may create horizontal scrolling only inside the torrent viewport."
+      ]
     }
   ]
 }

@@ -1,5 +1,5 @@
 'use strict';
-const FRONTEND_BUILD='0.5.98';
+const FRONTEND_BUILD='0.5.99';
 const HTML_BUILD=document.querySelector('meta[name="torrent-dashboard-build"]')?.content||'';
 const RECOVERY_KEY=`td-frontend-recovery-${FRONTEND_BUILD}`;
 async function recoverFrontendBuild(reason){
@@ -246,23 +246,15 @@ function reorderTorrentColumns(sourceKey,targetKey,after=false){
   order.splice(source,1);let insert=order.indexOf(targetKey)+(after?1:0);insert=Math.max(0,Math.min(order.length,insert));order.splice(insert,0,sourceKey);prefs.order=order;saveTorrentColumnPreferences(prefs);applyColumnPrefs();applyTorrentColumnWidths(prefs);
 }
 let draggedTorrentColumn='',torrentColumnResize=null,torrentColumnRenderPending=false,torrentColumnClickSuppressedUntil=0;
-function torrentColumnResizeMaxWidth(th,startWidth){
-  const table=th?.closest('table'),wrap=table?.closest('.table-wrap');if(!table||!wrap||wrap.clientWidth<=0)return TORRENT_COLUMN_MAX_WIDTH;
-  let reserved=0;for(const selector of ['thead th.check','thead th.row-actions-head']){const cell=table.querySelector(selector);if(cell)reserved+=cell.getBoundingClientRect().width}
-  let other=0;table.querySelectorAll('thead th[data-col]').forEach(cell=>{if(cell===th||cell.classList.contains('torrent-column-hidden'))return;other+=cell.getBoundingClientRect().width});
-  const room=Math.floor(wrap.clientWidth-reserved-other);if(!Number.isFinite(room))return TORRENT_COLUMN_MAX_WIDTH;
-  const ceiling=Math.max(TORRENT_COLUMN_HARD_MIN,Math.min(TORRENT_COLUMN_MAX_WIDTH,room)),start=Math.max(TORRENT_COLUMN_HARD_MIN,Math.round(Number(startWidth)||0));
-  return Math.max(start,ceiling);
-}
 function startTorrentColumnResize(event,handle){
   if(event.button!==0||torrentColumnResize)return;const th=handle?.closest('th[data-col]');if(!th)return;
   event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();clearTorrentColumnDropHints();draggedTorrentColumn='';torrentColumnRenderPending=false;
-  const key=th.dataset.col||'',startWidth=Math.round(th.getBoundingClientRect().width),minWidth=Math.max(TORRENT_COLUMN_HARD_MIN,Math.min(torrentColumnMinWidth(key),startWidth)),maxWidth=torrentColumnResizeMaxWidth(th,startWidth),prefs=snapshotTorrentColumnWidths(torrentColumnPreferences());
-  th.classList.add('column-resizing');torrentColumnResize={key,startX:event.clientX,startWidth,width:startWidth,minWidth,maxWidth,pointerId:event.pointerId,handle,th};
+  const key=th.dataset.col||'',startWidth=Math.round(th.getBoundingClientRect().width),minWidth=Math.max(TORRENT_COLUMN_HARD_MIN,Math.min(torrentColumnMinWidth(key),startWidth)),prefs=snapshotTorrentColumnWidths(torrentColumnPreferences());
+  th.classList.add('column-resizing');torrentColumnResize={key,startX:event.clientX,startWidth,width:startWidth,minWidth,pointerId:event.pointerId,handle,th};
   saveTorrentColumnPreferences(prefs);applyTorrentColumnWidths(prefs);handle.setPointerCapture?.(event.pointerId);document.body.classList.add('torrent-column-resizing');
 }
 function moveTorrentColumnResize(event){
-  const resize=torrentColumnResize;if(!resize||event.pointerId!==resize.pointerId)return;event.preventDefault();const width=Math.max(resize.minWidth,Math.min(resize.maxWidth,resize.startWidth+(event.clientX-resize.startX)));resize.width=Math.round(width);applyTorrentColumnWidth(resize.key,resize.width);syncTorrentTableWidth();
+  const resize=torrentColumnResize;if(!resize||event.pointerId!==resize.pointerId)return;event.preventDefault();const width=Math.max(resize.minWidth,Math.min(TORRENT_COLUMN_MAX_WIDTH,resize.startWidth+(event.clientX-resize.startX)));resize.width=Math.round(width);applyTorrentColumnWidth(resize.key,resize.width);syncTorrentTableWidth();
 }
 function finishTorrentColumnResize(event){
   const resize=torrentColumnResize;if(!resize||(event?.pointerId!==undefined&&event.pointerId!==resize.pointerId))return;
