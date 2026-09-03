@@ -1,5 +1,5 @@
 'use strict';
-const FRONTEND_BUILD='0.5.100';
+const FRONTEND_BUILD='0.5.101';
 const HTML_BUILD=document.querySelector('meta[name="torrent-dashboard-build"]')?.content||'';
 const RECOVERY_KEY=`td-frontend-recovery-${FRONTEND_BUILD}`;
 async function recoverFrontendBuild(reason){
@@ -147,37 +147,17 @@ function decorateSecretFields(root=document){
 const caseObserver=new MutationObserver(records=>{for(const r of records){if(r.type==='attributes'){applySentenceCaseUi(r.target);continue}for(const n of r.addedNodes){if(n.nodeType===Node.ELEMENT_NODE){applySentenceCaseUi(n);decorateSecretFields(n)}else if(n.nodeType===Node.TEXT_NODE&&n.parentElement){applySentenceCaseUi(n.parentElement)}}}});
 
 const LIVE_REFRESH_MS=1000;
-for(const key of ['tdCategory','tdTag','tdTracker'])localStorage.removeItem(key);
+for(const key of ['tdCategory','tdTag','tdTracker','tdColumns'])localStorage.removeItem(key);
 const state={me:null,csrf:'',setup:null,setupStep:0,setupMaxStep:0,server:localStorage.tdServer||'all',torrents:[],transfer:{},meta:{},filter:localStorage.tdFilter||'all',sort:localStorage.tdSort||'added_desc',search:localStorage.tdSearch||'',selected:new Set(),detail:null,detailExpanded:false,detailTab:'general',settings:null,lastComplete:new Set(),deferredPrompt:null,setupInterfaceSelectionInitialized:false,settingsInterfaceSelectionInitialized:false,updateInfo:null,notificationEvents:[]};
 
 
-const TORRENT_COLUMN_DEFS=[
-  {key:'name',label:'Name',required:false,defaultVisible:true},{key:'size',label:'Size',defaultVisible:false},{key:'progress',label:'Progress',defaultVisible:true},{key:'state',label:'Status',defaultVisible:true},{key:'seeds',label:'Seeds',defaultVisible:true},{key:'peers',label:'Peers',defaultVisible:true},{key:'down',label:'Download',defaultVisible:true},{key:'up',label:'Upload',defaultVisible:true},{key:'eta',label:'ETA',defaultVisible:true},{key:'ratio',label:'Ratio',defaultVisible:true},{key:'category',label:'Category',defaultVisible:true},{key:'tags',label:'Tags',defaultVisible:true},{key:'tracker',label:'Tracker',defaultVisible:false},{key:'added',label:'Added',defaultVisible:false},
-];
-const DEFAULT_TORRENT_COLUMN_ORDER=TORRENT_COLUMN_DEFS.map(column=>column.key);
-const TORRENT_COLUMN_MIN_WIDTHS={name:96,size:72,progress:130,state:82,seeds:64,peers:64,down:88,up:88,eta:64,ratio:64,category:82,tags:90,tracker:120,added:128};
-const TORRENT_COLUMN_HARD_MIN=48;
-const TORRENT_COLUMN_MAX_WIDTH=8192;
+const FIXED_TORRENT_COLUMN_ORDER=['name','size','state','progress','seeds','peers','down','up','eta','ratio','category','tags'];
+const FIXED_TORRENT_COLUMN_RATIOS={name:.29,size:.05,state:.07,progress:.20,seeds:.045,peers:.045,down:.045,up:.045,eta:.035,ratio:.045,category:.065,tags:.065};
 const TORRENT_FIXED_COLUMN_WIDTH=88;
-function torrentColumnMinWidth(key){return TORRENT_COLUMN_MIN_WIDTHS[key]||82}
-function defaultTorrentColumnPreferences(){return{order:[...DEFAULT_TORRENT_COLUMN_ORDER],visible:Object.fromEntries(TORRENT_COLUMN_DEFS.map(column=>[column.key,!!column.defaultVisible])),widths:{}}}
-function torrentColumnPreferences(){
-  let raw={};try{raw=JSON.parse(localStorage.tdColumns||'{}')||{}}catch{raw={}}
-  const known=new Set(DEFAULT_TORRENT_COLUMN_ORDER),legacy=raw&&typeof raw==='object'&&!Array.isArray(raw)?raw:{},source=raw?.visible&&typeof raw.visible==='object'?raw.visible:legacy;
-  const supplied=Array.isArray(raw?.order)?raw.order.map(String).filter((key,index,list)=>known.has(key)&&list.indexOf(key)===index):[];
-  const order=[...supplied,...DEFAULT_TORRENT_COLUMN_ORDER.filter(key=>!supplied.includes(key))];
-  const previousDefault={name:true,size:false,progress:true,state:true,seeds:true,peers:true,down:true,up:true,eta:true,ratio:true,category:false,tags:true,tracker:false,added:false};
-  const savedPreviousDefault=!!raw?.visible&&Array.isArray(raw.order)&&raw.order.length===DEFAULT_TORRENT_COLUMN_ORDER.length&&raw.order.every((key,index)=>key===DEFAULT_TORRENT_COLUMN_ORDER[index])&&DEFAULT_TORRENT_COLUMN_ORDER.every(key=>raw.visible[key]===previousDefault[key]);
-  const visible={};for(const column of TORRENT_COLUMN_DEFS)visible[column.key]=column.required?true:(savedPreviousDefault&&column.key==='category'?true:(Object.prototype.hasOwnProperty.call(source,column.key)?source[column.key]!==false:!!column.defaultVisible));
-  const widths={};for(const [key,value] of Object.entries(raw?.widths||{})){const width=Math.round(Number(value));if(known.has(key)&&Number.isFinite(width)&&width>=TORRENT_COLUMN_HARD_MIN&&width<=TORRENT_COLUMN_MAX_WIDTH)widths[key]=width}
-  return{order,visible,widths};
-}
-function torrentColumnVisible(key,prefs=torrentColumnPreferences()){const def=TORRENT_COLUMN_DEFS.find(column=>column.key===key);return !!def?.required||prefs.visible[key]!==false}
-
-const TORRENT_SORT_DEFAULT_DIRECTIONS={name:'asc',size:'desc',progress:'desc',state:'asc',seeds:'desc',peers:'desc',down:'desc',up:'desc',eta:'asc',ratio:'desc',category:'asc',tags:'asc',tracker:'asc',added:'desc'};
+const TORRENT_SORT_DEFAULT_DIRECTIONS={name:'asc',size:'desc',progress:'desc',state:'asc',seeds:'desc',peers:'desc',down:'desc',up:'desc',eta:'asc',ratio:'desc',category:'asc',tags:'asc',added:'desc'};
 function normalizedTorrentSort(value=state.sort){
   const match=String(value||'').match(/^([a-z]+)_(asc|desc)$/),key=match?.[1],dir=match?.[2];
-  return TORRENT_COLUMN_DEFS.some(column=>column.key===key)?[key,dir]:['added','desc'];
+  return FIXED_TORRENT_COLUMN_ORDER.includes(key)||key==='added'?[key,dir]:['added','desc'];
 }
 function torrentSortValue(t,key){
   if(key==='name')return String(t.name||'').toLowerCase();
@@ -208,112 +188,39 @@ function syncTorrentSortHeaders(){
   });
 }
 function setTorrentSort(key){
-  if(!TORRENT_COLUMN_DEFS.some(column=>column.key===key))return;
+  if(!FIXED_TORRENT_COLUMN_ORDER.includes(key))return;
   const [current,dir]=normalizedTorrentSort(),next=current===key?(dir==='asc'?'desc':'asc'):(TORRENT_SORT_DEFAULT_DIRECTIONS[key]||'asc');
   state.sort=`${key}_${next}`;localStorage.tdSort=state.sort;syncTorrentSortHeaders();render();
 }
-function saveTorrentColumnPreferences(prefs){localStorage.tdColumns=JSON.stringify(prefs)}
-function torrentVisibleColumnKeys(prefs=torrentColumnPreferences()){return prefs.order.filter(key=>torrentColumnVisible(key,prefs))}
-function torrentColumnLayoutWidth(prefs=torrentColumnPreferences()){
-  const keys=torrentVisibleColumnKeys(prefs);if(!keys.length)return null;let total=TORRENT_FIXED_COLUMN_WIDTH;
-  for(const key of keys){const liveWidth=torrentColumnResize?.key===key?torrentColumnResize.width:null,width=liveWidth??prefs.widths?.[key];if(!Number.isFinite(Number(width)))return null;total+=Math.round(Number(width))}
-  return total;
-}
-function syncTorrentTableWidth(prefs=torrentColumnPreferences()){
-  const table=$('#torrentTable');if(!table)return;
-  if(window.matchMedia?.('(max-width:820px)').matches){table.classList.remove('torrent-column-fixed-layout');table.style.width='';table.style.minWidth='';return}
-  const minWidth=torrentColumnLayoutWidth(prefs),locked=Number.isFinite(minWidth);
-  table.classList.toggle('torrent-column-fixed-layout',locked);table.style.width='100%';table.style.minWidth=locked?`${minWidth}px`:'';
-}
-function snapshotTorrentColumnWidths(prefs=torrentColumnPreferences()){
-  const table=$('#torrentTable');if(!table)return prefs;
-  table.querySelectorAll('thead th[data-col]').forEach(th=>{if(th.classList.contains('torrent-column-hidden'))return;const width=Math.round(th.getBoundingClientRect().width);if(Number.isFinite(width)&&width>=TORRENT_COLUMN_HARD_MIN&&width<=TORRENT_COLUMN_MAX_WIDTH)prefs.widths[th.dataset.col]=width});
-  return prefs;
-}
-function applyTorrentColumnWidth(key,width=null){const valid=width!==null&&width!==undefined&&Number.isFinite(Number(width)),value=valid?`${Math.round(Number(width))}px`:'';document.querySelectorAll(`#torrentTable [data-col="${key}"]`).forEach(cell=>{cell.style.width=value;cell.style.minWidth=value;cell.style.maxWidth=value;cell.classList.toggle('torrent-column-sized',valid)})}
-function applyTorrentColumnWidths(prefs=torrentColumnPreferences()){
-  for(const column of TORRENT_COLUMN_DEFS){
-    const liveWidth=torrentColumnResize?.key===column.key?torrentColumnResize.width:null;
-    applyTorrentColumnWidth(column.key,liveWidth??prefs.widths?.[column.key]);
+function applyFixedTorrentColumnLayout(){
+  const table=$('#torrentTable'),wrap=table?.closest('.table-wrap');if(!table||!wrap)return;
+  const cellsFor=key=>document.querySelectorAll(`#torrentTable [data-col="${key}"]`);
+  if(window.matchMedia?.('(max-width:820px)').matches){
+    table.style.width='';table.style.minWidth='';table.style.tableLayout='';
+    for(const key of FIXED_TORRENT_COLUMN_ORDER)cellsFor(key).forEach(cell=>{cell.style.width='';cell.style.minWidth='';cell.style.maxWidth=''});
+    return;
   }
-  syncTorrentTableWidth(prefs);
-}
-function saveTorrentColumnWidth(key,width){const prefs=torrentColumnPreferences(),value=Math.max(TORRENT_COLUMN_HARD_MIN,Math.min(TORRENT_COLUMN_MAX_WIDTH,Math.round(Number(width)||0)));prefs.widths[key]=value;saveTorrentColumnPreferences(prefs);applyTorrentColumnWidths(prefs)}
-function resetTorrentColumns(){saveTorrentColumnPreferences(defaultTorrentColumnPreferences());render()}
-function setTorrentColumnVisibility(key,visible){const column=TORRENT_COLUMN_DEFS.find(item=>item.key===key);if(!column||column.required)return;const prefs=torrentColumnPreferences();prefs.visible[key]=!!visible;saveTorrentColumnPreferences(prefs);render()}
-function reorderTorrentColumns(sourceKey,targetKey,after=false){
-  if(!sourceKey||!targetKey||sourceKey===targetKey)return;const prefs=torrentColumnPreferences(),order=[...prefs.order],source=order.indexOf(sourceKey),target=order.indexOf(targetKey);if(source<0||target<0)return;
-  order.splice(source,1);let insert=order.indexOf(targetKey)+(after?1:0);insert=Math.max(0,Math.min(order.length,insert));order.splice(insert,0,sourceKey);prefs.order=order;saveTorrentColumnPreferences(prefs);applyColumnPrefs();applyTorrentColumnWidths(prefs);
-}
-let draggedTorrentColumn='',torrentColumnResize=null,torrentColumnRenderPending=false,torrentColumnClickSuppressedUntil=0;
-function torrentRightmostColumnResizeMaxWidth(th,startWidth){
-  const table=th?.closest('table'),wrap=table?.closest('.table-wrap');if(!table||!wrap||wrap.clientWidth<=0)return TORRENT_COLUMN_MAX_WIDTH;
-  const visible=[...table.querySelectorAll('thead th[data-col]')].filter(cell=>!cell.classList.contains('torrent-column-hidden'));if(!visible.length||visible[visible.length-1]!==th)return TORRENT_COLUMN_MAX_WIDTH;
-  let reserved=0;for(const selector of ['thead th.check','thead th.row-actions-head']){const cell=table.querySelector(selector);if(cell)reserved+=cell.getBoundingClientRect().width}
-  let other=0;for(const cell of visible){if(cell!==th)other+=cell.getBoundingClientRect().width}
-  const room=Math.floor(wrap.clientWidth-reserved-other);if(!Number.isFinite(room))return TORRENT_COLUMN_MAX_WIDTH;
-  const ceiling=Math.max(TORRENT_COLUMN_HARD_MIN,Math.min(TORRENT_COLUMN_MAX_WIDTH,room)),start=Math.max(TORRENT_COLUMN_HARD_MIN,Math.round(Number(startWidth)||0));
-  return Math.max(start,ceiling);
-}
-function startTorrentColumnResize(event,handle){
-  if(event.button!==0||torrentColumnResize)return;const th=handle?.closest('th[data-col]');if(!th)return;
-  event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();clearTorrentColumnDropHints();draggedTorrentColumn='';torrentColumnRenderPending=false;
-  const key=th.dataset.col||'',startWidth=Math.round(th.getBoundingClientRect().width),minWidth=Math.max(TORRENT_COLUMN_HARD_MIN,Math.min(torrentColumnMinWidth(key),startWidth)),maxWidth=torrentRightmostColumnResizeMaxWidth(th,startWidth),prefs=snapshotTorrentColumnWidths(torrentColumnPreferences());
-  th.classList.add('column-resizing');torrentColumnResize={key,startX:event.clientX,startWidth,width:startWidth,minWidth,maxWidth,pointerId:event.pointerId,handle,th};
-  saveTorrentColumnPreferences(prefs);applyTorrentColumnWidths(prefs);handle.setPointerCapture?.(event.pointerId);document.body.classList.add('torrent-column-resizing');
-}
-function moveTorrentColumnResize(event){
-  const resize=torrentColumnResize;if(!resize||event.pointerId!==resize.pointerId)return;event.preventDefault();const width=Math.max(resize.minWidth,Math.min(resize.maxWidth,resize.startWidth+(event.clientX-resize.startX)));resize.width=Math.round(width);applyTorrentColumnWidth(resize.key,resize.width);syncTorrentTableWidth();
-}
-function finishTorrentColumnResize(event){
-  const resize=torrentColumnResize;if(!resize||(event?.pointerId!==undefined&&event.pointerId!==resize.pointerId))return;
-  const renderPending=torrentColumnRenderPending;torrentColumnResize=null;torrentColumnClickSuppressedUntil=performance.now()+250;document.body.classList.remove('torrent-column-resizing');resize.th?.classList.remove('column-resizing');
-  try{resize.handle.releasePointerCapture?.(resize.pointerId)}catch{}saveTorrentColumnWidth(resize.key,resize.width);
-  if(renderPending){torrentColumnRenderPending=false;render()}
-}
-function clearTorrentColumnDropHints(){document.querySelectorAll('#torrentTable thead th.column-drop-before,#torrentTable thead th.column-drop-after').forEach(th=>th.classList.remove('column-drop-before','column-drop-after'))}
-function renderTorrentColumnMenu(){
-  const menu=$('#columnMenu');if(!menu)return;const prefs=torrentColumnPreferences(),defs=new Map(TORRENT_COLUMN_DEFS.map(column=>[column.key,column]));
-  menu.innerHTML='<div class="menu-caption">Columns</div>'+prefs.order.map(key=>{const column=defs.get(key);if(!column)return'';const checked=torrentColumnVisible(key,prefs),required=!!column.required;return `<button class="column-menu-item" type="button" role="menuitemcheckbox" aria-checked="${checked}" data-column-toggle="${esc(key)}" ${required?'disabled':''}><span class="column-menu-check">${checked?materialIconSvg('check'):''}</span><span>${esc(column.label)}</span>${required?'<small>Required</small>':''}</button>`}).join('')+'<div class="menu-separator" role="separator"></div><button class="column-menu-reset" data-column-reset="1" type="button">Reset columns</button>';
-  menu.querySelectorAll('[data-column-toggle]').forEach(button=>button.addEventListener('click',()=>{if(button.disabled)return;setTorrentColumnVisibility(button.dataset.columnToggle,button.getAttribute('aria-checked')!=='true');renderTorrentColumnMenu()}));
-  menu.querySelector('[data-column-reset]')?.addEventListener('click',()=>{resetTorrentColumns();renderTorrentColumnMenu()});
-}
-function showTorrentColumnMenu(x,y){
-  const menu=$('#columnMenu');if(!menu)return;$$('.menu').forEach(item=>{if(item!==menu)item.classList.add('hidden')});renderTorrentColumnMenu();menu.classList.remove('hidden');const rect=menu.getBoundingClientRect();menu.style.left=Math.max(8,Math.min(innerWidth-rect.width-8,x))+'px';menu.style.top=Math.max(8,Math.min(innerHeight-rect.height-8,y))+'px';
+  const available=Math.max(0,Math.floor(wrap.clientWidth-TORRENT_FIXED_COLUMN_WIDTH));let used=0;
+  FIXED_TORRENT_COLUMN_ORDER.forEach((key,index)=>{
+    const last=index===FIXED_TORRENT_COLUMN_ORDER.length-1,width=last?Math.max(0,available-used):Math.max(0,Math.floor(available*(FIXED_TORRENT_COLUMN_RATIOS[key]||0)));
+    used+=width;const value=`${width}px`;cellsFor(key).forEach(cell=>{cell.style.width=value;cell.style.minWidth=value;cell.style.maxWidth=value});
+  });
+  table.style.width='100%';table.style.minWidth='0';table.style.tableLayout='fixed';
 }
 function bindTorrentColumnHeaderUI(){
   const head=$('#torrentTable thead');if(!head||head.dataset.columnUiBound==='1')return;head.dataset.columnUiBound='1';
   const [sortKey,sortDir]=normalizedTorrentSort();state.sort=`${sortKey}_${sortDir}`;localStorage.tdSort=state.sort;
   head.querySelectorAll('th[data-col]').forEach(th=>{
-    th.draggable=false;th.tabIndex=0;th.title='Click to sort. Drag the label to reorder. Drag the right edge to resize. Right-click to show or hide columns.';
+    th.tabIndex=0;th.title='Click to sort.';
     const label=th.textContent.trim();th.textContent='';
-    const heading=document.createElement('span');heading.className='torrent-sort-heading';heading.draggable=true;heading.dataset.columnDrag='1';
+    const heading=document.createElement('span');heading.className='torrent-sort-heading';
     const copy=document.createElement('span');copy.className='torrent-sort-label';copy.textContent=label;
     const sortIcon=document.createElement('span');sortIcon.className='torrent-sort-icon';sortIcon.setAttribute('aria-hidden','true');sortIcon.innerHTML=materialIconSvg('expand_more');
     heading.append(copy,sortIcon);th.appendChild(heading);
-    const handle=document.createElement('span');handle.className='column-resize-handle';handle.setAttribute('aria-hidden','true');handle.draggable=false;th.appendChild(handle);
   });
   syncTorrentSortHeaders();
-  head.addEventListener('contextmenu',event=>{event.preventDefault();showTorrentColumnMenu(event.clientX,event.clientY)});
-  head.addEventListener('click',event=>{
-    if(performance.now()<torrentColumnClickSuppressedUntil||event.target.closest('.column-resize-handle'))return;
-    const th=event.target.closest('th[data-col]');if(th)setTorrentSort(th.dataset.col);
-  });
-  head.addEventListener('keydown',event=>{
-    if(event.key!=='Enter'&&event.key!==' ')return;const th=event.target.closest('th[data-col]');if(!th)return;
-    event.preventDefault();setTorrentSort(th.dataset.col);
-  });
-  head.addEventListener('pointerdown',event=>{
-    if(event.button!==0)return;const handle=event.target.closest('.column-resize-handle');if(handle)startTorrentColumnResize(event,handle);
-  },true);
-  head.addEventListener('pointermove',moveTorrentColumnResize);head.addEventListener('pointerup',finishTorrentColumnResize);head.addEventListener('pointercancel',finishTorrentColumnResize);
-  head.addEventListener('dragstart',event=>{
-    if(torrentColumnResize){event.preventDefault();return}const heading=event.target.closest('.torrent-sort-heading');if(!heading){event.preventDefault();return}const th=heading.closest('th[data-col]');if(!th)return;
-    draggedTorrentColumn=th.dataset.col||'';event.dataTransfer.effectAllowed='move';event.dataTransfer.setData('text/plain',draggedTorrentColumn);requestAnimationFrame(()=>th.classList.add('column-dragging'));
-  });
-  head.addEventListener('dragover',event=>{if(!draggedTorrentColumn)return;const th=event.target.closest('th[data-col]');if(!th||th.dataset.col===draggedTorrentColumn)return;event.preventDefault();clearTorrentColumnDropHints();const after=event.clientX>th.getBoundingClientRect().left+th.getBoundingClientRect().width/2;th.classList.add(after?'column-drop-after':'column-drop-before');event.dataTransfer.dropEffect='move'});
-  head.addEventListener('drop',event=>{if(!draggedTorrentColumn)return;const th=event.target.closest('th[data-col]');if(!th)return;event.preventDefault();const rect=th.getBoundingClientRect(),after=event.clientX>rect.left+rect.width/2;reorderTorrentColumns(draggedTorrentColumn,th.dataset.col,after);torrentColumnClickSuppressedUntil=performance.now()+250;clearTorrentColumnDropHints()});
-  head.addEventListener('dragend',event=>{event.target.closest('th[data-col]')?.classList.remove('column-dragging');draggedTorrentColumn='';torrentColumnClickSuppressedUntil=performance.now()+250;clearTorrentColumnDropHints()});
+  head.addEventListener('click',event=>{const th=event.target.closest('th[data-col]');if(th)setTorrentSort(th.dataset.col)});
+  head.addEventListener('keydown',event=>{if(event.key!=='Enter'&&event.key!==' ')return;const th=event.target.closest('th[data-col]');if(!th)return;event.preventDefault();setTorrentSort(th.dataset.col)});
 }
 
 function esc(v=''){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
@@ -764,7 +671,7 @@ function bindUI(){if(bound)return;
   $('#pauseAllBtn').addEventListener('click',()=>globalAction('stop'));$('#resumeAllBtn').addEventListener('click',()=>globalAction('start'));
   $('#notificationFilter')?.addEventListener('change',renderNotifications);$('#refreshNotifications')?.addEventListener('click',loadNotifications);
   if(state.me?.can_manage)TDSettings.bind();
-  window.addEventListener('keydown',e=>{if(e.key==='/'&&!['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName)){e.preventDefault();$('#search').focus()}if(e.key==='Escape'){if(!$('#passwordConfirmModal')?.classList.contains('hidden')){closePasswordConfirmation(null);return}if(!$('#clientSettingsModal')?.classList.contains('hidden')){TDSettings.closeClientSettings();return}if(!$('#accountModal')?.classList.contains('hidden')){closeAccountModal();return}if(!$('#accountMenu')?.classList.contains('hidden')){hideAccountMenu();return}if(!$('#columnMenu')?.classList.contains('hidden')){$('#columnMenu').classList.add('hidden');return}if(!$('#actionDialogModal')?.classList.contains('hidden')){closeActionDialog(null);return}if(!$('#removeModal')?.classList.contains('hidden')){closeRemoveDialog(null);return}if(!$('#addModal')?.classList.contains('hidden')){closeAddTorrent();return}if(state.selected.size){state.selected.clear();render();return}if(state.detailExpanded){state.detailExpanded=false;syncDetailDock()}}});
+  window.addEventListener('keydown',e=>{if(e.key==='/'&&!['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName)){e.preventDefault();$('#search').focus()}if(e.key==='Escape'){if(!$('#passwordConfirmModal')?.classList.contains('hidden')){closePasswordConfirmation(null);return}if(!$('#clientSettingsModal')?.classList.contains('hidden')){TDSettings.closeClientSettings();return}if(!$('#accountModal')?.classList.contains('hidden')){closeAccountModal();return}if(!$('#accountMenu')?.classList.contains('hidden')){hideAccountMenu();return}if(!$('#actionDialogModal')?.classList.contains('hidden')){closeActionDialog(null);return}if(!$('#removeModal')?.classList.contains('hidden')){closeRemoveDialog(null);return}if(!$('#addModal')?.classList.contains('hidden')){closeAddTorrent();return}if(state.selected.size){state.selected.clear();render();return}if(state.detailExpanded){state.detailExpanded=false;syncDetailDock()}}});
   bound=true;
 }
 
@@ -848,7 +755,7 @@ async function handleUpdateAction(){const st=state.updateInfo?.state||state.sett
 async function installUpdate(){const version=state.updateInfo?.state?.version||state.settings?.runtime?.updateState?.version||$('#updateLatest').textContent;const b=$('#updateAction');if(b){b.disabled=true;b.textContent=uiText('restarting…')}try{await post('/api/update-install',{version});$('#updateMessage').textContent=`${uiText('installing')} ${version} · ${uiText('torrentDashboardWillRestart')}`;$('#updateState').textContent=uiText('installing');toast('installingUpdate');waitForUpdatedServer(version)}catch(e){if(b){b.disabled=false;b.textContent=uiText('installUpdate')}toast(e.message,'error')}}
 function waitForUpdatedServer(version){const started=Date.now();const timer=setInterval(async()=>{if(Date.now()-started>60000){clearInterval(timer);$('#updateMessage').textContent=uiText('updateRestartTakingLongerThanExpected');return}try{const r=await fetch('/health',{cache:'no-store'});if(!r.ok)return;const d=await r.json();if(String(d.version)===String(version)){clearInterval(timer);location.reload()}}catch{}},1200)}
 
-function applyPrefs(){let theme=localStorage.tdTheme||'dark';if(theme==='system')theme=matchMedia('(prefers-color-scheme:light)').matches?'light':'dark';document.documentElement.dataset.theme=theme;document.documentElement.dataset.density=localStorage.tdDensity||'comfortable';document.documentElement.style.setProperty('--accent',localStorage.tdAccent||'#72a9ff');applyColumnPrefs();applyTorrentColumnWidths()}
+function applyPrefs(){let theme=localStorage.tdTheme||'dark';if(theme==='system')theme=matchMedia('(prefers-color-scheme:light)').matches?'light':'dark';document.documentElement.dataset.theme=theme;document.documentElement.dataset.density=localStorage.tdDensity||'comfortable';document.documentElement.style.setProperty('--accent',localStorage.tdAccent||'#72a9ff');applyFixedTorrentColumnLayout()}
 
 let refreshTimer;
 function scheduleRefresh(){clearInterval(refreshTimer);refreshTimer=setInterval(refreshStatus,LIVE_REFRESH_MS)}
@@ -885,7 +792,7 @@ function syncTorrentWorkspaceLayout(){
   const value=`${available}px`;
   if(workspace.style.getPropertyValue('--torrent-workspace-height')!==value)workspace.style.setProperty('--torrent-workspace-height',value);
 }
-window.addEventListener('resize',()=>requestAnimationFrame(()=>{syncTorrentWorkspaceLayout();syncTorrentTableWidth()}));
+window.addEventListener('resize',()=>requestAnimationFrame(()=>{syncTorrentWorkspaceLayout();applyFixedTorrentColumnLayout()}));
 
 function emptyStateCopy(){
   if(!state.torrents.length)return state.me?.can_manage?['No torrents yet','Add a torrent to get started.']:['No torrents available','There are no torrents on this server.'];
@@ -896,9 +803,9 @@ function emptyStateCopy(){
   return['No torrents in this view','Try another status view.'];
 }
 function swarmColumnValue(active,total){const connected=Math.max(0,Number(active)||0),available=Number(total);return Number.isFinite(available)&&available>=0?`${connected} (${Math.trunc(available)})`:String(connected)}
-function torrentSubtitle(t,prefs=torrentColumnPreferences()){const parts=[];if(t._server_name)parts.push(t._server_name);if(!torrentColumnVisible('size',prefs))parts.push(bytes(t.size));if(!torrentColumnVisible('category',prefs))parts.push(t.category||'Uncategorized');return parts.join(' · ')}
-function render(){if(torrentColumnResize){torrentColumnRenderPending=true;return}const list=visibleTorrents();$('#torrentRows').innerHTML=list.map(rowHtml).join('');applyColumnPrefs();applyTorrentColumnWidths();syncTorrentSortHeaders();const empty=$('#empty');empty.classList.toggle('hidden',list.length>0);if(!list.length){const [title,text]=emptyStateCopy();$('#emptyTitle').textContent=title;$('#emptyText').textContent=text}$('#selectedCount').textContent=state.selected.size;$('#bulkbar').classList.toggle('hidden',!state.selected.size);$('#selectAll').checked=!!list.length&&list.every(t=>state.selected.has(keyFor(t)));syncTorrentWorkspaceLayout()}
-function rowHtml(t){const pct=Math.max(0,Math.min(100,Number(t.progress||0)*100)),[label,cls]=stateInfo(t),sub=torrentSubtitle(t),tags=String(t.tags||'').trim(),tracker=trackerHost(t.tracker);return`<tr class="${state.detail&&state.detail.server===(t._server_id||state.server)&&state.detail.hash===t.hash?'torrent-detail-selected':''}" data-key="${esc(keyFor(t))}" data-hash="${esc(t.hash)}" data-server="${esc(t._server_id||state.server)}"><td class="check"><input class="rowcheck" type="checkbox" ${state.selected.has(keyFor(t))?'checked':''}></td><td data-col="name"><div class="torrent-name" title="${esc(t.name)}">${esc(t.name)}</div><div class="torrent-sub${sub?'':' hidden'}">${esc(sub)}</div></td><td class="mobile-grid" data-col="size" data-label="Size"><span class="mono">${bytes(t.size)}</span></td><td class="progress-cell" data-col="progress"><div class="progress-top"><span>${pct.toFixed(1)}%</span><span>${bytes(t.amount_left)} Left</span></div><div class="track"><div class="fill" style="width:${pct}%"></div></div></td><td class="mobile-grid" data-col="state" data-label="Status"><span class="state ${cls}">${esc(uiText(label))}</span></td><td class="mobile-grid" data-col="seeds" data-label="Seeds"><span class="mono">${esc(swarmColumnValue(t.num_seeds,t.num_complete))}</span></td><td class="mobile-grid" data-col="peers" data-label="Peers"><span class="mono">${esc(swarmColumnValue(t.num_leechs,t.num_incomplete))}</span></td><td class="mobile-grid" data-col="down" data-label="Download"><span class="mono">${speed(t.dlspeed||0)}</span></td><td class="mobile-grid" data-col="up" data-label="Upload"><span class="mono">${speed(t.upspeed||0)}</span></td><td class="mobile-grid" data-col="eta" data-label="ETA"><span class="mono">${eta(t.eta)}</span></td><td class="mobile-grid" data-col="ratio" data-label="Ratio"><span class="mono">${Number(t.ratio||0).toFixed(2)}</span></td><td class="mobile-grid" data-col="category" data-label="Category"><span class="torrent-column-text" title="${esc(t.category||'')}">${esc(t.category||'—')}</span></td><td class="mobile-grid" data-col="tags" data-label="Tags"><span class="torrent-column-text" title="${esc(tags)}">${esc(tags||'—')}</span></td><td class="mobile-grid" data-col="tracker" data-label="Tracker"><span class="torrent-column-text" title="${esc(tracker)}">${esc(tracker||'—')}</span></td><td class="mobile-grid" data-col="added" data-label="Added"><span class="torrent-column-text">${esc(when(t.added_on))}</span></td><td class="row-spacer" aria-hidden="true"></td><td class="row-actions"><button class="more-row" aria-label="Actions">•••</button></td></tr>`}
+function torrentSubtitle(t){const parts=[];if(t._server_name)parts.push(t._server_name);return parts.join(' · ')}
+function render(){const list=visibleTorrents();$('#torrentRows').innerHTML=list.map(rowHtml).join('');applyFixedTorrentColumnLayout();syncTorrentSortHeaders();const empty=$('#empty');empty.classList.toggle('hidden',list.length>0);if(!list.length){const [title,text]=emptyStateCopy();$('#emptyTitle').textContent=title;$('#emptyText').textContent=text}$('#selectedCount').textContent=state.selected.size;$('#bulkbar').classList.toggle('hidden',!state.selected.size);$('#selectAll').checked=!!list.length&&list.every(t=>state.selected.has(keyFor(t)));syncTorrentWorkspaceLayout()}
+function rowHtml(t){const pct=Math.max(0,Math.min(100,Number(t.progress||0)*100)),[label,cls]=stateInfo(t),sub=torrentSubtitle(t),tags=String(t.tags||'').trim();return`<tr class="${state.detail&&state.detail.server===(t._server_id||state.server)&&state.detail.hash===t.hash?'torrent-detail-selected':''}" data-key="${esc(keyFor(t))}" data-hash="${esc(t.hash)}" data-server="${esc(t._server_id||state.server)}"><td class="check"><input class="rowcheck" type="checkbox" ${state.selected.has(keyFor(t))?'checked':''}></td><td data-col="name"><div class="torrent-name" title="${esc(t.name)}">${esc(t.name)}</div><div class="torrent-sub${sub?'':' hidden'}">${esc(sub)}</div></td><td class="mobile-grid" data-col="size" data-label="Size"><span class="mono">${bytes(t.size)}</span></td><td class="mobile-grid" data-col="state" data-label="Status"><span class="state ${cls}">${esc(uiText(label))}</span></td><td class="progress-cell" data-col="progress"><div class="progress-top"><span>${pct.toFixed(1)}%</span><span>${bytes(t.amount_left)} Left</span></div><div class="track"><div class="fill" style="width:${pct}%"></div></div></td><td class="mobile-grid" data-col="seeds" data-label="Seeds"><span class="mono">${esc(swarmColumnValue(t.num_seeds,t.num_complete))}</span></td><td class="mobile-grid" data-col="peers" data-label="Peers"><span class="mono">${esc(swarmColumnValue(t.num_leechs,t.num_incomplete))}</span></td><td class="mobile-grid" data-col="down" data-label="Download"><span class="mono">${speed(t.dlspeed||0)}</span></td><td class="mobile-grid" data-col="up" data-label="Upload"><span class="mono">${speed(t.upspeed||0)}</span></td><td class="mobile-grid" data-col="eta" data-label="ETA"><span class="mono">${eta(t.eta)}</span></td><td class="mobile-grid" data-col="ratio" data-label="Ratio"><span class="mono">${Number(t.ratio||0).toFixed(2)}</span></td><td class="mobile-grid" data-col="category" data-label="Category"><span class="torrent-column-text" title="${esc(t.category||'')}">${esc(t.category||'—')}</span></td><td class="mobile-grid" data-col="tags" data-label="Tags"><span class="torrent-column-text" title="${esc(tags)}">${esc(tags||'—')}</span></td><td class="row-actions"><button class="more-row" aria-label="Actions">•••</button></td></tr>`}
 function rowChange(e){if(!e.target.classList.contains('rowcheck'))return;const tr=e.target.closest('tr'),k=tr.dataset.key;e.target.checked?state.selected.add(k):state.selected.delete(k);render()}
 function rowClick(e){const tr=e.target.closest('tr');if(!tr)return;if(e.target.closest('.rowcheck'))return;if(e.target.closest('.more-row')){e.stopPropagation();showTorrentMenu(tr,e.target.closest('.more-row'));return}const server=tr.dataset.server,hash=tr.dataset.hash;if(state.detail?.server===server&&state.detail?.hash===hash){resetDetailPane();return}openDetail(server,hash)}
 function rowContext(e){const tr=e.target.closest('tr');if(!tr)return;e.preventDefault();showTorrentMenu(tr,{getBoundingClientRect:()=>({left:e.clientX,top:e.clientY,bottom:e.clientY,right:e.clientX})},true)}
@@ -1106,8 +1013,6 @@ async function testServerRow(r){const out=r.querySelector('.server-test-result')
 async function saveSettings(e){return TDSettings.saveCore(e)}
 
 async function loadIntegrations(){return TDSettings.loadIntegrations()}
-
-function applyColumnPrefs(){const table=$('#torrentTable');if(!table)return;const prefs=torrentColumnPreferences(),rows=[];if(table.tHead?.rows?.[0])rows.push(table.tHead.rows[0]);rows.push(...table.querySelectorAll('tbody tr'));table.querySelectorAll('[data-col]').forEach(cell=>cell.classList.toggle('torrent-column-hidden',!torrentColumnVisible(cell.dataset.col,prefs)));for(const row of rows){const anchor=row.querySelector('.row-spacer-head,.row-spacer,.row-actions-head,.row-actions');if(!anchor)continue;for(const key of prefs.order){const cell=row.querySelector(`[data-col="${key}"]`);if(cell)row.insertBefore(cell,anchor)}}}
 
 function hideAccountMenu(){const menu=$('#accountMenu');if(menu)menu.classList.add('hidden');$('#profileBtn')?.setAttribute('aria-expanded','false')}
 function syncAvatarUi(){

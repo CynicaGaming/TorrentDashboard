@@ -6,7 +6,7 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.100** (prerelease)
+- Latest documented build: **v0.5.101** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 - Upstream development branch: `refactor/backend-modularization-users`
 - Upstream prerelease branch: `prerelease/backend-modularization`
@@ -14,15 +14,7 @@
 
 ### Latest release summary
 
-Keeps v0.5.99's native-feeling independent resizing while preventing the rightmost visible torrent column from creating a new horizontal scrollbar past the pinned Actions rail.
-
-## Architecture state
-
-- Torrent Dashboard remains a Python standard-library application with dashboard.py as the HTTP composition root.
-- Configuration, integrations, users, and configuration transaction coordination remain separated into torrent_dashboard package modules.
-- Torrent detail presentation remains frontend-owned and continues to use the existing /api/detail contract.
-- Desktop/tablet use separate docked list and detail panels; mobile uses a bottom-sheet presentation.
-- Release/update provenance parsing, installed release-info persistence, integrity-history caching, and bundled/GitHub history merging live in torrent_dashboard/release_provenance.py.
+Replaces the iterative configurable-column geometry with the requested fixed torrent column set, fixed order, and deterministic viewport-fitting proportions while retaining header sorting and the mobile card layout.
 
 ## Current engineering decisions
 
@@ -59,6 +51,7 @@ Keeps v0.5.99's native-feeling independent resizing while preventing the rightmo
 - Treat the pinned Actions edge as the maximum width boundary for new torrent-column resize gestures; consume spacer slack first, then stop rather than creating new horizontal overflow or shrinking unrelated columns.
 - Prefer native single-column resizing over a viewport-derived resize ceiling: fixed selection/actions rails remain pinned while user-chosen data widths may create horizontal scrolling only inside the torrent viewport.
 - Use a hybrid resize boundary: interior data columns retain scroll-native independent resizing, while the rightmost visible data column cannot create additional horizontal overflow past the fixed Actions rail.
+- Temporarily prefer one fixed torrent-table column set and deterministic proportional sizing over resize/reorder/visibility customization while the interaction model is simplified.
 
 ## Development principles
 
@@ -70,6 +63,15 @@ Keeps v0.5.99's native-feeling independent resizing while preventing the rightmo
 - Keep public development continuity portable across forks; label canonical repository/branch/PR references as upstream context rather than local identity.
 
 ## Recent work
+
+### v0.5.101 — Fixed torrent table layout
+
+Replaces the iterative configurable-column geometry with the requested fixed torrent column set, fixed order, and deterministic viewport-fitting proportions while retaining header sorting and the mobile card layout.
+
+- Uses the fixed visible order Name, Size, Status, Progress, Seeds, Peers, Down, Up, ETA, Ratio, Category, Tags, with selection/actions remaining the only fixed rails.
+- Allocates the desktop data plane proportionally on every viewport resize so the table fits the available width without a horizontal scrollbar.
+- Removes active resize, drag reorder, visibility menu, Reset columns, spacer geometry, and tdColumns persistence; old tdColumns state is discarded during migration.
+- Retains sortable headers, content-aligned labels, real-width Name ellipsis, one-second polling stability, and the existing responsive card presentation.
 
 ### v0.5.100 — Rightmost column resize boundary
 
@@ -107,19 +109,9 @@ Keeps the torrent row Actions surface locked to the far-right edge while allowin
 - When customized data columns exceed the available width, the data region scrolls horizontally beneath the sticky Actions column while the surrounding dashboard remains width-contained.
 - Responsive layouts clear desktop fixed-table sizing and suppress the spacer so card-style mobile torrent rows do not inherit desktop horizontal geometry.
 
-### v0.5.96 — Content-aligned one-edge torrent resizing
-
-Aligns torrent-table headers with their row content and makes a resize gesture move only the grabbed right boundary instead of letting automatic table layout redistribute neighboring widths.
-
-- Torrent data headers now follow body-cell alignment instead of centering labels across wide columns; Seeds and Peers retain their right-aligned numeric treatment.
-- Beginning a resize snapshots every currently visible data-column width, so untouched columns keep their exact width while columns to the right translate with the dragged boundary.
-- The resize target remains the dedicated inward-only header gutter, preserving resize/reorder mutual exclusion and browser-local tdColumns persistence.
-
 ## What to do next
 
-1. **Extract qBitTorrent transport and normalization** — Move QBitClient, Web API transport, server normalization, and preference/proxy translation out of dashboard.py while preserving route and client behavior.
-2. **Expand request-level behavioral tests** — Add authorization, CSRF, setup, account-route, and settings-mutation coverage around the extracted service boundaries.
-3. **Harden secrets at rest** — Use the configuration boundary to add restrictive file permissions and separate ordinary configuration from stored credentials.
+No next steps are recorded in the latest release metadata.
 
 ## Handoff instructions for a new development session
 
