@@ -10,6 +10,7 @@ VALIDATOR = ROOT / "release_tools" / "validate_ui_strings.py"
 CSS = ROOT / "static" / "app.css"
 TEMP = ROOT / "release_tools" / "_apply_feature_update_original.py"
 ORIGINAL_STAGING_COMMIT = "db484bfb14726425036a56967027ce7677edbfac"
+TARGET_VERSION = "0.5.101"
 
 
 def replace_once(path: Path, old: str, new: str, label: str) -> None:
@@ -43,6 +44,12 @@ def main() -> None:
         subprocess.run([sys.executable, str(TEMP)], cwd=ROOT, check=True)
     finally:
         TEMP.unlink(missing_ok=True)
+
+    subprocess.run(
+        [sys.executable, str(ROOT / "release_tools" / "generate_release_notes.py"), "--version", TARGET_VERSION],
+        cwd=ROOT,
+        check=True,
+    )
 
 
 if __name__ == "__main__":
