@@ -283,3 +283,24 @@ button,select,input,textarea{border:1px solid var(--border);background:var(--pan
 
 /* 0.5.75 dashboard hierarchy and detail disclosure cleanup. */
 .torrent-detail-handle-selection:empty{display:none}
+
+
+/* 0.5.78 Add Torrent source separation and content selection. */
+.add-source-tabs{display:grid;grid-template-columns:1fr 1fr;gap:5px;padding:4px;border:1px solid var(--border);border-radius:10px;background:var(--panel3)}
+.add-source-tab{border:0;background:transparent;color:var(--muted);min-height:34px;padding:7px 9px;border-radius:7px;font-weight:650}
+.add-source-tab.active{background:var(--panel2);color:var(--text);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 24%,var(--border))}
+.add-source-pane{margin-top:9px}.add-source-pane.hidden{display:none!important}
+.add-torrent-drop{width:100%;min-height:128px;padding:18px;border:1px dashed color-mix(in srgb,var(--accent) 38%,var(--border));border-radius:12px;background:color-mix(in srgb,var(--accent) 4%,var(--panel3));display:grid;place-items:center;align-content:center;gap:4px;text-align:center;color:var(--muted)}
+.add-torrent-drop:hover,.add-torrent-drop.dragover{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 9%,var(--panel3));color:var(--text)}
+.add-torrent-drop:focus-visible{box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 45%,transparent)}
+.add-drop-icon{font-size:22px;line-height:1;color:var(--accent)}.add-torrent-drop strong{font-size:11px;color:var(--text)}.add-torrent-drop>span:not(.add-drop-icon){font-size:9px}.add-torrent-drop small{margin-top:6px;max-width:100%;font-size:9px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.add-content-columns,.add-content-row{grid-template-columns:34px minmax(0,1fr) 90px 112px}
+.add-content-select{display:grid!important;place-items:center;text-align:center!important}.add-content-select input{width:16px!important;height:16px!important;margin:0!important}
+.add-content-row{min-height:38px}.add-content-row>span:nth-child(3),.add-content-row>span:nth-child(4){text-align:right;color:var(--muted)}
+.add-content-name{display:flex;align-items:center;gap:5px;padding-left:calc(var(--add-depth,0) * 16px);overflow:visible;text-overflow:clip;white-space:nowrap}
+.add-content-file .add-content-name{overflow:hidden;text-overflow:ellipsis}
+.add-content-folder{background:color-mix(in srgb,var(--panel2) 38%,transparent);font-weight:650}.add-content-folder .add-content-name{color:var(--text)!important}.add-folder-items{font-size:8px;color:var(--muted)!important}
+.add-folder-toggle{display:grid;place-items:center;width:22px;height:22px;min-width:22px;padding:0;border:0;background:transparent;color:var(--muted);font-size:16px}.add-folder-toggle:hover{background:var(--panel2);color:var(--text)}
+.add-folder-name{min-width:0;overflow:hidden;text-overflow:ellipsis}.add-file-priority{width:100%;min-height:30px;padding:4px 6px;font-size:9px}
+@media(max-width:520px){.add-torrent-drop{min-height:108px}.add-content-columns,.add-content-row{grid-template-columns:30px minmax(130px,1fr) 68px 96px}.add-content-panel{overflow:auto}.add-content-columns,.add-content-body{min-width:470px}}
+@media(min-width:1024px){.add-source-tab{font-size:12px;min-height:38px}.add-torrent-drop strong{font-size:13px}.add-torrent-drop>span:not(.add-drop-icon),.add-torrent-drop small{font-size:11px}.add-content-row{font-size:11.5px;min-height:42px}.add-content-columns{font-size:10px}.add-file-priority{font-size:11px}.add-folder-items{font-size:10.5px}}

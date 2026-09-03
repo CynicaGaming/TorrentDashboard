@@ -85,7 +85,7 @@ RELEASE_INFO_PATH = APP_DIR / "release-info.json"
 RELEASE_INTEGRITY_CACHE_PATH = DATA_DIR / "release-integrity.json"
 CUSTOM_SOUND_BASENAME = "custom-notification-sound"
 MAX_CUSTOM_SOUND_BYTES = 2 * 1024 * 1024
-VERSION = "0.5.77"
+VERSION = "0.5.78"
 STATUS_REFRESH_SECONDS = 1.0
 
 
@@ -774,18 +774,44 @@ class QBitClient:
             "metadata": self._torrent_metadata_json(body),
         }
 
-    def save_torrent_metadata(self, source):
+    def save_torrent_metadata(self, source, torrent_id=""):
         source = str(source or "").strip()[:16000]
-        if not source:
+        torrent_id = str(torrent_id or "").strip()[:256]
+        candidates = []
+        for value in (source, torrent_id):
+            if value and value not in candidates:
+                candidates.append(value)
+        if not candidates:
             raise RuntimeError("Torrent metadata source is required")
-        route = "/api/v2/torrents/saveMetadata?" + urllib.parse.urlencode({"source": source})
-        try:
-            status, body = self._request("GET", route, expect_json=False)
-        except RuntimeError as exc:
-            raise self._metadata_api_error(exc) from exc
-        if not body:
-            raise RuntimeError("qBittorrent returned an empty torrent metadata file")
-        return int(status), body
+
+        errors = []
+        for candidate in candidates:
+            route = "/api/v2/torrents/saveMetadata?" + urllib.parse.urlencode({"source": candidate})
+            try:
+                status, body = self._request("GET", route, expect_json=False)
+                if body:
+                    return int(status), body
+                errors.append(RuntimeError("qBittorrent returned an empty torrent metadata file"))
+            except RuntimeError as exc:
+                errors.append(exc)
+
+        export_hash = torrent_id
+        if not export_hash and re.fullmatch(r"[0-9A-Fa-f]{40}|[0-9A-Fa-f]{64}", source):
+            export_hash = source
+        if export_hash:
+            route = "/api/v2/torrents/export?" + urllib.parse.urlencode({"hash": export_hash})
+            try:
+                status, body = self._request("GET", route, expect_json=False)
+                if body:
+                    return int(status), body
+                errors.append(RuntimeError("qBittorrent returned an empty torrent file"))
+            except RuntimeError as exc:
+                errors.append(exc)
+
+        if errors and all("qBittorrent HTTP 404" in str(error) for error in errors):
+            raise self._metadata_api_error(errors[0]) from errors[0]
+        detail = str(errors[-1]) if errors else "metadata is unavailable"
+        raise RuntimeError(f"Torrent metadata is not available to save yet: {detail}")
 
     def info(self):
         torrents = self.get_json("/api/v2/torrents/info") or []
@@ -1011,15 +1037,18 @@ class QBitClient:
             return self.post("/api/v2/torrents/createCategory", {"category": str(payload.get("category", ""))[:256], "savePath": str(payload.get("save_path", ""))[:2048]})
         if action == "create_tags":
             return self.post("/api/v2/torrents/createTags", {"tags": str(payload.get("tags", ""))[:1024]})
-        if action == "add_magnet":
+        if action in ("add_magnet", "add_torrent"):
             stop_condition = str(payload.get("stop_condition") or "None")
             if stop_condition not in ("None", "MetadataReceived", "FilesChecked"):
                 raise RuntimeError("Unsupported torrent stop condition")
             content_layout = str(payload.get("content_layout") or "Original")
             if content_layout not in ("Original", "Subfolder", "NoSubfolder"):
                 raise RuntimeError("Unsupported torrent content layout")
+            source = str(payload.get("source") if action == "add_torrent" else payload.get("urls", ""))[:16000]
+            if not source.strip():
+                raise RuntimeError("Torrent source is required")
             form = {
-                "urls": str(payload.get("urls", ""))[:16000],
+                "urls": source,
                 "autoTMM": str(bool(payload.get("auto_tmm", False))).lower(),
                 "savepath": str(payload.get("savepath", ""))[:2048],
                 "useDownloadPath": str(bool(payload.get("use_download_path", False))).lower(),
@@ -1037,6 +1066,21 @@ class QBitClient:
                 "dlLimit": max(0, int(payload.get("dl_limit", 0) or 0)),
                 "upLimit": max(0, int(payload.get("ul_limit", 0) or 0)),
             }
+            priorities = payload.get("file_priorities")
+            if priorities is not None:
+                if not isinstance(priorities, list) or len(priorities) > 200000:
+                    raise RuntimeError("Torrent file priorities must be an array")
+                clean_priorities = []
+                for value in priorities:
+                    try:
+                        priority = int(value)
+                    except (TypeError, ValueError) as exc:
+                        raise RuntimeError("Torrent file priorities must be whole numbers") from exc
+                    if priority not in (0, 1, 6, 7):
+                        raise RuntimeError("Unsupported torrent file priority")
+                    clean_priorities.append(str(priority))
+                if clean_priorities:
+                    form["filePriorities"] = ",".join(clean_priorities)
             return self.post("/api/v2/torrents/add", form)
         raise RuntimeError(f"Unsupported action: {action}")
 
@@ -2020,9 +2064,9 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json(403,{"error":"Administrator access is required"},new_cookie)
 
         if path=="/api/torrent-metadata/save":
-            sid=qs.get("server",["local"])[0]; source=qs.get("source",[""])[0]
+            sid=qs.get("server",["local"])[0]; source=qs.get("source",[""])[0]; torrent_id=qs.get("hash",[""])[0]
             try:
-                _,body=get_client(cfg,sid).save_torrent_metadata(source)
+                _,body=get_client(cfg,sid).save_torrent_metadata(source,torrent_id)
                 return self.send_bytes(200,body,"application/x-bittorrent",new_cookie,{"Content-Disposition":'attachment; filename="torrent.torrent"'})
             except Exception as e:
                 return self.send_json(502,{"error":str(e)},new_cookie)

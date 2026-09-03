@@ -1,5 +1,5 @@
 'use strict';
-const FRONTEND_BUILD='0.5.77';
+const FRONTEND_BUILD='0.5.78';
 const HTML_BUILD=document.querySelector('meta[name="torrent-dashboard-build"]')?.content||'';
 const RECOVERY_KEY=`td-frontend-recovery-${FRONTEND_BUILD}`;
 async function recoverFrontendBuild(reason){
@@ -174,10 +174,27 @@ function showStartupFailure(error,stage='startup'){
 }
 const ADD_METADATA_POLL_MS=1000;
 const ADD_METADATA_TIMEOUT_MS=120000;
-const addMetadataState={generation:0,timer:null,source:'',startedAt:0,inFlight:false,exportSource:'',exportName:''};
+const addMetadataState={generation:0,timer:null,source:'',startedAt:0,inFlight:false,mode:'magnet',file:null,metadata:null,files:[],collapsedFolders:new Set(),exportSource:'',exportHash:'',exportName:''};
 
 function clearAddMetadataTimer(){if(addMetadataState.timer!==null){clearTimeout(addMetadataState.timer);addMetadataState.timer=null}}
-function cancelAddMetadata(){addMetadataState.generation+=1;clearAddMetadataTimer();addMetadataState.source='';addMetadataState.startedAt=0;addMetadataState.inFlight=false;addMetadataState.exportSource='';addMetadataState.exportName='';syncAddTorrentExport()}
+function currentAddTorrentFile(){return addMetadataState.file||$('#torrentFile')?.files?.[0]||null}
+function syncAddTorrentExport(){
+  const button=$('#addSaveTorrent');if(!button)return;
+  const localFile=addMetadataState.mode==='file'&&!!currentAddTorrentFile();
+  button.disabled=!(localFile||addMetadataState.exportSource||addMetadataState.exportHash);
+}
+function syncAddSelectAll(){
+  const selectAll=$('#addSelectAllFiles');if(!selectAll)return;
+  const files=addMetadataState.files||[],selected=files.filter(file=>file.selected).length;
+  selectAll.disabled=!files.length;
+  selectAll.checked=!!files.length&&selected===files.length;
+  selectAll.indeterminate=selected>0&&selected<files.length;
+}
+function cancelAddMetadata(){
+  addMetadataState.generation+=1;clearAddMetadataTimer();addMetadataState.source='';addMetadataState.startedAt=0;addMetadataState.inFlight=false;
+  addMetadataState.metadata=null;addMetadataState.files=[];addMetadataState.collapsedFolders.clear();addMetadataState.exportSource='';addMetadataState.exportHash='';addMetadataState.exportName='';
+  syncAddTorrentExport();syncAddSelectAll()
+}
 function setAddMetadataStatus(title,text,stateName='idle'){
   const status=$('#addMetadataStatus'),progress=$('#addMetadataProgress');
   if($('#addMetadataStatusTitle'))$('#addMetadataStatusTitle').textContent=title;
@@ -192,34 +209,43 @@ function torrentExportFilename(metadata={}){
   clean=clean.slice(0,220);
   return clean.toLowerCase().endsWith('.torrent')?clean:`${clean}.torrent`;
 }
-function syncAddTorrentExport(){
-  const button=$('#addSaveTorrent');if(!button)return;
-  button.disabled=!addMetadataState.exportSource;
-}
 function setAddTorrentExport(source='',metadata={}){
   addMetadataState.exportSource=String(source||'');
-  addMetadataState.exportName=addMetadataState.exportSource?torrentExportFilename(metadata):'';
+  addMetadataState.exportHash=String(metadata?.hash||metadata?.infohash_v2||metadata?.infohash_v1||'');
+  const file=currentAddTorrentFile();
+  addMetadataState.exportName=addMetadataState.mode==='file'&&file?.name?file.name:(addMetadataState.exportSource||addMetadataState.exportHash?torrentExportFilename(metadata):'');
   syncAddTorrentExport();
 }
+function triggerTorrentFileDownload(blob,name){
+  const href=URL.createObjectURL(blob),link=document.createElement('a');
+  link.href=href;link.download=name||'torrent.torrent';document.body.appendChild(link);link.click();link.remove();
+  setTimeout(()=>URL.revokeObjectURL(href),1000);
+}
 async function saveAddTorrentMetadata(){
-  const source=addMetadataState.exportSource,button=$('#addSaveTorrent');
-  if(!source||!button)return;
+  const button=$('#addSaveTorrent');if(!button)return;
+  const localFile=addMetadataState.mode==='file'?currentAddTorrentFile():null;
+  const source=addMetadataState.exportSource,hash=addMetadataState.exportHash;
+  if(!localFile&&!source&&!hash)return;
   const generation=addMetadataState.generation,server=state.server,previous=button.textContent;
   button.disabled=true;button.textContent='Saving…';
   try{
-    const url=`/api/torrent-metadata/save?server=${encodeURIComponent(server)}&source=${encodeURIComponent(source)}`;
-    const response=await fetch(url,{method:'GET',cache:'no-store'});
-    if(!response.ok){
-      const type=response.headers.get('content-type')||'';
-      const error=type.includes('json')?await response.json():await response.text();
-      throw new Error(error?.error||error||`HTTP ${response.status}`);
+    if(localFile){
+      triggerTorrentFileDownload(localFile,localFile.name||addMetadataState.exportName||'torrent.torrent');
+    }else{
+      const params=new URLSearchParams({server});
+      if(source)params.set('source',source);
+      if(hash)params.set('hash',hash);
+      const response=await fetch(`/api/torrent-metadata/save?${params}`,{method:'GET',cache:'no-store'});
+      if(!response.ok){
+        const type=response.headers.get('content-type')||'';
+        const error=type.includes('json')?await response.json():await response.text();
+        throw new Error(error?.error||error||`HTTP ${response.status}`);
+      }
+      const blob=await response.blob();
+      if(!blob.size)throw new Error('qBitTorrent returned an empty torrent file');
+      if(generation!==addMetadataState.generation||$('#addModal').classList.contains('hidden'))return;
+      triggerTorrentFileDownload(blob,addMetadataState.exportName||'torrent.torrent');
     }
-    const blob=await response.blob();
-    if(!blob.size)throw new Error('qBitTorrent returned an empty torrent file');
-    if(generation!==addMetadataState.generation||$('#addModal').classList.contains('hidden'))return;
-    const href=URL.createObjectURL(blob),link=document.createElement('a');
-    link.href=href;link.download=addMetadataState.exportName||'torrent.torrent';document.body.appendChild(link);link.click();link.remove();
-    setTimeout(()=>URL.revokeObjectURL(href),1000);
     toast('Torrent file saved');
   }catch(error){
     console.error('[Torrent Dashboard] Torrent metadata export failed',error);
@@ -242,74 +268,154 @@ function renderAddMetadataInfo(metadata={}){
   $('#addInfoComment').textContent=metadata?.comment||'—';
 }
 function addMetadataPriorityLabel(value){value=Number(value);if(value===0)return'Do not download';if(value===6)return'High';if(value===7)return'Maximum';return'Normal'}
+function addPriorityOptions(value){
+  return [[1,'Normal'],[6,'High'],[7,'Maximum']].map(([priority,label])=>`<option value="${priority}" ${Number(value)===priority?'selected':''}>${label}</option>`).join('');
+}
+function setAddMetadataFiles(metadata={}){
+  const raw=Array.isArray(metadata?.info?.files)?metadata.info.files:[];
+  addMetadataState.files=raw.map((file,index)=>{
+    const rawPriority=Number(file?.priority),selected=rawPriority!==0,priority=[1,6,7].includes(rawPriority)?rawPriority:1;
+    return{index,path:String(file?.path||`File ${index+1}`),length:Math.max(0,Number(file?.length)||0),selected,priority};
+  });
+  addMetadataState.collapsedFolders.clear();
+}
+function buildAddFileTree(files){
+  const root={name:'',path:'',folders:new Map(),files:[]};
+  for(const file of files){
+    const parts=String(file.path||'').split('/').filter(Boolean),name=parts.pop()||file.path||`File ${file.index+1}`;
+    let node=root,path=[];
+    for(const part of parts){
+      path.push(part);const key=path.join('/');
+      if(!node.folders.has(part))node.folders.set(part,{name:part,path:key,folders:new Map(),files:[]});
+      node=node.folders.get(part);
+    }
+    node.files.push({...file,displayName:name});
+  }
+  return root;
+}
+function addTreeNodeIndexes(node){
+  const indexes=node.files.map(file=>file.index);
+  for(const child of node.folders.values())indexes.push(...addTreeNodeIndexes(child));
+  return indexes;
+}
+function addTreeNodeSize(node){
+  let total=node.files.reduce((sum,file)=>sum+file.length,0);
+  for(const child of node.folders.values())total+=addTreeNodeSize(child);
+  return total;
+}
+function addContentFolderRow(node,depth){
+  const indexes=addTreeNodeIndexes(node),files=indexes.map(index=>addMetadataState.files.find(file=>file.index===index)).filter(Boolean),selected=files.filter(file=>file.selected).length;
+  const checked=!!files.length&&selected===files.length,collapsed=addMetadataState.collapsedFolders.has(node.path);
+  return `<div class="add-content-row add-content-folder" data-add-depth="${depth}"><span class="add-content-select"><input type="checkbox" data-add-folder-files="${indexes.join(',')}" ${checked?'checked':''} aria-label="Download folder ${esc(node.name)}"></span><span class="add-content-name" style="--add-depth:${depth}"><button class="add-folder-toggle" data-add-folder-toggle="${esc(node.path)}" type="button" aria-label="${collapsed?'Expand':'Collapse'} folder ${esc(node.name)}" aria-expanded="${String(!collapsed)}">${collapsed?'›':'⌄'}</button><span class="add-folder-name">${esc(node.name)}</span></span><span>${bytes(addTreeNodeSize(node))}</span><span class="add-folder-items">${files.length} ${files.length===1?'file':'files'}</span></div>`;
+}
+function addContentFileRow(file,depth){
+  return `<div class="add-content-row add-content-file" data-add-depth="${depth}"><span class="add-content-select"><input type="checkbox" data-add-file-check="${file.index}" ${file.selected?'checked':''} aria-label="Download file"></span><span class="add-content-name" style="--add-depth:${depth}">${esc(file.displayName||file.path)}</span><span>${bytes(file.length)}</span><span><select class="add-file-priority" data-add-file-priority="${file.index}" aria-label="File priority" ${file.selected?'':'disabled'}>${addPriorityOptions(file.priority)}</select></span></div>`;
+}
+function addContentTreeRows(node,depth=0){
+  const rows=[],folders=[...node.folders.values()].sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true,sensitivity:'base'}));
+  for(const folder of folders){
+    rows.push(addContentFolderRow(folder,depth));
+    if(!addMetadataState.collapsedFolders.has(folder.path))rows.push(...addContentTreeRows(folder,depth+1));
+  }
+  const files=[...node.files].sort((a,b)=>(a.displayName||a.path).localeCompare(b.displayName||b.path,undefined,{numeric:true,sensitivity:'base'}));
+  for(const file of files)rows.push(addContentFileRow(file,depth));
+  return rows;
+}
+function syncAddFolderCheckboxes(){
+  const body=$('#addContentBody');if(!body)return;
+  body.querySelectorAll('[data-add-folder-files]').forEach(input=>{
+    const indexes=String(input.dataset.addFolderFiles||'').split(',').filter(Boolean).map(Number);
+    const files=indexes.map(index=>addMetadataState.files.find(file=>file.index===index)).filter(Boolean),selected=files.filter(file=>file.selected).length;
+    input.checked=!!files.length&&selected===files.length;input.indeterminate=selected>0&&selected<files.length;
+  });
+  syncAddSelectAll();
+}
+function renderAddTorrentContent(){
+  const body=$('#addContentBody');if(!body)return;
+  if(!addMetadataState.files.length){
+    body.innerHTML='<div class="add-preview-empty"><strong>No files were reported</strong><span>qBitTorrent returned torrent metadata without a selectable file list.</span></div>';
+    syncAddSelectAll();return;
+  }
+  const scrollTop=body.scrollTop,tree=buildAddFileTree(addMetadataState.files);
+  body.innerHTML=addContentTreeRows(tree).join('');
+  syncAddFolderCheckboxes();body.scrollTop=scrollTop;
+}
 function renderAddMetadataEmpty(title,text){
   const body=$('#addContentBody');if(body)body.innerHTML=`<div class="add-preview-empty"><strong>${esc(title)}</strong><span>${esc(text)}</span></div>`;
+  syncAddSelectAll();
 }
-function renderAddMetadataIdle(title='Waiting for torrent source',text='Paste a single magnet link, torrent URL, or choose a .torrent file to preview its metadata before adding.'){
-  setAddTorrentExport();
-  resetAddMetadataInfo();
-  const summary=$('#addContentSummary');if(summary)summary.textContent='Enter a single magnet link, torrent URL, or choose a .torrent file to retrieve metadata.';
-  renderAddMetadataEmpty(title,text);
-  setAddMetadataStatus('Metadata preview','Enter a torrent source or choose a .torrent file to begin.','idle');
+function renderAddMetadataIdle(){
+  setAddTorrentExport();resetAddMetadataInfo();addMetadataState.metadata=null;addMetadataState.files=[];
+  const fileMode=addMetadataState.mode==='file',summary=$('#addContentSummary');
+  if(summary)summary.textContent=fileMode?'Choose a .torrent file to inspect its contents.':'Enter one magnet link or torrent URL to retrieve its metadata.';
+  renderAddMetadataEmpty(fileMode?'Choose a .torrent file':'Waiting for a magnet link',fileMode?'Drop a .torrent file above or click the file area to browse.':'Paste a magnet link or torrent URL above to inspect its files.');
+  setAddMetadataStatus('Metadata preview',fileMode?'Choose a .torrent file to begin.':'Enter a magnet link or torrent URL to begin.','idle');
 }
 function renderAddMetadataLoading(metadata={}){
-  setAddTorrentExport();
-  renderAddMetadataInfo(metadata);
+  setAddTorrentExport();addMetadataState.metadata=null;addMetadataState.files=[];renderAddMetadataInfo(metadata);
   const summary=$('#addContentSummary');if(summary)summary.textContent='qBitTorrent is retrieving torrent metadata.';
-  renderAddMetadataEmpty('Retrieving metadata…','Torrent Dashboard will update this preview automatically when qBitTorrent has the metadata.');
-  setAddMetadataStatus('Retrieving metadata…','You can still add the original torrent source while metadata is loading.','loading');
+  renderAddMetadataEmpty('Retrieving metadata…','File and folder selection will appear when qBitTorrent finishes retrieving the metadata.');
+  setAddMetadataStatus('Retrieving metadata…','You can add the magnet now, or wait to choose individual files.','loading');
 }
 function renderAddMetadataComplete(metadata={},exportSource=''){
-  setAddTorrentExport(exportSource,metadata);
-  renderAddMetadataInfo(metadata);
-  const info=metadata?.info||{},files=Array.isArray(info.files)?info.files:[];
-  const summary=$('#addContentSummary');if(summary)summary.textContent=files.length?`${files.length} ${files.length===1?'file':'files'} · ${bytes(Number(info.length)||0)}`:(info.name||'Metadata retrieved');
-  const body=$('#addContentBody');
-  if(body){
-    body.innerHTML=files.length?files.map(file=>`<div class="add-content-row"><span class="add-content-name">${esc(file.path||'')}</span><span>${bytes(Number(file.length)||0)}</span><span>${esc(addMetadataPriorityLabel(file.priority))}</span></div>`).join(''):`<div class="add-preview-empty"><strong>Metadata retrieval complete</strong><span>qBitTorrent returned torrent information without a file list.</span></div>`;
-  }
-  setAddMetadataStatus('Metadata retrieval complete','Preview only · Add torrent still submits the original source.','complete');
+  addMetadataState.metadata=metadata||{};setAddTorrentExport(exportSource,metadata);renderAddMetadataInfo(metadata);setAddMetadataFiles(metadata);
+  const info=metadata?.info||{},files=addMetadataState.files,summary=$('#addContentSummary');
+  if(summary)summary.textContent=files.length?`${files.length} ${files.length===1?'file':'files'} · ${bytes(Number(info.length)||files.reduce((sum,file)=>sum+file.length,0))}`:(info.name||'Metadata retrieved');
+  renderAddTorrentContent();
+  setAddMetadataStatus('Metadata ready','Choose the files and folders to download, then add the torrent.','complete');
 }
 function renderAddMetadataError(message,title='Metadata preview unavailable'){
-  setAddTorrentExport();
-  const summary=$('#addContentSummary');if(summary)summary.textContent='Torrent addition is still available.';
+  setAddTorrentExport();addMetadataState.metadata=null;addMetadataState.files=[];
+  const summary=$('#addContentSummary');if(summary)summary.textContent='The torrent can still be added without file selection.';
   renderAddMetadataEmpty(title,message);
   setAddMetadataStatus(title,message,'error');
 }
 function addMetadataSources(){
-  return $('#addUrls').value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
+  if(addMetadataState.mode!=='magnet')return[];
+  return $('#addUrls').value.split(/\r?\n/).map(value=>value.trim()).filter(Boolean);
 }
 function currentAddMetadataSource(){
-  if($('#torrentFile').files?.[0])return'';
   const sources=addMetadataSources();
   return sources.length===1?sources[0]:'';
 }
 function addTorrentFileKey(file){return file?`${file.name}\u0000${file.size}\u0000${file.lastModified}`:''}
-function currentAddTorrentFileKey(){return addTorrentFileKey($('#torrentFile').files?.[0]||null)}
+function currentAddTorrentFileKey(){return addTorrentFileKey(currentAddTorrentFile())}
 function parsedTorrentMetadata(result){
   const raw=result?.metadata;
   if(Array.isArray(raw))return raw[0]||{};
   return raw&&typeof raw==='object'?raw:{};
 }
+function syncAddSourceModeUi(){
+  $$('[data-add-source]').forEach(button=>{const active=button.dataset.addSource===addMetadataState.mode;button.classList.toggle('active',active);button.setAttribute('aria-selected',String(active))});
+  $$('[data-add-source-pane]').forEach(pane=>pane.classList.toggle('hidden',pane.dataset.addSourcePane!==addMetadataState.mode));
+  const file=currentAddTorrentFile(),name=$('#addTorrentFileName');if(name)name.textContent=file?`${file.name} · ${bytes(file.size)}`:'No file selected';
+}
+function setAddSourceMode(mode,focus=true){
+  mode=mode==='file'?'file':'magnet';
+  if(addMetadataState.mode!==mode){cancelAddMetadata();addMetadataState.mode=mode}
+  syncAddSourceModeUi();scheduleAddMetadataPreview(0);
+  if(focus)setTimeout(()=>mode==='file'?$('#addTorrentDrop')?.focus():$('#addUrls')?.focus(),0);
+}
+function setAddTorrentFile(file){
+  if(file&&!(String(file.name||'').toLowerCase().endsWith('.torrent')||file.type==='application/x-bittorrent'))return toast('Choose a .torrent file','error');
+  addMetadataState.file=file||null;addMetadataState.mode='file';cancelAddMetadata();syncAddSourceModeUi();scheduleAddMetadataPreview(0);
+}
 function renderAddTorrentFileMetadataLoading(file){
-  resetAddMetadataInfo();
-  const summary=$('#addContentSummary');if(summary)summary.textContent=`Parsing ${file?.name||'.torrent file'} with qBitTorrent.`;
-  renderAddMetadataEmpty('Parsing torrent metadata…','Torrent Dashboard is asking qBitTorrent to inspect the selected .torrent file.');
-  setAddMetadataStatus('Parsing torrent metadata…','Preview only · the original .torrent file will still be uploaded when you add it.','loading');
+  setAddTorrentExport();addMetadataState.metadata=null;addMetadataState.files=[];resetAddMetadataInfo();
+  const summary=$('#addContentSummary');if(summary)summary.textContent=`Reading ${file?.name||'.torrent file'} with qBitTorrent.`;
+  renderAddMetadataEmpty('Reading torrent metadata…','File and folder selection will appear as soon as the .torrent file is parsed.');
+  setAddMetadataStatus('Reading torrent metadata…','The selected file remains available even if metadata preview fails.','loading');
 }
 async function parseAddTorrentFileMetadata(file,generation,fileKey){
   if(generation!==addMetadataState.generation||$('#addModal').classList.contains('hidden')||fileKey!==currentAddTorrentFileKey())return;
   addMetadataState.inFlight=true;
   try{
-    const form=new FormData();
-    form.append('server',state.server);
-    form.append('torrents',file,file.name);
+    const form=new FormData();form.append('server',state.server);form.append('torrents',file,file.name);
     const result=await api('/api/torrent-metadata/parse',{method:'POST',body:form});
     if(generation!==addMetadataState.generation||$('#addModal').classList.contains('hidden')||fileKey!==currentAddTorrentFileKey())return;
     const metadata=parsedTorrentMetadata(result);
     if(!metadata||!Object.keys(metadata).length)throw new Error('qBitTorrent returned no torrent metadata');
     renderAddMetadataComplete(metadata,metadata?.hash||'');
-    setAddMetadataStatus('Metadata retrieval complete','Preview only · Add torrent still uploads the original .torrent file.','complete');
   }catch(error){
     if(generation!==addMetadataState.generation)return;
     console.error('[Torrent Dashboard] Add Torrent file metadata preview failed',error);
@@ -321,39 +427,30 @@ async function parseAddTorrentFileMetadata(file,generation,fileKey){
 function scheduleAddMetadataPreview(delay=450){
   cancelAddMetadata();
   if($('#addModal').classList.contains('hidden'))return;
-  const torrentFile=$('#torrentFile').files?.[0];
-  if(torrentFile){
-    const fileKey=addTorrentFileKey(torrentFile);
-    addMetadataState.source=fileKey;
-    addMetadataState.startedAt=Date.now();
-    const generation=addMetadataState.generation;
-    renderAddTorrentFileMetadataLoading(torrentFile);
-    addMetadataState.timer=setTimeout(()=>parseAddTorrentFileMetadata(torrentFile,generation,fileKey),Math.max(0,delay));
-    return;
+  if(addMetadataState.mode==='file'){
+    const torrentFile=currentAddTorrentFile();
+    if(!torrentFile){renderAddMetadataIdle();return}
+    const fileKey=addTorrentFileKey(torrentFile);addMetadataState.source=fileKey;addMetadataState.startedAt=Date.now();
+    const generation=addMetadataState.generation;renderAddTorrentFileMetadataLoading(torrentFile);
+    addMetadataState.timer=setTimeout(()=>parseAddTorrentFileMetadata(torrentFile,generation,fileKey),Math.max(0,delay));return;
   }
   const sources=addMetadataSources();
   if(!sources.length){renderAddMetadataIdle();return}
   if(sources.length!==1){
-    renderAddMetadataIdle('Multiple sources entered','Metadata preview is available for one magnet link or torrent URL at a time.');
-    setAddMetadataStatus('Multiple sources','Add torrent can submit them, but metadata preview requires one source.','idle');
-    return;
+    renderAddMetadataError('Add one magnet link or torrent URL at a time.','Multiple sources entered');return;
   }
   const source=sources[0];
   if(!/^(magnet:\?|https?:\/\/)/i.test(source)){
-    renderAddMetadataError('Enter a magnet link or HTTP(S) torrent URL to retrieve metadata.','Unsupported metadata source');
-    return;
+    renderAddMetadataError('Enter a magnet link or HTTP(S) torrent URL.','Unsupported torrent source');return;
   }
-  addMetadataState.source=source;
-  addMetadataState.startedAt=Date.now();
-  const generation=addMetadataState.generation;
-  renderAddMetadataLoading();
+  addMetadataState.source=source;addMetadataState.startedAt=Date.now();
+  const generation=addMetadataState.generation;renderAddMetadataLoading();
   addMetadataState.timer=setTimeout(()=>fetchAddMetadataPreview(source,generation),Math.max(0,delay));
 }
 async function fetchAddMetadataPreview(source,generation){
   if(generation!==addMetadataState.generation||$('#addModal').classList.contains('hidden')||source!==currentAddMetadataSource())return;
   if(Date.now()-addMetadataState.startedAt>ADD_METADATA_TIMEOUT_MS){
-    renderAddMetadataError('Metadata retrieval exceeded two minutes. You can still add the torrent normally.','Metadata retrieval timed out');
-    return;
+    renderAddMetadataError('Metadata retrieval exceeded two minutes. You can still add the torrent without file selection.','Metadata retrieval timed out');return;
   }
   addMetadataState.inFlight=true;
   try{
@@ -371,6 +468,11 @@ async function fetchAddMetadataPreview(source,generation){
   }
 }
 function closeAddTorrent(){cancelAddMetadata();$('#addModal').classList.add('hidden')}
+function resetAddTorrentState(){
+  cancelAddMetadata();addMetadataState.mode='magnet';addMetadataState.file=null;
+  const input=$('#torrentFile');if(input)input.value='';
+  syncAddSourceModeUi();renderAddMetadataIdle();
+}
 function syncAddTorrentOptions(){
   const automatic=$('#addAutoTmm')?.value==='true';
   const useDownloadPath=!!$('#addUseDownloadPath')?.checked;
@@ -379,20 +481,33 @@ function syncAddTorrentOptions(){
   if($('#addDownloadPath'))$('#addDownloadPath').disabled=automatic||!useDownloadPath;
 }
 function bindAddTorrentUI(){
-  const required=['addTorrentBtn','addModal','addForm','addUrls','torrentFile','addAutoTmm','addUseDownloadPath','addDownloadPath','addRename','addStartTorrent','addStopCondition','addToTop','addSeedMode','addSequential','addFirstLast','addContentLayout','addDlLimit','addUlLimit','addContentBody','addContentSummary','addMetadataStatus','addMetadataStatusTitle','addMetadataStatusText','addMetadataProgress','addInfoSize','addInfoDate','addInfoHashV1','addInfoHashV2','addInfoCreatedBy','addInfoComment','addSaveTorrent'];
+  const required=['addTorrentBtn','addModal','addForm','addUrls','torrentFile','addTorrentDrop','addTorrentFileName','addSourceMagnetTab','addSourceFileTab','addSelectAllFiles','addAutoTmm','addUseDownloadPath','addDownloadPath','addRename','addStartTorrent','addStopCondition','addToTop','addSeedMode','addSequential','addFirstLast','addContentLayout','addDlLimit','addUlLimit','addContentBody','addContentSummary','addMetadataStatus','addMetadataStatusTitle','addMetadataStatusText','addMetadataProgress','addInfoSize','addInfoDate','addInfoHashV1','addInfoHashV2','addInfoCreatedBy','addInfoComment','addSaveTorrent'];
   const missing=required.filter(id=>!document.getElementById(id));
   if(missing.length){console.error('[Torrent Dashboard] Add Torrent UI unavailable; missing elements',missing);return false}
   $('#addTorrentBtn').addEventListener('click',openAddTorrent);
-  $('#addAutoTmm').addEventListener('change',syncAddTorrentOptions);
-  $('#addUseDownloadPath').addEventListener('change',syncAddTorrentOptions);
-  $('#addUrls').addEventListener('input',()=>{if(!$('#torrentFile').files?.[0])scheduleAddMetadataPreview()});
-  $('#torrentFile').addEventListener('change',()=>scheduleAddMetadataPreview(0));
+  $('#addAutoTmm').addEventListener('change',syncAddTorrentOptions);$('#addUseDownloadPath').addEventListener('change',syncAddTorrentOptions);
+  $$('[data-add-source]').forEach(button=>button.addEventListener('click',()=>setAddSourceMode(button.dataset.addSource)));
+  $('#addUrls').addEventListener('input',()=>{if(addMetadataState.mode==='magnet')scheduleAddMetadataPreview()});
+  $('#torrentFile').addEventListener('change',event=>setAddTorrentFile(event.target.files?.[0]||null));
+  const drop=$('#addTorrentDrop');
+  drop.addEventListener('click',()=>$('#torrentFile').click());
+  for(const eventName of ['dragenter','dragover'])drop.addEventListener(event=>{event.preventDefault();event.stopPropagation();drop.classList.add('dragover')});
+  for(const eventName of ['dragleave','drop'])drop.addEventListener(event=>{event.preventDefault();event.stopPropagation();drop.classList.remove('dragover')});
+  drop.addEventListener('drop',event=>{const file=[...(event.dataTransfer?.files||[])].find(item=>String(item.name||'').toLowerCase().endsWith('.torrent'));if(file)setAddTorrentFile(file);else toast('Drop a .torrent file','error')});
+  $('#addSelectAllFiles').addEventListener('change',event=>{for(const file of addMetadataState.files)file.selected=event.target.checked;renderAddTorrentContent()});
+  $('#addContentBody').addEventListener('click',event=>{const toggle=event.target.closest('[data-add-folder-toggle]');if(!toggle)return;const path=toggle.dataset.addFolderToggle;if(addMetadataState.collapsedFolders.has(path))addMetadataState.collapsedFolders.delete(path);else addMetadataState.collapsedFolders.add(path);renderAddTorrentContent()});
+  $('#addContentBody').addEventListener('change',event=>{
+    const fileCheck=event.target.closest('[data-add-file-check]');
+    if(fileCheck){const file=addMetadataState.files.find(item=>item.index===Number(fileCheck.dataset.addFileCheck));if(file)file.selected=fileCheck.checked;renderAddTorrentContent();return}
+    const folderCheck=event.target.closest('[data-add-folder-files]');
+    if(folderCheck){const indexes=String(folderCheck.dataset.addFolderFiles||'').split(',').filter(Boolean).map(Number),selected=folderCheck.checked;for(const file of addMetadataState.files)if(indexes.includes(file.index))file.selected=selected;renderAddTorrentContent();return}
+    const priority=event.target.closest('[data-add-file-priority]');
+    if(priority){const file=addMetadataState.files.find(item=>item.index===Number(priority.dataset.addFilePriority)),value=Number(priority.value);if(file&&[1,6,7].includes(value)){file.priority=value;file.selected=true}syncAddFolderCheckboxes()}
+  });
   $('#addSaveTorrent').addEventListener('click',saveAddTorrentMetadata);
-  $$('#addModal [data-modalclose]').forEach(x=>x.addEventListener('click',closeAddTorrent));
+  $$('#addModal [data-modalclose]').forEach(element=>element.addEventListener('click',closeAddTorrent));
   $('#addForm').addEventListener('submit',addTorrent);
-  syncAddTorrentOptions();
-  renderAddMetadataIdle();
-  return true;
+  syncAddTorrentOptions();syncAddSourceModeUi();renderAddMetadataIdle();return true;
 }
 let addTorrentDefaultsRequest=0;
 async function loadAddTorrentClientDefaults(){
@@ -410,11 +525,8 @@ async function loadAddTorrentClientDefaults(){
 }
 function openAddTorrent(){
   if(state.server==='all')return toast('Select a specific client first','error');
-  $('#addModal').classList.remove('hidden');
-  syncAddTorrentOptions();
-  loadAddTorrentClientDefaults();
-  scheduleAddMetadataPreview(0);
-  $('#addUrls').focus();
+  $('#addModal').classList.remove('hidden');syncAddTorrentOptions();syncAddSourceModeUi();loadAddTorrentClientDefaults();scheduleAddMetadataPreview(0);
+  setTimeout(()=>addMetadataState.mode==='file'?$('#addTorrentDrop')?.focus():$('#addUrls')?.focus(),0);
 }
 
 async function rawJson(url,opt={}){const r=await fetch(url,opt);const data=await r.json().catch(()=>({}));if(!r.ok)throw new Error(data.error||`HTTP ${r.status}`);return data}
@@ -778,24 +890,31 @@ function renderWebSeeds(a){$('#detailBody').innerHTML=a.length?`<div class="deta
 function addRateBytes(selector,label){const value=Number($(selector)?.value||0);if(!Number.isFinite(value)||value<0)throw new Error(`${label} must be zero or greater`);return Math.round(value*1024)}
 function addTorrentOptions(){return{auto_tmm:$('#addAutoTmm').value==='true',savepath:$('#addPath').value.trim(),use_download_path:$('#addUseDownloadPath').checked,download_path:$('#addDownloadPath').value.trim(),rename:$('#addRename').value.trim(),category:$('#addCategory').value.trim(),tags:$('#addTags').value.trim(),stopped:!$('#addStartTorrent').checked,stop_condition:$('#addStopCondition').value,add_to_top:$('#addToTop').checked,seed_mode:$('#addSeedMode').checked,sequential:$('#addSequential').checked,first_last:$('#addFirstLast').checked,content_layout:$('#addContentLayout').value,dl_limit:addRateBytes('#addDlLimit','Download limit'),ul_limit:addRateBytes('#addUlLimit','Upload limit')}}
 function appendAddTorrentFields(fd,o){fd.append('autoTMM',String(o.auto_tmm));fd.append('savepath',o.savepath);fd.append('useDownloadPath',String(o.use_download_path));fd.append('downloadPath',o.download_path);fd.append('rename',o.rename);fd.append('category',o.category);fd.append('tags',o.tags);fd.append('stopped',String(o.stopped));fd.append('stopCondition',o.stop_condition);fd.append('addToTopOfQueue',String(o.add_to_top));fd.append('seedMode',String(o.seed_mode));fd.append('sequentialDownload',String(o.sequential));fd.append('firstLastPiecePrio',String(o.first_last));fd.append('contentLayout',o.content_layout);fd.append('dlLimit',String(o.dl_limit));fd.append('upLimit',String(o.ul_limit))}
+function addFilePriorities(){
+  if(!addMetadataState.metadata||!addMetadataState.files.length)return null;
+  return [...addMetadataState.files].sort((a,b)=>a.index-b.index).map(file=>file.selected?file.priority:0);
+}
 async function addTorrent(e){
   e.preventDefault();
   if(state.server==='all')return toast('Select a specific client first','error');
   try{
-    const options=addTorrentOptions(),f=$('#torrentFile').files[0];
-    if(f){
-      let fd=new FormData();fd.append('server',state.server);appendAddTorrentFields(fd,options);fd.append('torrents',f);
-      await api('/api/upload',{method:'POST',headers:{'X-CSRF-Token':state.csrf},body:fd});
+    const options=addTorrentOptions(),priorities=addFilePriorities();
+    if(addMetadataState.mode==='file'){
+      const file=currentAddTorrentFile();if(!file)throw new Error('Choose a .torrent file');
+      const cachedSource=String(addMetadataState.metadata?.hash||'');
+      if(cachedSource){
+        await post('/api/action',{server:state.server,action:'add_torrent',source:cachedSource,file_priorities:priorities,...options});
+      }else{
+        const fd=new FormData();fd.append('server',state.server);appendAddTorrentFields(fd,options);fd.append('torrents',file,file.name);
+        await api('/api/upload',{method:'POST',headers:{'X-CSRF-Token':state.csrf},body:fd});
+      }
     }else{
-      if(!$('#addUrls').value.trim())throw new Error('Enter a magnet link, torrent URL, or choose a .torrent file');
-      await post('/api/action',{server:state.server,action:'add_magnet',urls:$('#addUrls').value.trim(),...options});
+      const sources=addMetadataSources();if(sources.length!==1)throw new Error('Enter one magnet link or torrent URL');
+      const payload={server:state.server,action:'add_torrent',source:sources[0],...options};
+      if(priorities)payload.file_priorities=priorities;
+      await post('/api/action',payload);
     }
-    closeAddTorrent();
-    $('#addForm').reset();
-    syncAddTorrentOptions();
-    renderAddMetadataIdle();
-    toast('Torrent added');
-    setTimeout(refreshStatus,500);
+    closeAddTorrent();$('#addForm').reset();resetAddTorrentState();syncAddTorrentOptions();toast('Torrent added');setTimeout(refreshStatus,500);
   }catch(err){toast(err.message,'error')}
 }
 

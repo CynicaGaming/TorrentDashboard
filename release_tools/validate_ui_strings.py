@@ -172,7 +172,7 @@ def main():
     assert 'id="addCategory"' in html and 'id="addTags"' in html
     assert 'id="addStartTorrent"' in html and 'id="addSequential"' in html and 'id="addFirstLast"' in html
     assert 'id="addTorrentBtn"' in html
-    assert "function openAddTorrent(){" in app_js and "torrentFile').click()" not in app_js
+    assert "function openAddTorrent(){" in app_js
     for control in ('addAutoTmm','addUseDownloadPath','addDownloadPath','addRename','addStartTorrent','addStopCondition','addToTop','addSeedMode','addContentLayout','addDlLimit','addUlLimit'):
         assert f'id="{control}"' in html
     assert 'function addTorrentOptions()' in app_js and 'function appendAddTorrentFields' in app_js
@@ -204,12 +204,11 @@ def main():
     assert 'function fetchAddMetadataPreview' in app_js
     assert 'function cancelAddMetadata' in app_js
     assert 'function closeAddTorrent()' in app_js
-    assert 'Metadata retrieval complete' in app_js
     assert 'setTimeout(()=>fetchAddMetadataPreview(source,generation),ADD_METADATA_POLL_MS)' in app_js
     assert 'setInterval(fetchAddMetadataPreview' not in app_js
     assert '0.5.51 Add Torrent magnet metadata preview' in app_css
 
-    # 0.5.52 adds read-only .torrent parsing without changing either stable add path.
+    # 0.5.52 introduced .torrent metadata parsing; v0.5.78 now uses parsed metadata for selectable cached adds.
     assert '/api/torrent-metadata/parse' in app_js
     assert '/api/torrent-metadata/save' in app_js
     assert 'function parseAddTorrentFileMetadata' in app_js
@@ -217,10 +216,9 @@ def main():
     assert "form.append('torrents',file,file.name)" in app_js
     assert "api('/api/torrent-metadata/parse',{method:'POST',body:form})" in app_js
     assert "Array.isArray(raw)" in app_js
-    assert "action:'add_magnet'" in app_js and "api('/api/upload'" in app_js
-    assert "urls:$('#addUrls').value.trim()" in app_js
-    assert 'Preview only · Add torrent still submits the original source.' in app_js
-    assert 'Preview only · Add torrent still uploads the original .torrent file.' in app_js
+    assert "action:'add_torrent'" in app_js and "api('/api/upload'" in app_js
+    assert 'function addMetadataSources()' in app_js and "sources.length!==1" in app_js
+    assert 'Choose the files and folders to download' in app_js
     assert '.torrent metadata preview will be enabled in the next controlled phase.' not in app_js
     # 0.5.53 keeps completed/stopped torrents classified as complete while
     # exposing qBitTorrent download-location defaults in Client Settings and Add Torrent.
@@ -243,18 +241,36 @@ def main():
     assert 'Use another path for incomplete torrents' in html
     assert '.client-path-grid{grid-template-columns:1fr}' in settings_css
 
-    # 0.5.54 enables export only after metadata is complete. It must use
-    # qBitTorrent's native saveMetadata cache without changing torrent addition.
+    # 0.5.54 introduced metadata export; v0.5.78 adds canonical-hash and existing-torrent fallback.
     assert 'id="addSaveTorrent"' in html
     assert 'Save .torrent file' in html
     assert 'async function saveAddTorrentMetadata()' in app_js
-    assert "fetch(url,{method:'GET',cache:'no-store'})" in app_js
-    assert "renderAddMetadataComplete(result.metadata||{},source)" in app_js
-    assert "renderAddMetadataComplete(metadata,metadata?.hash||'')" in app_js
-    assert "link.download=addMetadataState.exportName||'torrent.torrent'" in app_js
-    assert "self._request(\"GET\", route, expect_json=False)" in dashboard_py
-    assert "fd.append('filePriorities'" not in app_js
-    assert 'add_cached_metadata' not in app_js
+    assert "params.set('hash',hash)" in app_js
+    assert 'triggerTorrentFileDownload(localFile' in app_js
+    assert '"/api/v2/torrents/export?"' in dashboard_py
+    assert 'form["filePriorities"] = ",".join(clean_priorities)' in dashboard_py
+
+    # 0.5.78 separates Add Torrent sources, adds folder/file selection, and
+    # makes .torrent export resilient across metadata-cache and existing-transfer cases.
+    for control in ("addSourceMagnetTab","addSourceFileTab","addTorrentDrop","addTorrentFileName","addSelectAllFiles"):
+        assert f'id="{control}"' in html
+    assert 'Drop a .torrent file here' in html and 'or click to browse' in html
+    assert 'data-add-source="magnet"' in html and 'data-add-source="file"' in html
+    assert "drop.addEventListener('drop'" in app_js and "$('#torrentFile').click()" in app_js
+    assert 'function buildAddFileTree(files)' in app_js
+    assert 'data-add-folder-files' in app_js and 'data-add-file-check' in app_js
+    assert 'input.indeterminate=selected>0&&selected<files.length' in app_js
+    assert 'function addFilePriorities()' in app_js
+    assert "payload.file_priorities=priorities" in app_js
+    assert "action:'add_torrent'" in app_js
+    assert 'if action in ("add_magnet", "add_torrent"):' in dashboard_py
+    assert '"filePriorities"' in dashboard_py
+    assert 'def save_torrent_metadata(self, source, torrent_id=""):' in dashboard_py
+    assert '"/api/v2/torrents/export?"' in dashboard_py
+    assert 'qs.get("hash",[""])[0]' in dashboard_py
+    assert '0.5.78 Add Torrent source separation and content selection' in app_css
+    assert '## Add Torrent source and content workflow' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')
+    assert '### Add Torrent source modes and file selection' in (ROOT / 'TESTING.md').read_text(encoding='utf-8')
 
     # 0.5.47 frontend generation contract. Navigation HTML is never cached,
     # stale versioned scripts trigger recovery, and optional Add Torrent bindings

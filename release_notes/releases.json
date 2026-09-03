@@ -1385,6 +1385,78 @@
         "Use deliberate mixed capitalization: stable named destinations may read as product labels, while headings, field labels, actions, statuses, errors, and explanatory text generally use sentence case.",
         "Prefer user-facing product concepts over legacy implementation terminology, including allowed IP addresses for access controls and client for client-management actions."
       ]
+    },
+    {
+      "version": "0.5.78",
+      "date": "2026-09-03",
+      "status": "prerelease",
+      "title": "Selectable Add Torrent workflow",
+      "summary": "Separates magnet and .torrent sources, adds qBitTorrent-style file and folder selection before download, and makes .torrent export reliable across cached and existing torrent metadata.",
+      "highlights": [
+        "Add Torrent now has separate Magnet link and .torrent file source modes instead of combining both inputs in one source block.",
+        "The .torrent file source supports drag and drop as well as click-to-browse file selection.",
+        "Metadata-backed Content is now an interactive folder/file tree with Select all, tri-state folder selection, and Normal, High, or Maximum priority for included files.",
+        "Unchecked files are sent to qBitTorrent as Do not download, matching qBitTorrent's native file-priority add behavior.",
+        "Parsed local .torrent files are added through qBitTorrent's cached metadata so file selection can be applied before the torrent enters the transfer list.",
+        "Save .torrent file now saves the selected local file directly and uses canonical-hash/existing-torrent fallbacks for magnet or URL metadata."
+      ],
+      "fixes": [
+        "Fixes Save .torrent file failures where qBitTorrent reported that metadata was unavailable even though the preview had completed.",
+        "Avoids the qBitTorrent Web API restriction that prevents filePriorities from being supplied alongside a raw uploaded torrent by adding parsed files through the cached-metadata source instead.",
+        "Prevents an inactive magnet or file control from silently taking precedence over the source mode the user selected."
+      ],
+      "technical": [
+        "The browser builds ordered filePriorities from metadata file indexes; excluded files use priority 0 and included files preserve 1, 6, or 7.",
+        "QBitClient add_torrent forwards cached source/hash additions to /api/v2/torrents/add with validated filePriorities.",
+        "Metadata export tries qBitTorrent saveMetadata with the original source and canonical torrent ID, then falls back to torrents/export when the torrent already exists in the transfer list.",
+        "Direct raw .torrent upload remains as a compatibility fallback when parseMetadata is unavailable."
+      ],
+      "validation": [
+        "New backend tests cover file-priority serialization, invalid-priority rejection, and metadata-save fallback to existing torrent export.",
+        "The UI audit requires separate source tabs, drag/drop and click browsing, folder/file selection, indeterminate selection state, cached-metadata add, file priorities, and export fallback.",
+        "Existing backend behavioral tests, JavaScript syntax checks, generated handoff/release-note validation, frontend/service-worker synchronization, and package-integrity gates remain required."
+      ],
+      "known_issues": [],
+      "architecture": [
+        "Torrent Dashboard remains a Python standard-library application with dashboard.py as the HTTP composition root.",
+        "Configuration, integrations, users, and configuration transaction coordination remain separated into torrent_dashboard package modules.",
+        "Torrent detail presentation remains frontend-owned and continues to use the existing /api/detail contract.",
+        "Desktop/tablet use separate docked list and detail panels; mobile uses a bottom-sheet presentation."
+      ],
+      "next_steps": [
+        {
+          "priority": 1,
+          "title": "Extract release and update provenance",
+          "detail": "Move GitHub release parsing, installed release metadata, package-integrity normalization, and historical digest caching out of dashboard.py."
+        },
+        {
+          "priority": 2,
+          "title": "Extract qBitTorrent transport and normalization",
+          "detail": "Move QBitClient, server normalization, proxy/preference translation, and Web API transport away from HTTP routing."
+        },
+        {
+          "priority": 3,
+          "title": "Expand request-level behavioral tests",
+          "detail": "Add authorization, CSRF, setup, account-route, and settings-mutation coverage around extracted service boundaries."
+        },
+        {
+          "priority": 4,
+          "title": "Harden secrets at rest",
+          "detail": "Use the configuration boundary to add restrictive file permissions and separate ordinary configuration from stored credentials."
+        }
+      ],
+      "decisions": [
+        "Prefer two visually distinct surfaces for list/detail hierarchy rather than joining them with only an internal divider.",
+        "Keep viewport-derived docking and independent list/detail scrolling.",
+        "Keep active backend modularization work separate from this presentation correction.",
+        "Treat torrent-detail selection and inspector disclosure as independent state: collapse changes presentation, not selection.",
+        "Keep the torrent-detail dock persistently discoverable and use the full disclosure bar as the primary keyboard/touch interaction target.",
+        "Treat All servers as an aggregation mode: omit it when only one enabled client exists, and prefer the actual client so client-specific actions remain available.",
+        "Author user-facing copy in its final display form; runtime token normalization is compatibility behavior for legacy generated tokens, not a presentation system.",
+        "Use deliberate mixed capitalization: stable named destinations may read as product labels, while headings, field labels, actions, statuses, errors, and explanatory text generally use sentence case.",
+        "Prefer user-facing product concepts over legacy implementation terminology, including allowed IP addresses for access controls and client for client-management actions.",
+        "Use qBitTorrent's parsed/cached metadata path when preselecting files from a local .torrent; raw multipart upload remains only as a compatibility fallback because qBitTorrent rejects filePriorities on raw uploaded torrents."
+      ]
     }
   ]
 }

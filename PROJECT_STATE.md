@@ -6,7 +6,7 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.77** (prerelease)
+- Latest documented build: **v0.5.78** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 - Upstream development branch: `refactor/backend-modularization-users`
 - Upstream prerelease branch: `prerelease/backend-modularization`
@@ -14,7 +14,7 @@
 
 ### Latest release summary
 
-Refines capitalization and wording across setup, Dashboard, Settings, dialogs, roles, and integrations while preserving intentionally authored copy instead of mechanically recasing it at runtime.
+Separates magnet and .torrent sources, adds qBitTorrent-style file and folder selection before download, and makes .torrent export reliable across cached and existing torrent metadata.
 
 ## Architecture state
 
@@ -34,6 +34,7 @@ Refines capitalization and wording across setup, Dashboard, Settings, dialogs, r
 - Author user-facing copy in its final display form; runtime token normalization is compatibility behavior for legacy generated tokens, not a presentation system.
 - Use deliberate mixed capitalization: stable named destinations may read as product labels, while headings, field labels, actions, statuses, errors, and explanatory text generally use sentence case.
 - Prefer user-facing product concepts over legacy implementation terminology, including allowed IP addresses for access controls and client for client-management actions.
+- Use qBitTorrent's parsed/cached metadata path when preselecting files from a local .torrent; raw multipart upload remains only as a compatibility fallback because qBitTorrent rejects filePriorities on raw uploaded torrents.
 
 ## Development principles
 
@@ -45,6 +46,17 @@ Refines capitalization and wording across setup, Dashboard, Settings, dialogs, r
 - Keep public development continuity portable across forks; label canonical repository/branch/PR references as upstream context rather than local identity.
 
 ## Recent work
+
+### v0.5.78 — Selectable Add Torrent workflow
+
+Separates magnet and .torrent sources, adds qBitTorrent-style file and folder selection before download, and makes .torrent export reliable across cached and existing torrent metadata.
+
+- Add Torrent now has separate Magnet link and .torrent file source modes instead of combining both inputs in one source block.
+- The .torrent file source supports drag and drop as well as click-to-browse file selection.
+- Metadata-backed Content is now an interactive folder/file tree with Select all, tri-state folder selection, and Normal, High, or Maximum priority for included files.
+- Unchecked files are sent to qBitTorrent as Do not download, matching qBitTorrent's native file-priority add behavior.
+- Parsed local .torrent files are added through qBitTorrent's cached metadata so file selection can be applied before the torrent enters the transfer list.
+- Save .torrent file now saves the selected local file directly and uses canonical-hash/existing-torrent fallbacks for magnet or URL metadata.
 
 ### v0.5.77 — Product language polish
 
@@ -82,16 +94,6 @@ Anchors the persistent Torrent details disclosure to the bottom of the visible d
 - Expanding Torrent details grows upward while the torrent list remains the flexible scroll region above it.
 - The redundant Dashboard / Live torrent activity heading is hidden on Dashboard while server, torrent-control, and account actions remain visible.
 - Other views retain their page headings.
-
-### v0.5.73 — Persistent collapsible torrent details
-
-Reworks torrent details into a persistent disclosure dock: the inspector can collapse to a compact full-width bar but is no longer closable, and torrent selection remains independent from inspector visibility.
-
-- Torrent details now remain permanently available below the torrent list as a compact collapsed bar instead of disappearing when dismissed.
-- The entire styled Torrent details bar toggles expansion, replacing small collapse/close icon controls with a larger keyboard- and touch-friendly target.
-- Selecting a torrent automatically expands the inspector; collapsing it preserves the selected torrent and expanding again restores the same context.
-- With no torrent selected, the dock remains available and can expand into a simple empty state rather than vanishing from the dashboard.
-- Mobile keeps the bottom-sheet detail presentation when expanded while retaining the persistent collapsed bar at the bottom of the interface.
 
 ## What to do next
 
