@@ -176,8 +176,8 @@ Do not use this file as a test-results log; it is a stable testing contract for 
 ### Add Torrent hierarchy and detail-selection reconciliation
 
 - Load a multi-folder torrent in Add Torrent and verify every folder/file checkbox remains vertically aligned in the same selection column.
-- Verify folder rows reserve a disclosure-chevron slot and file rows reserve an equal-width spacer. A child file label must begin to the right of its parent folder label; deeper descendants should continue stepping right by hierarchy depth.
-- Verify Size and Priority columns remain aligned across all rows regardless of hierarchy depth.
+- Verify folder rows use the locally embedded Material disclosure icon and file rows reserve an equal-width spacer. A child file label must begin to the right of its parent folder label; deeper descendants should continue stepping right by hierarchy depth.
+- Verify the Name header is left-aligned at the beginning of the name column, Size and Priority remain aligned, folder rows do not show descendant file counts, and the preview summary appears without a redundant Content heading.
 - Select a torrent row and verify Torrent details expands for it. The disclosure bar should identify the selected torrent, and the expanded panel should proceed directly to the detail tabs without repeating the torrent title/hash in a second header.
 - Click the same torrent row again and verify the selected-row treatment clears and Torrent details returns to the empty collapsed disclosure.
 - Select one torrent and then a different torrent; verify details switch directly to the second torrent rather than clearing first.

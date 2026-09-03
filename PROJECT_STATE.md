@@ -6,7 +6,7 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.82** (prerelease)
+- Latest documented build: **v0.5.83** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 - Upstream development branch: `refactor/backend-modularization-users`
 - Upstream prerelease branch: `prerelease/backend-modularization`
@@ -14,7 +14,7 @@
 
 ### Latest release summary
 
-Corrects Add Torrent tree indentation by reserving a shared disclosure slot and removes redundant torrent identity metadata from the expanded details panel.
+Uses locally embedded Material-style disclosure/file icons and simplifies the Add Torrent content table for clearer hierarchy and less redundant information.
 
 ## Architecture state
 
@@ -40,6 +40,8 @@ Corrects Add Torrent tree indentation by reserving a shared disclosure slot and 
 - Reconcile Torrent details against every refreshed torrent list and clear the detail context when its selected server/hash no longer exists.
 - Reserve a fixed disclosure/expander slot for every Add Torrent content row; files use a spacer while folders use the chevron, and hierarchy indentation begins after that slot.
 - Use the persistent Torrent details disclosure bar as the sole selection identity surface; expanded details begin directly with tabs/content rather than repeating title/hash metadata.
+- Use locally embedded Material-style SVGs for common disclosure and file-source affordances rather than platform-dependent text glyphs or remote icon-font dependencies.
+- Keep the Add Torrent content preview visually minimal: left-align Name, omit redundant folder descendant counts, and let the live file/size summary replace a separate Content heading.
 
 ## Development principles
 
@@ -51,6 +53,15 @@ Corrects Add Torrent tree indentation by reserving a shared disclosure slot and 
 - Keep public development continuity portable across forks; label canonical repository/branch/PR references as upstream context rather than local identity.
 
 ## Recent work
+
+### v0.5.83 — Material icon and Add Torrent table polish
+
+Uses locally embedded Material-style disclosure/file icons and simplifies the Add Torrent content table for clearer hierarchy and less redundant information.
+
+- Folder disclosure, Torrent details disclosure, update-note disclosure, and .torrent upload affordances now use locally embedded Material-style SVG icons.
+- Add Torrent no longer repeats a Content heading above the live file/size summary.
+- The Name header is left-aligned at the beginning of its column.
+- Folder rows no longer display redundant descendant file counts in the Priority column.
 
 ### v0.5.82 — Torrent tree alignment and detail header cleanup
 
@@ -84,17 +95,6 @@ Fixes a v0.5.78 Add Torrent drag-and-drop event binding error that could prevent
 
 - Corrects the dragenter, dragover, dragleave, and drop listeners so every addEventListener call receives both the event type and callback.
 - Restores normal Dashboard initialization while preserving the v0.5.78 selectable Add Torrent workflow, source tabs, file tree, and metadata export behavior.
-
-### v0.5.78 — Selectable Add Torrent workflow
-
-Separates magnet and .torrent sources, adds qBitTorrent-style file and folder selection before download, and makes .torrent export reliable across cached and existing torrent metadata.
-
-- Add Torrent now has separate Magnet link and .torrent file source modes instead of combining both inputs in one source block.
-- The .torrent file source supports drag and drop as well as click-to-browse file selection.
-- Metadata-backed Content is now an interactive folder/file tree with Select all, tri-state folder selection, and Normal, High, or Maximum priority for included files.
-- Unchecked files are sent to qBitTorrent as Do not download, matching qBitTorrent's native file-priority add behavior.
-- Parsed local .torrent files are added through qBitTorrent's cached metadata so file selection can be applied before the torrent enters the transfer list.
-- Save .torrent file now saves the selected local file directly and uses canonical-hash/existing-torrent fallbacks for magnet or URL metadata.
 
 ## What to do next
 

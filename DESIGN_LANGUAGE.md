@@ -26,6 +26,12 @@ Torrent Dashboard follows a Firefox-inspired desktop-application pattern rather 
 - Prefer verb phrases for actions: **Add client**, **Test connection**, **Copy address**, **Remove torrent**. Avoid noun-heavy implementation phrases and parenthetical constructions such as **Remove torrent(s)**.
 - Do not capitalize words merely because they appear in a control. Capitalization should communicate hierarchy or a proper name, not decoration.
 
+
+
+## Iconography
+
+Common interface symbols should use locally embedded Material-style SVG paths rather than text glyphs when an established icon exists. Disclosure chevrons, expansion controls, and file-source affordances should share this treatment so their stroke/shape quality is consistent across browsers and operating systems. Do not introduce a Google Fonts, Material Symbols font, or other remote icon dependency solely for interface chrome; Torrent Dashboard must keep these controls available offline and in self-hosted/forked deployments.
+
 ## Settings feedback contract
 
 The core Settings pages are General, Access, Clients, Updates, and Notifications. They share the same form save bar and the same successful outcome language:
@@ -135,6 +141,6 @@ Add Torrent treats a magnet/URL and a local `.torrent` file as distinct source m
 
 ## Hierarchical torrent content selection
 
-Add Torrent keeps selection controls in one stable checkbox column so scanning and bulk selection remain predictable. The content column reserves one fixed disclosure slot on every row: folders use it for their expand/collapse chevron and files use an equal-width spacer. Hierarchy indentation is applied after that shared slot, so child files visibly sit beneath their parent folder labels while Size and Priority remain aligned.
+Add Torrent keeps selection controls in one stable checkbox column so scanning and bulk selection remain predictable. The content column reserves one fixed disclosure slot on every row: folders use a Material disclosure icon and files use an equal-width spacer. Hierarchy indentation is applied after that shared slot, so child files visibly sit beneath their parent folder labels while Size and Priority remain aligned. Column labels describe the table directly: Name is left-aligned at the start of its column, folder rows do not repeat descendant file counts in the Priority column, and the live file/size summary makes a separate Content heading unnecessary.
 
 For the persistent Torrent details dock, clicking the torrent whose details are already selected clears that detail context and returns the dock to its empty collapsed state. Selecting a different torrent replaces the context and expands the dock normally. The detail context must also be reconciled against each refreshed torrent list: if the selected server/hash no longer exists, clear the stale detail selection automatically. The disclosure bar is the single selection-identity surface; do not repeat the torrent title/hash in a second header immediately above the detail tabs.

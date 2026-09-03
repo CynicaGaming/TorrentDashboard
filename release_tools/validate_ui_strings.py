@@ -632,6 +632,23 @@ def main():
     assert "selected?(detailCurrentTorrent()?.name||'Selected torrent'):''" in app_js
     assert 'The disclosure bar is the single selection-identity surface' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')
 
+    # 0.5.83 replaces text-glyph disclosure/file affordances with locally
+    # embedded Material SVGs and simplifies the Add Torrent content table.
+    assert 'const UI_MATERIAL_ICON_PATHS={' in app_js and 'function materialIconSvg(name)' in app_js
+    assert "materialIconSvg(collapsed?'chevron_right':'expand_more')" in app_js
+    assert "chevron.innerHTML=materialIconSvg('expand_more')" in app_js
+    assert "${collapsed?'›':'⌄'}" not in app_js and "chevron.textContent='⌄'" not in app_js
+    assert 'class="material-symbol-icon detail-disclosure-icon"' in html
+    assert 'class="material-symbol-icon add-drop-icon"' in html and '>⇧<' not in html
+    assert '.material-symbol-icon{display:block;width:18px;height:18px;fill:currentColor' in app_css
+    assert '0.5.83 locally embedded Material disclosure icons and Add Torrent table polish' in app_css
+    assert '<strong>Content</strong><span id="addContentSummary"' not in html
+    assert 'class="add-preview-heading add-content-summary-heading"' in html
+    assert '.add-content-columns>span:nth-child(2){text-align:left}' in app_css
+    assert 'class="add-folder-items"' not in app_js
+    assert '## Iconography' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')
+    assert 'folder rows do not show descendant file counts' in (ROOT / 'TESTING.md').read_text(encoding='utf-8')
+
     print("UI string audit passed")
 
 

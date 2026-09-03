@@ -313,3 +313,15 @@ button,select,input,textarea{border:1px solid var(--border);background:var(--pan
 
 /* 0.5.82 tree disclosure alignment and streamlined Torrent details. */
 .add-tree-spacer{display:block;width:22px;min-width:22px;height:22px;flex:0 0 22px}
+
+
+/* 0.5.83 locally embedded Material disclosure icons and Add Torrent table polish. */
+.material-symbol-icon{display:block;width:18px;height:18px;fill:currentColor;flex:0 0 auto}
+.add-folder-toggle .material-symbol-icon{width:18px;height:18px}
+.add-drop-icon.material-symbol-icon{width:24px;height:24px;margin-bottom:2px;color:var(--accent)}
+.torrent-detail-handle .material-symbol-icon{width:18px;height:18px;fill:currentColor;stroke:none}
+.update-release-chevron .material-symbol-icon{width:18px;height:18px}
+.add-content-summary-heading{min-height:39px;justify-content:flex-start}
+.add-content-summary-heading>span{font-size:10.5px;color:var(--muted)}
+.add-content-columns>span:nth-child(2){text-align:left}
+.add-content-columns>span:nth-child(3),.add-content-columns>span:nth-child(4){text-align:right}

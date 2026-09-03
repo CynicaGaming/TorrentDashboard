@@ -1,5 +1,5 @@
 'use strict';
-const FRONTEND_BUILD='0.5.82';
+const FRONTEND_BUILD='0.5.83';
 const HTML_BUILD=document.querySelector('meta[name="torrent-dashboard-build"]')?.content||'';
 const RECOVERY_KEY=`td-frontend-recovery-${FRONTEND_BUILD}`;
 async function recoverFrontendBuild(reason){
@@ -42,6 +42,11 @@ function isLegacyUiToken(value=''){
   return hasCamelCaseUiText(s)||/^[a-z0-9]+(?:_[a-z0-9]+)+$/.test(s)
 }
 function displayUiText(value=''){const s=String(value??'');return isLegacyUiToken(s)?uiText(s):s}
+const UI_MATERIAL_ICON_PATHS={
+  chevron_right:'M9.29 6.71a.996.996 0 0 0 0 1.41L13.17 12l-3.88 3.88a.996.996 0 1 0 1.41 1.41l4.59-4.59a.996.996 0 0 0 0-1.41L10.7 6.7a.996.996 0 0 0-1.41.01Z',
+  expand_more:'M7.41 8.59 12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41Z',
+};
+function materialIconSvg(name){const path=UI_MATERIAL_ICON_PATHS[name]||UI_MATERIAL_ICON_PATHS.expand_more;return `<svg class="material-symbol-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="${path}"/></svg>`}
 function normalizeUiAttributes(el){
   if(!el?.getAttribute)return;
   for(const attr of ['placeholder','title','aria-label']){
@@ -306,7 +311,7 @@ function addTreeNodeSize(node){
 function addContentFolderRow(node,depth){
   const indexes=addTreeNodeIndexes(node),files=indexes.map(index=>addMetadataState.files.find(file=>file.index===index)).filter(Boolean),selected=files.filter(file=>file.selected).length;
   const checked=!!files.length&&selected===files.length,collapsed=addMetadataState.collapsedFolders.has(node.path);
-  return `<div class="add-content-row add-content-folder" data-add-depth="${depth}" style="--add-depth:${depth}"><span class="add-content-select"><input type="checkbox" data-add-folder-files="${indexes.join(',')}" ${checked?'checked':''} aria-label="Download folder ${esc(node.name)}"></span><span class="add-content-name"><button class="add-folder-toggle" data-add-folder-toggle="${esc(node.path)}" type="button" aria-label="${collapsed?'Expand':'Collapse'} folder ${esc(node.name)}" aria-expanded="${String(!collapsed)}">${collapsed?'›':'⌄'}</button><span class="add-folder-name">${esc(node.name)}</span></span><span>${bytes(addTreeNodeSize(node))}</span><span class="add-folder-items">${files.length} ${files.length===1?'file':'files'}</span></div>`;
+  return `<div class="add-content-row add-content-folder" data-add-depth="${depth}" style="--add-depth:${depth}"><span class="add-content-select"><input type="checkbox" data-add-folder-files="${indexes.join(',')}" ${checked?'checked':''} aria-label="Download folder ${esc(node.name)}"></span><span class="add-content-name"><button class="add-folder-toggle" data-add-folder-toggle="${esc(node.path)}" type="button" aria-label="${collapsed?'Expand':'Collapse'} folder ${esc(node.name)}" aria-expanded="${String(!collapsed)}">${materialIconSvg(collapsed?'chevron_right':'expand_more')}</button><span class="add-folder-name">${esc(node.name)}</span></span><span>${bytes(addTreeNodeSize(node))}</span><span aria-hidden="true"></span></div>`;
 }
 function addContentFileRow(file,depth){
   return `<div class="add-content-row add-content-file" data-add-depth="${depth}" style="--add-depth:${depth}"><span class="add-content-select"><input type="checkbox" data-add-file-check="${file.index}" ${file.selected?'checked':''} aria-label="Download file"></span><span class="add-content-name"><span class="add-tree-spacer" aria-hidden="true"></span>${esc(file.displayName||file.path)}</span><span>${bytes(file.length)}</span><span><select class="add-file-priority" data-add-file-priority="${file.index}" aria-label="File priority" ${file.selected?'':'disabled'}>${addPriorityOptions(file.priority)}</select></span></div>`;
@@ -651,7 +656,7 @@ function renderUpdateHistory(history=[],manifest={},currentVersion=''){
     if(entry.channel)badge(entry.channel==='prerelease'?'Pre-release':'Stable',entry.channel==='prerelease'?'prerelease':'stable');
     if(entry.publishedAt){const date=document.createElement('small');date.className='update-release-date';date.textContent=releaseDisplayDate(entry.publishedAt);meta.appendChild(date)}
     copy.appendChild(meta);
-    const chevron=document.createElement('span');chevron.className='update-release-chevron';chevron.textContent='⌄';summary.append(version,copy,chevron);
+    const chevron=document.createElement('span');chevron.className='update-release-chevron';chevron.innerHTML=materialIconSvg('expand_more');summary.append(version,copy,chevron);
     const body=document.createElement('div');body.className=`update-release-body${open?'':' hidden'}`;
     const notes=document.createElement('div');notes.className='update-release-notes';
     const noteText=String(entry.notes||entry.summary||'No patch notes were recorded for this revision.').replace(/^##\s+[^\n]+\n*/,'').trim();
