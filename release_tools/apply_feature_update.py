@@ -201,6 +201,6 @@ validator = replace_once(validator, old_tail, new_tail, "viewport-proportional U
 write("release_tools/validate_ui_strings.py", validator)
 
 # Regenerate derived public continuity/release files from structured metadata.
-subprocess.run([sys.executable, "release_tools/generate_release_notes.py"], cwd=ROOT, check=True)
+subprocess.run([sys.executable, "release_tools/generate_release_notes.py", "--version", VERSION], cwd=ROOT, check=True)
 
 print("Applied v0.5.113 viewport-proportional desktop workspace")
