@@ -129,6 +129,11 @@ new_view_assert = '    assert "if(dashboardView)requestAnimationFrame(()=>{syncT
 if old_view_assert not in validator:
     raise RuntimeError("Could not find dashboard workspace callback assertion")
 validator = validator.replace(old_view_assert, new_view_assert, 1)
+old_bulk_assert = "    assert 'setTimeout(syncMobileBulkbarOffset,180)' in app_js\n"
+new_bulk_assert = "    assert 'setTimeout(()=>{syncDesktopDetailPaneHeight();syncMobileBulkbarOffset()},180)' in app_js\n"
+if old_bulk_assert not in validator:
+    raise RuntimeError("Could not find mobile bulkbar timeout assertion")
+validator = validator.replace(old_bulk_assert, new_bulk_assert, 1)
 anchor = '    assert "window.innerHeight-top-16" not in app_js\n'
 checks = (
     anchor
