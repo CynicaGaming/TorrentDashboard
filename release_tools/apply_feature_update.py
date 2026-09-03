@@ -206,9 +206,9 @@ app_css += r'''
 .controls-panel .filters{margin-left:auto}
 .controls-panel .filters input{width:min(360px,36vw)}
 #torrentTable thead th[data-col]{outline:none}
-.torrent-sort-heading{display:inline-flex;width:100%;min-width:0;align-items:center;justify-content:center;gap:4px;pointer-events:none}
+.torrent-sort-heading{position:relative;display:flex;width:100%;min-width:0;align-items:center;justify-content:center;pointer-events:none}
 .torrent-sort-label{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.torrent-sort-icon{display:grid;place-items:center;width:14px;height:14px;flex:0 0 14px;color:var(--muted);opacity:0;transition:opacity .12s ease,color .12s ease}
+.torrent-sort-icon{position:absolute;right:0;display:grid;place-items:center;width:14px;height:14px;color:var(--muted);opacity:0;transition:opacity .12s ease,color .12s ease}
 .torrent-sort-icon .material-symbol-icon{width:14px;height:14px;transition:transform .14s ease}
 #torrentTable thead th[data-col]:hover .torrent-sort-icon,#torrentTable thead th[data-col]:focus-visible .torrent-sort-icon{opacity:.32}
 #torrentTable thead th.torrent-sort-active .torrent-sort-icon{opacity:1;color:var(--accent)}
@@ -273,6 +273,16 @@ write("TESTING.md", testing.rstrip() + "\n")
 # Bring the UI audit forward and retire assertions for controls that no longer exist.
 validator = read("release_tools/validate_ui_strings.py")
 validator = validator.replace("        'All categories','Download speed','HTTP sources','Accent color',\n", "        'Download speed','HTTP sources','Accent color',\n", 1)
+validator = validator.replace(
+    "    assert 'function syncFilterSelect' in app_js\n    assert 'document.activeElement===select' in app_js\n    assert 'optionsSignature' in app_js\n",
+    "    assert 'function syncFilterSelect' not in app_js\n    assert 'document.activeElement===select' not in app_js\n    assert 'optionsSignature' not in app_js\n",
+    1,
+)
+validator = validator.replace(
+    "    assert \"['No torrents match these filters','Adjust your search or filters.']\" in app_js\n",
+    "    assert \"['No torrents match your search','Try a different search.']\" in app_js\n",
+    1,
+)
 validator_insert = r'''
     # 0.5.92 moves torrent sorting into the configurable headers and retires
     # redundant metadata facet selects now covered by the unified search field.
