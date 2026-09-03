@@ -135,6 +135,6 @@ Add Torrent treats a magnet/URL and a local `.torrent` file as distinct source m
 
 ## Hierarchical torrent content selection
 
-File-selection trees should communicate ancestry through the selection control as well as the label. In Add Torrent, each nested folder/file level indents the checkbox and name together while size and priority columns remain aligned. Do not represent hierarchy only by shifting filenames away from otherwise flat checkboxes.
+Add Torrent keeps selection controls in one stable checkbox column so scanning and bulk selection remain predictable. Hierarchy is communicated in the content label: nested folders and files indent according to depth while Size and Priority remain aligned. A file beneath a folder should read as a child without shifting its checkbox away from the rest of the selection column.
 
-For the persistent Torrent details dock, clicking the torrent whose details are already selected clears that detail context and returns the dock to its empty collapsed state. Selecting a different torrent replaces the context and expands the dock normally.
+For the persistent Torrent details dock, clicking the torrent whose details are already selected clears that detail context and returns the dock to its empty collapsed state. Selecting a different torrent replaces the context and expands the dock normally. The detail context must also be reconciled against each refreshed torrent list: if the selected server/hash no longer exists, clear the stale detail selection automatically.

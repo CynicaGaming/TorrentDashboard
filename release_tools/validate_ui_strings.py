@@ -594,7 +594,7 @@ def main():
     assert 'id="detailClose"' not in html and 'Close torrent details' not in html
     assert 'detailExpanded:false' in app_js and 'detailCollapsed' not in app_js
     assert 'function syncDetailDock()' in app_js and 'async function toggleDetailPane()' in app_js
-    assert 'function resetDetailPane()' in app_js and 'closeDetailPane' not in app_js
+    assert 'function resetDetailPane(' in app_js and 'closeDetailPane' not in app_js
     assert '0.5.74 bottom-anchored client workspace' in app_css
     assert '.torrent-list-region .table-wrap{flex:1 1 auto;min-height:0;overflow:auto' in app_css
     assert '.torrent-detail-pane{position:static;inset:auto' in app_css
@@ -602,16 +602,22 @@ def main():
     assert '.torrent-detail-handle[aria-expanded="true"] svg{transform:rotate(180deg)}' in app_css
     assert '@media(max-width:700px)' in app_css and 'bottom:58px;top:auto;height:min(68dvh,640px)' in app_css
 
-    # 0.5.80 makes Add Torrent hierarchy visible at the checkbox level and
-    # treats a repeated click on the active torrent row as detail deselection.
+    # 0.5.81 keeps Add Torrent checkboxes aligned while hierarchy is expressed
+    # by the content label, and clears stale detail context when a torrent disappears.
     assert app_js.count('data-add-depth="${depth}" style="--add-depth:${depth}"') == 2
-    assert 'class="add-content-name" style="--add-depth:${depth}"' not in app_js
-    assert '0.5.80 Add Torrent hierarchy and detail selection polish' in app_css
-    assert 'grid-template-columns:calc(34px + var(--add-depth,0) * 16px)' in app_css
-    assert 'place-items:center end!important' in app_css
+    assert '0.5.81 aligned Add Torrent selection column and indented hierarchy labels' in app_css
+    assert '.add-content-row{grid-template-columns:34px minmax(0,1fr) 90px 112px}' in app_css
+    assert '.add-content-select{place-items:center!important;padding-right:0}' in app_css
+    assert '.add-content-name{padding-left:calc(var(--add-depth,0) * 16px)}' in app_css
+    assert 'grid-template-columns:calc(34px + var(--add-depth,0) * 16px)' not in app_css
     assert "if(state.detail?.server===server&&state.detail?.hash===hash){resetDetailPane();return}" in app_js
+    assert 'function reconcileDetailSelection()' in app_js
+    assert "const exists=state.torrents.some(t=>(t._server_id||state.server)===state.detail.server&&t.hash===state.detail.hash)" in app_js
+    assert 'if(!exists)resetDetailPane(false)' in app_js
+    assert 'reconcileDetailSelection();renderMetrics(d)' in app_js
+    assert 'function resetDetailPane(renderList=true)' in app_js
     assert '## Hierarchical torrent content selection' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')
-    assert '### Add Torrent hierarchy and repeated detail selection' in (ROOT / 'TESTING.md').read_text(encoding='utf-8')
+    assert '### Add Torrent hierarchy and detail-selection reconciliation' in (ROOT / 'TESTING.md').read_text(encoding='utf-8')
 
     print("UI string audit passed")
 

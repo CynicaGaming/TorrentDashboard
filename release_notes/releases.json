@@ -1588,6 +1588,76 @@
         "Represent Add Torrent file hierarchy by indenting the selection control and name together while keeping data columns aligned.",
         "A repeated click on the torrent currently shown in Torrent details clears the detail context; choosing a different torrent replaces it directly."
       ]
+    },
+    {
+      "version": "0.5.81",
+      "date": "2026-09-03",
+      "status": "prerelease",
+      "title": "Aligned file selection and stale detail cleanup",
+      "summary": "Keeps Add Torrent checkboxes aligned while indenting hierarchical content labels, and automatically clears Torrent details when the selected torrent disappears from the client.",
+      "highlights": [
+        "All Add Torrent folder/file checkboxes now remain in one stable selection column.",
+        "Nested folder and file names indent by hierarchy depth while Size and Priority stay aligned.",
+        "Torrent details are reconciled with every live status refresh; if the selected torrent is removed, the stale detail context clears automatically.",
+        "Removing a different torrent leaves the current Torrent details selection intact."
+      ],
+      "fixes": [
+        "Corrects the v0.5.80 hierarchy treatment that shifted checkboxes along with nested content.",
+        "Prevents the Torrent details dock from retaining information for a torrent that no longer exists in the current server list."
+      ],
+      "technical": [
+        "The Add Torrent row keeps --add-depth on the row but applies it only as left padding on the content-name column.",
+        "refreshStatus calls reconcileDetailSelection after replacing state.torrents; resetDetailPane accepts a renderList flag so stale-state cleanup does not cause an unnecessary intermediate list render."
+      ],
+      "validation": [
+        "The UI audit requires a fixed checkbox column, depth-based content-label indentation, and absence of the v0.5.80 expanding checkbox-column rule.",
+        "The UI audit requires live status reconciliation to reset details only when the selected server/hash is absent from state.torrents.",
+        "Existing 20 backend tests, JavaScript syntax checks, generated continuity files, frontend/service-worker synchronization, and package-integrity gates remain required."
+      ],
+      "known_issues": [],
+      "architecture": [
+        "Torrent Dashboard remains a Python standard-library application with dashboard.py as the HTTP composition root.",
+        "Configuration, integrations, users, and configuration transaction coordination remain separated into torrent_dashboard package modules.",
+        "Torrent detail presentation remains frontend-owned and continues to use the existing /api/detail contract.",
+        "Desktop/tablet use separate docked list and detail panels; mobile uses a bottom-sheet presentation."
+      ],
+      "next_steps": [
+        {
+          "priority": 1,
+          "title": "Extract release and update provenance",
+          "detail": "Move GitHub release parsing, installed release metadata, package-integrity normalization, and historical digest caching out of dashboard.py."
+        },
+        {
+          "priority": 2,
+          "title": "Extract qBitTorrent transport and normalization",
+          "detail": "Move QBitClient, server normalization, proxy/preference translation, and Web API transport away from HTTP routing."
+        },
+        {
+          "priority": 3,
+          "title": "Expand request-level behavioral tests",
+          "detail": "Add authorization, CSRF, setup, account-route, and settings-mutation coverage around extracted service boundaries."
+        },
+        {
+          "priority": 4,
+          "title": "Harden secrets at rest",
+          "detail": "Use the configuration boundary to add restrictive file permissions and separate ordinary configuration from stored credentials."
+        }
+      ],
+      "decisions": [
+        "Prefer two visually distinct surfaces for list/detail hierarchy rather than joining them with only an internal divider.",
+        "Keep viewport-derived docking and independent list/detail scrolling.",
+        "Keep active backend modularization work separate from this presentation correction.",
+        "Treat torrent-detail selection and inspector disclosure as independent state: collapse changes presentation, not selection.",
+        "Keep the torrent-detail dock persistently discoverable and use the full disclosure bar as the primary keyboard/touch interaction target.",
+        "Treat All servers as an aggregation mode: omit it when only one enabled client exists, and prefer the actual client so client-specific actions remain available.",
+        "Author user-facing copy in its final display form; runtime token normalization is compatibility behavior for legacy generated tokens, not a presentation system.",
+        "Use deliberate mixed capitalization: stable named destinations may read as product labels, while headings, field labels, actions, statuses, errors, and explanatory text generally use sentence case.",
+        "Prefer user-facing product concepts over legacy implementation terminology, including allowed IP addresses for access controls and client for client-management actions.",
+        "Use qBitTorrent's parsed/cached metadata path when preselecting files from a local .torrent; raw multipart upload remains only as a compatibility fallback because qBitTorrent rejects filePriorities on raw uploaded torrents.",
+        "A repeated click on the torrent currently shown in Torrent details clears the detail context; choosing a different torrent replaces it directly.",
+        "Keep Add Torrent checkboxes in one aligned selection column; communicate hierarchy by indenting folder/file labels while preserving aligned Size and Priority columns.",
+        "Reconcile Torrent details against every refreshed torrent list and clear the detail context when its selected server/hash no longer exists."
+      ]
     }
   ]
 }

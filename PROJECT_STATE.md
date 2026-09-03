@@ -6,7 +6,7 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.80** (prerelease)
+- Latest documented build: **v0.5.81** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 - Upstream development branch: `refactor/backend-modularization-users`
 - Upstream prerelease branch: `prerelease/backend-modularization`
@@ -14,7 +14,7 @@
 
 ### Latest release summary
 
-Improves Add Torrent file-tree readability by indenting checkboxes with their hierarchy and makes repeated torrent-row selection clear the active Torrent details context.
+Keeps Add Torrent checkboxes aligned while indenting hierarchical content labels, and automatically clears Torrent details when the selected torrent disappears from the client.
 
 ## Architecture state
 
@@ -35,8 +35,9 @@ Improves Add Torrent file-tree readability by indenting checkboxes with their hi
 - Use deliberate mixed capitalization: stable named destinations may read as product labels, while headings, field labels, actions, statuses, errors, and explanatory text generally use sentence case.
 - Prefer user-facing product concepts over legacy implementation terminology, including allowed IP addresses for access controls and client for client-management actions.
 - Use qBitTorrent's parsed/cached metadata path when preselecting files from a local .torrent; raw multipart upload remains only as a compatibility fallback because qBitTorrent rejects filePriorities on raw uploaded torrents.
-- Represent Add Torrent file hierarchy by indenting the selection control and name together while keeping data columns aligned.
 - A repeated click on the torrent currently shown in Torrent details clears the detail context; choosing a different torrent replaces it directly.
+- Keep Add Torrent checkboxes in one aligned selection column; communicate hierarchy by indenting folder/file labels while preserving aligned Size and Priority columns.
+- Reconcile Torrent details against every refreshed torrent list and clear the detail context when its selected server/hash no longer exists.
 
 ## Development principles
 
@@ -48,6 +49,15 @@ Improves Add Torrent file-tree readability by indenting checkboxes with their hi
 - Keep public development continuity portable across forks; label canonical repository/branch/PR references as upstream context rather than local identity.
 
 ## Recent work
+
+### v0.5.81 — Aligned file selection and stale detail cleanup
+
+Keeps Add Torrent checkboxes aligned while indenting hierarchical content labels, and automatically clears Torrent details when the selected torrent disappears from the client.
+
+- All Add Torrent folder/file checkboxes now remain in one stable selection column.
+- Nested folder and file names indent by hierarchy depth while Size and Priority stay aligned.
+- Torrent details are reconciled with every live status refresh; if the selected torrent is removed, the stale detail context clears automatically.
+- Removing a different torrent leaves the current Torrent details selection intact.
 
 ### v0.5.80 — Torrent hierarchy and detail selection polish
 
@@ -85,15 +95,6 @@ Refines capitalization and wording across setup, Dashboard, Settings, dialogs, r
 - Refines Dashboard and Settings labels such as Free disk space, HTTP sources, Dashboard name, Check for updates, Patch notes, Browser notifications, and Completion sound.
 - Uses Allowed IP addresses instead of whitelist language on user-facing access controls, and uses client terminology for client-management actions such as Add client.
 - Simplifies dialog and account copy, including Remove torrent/Remove torrents, Save .torrent file, Client settings, and more concise profile/password guidance.
-
-### v0.5.76 — Single-client server defaults
-
-Makes single-client installations select their actual qBitTorrent server automatically while preserving All servers as a meaningful multi-client aggregation mode.
-
-- When exactly one enabled qBitTorrent client exists, Torrent Dashboard selects it automatically and omits All servers from the selector.
-- Client-specific operations such as Add Torrent are immediately available on single-client installations without an unnecessary selector change.
-- With multiple enabled clients, All servers remains available and the last valid server selection is restored across reloads.
-- If a remembered client is removed or disabled, selection falls back safely to All servers or the sole remaining enabled client as appropriate.
 
 ## What to do next
 

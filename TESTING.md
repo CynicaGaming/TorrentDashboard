@@ -173,9 +173,10 @@ Do not use this file as a test-results log; it is a stable testing contract for 
 - After magnet metadata is ready, use **Save .torrent file** and verify a non-empty `.torrent` downloads. Repeat with a source whose torrent already exists in qBitTorrent and verify export fallback succeeds.
 - In .torrent file mode, use **Save .torrent file** and verify the originally selected local file is downloaded without requiring qBitTorrent metadata cache availability.
 
-### Add Torrent hierarchy and repeated detail selection
+### Add Torrent hierarchy and detail-selection reconciliation
 
-- Load a multi-folder torrent in Add Torrent and verify each nested level moves its checkbox and filename together to the right; Size and Priority columns should stay aligned across all depths.
-- Verify top-level files/folders remain at the base indentation and nested descendants are visibly distinguishable without relying on folder names alone.
+- Load a multi-folder torrent in Add Torrent and verify every folder/file checkbox remains vertically aligned in the same selection column.
+- Verify nested folder/file labels indent according to hierarchy depth while Size and Priority columns remain aligned across all rows.
 - Select a torrent row and verify Torrent details expands for it. Click the same torrent row again and verify the selected-row treatment clears and Torrent details returns to the empty collapsed disclosure.
 - Select one torrent and then a different torrent; verify details switch directly to the second torrent rather than clearing first.
+- With a torrent selected in Torrent details, remove that torrent (or remove it directly in qBitTorrent) and verify the next status refresh clears the stale detail context and collapses the dock. Removing another torrent must not clear the current detail selection.
