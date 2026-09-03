@@ -256,20 +256,23 @@ button,select,input,textarea{border:1px solid var(--border);background:var(--pan
 }
 
 /* 0.5.74 bottom-anchored client workspace. */
+/* 0.5.109 fixed desktop torrent list with natural-height General details. */
 .torrent-list-region{min-width:0;min-height:0}
 @media(min-width:701px){
-  .torrent-workspace{display:flex;flex-direction:column;gap:12px;overflow:visible;height:var(--torrent-workspace-height,min(720px,calc(100dvh - 220px)))}
-  .torrent-list-panel{display:flex;flex:1 1 auto;min-height:0;overflow:hidden}
+  .torrent-workspace{display:flex;flex-direction:column;gap:12px;overflow:visible;height:auto}
+  .torrent-list-panel{display:flex;flex:0 0 var(--torrent-list-height,clamp(360px,52vh,560px));height:var(--torrent-list-height,clamp(360px,52vh,560px));min-height:360px;overflow:hidden}
   .torrent-list-region{position:relative;display:flex;flex:1 1 auto;min-height:0;flex-direction:column;overflow:hidden}
   .torrent-list-region .table-wrap{flex:1 1 auto;min-height:0;overflow:auto;overscroll-behavior:contain}
   .torrent-list-region>.empty{position:absolute;inset:44px 0 0;display:grid;place-content:center;padding:20px;text-align:center;pointer-events:none}
   .torrent-detail-pane{position:static;inset:auto;width:auto;height:auto;margin:0;min-height:48px;max-height:none;border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);display:flex;flex:0 0 48px;flex-direction:column;background:var(--panel);overflow:hidden}
-  .torrent-detail-pane:not(.collapsed){min-height:240px;flex:0 1 var(--torrent-detail-expanded-height,clamp(260px,46%,420px))}
+  .torrent-detail-pane:not(.collapsed){min-height:240px;flex:0 0 clamp(260px,46vh,420px)}
+  .torrent-detail-pane:not(.collapsed).detail-general-fit{min-height:0;flex:0 0 auto}
+  .torrent-detail-pane.detail-general-fit .torrent-detail-body{flex:0 0 auto;min-height:0;overflow:visible}
   .torrent-detail-pane.collapsed{min-height:48px!important;max-height:48px!important;flex-basis:48px!important}
   .torrent-detail-body{flex:1 1 auto;min-height:0;overflow:auto}
 }
 @media(min-width:1024px){
-  .torrent-detail-pane:not(.collapsed){flex-basis:var(--torrent-detail-expanded-height,clamp(300px,46%,440px))}
+  .torrent-detail-pane:not(.collapsed){flex-basis:clamp(300px,46vh,440px)}
   .torrent-detail-pane.collapsed{min-height:52px!important;max-height:52px!important;flex-basis:52px!important}
 }
 @media(max-width:700px){
@@ -415,3 +418,5 @@ button,select,input,textarea{border:1px solid var(--border);background:var(--pan
   .torrent-detail-body .detail-desktop-only{display:none!important}
   .torrent-detail-body .detail-mobile-only{display:grid}
 }
+
+.brand-mark img{display:block;width:100%;height:100%;object-fit:contain;border-radius:inherit}

@@ -236,3 +236,13 @@ Do not use this file as a test-results log; it is a stable testing contract for 
 - Resize the browser vertically and verify General recalculates its fitted height while retaining a usable torrent-list region. On unusually short desktop viewports, detail-body scrolling is acceptable once the reserved list region prevents the full General content from fitting.
 - Repeat at mobile width and verify the existing bottom-sheet behavior is unchanged.
 
+
+
+### Fixed desktop torrent list with natural General details
+
+- On desktop, record the torrent list height, scroll the page, open/collapse Torrent details, and switch tabs; the torrent list height must remain unchanged and the list must retain its own scrollbar.
+- Open Torrent details → General and verify the full General content is readable without scrolling the detail body. The page may become taller and use normal document scrolling below the fixed torrent list.
+- Switch to Trackers, Peers, HTTP sources, and Content with long datasets and verify those tabs remain bounded and use their own detail-body scrolling rather than expanding to their entire dataset height.
+- Resize the desktop viewport and verify the torrent list recalculates only within the 360–560 px bounded range; ordinary page scrolling must not alter the chosen height.
+- Verify `/static/favicon.svg` is used as the browser favicon, web-manifest icon, service-worker shell asset, and setup/login/sidebar brand mark.
+- Repeat at mobile width and verify the existing mobile torrent cards and bottom-sheet Torrent details behavior are unchanged.

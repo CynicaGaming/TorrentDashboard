@@ -140,10 +140,10 @@ def main():
     assert "state.detailExpanded=!state.detailExpanded" in app_js
     assert "state.detailExpanded=true" in app_js
     assert "(!state.detailExpanded&&!force)" in app_js
-    assert ".torrent-workspace{display:flex;flex-direction:column;gap:12px;overflow:visible;height:var(--torrent-workspace-height,min(720px,calc(100dvh - 220px)))}" in app_css
+    assert ".torrent-workspace{display:flex;flex-direction:column;gap:12px;overflow:visible;height:auto}" in app_css
     assert ".topbar.dashboard-mode .topbar-heading{display:none}" not in app_css
-    assert ".torrent-list-panel{display:flex;flex:1 1 auto;min-height:0;overflow:hidden}" in app_css
-    assert ".torrent-detail-pane:not(.collapsed){min-height:240px;flex:0 1 var(--torrent-detail-expanded-height,clamp(260px,46%,420px))}" in app_css
+    assert "flex:0 0 var(--torrent-list-height,clamp(360px,52vh,560px))" in app_css
+    assert ".torrent-detail-pane:not(.collapsed){min-height:240px;flex:0 0 clamp(260px,46vh,420px)}" in app_css
     assert ".torrent-detail-pane.collapsed{min-height:48px!important;max-height:48px!important;flex-basis:48px!important}" in app_css
     assert ".torrent-detail-pane:not(.has-selection) .torrent-detail-tabs{display:none}" in app_css
     assert ".torrent-detail-handle{appearance:none;width:100%;min-height:48px" in app_css
@@ -154,16 +154,16 @@ def main():
     assert "window.innerHeight-top-16" not in app_js
     assert "function syncDesktopDetailPaneHeight()" in app_js
     assert "state.detailTab==='general'" in app_js
-    assert "body.scrollHeight" in app_js
-    assert "listReserve=180" in app_js
-    assert "--torrent-detail-expanded-height" in app_js
-    assert "var(--torrent-detail-expanded-height,clamp(260px,46%,420px))" in app_css
-    assert "var(--torrent-detail-expanded-height,clamp(300px,46%,440px))" in app_css
+    assert "body.scrollHeight" not in app_js
+    assert "listReserve=180" not in app_js
+    assert "pane.style.removeProperty('--torrent-detail-expanded-height')" in app_js
+    assert "flex:0 0 clamp(260px,46vh,420px)" in app_css
+    assert "flex-basis:clamp(300px,46vh,440px)" in app_css
     assert "Content-fit desktop Torrent details" in design_language
     assert "Desktop Torrent details content-fit sizing" in testing_md
     assert "Stable desktop torrent workspace height" in design_language
     assert "Desktop torrent workspace scroll stability" in testing_md
-    assert "--torrent-workspace-height" in app_js
+    assert "--torrent-list-height" in app_js and "--torrent-workspace-height" not in app_js
     assert "height:calc(100dvh - 320px);min-height:480px" not in app_css
     assert 'id="mTotal"' in html and 'id="mTorrentSummary"' in html
     assert 'id="mUpdated"' not in html and 'id="mHealth"' not in html
@@ -532,8 +532,8 @@ def main():
     assert 'id="topbar"' in html and 'class="topbar" id="topbar"' in html and 'class="topbar-heading"' in html
     assert "classList.toggle('dashboard-mode'" not in app_js
     assert "if(dashboardView)requestAnimationFrame(()=>{syncTorrentWorkspaceLayout();syncDesktopDetailPaneHeight()})" in app_js
-    assert "--torrent-workspace-height" in app_js and "--torrent-workspace-open-height" not in app_js
-    assert "const available=Math.max(360,Math.floor(window.innerHeight-documentTop-16))" in app_js
+    assert "--torrent-list-height" in app_js and "--torrent-workspace-height" not in app_js and "--torrent-workspace-open-height" not in app_js
+    assert "const available=Math.max(360,Math.min(560,Math.floor(window.innerHeight-documentTop-16)))" in app_js
     assert '.topbar.dashboard-mode' not in app_css
     assert '.topbar.dashboard-mode .topbar-heading{display:none}' not in app_css
     assert '## Client-style dashboard workspace' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')
@@ -744,6 +744,21 @@ def main():
     assert '-webkit-line-clamp:2' in app_css
     assert 'two-column metadata matrix' in design
     assert 'Size/Status, Seeds/Peers, Download/Upload, ETA/Ratio, and Category/Tags' in testing
+
+    # 0.5.109 keeps the list fixed while finite General details flow naturally.
+    assert "workspace.style.removeProperty('--torrent-list-height')" in app_js
+    assert "workspace.style.setProperty('--torrent-list-height',value)" in app_js
+    assert "pane.classList.toggle('detail-general-fit',fitGeneral)" in app_js
+    assert 'listReserve=180' not in app_js and 'Math.min(maxHeight,Math.max(300,desired))' not in app_js
+    assert '0.5.109 fixed desktop torrent list with natural-height General details' in app_css
+    assert '.torrent-detail-pane:not(.collapsed).detail-general-fit{min-height:0;flex:0 0 auto}' in app_css
+    assert '.torrent-detail-pane.detail-general-fit .torrent-detail-body{flex:0 0 auto;min-height:0;overflow:visible}' in app_css
+    assert 'Fixed torrent list and natural-height desktop details' in design
+    assert 'Fixed desktop torrent list with natural General details' in testing
+    assert '<link href="/static/favicon.svg" rel="icon" type="image/svg+xml"/>' in html and 'src="/static/favicon.svg"' in html
+    assert (ROOT / 'static' / 'favicon.svg').exists()
+    manifest=(ROOT/'static'/'manifest.webmanifest').read_text(encoding='utf-8'); assert '"src": "/static/favicon.svg"' in manifest
+    sw=(ROOT/'static'/'sw.js').read_text(encoding='utf-8'); assert "'/static/favicon.svg'" in sw
 
     # 0.5.106 gives Trackers and Peers dedicated responsive detail records.
     assert 'function peerAddress(p)' in app_js

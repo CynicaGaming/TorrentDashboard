@@ -6,7 +6,7 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.108** (prerelease)
+- Latest documented build: **v0.5.109** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 - Upstream development branch: `refactor/backend-modularization-users`
 - Upstream prerelease branch: `prerelease/backend-modularization`
@@ -14,7 +14,7 @@
 
 ### Latest release summary
 
-Expands the finite desktop General detail view to its rendered content height inside the fixed torrent workspace so routine torrent properties can be read without an unnecessary inner scrollbar.
+Keeps the desktop torrent list at a stable internally scrollable height while allowing the finite General detail view to expand naturally below it, and adds a self-contained Torrent Dashboard favicon/logo.
 
 ## Current engineering decisions
 
@@ -56,6 +56,9 @@ Expands the finite desktop General detail view to its rendered content height in
 - Treat the mobile bulk-selection overlay and Torrent details as stacked bottom surfaces: bulk actions must remain fully visible above the current detail pane instead of competing for the same layer and screen region.
 - Keep desktop torrent-column alignment breakpoint-scoped: mobile cards use a consistent left-label/right-value metadata grid regardless of desktop numeric alignment.
 - Calculate desktop torrent workspace height from its stable document position rather than its scroll-relative viewport position; document scrolling must not resize the workspace.
+- Keep the desktop torrent list as the stable bounded scroll surface; finite General details may extend document height instead of competing with the list for one shared height.
+- Keep potentially unbounded Torrent details tabs bounded and internally scrollable while General uses natural content height on desktop.
+- Keep browser/PWA branding self-contained with a local favicon/logo asset and no external icon dependency.
 
 ## Development principles
 
@@ -67,6 +70,14 @@ Expands the finite desktop General detail view to its rendered content height in
 - Keep public development continuity portable across forks; label canonical repository/branch/PR references as upstream context rather than local identity.
 
 ## Recent work
+
+### v0.5.109 — Fixed desktop list and natural Torrent details
+
+Keeps the desktop torrent list at a stable internally scrollable height while allowing the finite General detail view to expand naturally below it, and adds a self-contained Torrent Dashboard favicon/logo.
+
+- Decouples desktop torrent-list height from Torrent details so opening General no longer steals vertical space from the list.
+- Lets the General tab expand to its complete natural content height and rely on normal page scrolling instead of an unnecessary inner scrollbar.
+- Adds a locally hosted Torrent Dashboard SVG favicon/logo and reuses it in browser/PWA and existing brand surfaces.
 
 ### v0.5.108 — Content-fit desktop Torrent details
 
@@ -99,14 +110,6 @@ Reduces mobile torrent-card height by pairing metadata fields into a compact two
 - Pairs Size with Status, Seeds with Peers, Download with Upload, ETA with Ratio, and Category with Tags on mobile instead of rendering every field as a full-width row.
 - Returns the selection checkbox to an overlaid top-right position so it no longer consumes a dedicated card row.
 - Allows torrent names to wrap to at most two lines on mobile while preserving the fixed single-line desktop table presentation.
-
-### v0.5.104 — Mobile torrent metadata alignment
-
-Restores consistent mobile torrent-card metadata alignment after desktop numeric-column alignment leaked into responsive card labels.
-
-- Scopes Size, Seeds, Peers, Down, Up, ETA, and Ratio right-alignment to desktop/tablet layouts only.
-- Keeps every mobile metadata field label anchored to the left side of the card while its value stays anchored to the right.
-- Applies the same mobile value alignment to Category and Tags so the metadata list reads as one consistent two-sided grid.
 
 ## What to do next
 

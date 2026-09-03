@@ -4,10 +4,11 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#0b0d10" name="theme-color"/>
-<meta content="0.5.108" name="torrent-dashboard-build"/>
+<meta content="0.5.109" name="torrent-dashboard-build"/>
 <link href="/manifest.webmanifest" rel="manifest"/>
-<link href="/static/app.css?v=0.5.108" rel="stylesheet"/>
-<link href="/static/settings.css?v=0.5.108" rel="stylesheet"/>
+<link href="/static/favicon.svg" rel="icon" type="image/svg+xml"/>
+<link href="/static/app.css?v=0.5.109" rel="stylesheet"/>
+<link href="/static/settings.css?v=0.5.109" rel="stylesheet"/>
 <title>Torrent Dashboard</title>
 </head>
 <body>
@@ -15,7 +16,7 @@
 <div class="setup-shell hidden" id="setup">
 <div class="setup-card">
 <aside class="setup-rail">
-<div class="brand-mark">⇣</div>
+<div class="brand-mark"><img alt="" aria-hidden="true" src="/static/favicon.svg"/></div>
 <div><strong>Torrent Dashboard</strong><small>First-run setup</small></div>
 <ol id="setupSteps"><li class="active"><button data-setup-step="0" type="button">Dashboard</button></li><li><button data-setup-step="1" type="button">Access Control</button></li><li><button data-setup-step="2" type="button">Download Client</button></li><li><button data-setup-step="3" type="button">Review</button></li></ol>
 <p>Nothing is written until the final connection test succeeds.</p>
@@ -65,7 +66,7 @@
 </div>
 <div class="login-shell hidden" id="login">
 <form autocomplete="off" class="login-card" id="loginForm">
-<div class="brand-mark">⇣</div>
+<div class="brand-mark"><img alt="" aria-hidden="true" src="/static/favicon.svg"/></div>
 <h1>Torrent Dashboard</h1><p>Sign in to Torrent Dashboard</p>
 <input aria-hidden="true" autocomplete="username" class="autofill-decoy" tabindex="-1" type="text"/>
 <input aria-hidden="true" autocomplete="current-password" class="autofill-decoy" tabindex="-1" type="password"/>
@@ -77,7 +78,7 @@
 </div>
 <div class="app hidden" id="app">
 <aside class="sidebar">
-<button class="brand brand-home" id="homeBrand" type="button" aria-label="Go to dashboard"><span class="brand-mark" aria-hidden="true">⇣</span><span class="brand-copy"><strong id="brandTitle">Torrent Dashboard</strong><small id="brandAddress">—</small></span></button>
+<button class="brand brand-home" id="homeBrand" type="button" aria-label="Go to dashboard"><span class="brand-mark" aria-hidden="true"><img alt="" src="/static/favicon.svg"/></span><span class="brand-copy"><strong id="brandTitle">Torrent Dashboard</strong><small id="brandAddress">—</small></span></button>
 <nav>
 <button class="nav nav-root active" data-view="dashboard">Dashboard</button>
 <button class="nav nav-root" data-view="notifications">Notifications</button>
@@ -255,7 +256,7 @@
 <div class="menu account-menu hidden" id="accountMenu" role="menu"><div class="account-menu-head"><span class="profile-avatar profile-avatar-menu"><img alt="" class="hidden" data-avatar-image/><span class="avatar-default" data-avatar-default aria-hidden="true"></span></span><div><strong id="accountMenuName">Account</strong><small id="accountMenuGroup">User</small></div></div><div class="menu-separator" role="separator"></div><button id="accountSettingsBtn" type="button">Account settings</button><button class="hidden" id="installPwa" type="button">Install app</button><div class="menu-separator" role="separator"></div><button id="logoutBtn" type="button">Sign out</button></div>
 <div class="menu hidden" id="contextMenu"></div>
 <div class="toasts" id="toasts"></div>
-<script src="/static/settings.js?v=0.5.108"></script>
-<script src="/static/app.js?v=0.5.108"></script>
+<script src="/static/settings.js?v=0.5.109"></script>
+<script src="/static/app.js?v=0.5.109"></script>
 </body>
 </html>

@@ -1,5 +1,5 @@
 'use strict';
-const FRONTEND_BUILD='0.5.108';
+const FRONTEND_BUILD='0.5.109';
 const HTML_BUILD=document.querySelector('meta[name="torrent-dashboard-build"]')?.content||'';
 const RECOVERY_KEY=`td-frontend-recovery-${FRONTEND_BUILD}`;
 async function recoverFrontendBuild(reason){
@@ -786,20 +786,17 @@ function visibleTorrents(){
 function syncTorrentWorkspaceLayout(){
   const workspace=$('.torrent-workspace');if(!workspace)return;
   const mobile=window.matchMedia('(max-width:700px)').matches;
-  if(mobile||!$('#view-dashboard')?.classList.contains('active')){workspace.style.removeProperty('--torrent-workspace-height');return}
+  if(mobile||!$('#view-dashboard')?.classList.contains('active')){workspace.style.removeProperty('--torrent-list-height');return}
   const documentTop=Math.max(0,workspace.getBoundingClientRect().top+(window.scrollY||window.pageYOffset||0));
-  const available=Math.max(360,Math.floor(window.innerHeight-documentTop-16));
+  const available=Math.max(360,Math.min(560,Math.floor(window.innerHeight-documentTop-16)));
   const value=`${available}px`;
-  if(workspace.style.getPropertyValue('--torrent-workspace-height')!==value)workspace.style.setProperty('--torrent-workspace-height',value);
+  if(workspace.style.getPropertyValue('--torrent-list-height')!==value)workspace.style.setProperty('--torrent-list-height',value);
 }
 function syncDesktopDetailPaneHeight(){
-  const pane=$('#torrentDetailPane'),workspace=pane?.closest('.torrent-workspace'),body=$('#detailBody');if(!pane||!workspace||!body)return;
+  const pane=$('#torrentDetailPane');if(!pane)return;
   const fitGeneral=window.matchMedia('(min-width:701px)').matches&&state.detailExpanded&&state.detailTab==='general'&&!!state.detail?.data;
-  if(!fitGeneral){pane.style.removeProperty('--torrent-detail-expanded-height');return}
-  const handle=$('#detailHandle'),tabs=pane.querySelector('.torrent-detail-tabs');
-  const chrome=(handle?.offsetHeight||0)+(tabs?.offsetHeight||0)+2,desired=Math.ceil(chrome+body.scrollHeight+4);
-  const listReserve=180,gap=12,maxHeight=Math.max(300,(workspace.clientHeight||0)-listReserve-gap),target=Math.min(maxHeight,Math.max(300,desired));
-  pane.style.setProperty('--torrent-detail-expanded-height',`${target}px`);
+  pane.classList.toggle('detail-general-fit',fitGeneral);
+  pane.style.removeProperty('--torrent-detail-expanded-height');
 }
 function syncMobileBulkbarOffset(){
   const bulk=$('#bulkbar'),pane=$('#torrentDetailPane');if(!bulk||!pane)return;
