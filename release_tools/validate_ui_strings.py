@@ -510,6 +510,16 @@ def main():
     assert '## Explicit update checks' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')
     assert '### Update-check intent and empty detail disclosure' in (ROOT / 'TESTING.md').read_text(encoding='utf-8')
 
+    # 0.5.76 treats All servers as aggregation rather than the default pseudo-client.
+    assert "server:localStorage.tdServer||'all'" in app_js
+    assert 'function preferredServer(enabled=[])' in app_js
+    assert 'if(enabled.length===1)return String(enabled[0].id)' in app_js
+    assert "const includeAll=enabled.length!==1" in app_js
+    assert "localStorage.tdServer=state.server" in app_js
+    assert "if(state.server!=='all')await loadMeta()" in app_js
+    assert '## Server-selection defaults' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')
+    assert '### Server-selection defaults' in (ROOT / 'TESTING.md').read_text(encoding='utf-8')
+
     # 0.5.73 supersedes v0.5.72's open/close-only inspector. The dock is
     # persistent, selection and disclosure are independent, and the full bar is
     # the accessible collapse/expand target on desktop and mobile.

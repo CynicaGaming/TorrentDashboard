@@ -6,7 +6,7 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.75** (prerelease)
+- Latest documented build: **v0.5.76** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 - Upstream development branch: `refactor/backend-modularization-users`
 - Upstream prerelease branch: `prerelease/backend-modularization`
@@ -14,7 +14,7 @@
 
 ### Latest release summary
 
-Restores the Dashboard heading, quiets the empty Torrent details disclosure, and makes GitHub update checks explicitly user-initiated.
+Makes single-client installations select their actual qBitTorrent server automatically while preserving All servers as a meaningful multi-client aggregation mode.
 
 ## Architecture state
 
@@ -26,11 +26,11 @@ Restores the Dashboard heading, quiets the empty Torrent details disclosure, and
 ## Current engineering decisions
 
 - Prefer two visually distinct surfaces for list/detail hierarchy rather than joining them with only an internal divider.
-- Do not expose Collapse when the detail inspector is already bounded, scrollable, and dismissible with Close.
 - Keep viewport-derived docking and independent list/detail scrolling.
 - Keep active backend modularization work separate from this presentation correction.
 - Treat torrent-detail selection and inspector disclosure as independent state: collapse changes presentation, not selection.
 - Keep the torrent-detail dock persistently discoverable and use the full disclosure bar as the primary keyboard/touch interaction target.
+- Treat All servers as an aggregation mode: omit it when only one enabled client exists, and prefer the actual client so client-specific actions remain available.
 
 ## Development principles
 
@@ -42,6 +42,15 @@ Restores the Dashboard heading, quiets the empty Torrent details disclosure, and
 - Keep public development continuity portable across forks; label canonical repository/branch/PR references as upstream context rather than local identity.
 
 ## Recent work
+
+### v0.5.76 — Single-client server defaults
+
+Makes single-client installations select their actual qBitTorrent server automatically while preserving All servers as a meaningful multi-client aggregation mode.
+
+- When exactly one enabled qBitTorrent client exists, Torrent Dashboard selects it automatically and omits All servers from the selector.
+- Client-specific operations such as Add Torrent are immediately available on single-client installations without an unnecessary selector change.
+- With multiple enabled clients, All servers remains available and the last valid server selection is restored across reloads.
+- If a remembered client is removed or disabled, selection falls back safely to All servers or the sole remaining enabled client as appropriate.
 
 ### v0.5.75 — Dashboard hierarchy and explicit update checks
 
@@ -79,15 +88,6 @@ Simplifies the torrent inspector into an always-open-on-selection, visually dist
 - Removed the torrent-detail Collapse action and remembered collapse preference; selecting a torrent opens details and Close dismisses them.
 - The shared workspace still uses the remaining desktop/tablet viewport so the list and detail panel remain visible together, with independent internal scrolling.
 - Mobile retains the existing bottom-sheet detail presentation without a collapse state.
-
-### v0.5.71 — Viewport-docked torrent inspector
-
-Corrects the desktop torrent details layout so the inspector docks to the bottom of the visible dashboard and receives enough vertical space to remain useful while the torrent list scrolls above it.
-
-- When torrent details are open on desktop/tablet, the shared torrent workspace now measures its actual viewport position and fills the remaining visible height instead of using a fixed 58dvh estimate.
-- The detail inspector receives a larger desktop allocation, preventing General and table-based detail tabs from being compressed into a shallow strip.
-- The torrent list remains the flexible scroll region above the inspector, while the detail body scrolls independently when its content exceeds the available inspector height.
-- List-only sizing remains bounded and mobile retains the existing bottom-sheet behavior.
 
 ## What to do next
 

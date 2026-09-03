@@ -127,7 +127,7 @@ Do not use this file as a test-results log; it is a stable testing contract for 
 
 ### Bottom-anchored torrent dock
 
-- Verify Dashboard / Live torrent activity is not visible on Dashboard while top-right controls remain available.
+- Verify Dashboard / Live torrent activity is visible on Dashboard while top-right controls remain available.
 - With details collapsed, verify the disclosure bar sits at the bottom of the visible dashboard workspace.
 - Expand details and verify the inspector grows upward from the same anchor while the torrent list scrolls above it.
 - Resize desktop/tablet and verify both states remain bottom-aligned without overlaying torrent rows.
@@ -140,3 +140,12 @@ Do not use this file as a test-results log; it is a stable testing contract for 
 - Press Check for updates and verify the normal GitHub update lookup occurs and refreshes update/release-integrity information.
 - With no torrent selected, verify the collapsed Torrent details bar contains no “No torrent selected” helper text.
 - Select a torrent and verify the selected torrent name may appear in the disclosure context and the inspector expands normally.
+
+
+### Server-selection defaults
+
+- With exactly one enabled qBitTorrent client, verify that client is selected automatically and All servers is not offered in the server selector.
+- With one enabled client, verify Add Torrent and other client-specific actions are immediately available without first changing the server selector.
+- With two or more enabled clients, verify All servers is available as an aggregation choice.
+- With multiple clients, select a specific client, reload the dashboard, and verify the valid previous selection is restored.
+- Disable or remove the remembered client and verify the dashboard falls back to All servers when multiple clients remain, or automatically selects the sole remaining enabled client.

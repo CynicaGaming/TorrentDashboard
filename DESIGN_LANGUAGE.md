@@ -97,3 +97,13 @@ The Dashboard retains its page title and short activity subtitle for visual hier
 Settings → Updates must not initiate a GitHub network check merely because the page is opened. Cached/local release information may render immediately, but freshness is user-directed through the Check for updates action. This keeps network activity predictable and preserves a clear distinction between viewing update settings and requesting an update check.
 
 When the Torrent details disclosure has no selected torrent, the compact handle should remain visually quiet: show only the stable Torrent details label and disclosure affordance. Selection-specific copy appears only when a torrent is actually selected.
+
+
+## Server-selection defaults
+
+All servers is an aggregation mode, not a pseudo-client. It should be offered only when aggregation has meaning.
+
+- With exactly one enabled download client, select that client automatically and omit All servers from the selector so client-specific commands are immediately available.
+- With multiple enabled clients, expose All servers and restore the user's last valid server selection when possible.
+- If a remembered client is disabled or removed, recover predictably: use All servers when multiple enabled clients remain, or the sole enabled client when only one remains.
+- Server selection is a local interface preference; changing it does not modify dashboard configuration.

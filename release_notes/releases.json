@@ -1253,6 +1253,70 @@
           "detail": "Use the configuration boundary to add restrictive file permissions and separate ordinary configuration from stored credentials."
         }
       ]
+    },
+    {
+      "version": "0.5.76",
+      "date": "2026-09-02",
+      "status": "prerelease",
+      "title": "Single-client server defaults",
+      "summary": "Makes single-client installations select their actual qBitTorrent server automatically while preserving All servers as a meaningful multi-client aggregation mode.",
+      "highlights": [
+        "When exactly one enabled qBitTorrent client exists, Torrent Dashboard selects it automatically and omits All servers from the selector.",
+        "Client-specific operations such as Add Torrent are immediately available on single-client installations without an unnecessary selector change.",
+        "With multiple enabled clients, All servers remains available and the last valid server selection is restored across reloads.",
+        "If a remembered client is removed or disabled, selection falls back safely to All servers or the sole remaining enabled client as appropriate."
+      ],
+      "fixes": [
+        "Prevents single-client dashboards from starting in All servers mode and unnecessarily disabling client-specific commands.",
+        "Loads client metadata during startup when a specific server is restored or auto-selected."
+      ],
+      "technical": [
+        "The selected server is retained as a local interface preference in tdServer and validated against the current enabled-server list on startup.",
+        "All servers is only inserted into the selector when the number of enabled clients is not exactly one.",
+        "TESTING.md and DESIGN_LANGUAGE.md now define the single-client and multi-client selection contract.",
+        "Removed a stale manual-test statement about hiding the Dashboard heading and dropped a superseded no-collapse decision from the carried-forward handoff state."
+      ],
+      "validation": [
+        "UI/source validation requires the one-client auto-selection branch, conditional All servers option, remembered selection, startup metadata load, and documented server-selection contract.",
+        "Existing backend tests, JavaScript syntax checks, generated handoff/release-note checks, frontend/service-worker synchronization, and package-integrity gates remain required."
+      ],
+      "known_issues": [],
+      "architecture": [
+        "Torrent Dashboard remains a Python standard-library application with dashboard.py as the HTTP composition root.",
+        "Configuration, integrations, users, and configuration transaction coordination remain separated into torrent_dashboard package modules.",
+        "Torrent detail presentation remains frontend-owned and continues to use the existing /api/detail contract.",
+        "Desktop/tablet use separate docked list and detail panels; mobile uses a bottom-sheet presentation."
+      ],
+      "next_steps": [
+        {
+          "priority": 1,
+          "title": "Extract release and update provenance",
+          "detail": "Move GitHub release parsing, installed release metadata, package-integrity normalization, and historical digest caching out of dashboard.py."
+        },
+        {
+          "priority": 2,
+          "title": "Extract qBitTorrent transport and normalization",
+          "detail": "Move QBitClient, server normalization, proxy/preference translation, and Web API transport away from HTTP routing."
+        },
+        {
+          "priority": 3,
+          "title": "Expand request-level behavioral tests",
+          "detail": "Add authorization, CSRF, setup, account-route, and settings-mutation coverage around extracted service boundaries."
+        },
+        {
+          "priority": 4,
+          "title": "Harden secrets at rest",
+          "detail": "Use the configuration boundary to add restrictive file permissions and separate ordinary configuration from stored credentials."
+        }
+      ],
+      "decisions": [
+        "Prefer two visually distinct surfaces for list/detail hierarchy rather than joining them with only an internal divider.",
+        "Keep viewport-derived docking and independent list/detail scrolling.",
+        "Keep active backend modularization work separate from this presentation correction.",
+        "Treat torrent-detail selection and inspector disclosure as independent state: collapse changes presentation, not selection.",
+        "Keep the torrent-detail dock persistently discoverable and use the full disclosure bar as the primary keyboard/touch interaction target.",
+        "Treat All servers as an aggregation mode: omit it when only one enabled client exists, and prefer the actual client so client-specific actions remain available."
+      ]
     }
   ]
 }
