@@ -6,7 +6,7 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.81** (prerelease)
+- Latest documented build: **v0.5.82** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 - Upstream development branch: `refactor/backend-modularization-users`
 - Upstream prerelease branch: `prerelease/backend-modularization`
@@ -14,7 +14,7 @@
 
 ### Latest release summary
 
-Keeps Add Torrent checkboxes aligned while indenting hierarchical content labels, and automatically clears Torrent details when the selected torrent disappears from the client.
+Corrects Add Torrent tree indentation by reserving a shared disclosure slot and removes redundant torrent identity metadata from the expanded details panel.
 
 ## Architecture state
 
@@ -38,6 +38,8 @@ Keeps Add Torrent checkboxes aligned while indenting hierarchical content labels
 - A repeated click on the torrent currently shown in Torrent details clears the detail context; choosing a different torrent replaces it directly.
 - Keep Add Torrent checkboxes in one aligned selection column; communicate hierarchy by indenting folder/file labels while preserving aligned Size and Priority columns.
 - Reconcile Torrent details against every refreshed torrent list and clear the detail context when its selected server/hash no longer exists.
+- Reserve a fixed disclosure/expander slot for every Add Torrent content row; files use a spacer while folders use the chevron, and hierarchy indentation begins after that slot.
+- Use the persistent Torrent details disclosure bar as the sole selection identity surface; expanded details begin directly with tabs/content rather than repeating title/hash metadata.
 
 ## Development principles
 
@@ -49,6 +51,14 @@ Keeps Add Torrent checkboxes aligned while indenting hierarchical content labels
 - Keep public development continuity portable across forks; label canonical repository/branch/PR references as upstream context rather than local identity.
 
 ## Recent work
+
+### v0.5.82 — Torrent tree alignment and detail header cleanup
+
+Corrects Add Torrent tree indentation by reserving a shared disclosure slot and removes redundant torrent identity metadata from the expanded details panel.
+
+- Add Torrent checkboxes remain aligned while file/folder labels now share a fixed expander slot before hierarchy indentation.
+- Files beneath folders visibly begin to the right of their parent folder label, including deeper nested levels.
+- Expanded Torrent details now starts directly with its information tabs; the persistent disclosure bar remains the single selected-torrent identity surface.
 
 ### v0.5.81 — Aligned file selection and stale detail cleanup
 
@@ -85,16 +95,6 @@ Separates magnet and .torrent sources, adds qBitTorrent-style file and folder se
 - Unchecked files are sent to qBitTorrent as Do not download, matching qBitTorrent's native file-priority add behavior.
 - Parsed local .torrent files are added through qBitTorrent's cached metadata so file selection can be applied before the torrent enters the transfer list.
 - Save .torrent file now saves the selected local file directly and uses canonical-hash/existing-torrent fallbacks for magnet or URL metadata.
-
-### v0.5.77 — Product language polish
-
-Refines capitalization and wording across setup, Dashboard, Settings, dialogs, roles, and integrations while preserving intentionally authored copy instead of mechanically recasing it at runtime.
-
-- Introduces a deliberate mixed capitalization model: compact named destinations may read as product labels while headings, fields, actions, statuses, errors, and explanatory text use natural sentence case.
-- Polishes setup and sign-in language, including clearer authentication choices, natural validation messages, and consistent API key and Web API terminology.
-- Refines Dashboard and Settings labels such as Free disk space, HTTP sources, Dashboard name, Check for updates, Patch notes, Browser notifications, and Completion sound.
-- Uses Allowed IP addresses instead of whitelist language on user-facing access controls, and uses client terminology for client-management actions such as Add client.
-- Simplifies dialog and account copy, including Remove torrent/Remove torrents, Save .torrent file, Client settings, and more concise profile/password guidance.
 
 ## What to do next
 

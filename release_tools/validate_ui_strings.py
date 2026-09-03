@@ -143,7 +143,7 @@ def main():
     assert ".torrent-list-panel{display:flex;flex:1 1 auto;min-height:0;overflow:hidden}" in app_css
     assert ".torrent-detail-pane:not(.collapsed){min-height:240px;flex:0 1 clamp(260px,46%,420px)}" in app_css
     assert ".torrent-detail-pane.collapsed{min-height:48px!important;max-height:48px!important;flex-basis:48px!important}" in app_css
-    assert ".torrent-detail-pane:not(.has-selection) .torrent-detail-context,.torrent-detail-pane:not(.has-selection) .torrent-detail-tabs{display:none}" in app_css
+    assert ".torrent-detail-pane:not(.has-selection) .torrent-detail-tabs{display:none}" in app_css
     assert ".torrent-detail-handle{appearance:none;width:100%;min-height:48px" in app_css
     assert ".detail-pane-close" not in app_css and ".torrent-detail-header" not in app_css
     assert "function syncTorrentWorkspaceLayout()" in app_js
@@ -618,6 +618,19 @@ def main():
     assert 'function resetDetailPane(renderList=true)' in app_js
     assert '## Hierarchical torrent content selection' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')
     assert '### Add Torrent hierarchy and detail-selection reconciliation' in (ROOT / 'TESTING.md').read_text(encoding='utf-8')
+
+    # 0.5.82 reserves the same disclosure slot for folders and files so
+    # hierarchy is expressed after the expander column, and removes the
+    # redundant selected-torrent identity block from the expanded inspector.
+    assert 'class="add-tree-spacer" aria-hidden="true"' in app_js
+    assert '.add-tree-spacer{display:block;width:22px;min-width:22px;height:22px;flex:0 0 22px}' in app_css
+    assert '0.5.82 tree disclosure alignment and streamlined Torrent details' in app_css
+    assert 'class="torrent-detail-context"' not in html
+    assert 'id="detailName"' not in html and 'id="detailMeta"' not in html
+    assert 'torrent-detail-context' not in app_css
+    assert "$('#detailName')" not in app_js and "$('#detailMeta')" not in app_js
+    assert "selected?(detailCurrentTorrent()?.name||'Selected torrent'):''" in app_js
+    assert 'The disclosure bar is the single selection-identity surface' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')
 
     print("UI string audit passed")
 

@@ -1658,6 +1658,76 @@
         "Keep Add Torrent checkboxes in one aligned selection column; communicate hierarchy by indenting folder/file labels while preserving aligned Size and Priority columns.",
         "Reconcile Torrent details against every refreshed torrent list and clear the detail context when its selected server/hash no longer exists."
       ]
+    },
+    {
+      "version": "0.5.82",
+      "date": "2026-09-03",
+      "status": "prerelease",
+      "title": "Torrent tree alignment and detail header cleanup",
+      "summary": "Corrects Add Torrent tree indentation by reserving a shared disclosure slot and removes redundant torrent identity metadata from the expanded details panel.",
+      "highlights": [
+        "Add Torrent checkboxes remain aligned while file/folder labels now share a fixed expander slot before hierarchy indentation.",
+        "Files beneath folders visibly begin to the right of their parent folder label, including deeper nested levels.",
+        "Expanded Torrent details now starts directly with its information tabs; the persistent disclosure bar remains the single selected-torrent identity surface."
+      ],
+      "fixes": [
+        "Fixes child filenames appearing visually level with or left of their parent folder despite depth-based padding.",
+        "Removes duplicated torrent title and hash/server metadata from the expanded detail pane."
+      ],
+      "technical": [
+        "File rows render an add-tree-spacer with the same 22 px width as the folder disclosure control, so depth padding operates from a consistent content baseline.",
+        "detailName/detailMeta markup and JavaScript dependencies are removed; syncDetailDock derives the selected torrent name from current state."
+      ],
+      "validation": [
+        "The UI audit requires the fixed file-row disclosure spacer and rejects any reintroduction of the redundant detail-context block.",
+        "Existing 20 backend tests, JavaScript syntax checks, generated continuity files, frontend/service-worker synchronization, and package-integrity gates remain required."
+      ],
+      "known_issues": [],
+      "architecture": [
+        "Torrent Dashboard remains a Python standard-library application with dashboard.py as the HTTP composition root.",
+        "Configuration, integrations, users, and configuration transaction coordination remain separated into torrent_dashboard package modules.",
+        "Torrent detail presentation remains frontend-owned and continues to use the existing /api/detail contract.",
+        "Desktop/tablet use separate docked list and detail panels; mobile uses a bottom-sheet presentation."
+      ],
+      "next_steps": [
+        {
+          "priority": 1,
+          "title": "Extract release and update provenance",
+          "detail": "Move GitHub release parsing, installed release metadata, package-integrity normalization, and historical digest caching out of dashboard.py."
+        },
+        {
+          "priority": 2,
+          "title": "Extract qBitTorrent transport and normalization",
+          "detail": "Move QBitClient, server normalization, proxy/preference translation, and Web API transport away from HTTP routing."
+        },
+        {
+          "priority": 3,
+          "title": "Expand request-level behavioral tests",
+          "detail": "Add authorization, CSRF, setup, account-route, and settings-mutation coverage around extracted service boundaries."
+        },
+        {
+          "priority": 4,
+          "title": "Harden secrets at rest",
+          "detail": "Use the configuration boundary to add restrictive file permissions and separate ordinary configuration from stored credentials."
+        }
+      ],
+      "decisions": [
+        "Prefer two visually distinct surfaces for list/detail hierarchy rather than joining them with only an internal divider.",
+        "Keep viewport-derived docking and independent list/detail scrolling.",
+        "Keep active backend modularization work separate from this presentation correction.",
+        "Treat torrent-detail selection and inspector disclosure as independent state: collapse changes presentation, not selection.",
+        "Keep the torrent-detail dock persistently discoverable and use the full disclosure bar as the primary keyboard/touch interaction target.",
+        "Treat All servers as an aggregation mode: omit it when only one enabled client exists, and prefer the actual client so client-specific actions remain available.",
+        "Author user-facing copy in its final display form; runtime token normalization is compatibility behavior for legacy generated tokens, not a presentation system.",
+        "Use deliberate mixed capitalization: stable named destinations may read as product labels, while headings, field labels, actions, statuses, errors, and explanatory text generally use sentence case.",
+        "Prefer user-facing product concepts over legacy implementation terminology, including allowed IP addresses for access controls and client for client-management actions.",
+        "Use qBitTorrent's parsed/cached metadata path when preselecting files from a local .torrent; raw multipart upload remains only as a compatibility fallback because qBitTorrent rejects filePriorities on raw uploaded torrents.",
+        "A repeated click on the torrent currently shown in Torrent details clears the detail context; choosing a different torrent replaces it directly.",
+        "Keep Add Torrent checkboxes in one aligned selection column; communicate hierarchy by indenting folder/file labels while preserving aligned Size and Priority columns.",
+        "Reconcile Torrent details against every refreshed torrent list and clear the detail context when its selected server/hash no longer exists.",
+        "Reserve a fixed disclosure/expander slot for every Add Torrent content row; files use a spacer while folders use the chevron, and hierarchy indentation begins after that slot.",
+        "Use the persistent Torrent details disclosure bar as the sole selection identity surface; expanded details begin directly with tabs/content rather than repeating title/hash metadata."
+      ]
     }
   ]
 }

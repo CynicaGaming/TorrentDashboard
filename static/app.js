@@ -1,5 +1,5 @@
 'use strict';
-const FRONTEND_BUILD='0.5.81';
+const FRONTEND_BUILD='0.5.82';
 const HTML_BUILD=document.querySelector('meta[name="torrent-dashboard-build"]')?.content||'';
 const RECOVERY_KEY=`td-frontend-recovery-${FRONTEND_BUILD}`;
 async function recoverFrontendBuild(reason){
@@ -309,7 +309,7 @@ function addContentFolderRow(node,depth){
   return `<div class="add-content-row add-content-folder" data-add-depth="${depth}" style="--add-depth:${depth}"><span class="add-content-select"><input type="checkbox" data-add-folder-files="${indexes.join(',')}" ${checked?'checked':''} aria-label="Download folder ${esc(node.name)}"></span><span class="add-content-name"><button class="add-folder-toggle" data-add-folder-toggle="${esc(node.path)}" type="button" aria-label="${collapsed?'Expand':'Collapse'} folder ${esc(node.name)}" aria-expanded="${String(!collapsed)}">${collapsed?'›':'⌄'}</button><span class="add-folder-name">${esc(node.name)}</span></span><span>${bytes(addTreeNodeSize(node))}</span><span class="add-folder-items">${files.length} ${files.length===1?'file':'files'}</span></div>`;
 }
 function addContentFileRow(file,depth){
-  return `<div class="add-content-row add-content-file" data-add-depth="${depth}" style="--add-depth:${depth}"><span class="add-content-select"><input type="checkbox" data-add-file-check="${file.index}" ${file.selected?'checked':''} aria-label="Download file"></span><span class="add-content-name">${esc(file.displayName||file.path)}</span><span>${bytes(file.length)}</span><span><select class="add-file-priority" data-add-file-priority="${file.index}" aria-label="File priority" ${file.selected?'':'disabled'}>${addPriorityOptions(file.priority)}</select></span></div>`;
+  return `<div class="add-content-row add-content-file" data-add-depth="${depth}" style="--add-depth:${depth}"><span class="add-content-select"><input type="checkbox" data-add-file-check="${file.index}" ${file.selected?'checked':''} aria-label="Download file"></span><span class="add-content-name"><span class="add-tree-spacer" aria-hidden="true"></span>${esc(file.displayName||file.path)}</span><span>${bytes(file.length)}</span><span><select class="add-file-priority" data-add-file-priority="${file.index}" aria-label="File priority" ${file.selected?'':'disabled'}>${addPriorityOptions(file.priority)}</select></span></div>`;
 }
 function addContentTreeRows(node,depth=0){
   const rows=[],folders=[...node.folders.values()].sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true,sensitivity:'base'}));
@@ -858,7 +858,7 @@ function syncDetailDock(){
   const pane=$('#torrentDetailPane'),handle=$('#detailHandle'),workspace=pane?.closest('.torrent-workspace');if(!pane||!handle)return;
   const expanded=!!state.detailExpanded,selected=!!state.detail;
   pane.classList.toggle('collapsed',!expanded);pane.classList.toggle('has-selection',selected);workspace?.classList.toggle('detail-expanded',expanded);
-  handle.setAttribute('aria-expanded',String(expanded));const selection=$('#detailHandleSelection');if(selection)selection.textContent=selected?($('#detailName')?.textContent||'Selected torrent'):'';
+  handle.setAttribute('aria-expanded',String(expanded));const selection=$('#detailHandleSelection');if(selection)selection.textContent=selected?(detailCurrentTorrent()?.name||'Selected torrent'):'';
   syncTorrentWorkspaceLayout();
 }
 async function toggleDetailPane(){
@@ -866,7 +866,7 @@ async function toggleDetailPane(){
   if(state.detailExpanded&&state.detail){if(state.detail.data)renderDetail();await refreshDetailData(true)}
 }
 function resetDetailPane(renderList=true){
-  state.detail=null;state.detailExpanded=false;detailRefreshAt=0;$('#detailName').textContent='';$('#detailMeta').textContent='Select a torrent to view details.';$('#detailHandleSelection').textContent='';$('#detailBody').innerHTML=detailEmptyMarkup();syncDetailDock();if(renderList)render();
+  state.detail=null;state.detailExpanded=false;detailRefreshAt=0;$('#detailHandleSelection').textContent='';$('#detailBody').innerHTML=detailEmptyMarkup();syncDetailDock();if(renderList)render();
 }
 function reconcileDetailSelection(){
   if(!state.detail)return;
@@ -875,7 +875,7 @@ function reconcileDetailSelection(){
 }
 async function openDetail(server,hash){
   const same=state.detail?.server===server&&state.detail?.hash===hash;state.detail={server,hash,data:same?state.detail?.data:null};state.detailExpanded=true;state.detailTab=state.detailTab||'general';
-  const t=state.torrents.find(x=>(x._server_id||state.server)===server&&x.hash===hash),name=t?.name||hash;$('#detailName').textContent=name;$('#detailMeta').textContent=`${t?._server_name||server} · ${hash}`;$('#detailHandleSelection').textContent=name;syncDetailDock();$$('[data-detailtab]').forEach(b=>b.classList.toggle('active',b.dataset.detailtab===state.detailTab));render();
+  syncDetailDock();$$('[data-detailtab]').forEach(b=>b.classList.toggle('active',b.dataset.detailtab===state.detailTab));render();
   await refreshDetailData(true);
 }
 async function refreshDetailData(force=false){

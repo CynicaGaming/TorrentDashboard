@@ -7,14 +7,14 @@
 This handoff is intentionally portable across public forks. Verify the current checkout's Git remote, branch, and open work before using upstream references as instructions.
 
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
-- Last documented upstream build: **v0.5.81** (prerelease)
+- Last documented upstream build: **v0.5.82** (prerelease)
 - Upstream development branch: `refactor/backend-modularization-users`
 - Upstream prerelease branch: `prerelease/backend-modularization`
 - Upstream active PR: **#25**
 
 ## Last known-good state
 
-Keeps Add Torrent checkboxes aligned while indenting hierarchical content labels, and automatically clears Torrent details when the selected torrent disappears from the client.
+Corrects Add Torrent tree indentation by reserving a shared disclosure slot and removes redundant torrent identity metadata from the expanded details panel.
 
 The released-state details and recent history are in `PROJECT_STATE.md`; architectural constraints are in `ARCHITECTURE.md`.
 
