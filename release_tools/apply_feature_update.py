@@ -70,11 +70,16 @@ app_js = read("static/app.js")
 app_js = replace_once(app_js, "const FRONTEND_BUILD='0.5.114';", "const FRONTEND_BUILD='0.5.115';", "frontend build")
 write("static/app.js", app_js)
 
-for path in ("static/index.html", "static/sw.js"):
-    text = read(path)
-    if OLD not in text:
-        raise SystemExit(f"{path}: missing {OLD}")
-    write(path, text.replace(OLD, NEW))
+index_html = read("static/index.html")
+if OLD not in index_html:
+    raise SystemExit(f"static/index.html: missing {OLD}")
+write("static/index.html", index_html.replace(OLD, NEW))
+
+sw = read("static/sw.js")
+sw = replace_once(sw, "torrent-dashboard-v05114", "torrent-dashboard-v05115", "service-worker cache key")
+if OLD not in sw:
+    raise SystemExit(f"static/sw.js: missing {OLD}")
+write("static/sw.js", sw.replace(OLD, NEW))
 
 design = read("DESIGN_LANGUAGE.md")
 if "### Torrent sort indicator grouping" not in design:
