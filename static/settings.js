@@ -49,6 +49,8 @@ window.TDSettings = (() => {
     document.querySelector('#nSoundMode')?.addEventListener('change', updateNotificationSoundUi);
     document.querySelector('#nSoundFile')?.addEventListener('change', updateNotificationSoundUi);
     document.querySelector('#testNotification')?.addEventListener('click', testNotification);
+    document.querySelector('#columnPrefList')?.addEventListener('click', e => { const button=e.target.closest('[data-column-move]'); if(button){ const row=button.closest('[data-column-key]'); moveTorrentColumnPreference(row?.dataset.columnKey||'',button.dataset.columnMove); } });
+    document.querySelector('#resetColumns')?.addEventListener('click', resetTorrentColumnPreferences);
     document.querySelector('#addIntegrationSetting')?.addEventListener('click', addIntegration);
     document.querySelector('#addUserSetting')?.addEventListener('click', addUser);
     activate(localStorage.tdSettingsPage || 'general');
@@ -194,8 +196,7 @@ window.TDSettings = (() => {
     setValue('sTheme', localStorage.tdTheme || 'dark');
     setValue('sDensity', localStorage.tdDensity || 'comfortable');
     setValue('sAccent', localStorage.tdAccent || '#72a9ff');
-    let cols = JSON.parse(localStorage.tdColumns || '{}');
-    document.querySelectorAll('[data-column]').forEach(x => x.checked = cols[x.dataset.column] !== false);
+    renderTorrentColumnPreferences();
 
     const updateRepository = s.updates?.repository || '';
     setValue('uRepository', updateRepository);
@@ -248,9 +249,7 @@ window.TDSettings = (() => {
       localStorage.tdTheme = document.querySelector('#sTheme')?.value || 'dark';
       localStorage.tdDensity = document.querySelector('#sDensity')?.value || 'comfortable';
       localStorage.tdAccent = document.querySelector('#sAccent')?.value || '#72a9ff';
-      const cols = {};
-      document.querySelectorAll('[data-column]').forEach(x => cols[x.dataset.column] = x.checked);
-      localStorage.tdColumns = JSON.stringify(cols);
+      saveTorrentColumnPreferencesFromSettings();
       applyPrefs();
       fill(state.settings);
       toast('Settings saved');

@@ -6,7 +6,7 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.83** (prerelease)
+- Latest documented build: **v0.5.84** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 - Upstream development branch: `refactor/backend-modularization-users`
 - Upstream prerelease branch: `prerelease/backend-modularization`
@@ -14,7 +14,7 @@
 
 ### Latest release summary
 
-Uses locally embedded Material-style disclosure/file icons and simplifies the Add Torrent content table for clearer hierarchy and less redundant information.
+Adds a persistent torrent-column organizer with visibility and ordering controls, expands the available table data, and makes Seeds, Peers, and Tags part of the default dashboard layout.
 
 ## Architecture state
 
@@ -42,6 +42,9 @@ Uses locally embedded Material-style disclosure/file icons and simplifies the Ad
 - Use the persistent Torrent details disclosure bar as the sole selection identity surface; expanded details begin directly with tabs/content rather than repeating title/hash metadata.
 - Use locally embedded Material-style SVGs for common disclosure and file-source affordances rather than platform-dependent text glyphs or remote icon-font dependencies.
 - Keep the Add Torrent content preview visually minimal: left-align Name, omit redundant folder descendant counts, and let the live file/size summary replace a separate Content heading.
+- Treat torrent-table column layout as a browser-local presentation preference rather than shared application configuration.
+- Keep Name, the selection checkbox, and row actions fixed; allow the remaining torrent data columns to be hidden and reordered.
+- Expose Seeds, Peers, and Tags in the default torrent table while keeping less frequently needed Size, Category, Tracker, and Added available but hidden by default.
 
 ## Development principles
 
@@ -53,6 +56,16 @@ Uses locally embedded Material-style disclosure/file icons and simplifies the Ad
 - Keep public development continuity portable across forks; label canonical repository/branch/PR references as upstream context rather than local identity.
 
 ## Recent work
+
+### v0.5.84 — Configurable torrent table columns
+
+Adds a persistent torrent-column organizer with visibility and ordering controls, expands the available table data, and makes Seeds, Peers, and Tags part of the default dashboard layout.
+
+- Settings → General now provides a Torrent columns organizer where optional columns can be shown, hidden, and moved up or down.
+- Seeds, Peers, and Tags are visible by default, with Size, Category, Tracker, and Added available as optional columns.
+- Name remains the required first data column while the selection checkbox and row-actions control remain fixed.
+- Column visibility and order persist as a browser-local preference and survive live refreshes and reloads.
+- Legacy visibility-only tdColumns preferences are migrated automatically into the ordered preference model.
 
 ### v0.5.83 — Material icon and Add Torrent table polish
 
@@ -88,13 +101,6 @@ Improves Add Torrent file-tree readability by indenting checkboxes with their hi
 - Size and Priority columns remain aligned while the selectable tree shifts according to hierarchy depth.
 - Clicking the torrent already displayed in Torrent details now deselects it and returns the persistent dock to its empty collapsed state.
 - Clicking a different torrent still switches directly to that torrent and expands its details.
-
-### v0.5.79 — Add Torrent startup hotfix
-
-Fixes a v0.5.78 Add Torrent drag-and-drop event binding error that could prevent the Dashboard from initializing in browsers that enforce the EventTarget API argument contract.
-
-- Corrects the dragenter, dragover, dragleave, and drop listeners so every addEventListener call receives both the event type and callback.
-- Restores normal Dashboard initialization while preserving the v0.5.78 selectable Add Torrent workflow, source tabs, file tree, and metadata export behavior.
 
 ## What to do next
 

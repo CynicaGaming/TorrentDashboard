@@ -144,3 +144,15 @@ Add Torrent treats a magnet/URL and a local `.torrent` file as distinct source m
 Add Torrent keeps selection controls in one stable checkbox column so scanning and bulk selection remain predictable. The content column reserves one fixed disclosure slot on every row: folders use a Material disclosure icon and files use an equal-width spacer. Hierarchy indentation is applied after that shared slot, so child files visibly sit beneath their parent folder labels while Size and Priority remain aligned. Column labels describe the table directly: Name is left-aligned at the start of its column, folder rows do not repeat descendant file counts in the Priority column, and the live file/size summary makes a separate Content heading unnecessary.
 
 For the persistent Torrent details dock, clicking the torrent whose details are already selected clears that detail context and returns the dock to its empty collapsed state. Selecting a different torrent replaces the context and expands the dock normally. The detail context must also be reconciled against each refreshed torrent list: if the selected server/hash no longer exists, clear the stale detail selection automatically. The disclosure bar is the single selection-identity surface; do not repeat the torrent title/hash in a second header immediately above the detail tabs.
+
+
+## Configurable torrent columns
+
+The torrent table is a user-configurable local workspace rather than a fixed server-side schema.
+
+- **Name** is the required identity column and remains fixed at the beginning of the torrent data columns. The selection checkbox and row-actions control also remain fixed.
+- Other torrent columns may be shown, hidden, and reordered from Settings → General. Reordering is exposed through explicit keyboard-accessible move controls rather than requiring pointer-only drag and drop.
+- The available column catalog includes Size, Progress, Status, Seeds, Peers, Download, Upload, ETA, Ratio, Category, Tags, Tracker, and Added.
+- Seeds, Peers, and Tags are part of the default visible layout. Size, Category, Tracker, and Added remain available but hidden by default to avoid unnecessary width.
+- Column layout is a browser-local presentation preference. It must not mutate shared dashboard configuration or affect another user's browser.
+- When Size or Category is promoted to its own column, the Name cell should avoid repeating the same value in its secondary summary line.

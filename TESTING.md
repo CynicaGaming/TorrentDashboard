@@ -182,3 +182,14 @@ Do not use this file as a test-results log; it is a stable testing contract for 
 - Click the same torrent row again and verify the selected-row treatment clears and Torrent details returns to the empty collapsed disclosure.
 - Select one torrent and then a different torrent; verify details switch directly to the second torrent rather than clearing first.
 - With a torrent selected in Torrent details, remove that torrent (or remove it directly in qBitTorrent) and verify the next status refresh clears the stale detail context and collapses the dock. Removing another torrent must not clear the current detail selection.
+
+
+### Configurable torrent columns
+
+- On a browser with no saved column preference, verify Seeds, Peers, and Tags are visible by default alongside Name, Progress, Status, Download, Upload, ETA, and Ratio.
+- Open Settings → General → Torrent columns and verify Name is always enabled/fixed while every other listed column can be enabled or disabled.
+- Move several columns up and down, save Settings, and verify the torrent table follows that order after the next one-second refresh and after a full browser reload.
+- Verify hidden columns remain hidden after refresh/reload and Reset columns restores the documented default order/visibility after saving.
+- Enable Size, Category, Tracker, and Added individually and verify their values render without changing qBitTorrent state.
+- Verify Seeds displays connected seeds with the total in parentheses when qBitTorrent supplies a total; Peers follows the same convention.
+- Verify the selection checkbox and row-actions control remain fixed at the outer edges of the table regardless of column order.

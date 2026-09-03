@@ -555,7 +555,7 @@ def main():
         'Username and password','Test connection','Not tested yet','Review and finish',
         'Sign in to Torrent Dashboard','Live torrent activity','Free disk space',
         'All categories','Download speed','HTTP sources','Accent color',
-        'Visible desktop columns','Copy address','Add client','GitHub repository',
+        'Torrent columns','Copy address','Add client','GitHub repository',
         'Current version','Not checked','Check for updates','Patch notes',
         'Browser notifications','Completion sound','Add integration','Add user',
         'Save .torrent file','Delete downloaded files too','Client settings',
@@ -648,6 +648,23 @@ def main():
     assert 'class="add-folder-items"' not in app_js
     assert '## Iconography' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')
     assert 'folder rows do not show descendant file counts' in (ROOT / 'TESTING.md').read_text(encoding='utf-8')
+
+    # 0.5.84 makes torrent data columns locally configurable and reorderable.
+    assert 'id="columnPrefList"' in html and 'id="resetColumns"' in html
+    assert '<legend>Torrent columns</legend>' in html and '<legend>Visible desktop columns</legend>' not in html
+    assert "{key:'seeds',label:'Seeds',defaultVisible:true}" in app_js
+    assert "{key:'peers',label:'Peers',defaultVisible:true}" in app_js
+    assert "{key:'tags',label:'Tags',defaultVisible:true}" in app_js
+    assert "{key:'size',label:'Size',defaultVisible:false}" in app_js
+    assert 'function torrentColumnPreferences()' in app_js and 'function renderTorrentColumnPreferences' in app_js
+    assert 'function moveTorrentColumnPreference' in app_js and 'function saveTorrentColumnPreferencesFromSettings' in app_js
+    assert "row.querySelector('.row-actions-head,.row-actions')" in app_js and 'applyColumnPrefs();const empty=' in app_js
+    assert 'data-col="seeds" data-label="Seeds"' in app_js and 'data-col="peers" data-label="Peers"' in app_js and 'data-col="tags" data-label="Tags"' in app_js
+    assert 'swarmColumnValue(t.num_seeds,t.num_complete)' in app_js and 'swarmColumnValue(t.num_leechs,t.num_incomplete)' in app_js
+    assert "document.querySelector('#columnPrefList')?.addEventListener('click'" in settings_js and 'saveTorrentColumnPreferencesFromSettings();' in settings_js
+    assert '.torrent-column-hidden{display:none!important}' in app_css and '0.5.84 torrent column organizer' in settings_css
+    assert '## Configurable torrent columns' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')
+    assert '### Configurable torrent columns' in (ROOT / 'TESTING.md').read_text(encoding='utf-8')
 
     print("UI string audit passed")
 
