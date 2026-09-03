@@ -150,11 +150,12 @@ For the persistent Torrent details dock, clicking the torrent whose details are 
 
 For the current desktop/tablet interaction model, the torrent list uses one fixed visible column set rather than exposing per-browser column customization. This deliberately trades configurability for predictable geometry while the table interaction layer is simplified.
 
-- The visible data-column order is **Name, Size, Status, Progress, Seeds, Peers, Down, Up, ETA, Ratio, Category, Tags**. The selection checkbox remains a fixed 40 px left rail and row Actions remains a fixed 48 px right rail.
-- Desktop/tablet widths are deterministic proportions of the available data area after the two fixed rails are reserved: Name 29%, Size 5%, Status 7%, Progress 20%, Seeds 4.5%, Peers 4.5%, Down 4.5%, Up 4.5%, ETA 3.5%, Ratio 4.5%, Category 6.5%, Tags 6.5%.
+- The visible data-column order is **Name, Size, Status, Progress, Seeds, Peers, Down, Up, ETA, Ratio, Category, Tags**. The selection checkbox remains the only fixed 40 px table rail; torrent commands are contextual rather than occupying a permanent Actions column.
+- Desktop/tablet widths are deterministic proportions of the available data area after the fixed selection rail is reserved: Name 29%, Size 5%, Status 7%, Progress 20%, Seeds 4.5%, Peers 4.5%, Down 4.5%, Up 4.5%, ETA 3.5%, Ratio 4.5%, Category 6.5%, Tags 6.5%.
 - Those proportions are recalculated from the live torrent viewport when the window changes size. The desktop table remains exactly viewport-width, so this fixed layout must not introduce a horizontal scrollbar.
 - Header labels follow their body alignment. Size, Seeds, Peers, Down, Up, ETA, and Ratio are right-aligned; other data columns are left-aligned. Header clicks and keyboard activation continue to sort, with the active direction shown by the locally embedded chevron.
 - Column resize handles, drag reorder, header visibility menus, Reset columns, spacer geometry, and browser-local `tdColumns` width/order/visibility persistence are intentionally inactive in this fixed-layout phase. Existing `tdColumns` state is discarded during migration so an old customized layout cannot leak into the fixed table.
 - Name and other text cells use only their assigned cell width for ellipsis. There is no historical independent Name maximum-width cap.
 - Mobile keeps the existing card presentation; the fixed desktop width calculation is cleared at the mobile breakpoint.
+- Torrent row commands use one shared context menu: right-click opens it on pointer-based desktop interfaces, while a deliberate long press opens it on touch. Touch movement cancels the pending long press so normal vertical scrolling is not intercepted.
 - Sorting remains browser-local in `tdSort`. The default may still be Added descending even though Added is not one of the visible fixed columns.

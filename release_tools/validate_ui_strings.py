@@ -649,14 +649,15 @@ def main():
     assert '## Iconography' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')
     assert 'folder rows do not show descendant file counts' in (ROOT / 'TESTING.md').read_text(encoding='utf-8')
 
-    # 0.5.101 temporarily standardizes the torrent table on one fixed
-    # desktop column set and deterministic proportional sizing while retaining sorting.
-    fixed_header = '<thead><tr><th class="check"><input id="selectAll" type="checkbox"/></th><th data-col="name">Name</th><th data-col="size">Size</th><th data-col="state">Status</th><th data-col="progress">Progress</th><th data-col="seeds">Seeds</th><th data-col="peers">Peers</th><th data-col="down">Down</th><th data-col="up">Up</th><th data-col="eta">ETA</th><th data-col="ratio">Ratio</th><th data-col="category">Category</th><th data-col="tags">Tags</th><th class="row-actions-head"></th></tr></thead>'
+    # 0.5.102 keeps the v0.5.101 fixed column set but removes the redundant
+    # Actions rail. Torrent commands are contextual: right-click on pointer
+    # interfaces and a movement-cancellable long press on touch interfaces.
+    fixed_header = '<thead><tr><th class="check"><input id="selectAll" type="checkbox"/></th><th data-col="name">Name</th><th data-col="size">Size</th><th data-col="state">Status</th><th data-col="progress">Progress</th><th data-col="seeds">Seeds</th><th data-col="peers">Peers</th><th data-col="down">Down</th><th data-col="up">Up</th><th data-col="eta">ETA</th><th data-col="ratio">Ratio</th><th data-col="category">Category</th><th data-col="tags">Tags</th></tr></thead>'
     assert fixed_header in html
-    assert 'id="columnMenu"' not in html and 'row-spacer-head' not in html
+    assert 'id="columnMenu"' not in html and 'row-spacer-head' not in html and 'row-actions-head' not in html
     assert "const FIXED_TORRENT_COLUMN_ORDER=['name','size','state','progress','seeds','peers','down','up','eta','ratio','category','tags'];" in app_js
     assert "const FIXED_TORRENT_COLUMN_RATIOS={name:.29,size:.05,state:.07,progress:.20,seeds:.045,peers:.045,down:.045,up:.045,eta:.035,ratio:.045,category:.065,tags:.065};" in app_js
-    assert 'const TORRENT_FIXED_COLUMN_WIDTH=88;' in app_js
+    assert 'const TORRENT_FIXED_COLUMN_WIDTH=40;' in app_js
     assert "for(const key of ['tdCategory','tdTag','tdTracker','tdColumns'])localStorage.removeItem(key)" in app_js
     assert 'function applyFixedTorrentColumnLayout()' in app_js
     assert "wrap.clientWidth-TORRENT_FIXED_COLUMN_WIDTH" in app_js and "table.style.tableLayout='fixed'" in app_js
@@ -670,19 +671,34 @@ def main():
     assert "if(!FIXED_TORRENT_COLUMN_ORDER.includes(key))return" in app_js
     assert "sortIcon.innerHTML=materialIconSvg('expand_more')" in app_js and "th.setAttribute('aria-sort'" in app_js
     assert "${t.name||''} ${t.category||''} ${t.tags||''} ${t.tracker||''}" in app_js
-    assert '0.5.101 fixed torrent table layout' in app_css
+    assert 'const TORRENT_LONG_PRESS_MS=550,TORRENT_LONG_PRESS_MOVE_PX=12;' in app_js
+    assert "e.pointerType!=='touch'" in app_js and 'Math.hypot(e.clientX-press.startX,e.clientY-press.startY)' in app_js
+    assert 'torrentLongPressSuppressClickUntil=Date.now()+800' in app_js
+    assert "addEventListener('contextmenu',rowContext)" in app_js
+    assert "addEventListener('pointerdown',rowPointerDown)" in app_js and "addEventListener('pointermove',rowPointerMove)" in app_js
+    assert "addEventListener('pointerup',rowPointerEnd)" in app_js and "addEventListener('pointercancel',rowPointerEnd)" in app_js
+    assert 'row-actions' not in html and 'more-row' not in html and 'row-actions' not in app_js and 'more-row' not in app_js
+    assert '0.5.101 fixed torrent table layout' in app_css and '0.5.102 contextual torrent row actions' in app_css
     assert '.column-resize-handle' not in app_css and '.column-menu' not in app_css and '.column-dragging' not in app_css
     assert '#torrentTable{width:100%;min-width:0;table-layout:fixed}' in app_css
     assert '#torrentTable td[data-col="name"] .torrent-name{max-width:100%;min-width:0;width:100%' in app_css
     assert 'width:40px!important;min-width:40px!important;max-width:40px!important;inline-size:40px!important' in app_css
-    assert 'width:48px!important;min-width:48px!important;max-width:48px!important;inline-size:48px!important' in app_css
+    assert 'width:48px!important;min-width:48px!important;max-width:48px!important;inline-size:48px!important' not in app_css
+    assert 'row-actions' not in app_css and 'more-row' not in app_css
+    assert '-webkit-touch-callout:none' in app_css
     assert '@media(min-width:821px){.torrent-list-region .table-wrap{width:100%;max-inline-size:100%;overflow-x:hidden' in app_css
-    assert '## Fixed torrent columns' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')
-    assert 'Name 29%, Size 5%, Status 7%, Progress 20%' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')
-    assert 'must not introduce a horizontal scrollbar' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')
-    assert '### Fixed torrent columns' in (ROOT / 'TESTING.md').read_text(encoding='utf-8')
-    assert 'there are no resize cursors/handles' in (ROOT / 'TESTING.md').read_text(encoding='utf-8')
-    assert 'without a horizontal scrollbar' in (ROOT / 'TESTING.md').read_text(encoding='utf-8')
+    design = (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')
+    testing = (ROOT / 'TESTING.md').read_text(encoding='utf-8')
+    assert '## Fixed torrent columns' in design
+    assert 'Name 29%, Size 5%, Status 7%, Progress 20%' in design
+    assert 'must not introduce a horizontal scrollbar' in design
+    assert 'torrent commands are contextual rather than occupying a permanent Actions column' in design
+    assert 'a deliberate long press opens it on touch' in design
+    assert '### Fixed torrent columns' in testing
+    assert 'there are no resize cursors/handles' in testing
+    assert 'without a horizontal scrollbar' in testing
+    assert 'there must be no dedicated Actions column' in testing
+    assert 'Long-press a non-control area of a torrent card' in testing
     print("UI string audit passed")
 
 

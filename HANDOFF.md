@@ -7,14 +7,14 @@
 This handoff is intentionally portable across public forks. Verify the current checkout's Git remote, branch, and open work before using upstream references as instructions.
 
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
-- Last documented upstream build: **v0.5.101** (prerelease)
+- Last documented upstream build: **v0.5.102** (prerelease)
 - Upstream development branch: `refactor/backend-modularization-users`
 - Upstream prerelease branch: `prerelease/backend-modularization`
 - Upstream active PR: **#25**
 
 ## Last known-good state
 
-Replaces the iterative configurable-column geometry with the requested fixed torrent column set, fixed order, and deterministic viewport-fitting proportions while retaining header sorting and the mobile card layout.
+Removes the redundant torrent Actions ellipsis column and keeps one shared command menu available through desktop right-click and a scroll-safe mobile long press.
 
 The released-state details and recent history are in `PROJECT_STATE.md`; architectural constraints are in `ARCHITECTURE.md`.
 

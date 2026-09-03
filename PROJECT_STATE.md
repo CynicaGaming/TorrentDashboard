@@ -6,7 +6,7 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.101** (prerelease)
+- Latest documented build: **v0.5.102** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 - Upstream development branch: `refactor/backend-modularization-users`
 - Upstream prerelease branch: `prerelease/backend-modularization`
@@ -14,7 +14,7 @@
 
 ### Latest release summary
 
-Replaces the iterative configurable-column geometry with the requested fixed torrent column set, fixed order, and deterministic viewport-fitting proportions while retaining header sorting and the mobile card layout.
+Removes the redundant torrent Actions ellipsis column and keeps one shared command menu available through desktop right-click and a scroll-safe mobile long press.
 
 ## Current engineering decisions
 
@@ -52,6 +52,7 @@ Replaces the iterative configurable-column geometry with the requested fixed tor
 - Prefer native single-column resizing over a viewport-derived resize ceiling: fixed selection/actions rails remain pinned while user-chosen data widths may create horizontal scrolling only inside the torrent viewport.
 - Use a hybrid resize boundary: interior data columns retain scroll-native independent resizing, while the rightmost visible data column cannot create additional horizontal overflow past the fixed Actions rail.
 - Temporarily prefer one fixed torrent-table column set and deterministic proportional sizing over resize/reorder/visibility customization while the interaction model is simplified.
+- Keep torrent row commands contextual instead of reserving a permanent Actions column: use right-click on pointer interfaces and a movement-cancellable long press on touch while retaining the shared menu implementation.
 
 ## Development principles
 
@@ -63,6 +64,15 @@ Replaces the iterative configurable-column geometry with the requested fixed tor
 - Keep public development continuity portable across forks; label canonical repository/branch/PR references as upstream context rather than local identity.
 
 ## Recent work
+
+### v0.5.102 — Contextual torrent row actions
+
+Removes the redundant torrent Actions ellipsis column and keeps one shared command menu available through desktop right-click and a scroll-safe mobile long press.
+
+- Removes the permanent 48 px Actions rail and ellipsis button so the fixed torrent data columns can use the reclaimed width.
+- Keeps the existing torrent context menu as the single row-command surface and opens it at the pointer location on desktop right-click.
+- Adds a 550 ms touch long press for mobile cards; movement beyond a small threshold cancels the gesture so ordinary scrolling remains natural.
+- Suppresses the synthetic tap after a completed long press so opening the menu does not also open Torrent details.
 
 ### v0.5.101 — Fixed torrent table layout
 
@@ -99,15 +109,6 @@ Stops torrent-column resize gestures at the pinned Actions boundary so widening 
 - A column may expand into the flexible spacer introduced in v0.5.97, but the drag stops when that slack is exhausted and the data region reaches Actions.
 - Preserves v0.5.96 one-edge geometry: the active column's left edge stays fixed and no unrelated column is shrunk or redistributed.
 - Existing oversized browser-local layouts are not silently rewritten; they can still be narrowed or reset without allowing a new resize to make them wider.
-
-### v0.5.97 — Pinned torrent actions and contained horizontal overflow
-
-Keeps the torrent row Actions surface locked to the far-right edge while allowing intentionally wide customized data columns to scroll only inside the torrent viewport.
-
-- Adds a non-interactive flexible spacer immediately before the fixed 48 px Actions column so unused table width is absorbed before Actions rather than leaving the menu column floating inward.
-- Keeps the torrent table at 100% of its viewport while using the customized data-column total only as a minimum width, preserving v0.5.96 one-edge resizing without redistributing neighboring data widths.
-- When customized data columns exceed the available width, the data region scrolls horizontally beneath the sticky Actions column while the surrounding dashboard remains width-contained.
-- Responsive layouts clear desktop fixed-table sizing and suppress the spacer so card-style mobile torrent rows do not inherit desktop horizontal geometry.
 
 ## What to do next
 
