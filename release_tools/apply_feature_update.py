@@ -127,7 +127,7 @@ def update_validation() -> None:
     # Torrent details surface instead of letting equal-z-index bottom overlays collide.
     assert 'function syncMobileBulkbarOffset()' in app_js
     assert "bulk.style.setProperty('--torrent-bulk-bottom'" in app_js
-    assert 'window.visualViewport?.addEventListener(\'resize\'' in app_js
+    assert "window.visualViewport?.addEventListener('resize'" in app_js
     assert 'setTimeout(syncMobileBulkbarOffset,180)' in app_js
     assert '0.5.103 mobile bulk action layering' in app_css
     assert 'bottom:var(--torrent-bulk-bottom,116px)!important;z-index:74' in app_css
