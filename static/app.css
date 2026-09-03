@@ -333,12 +333,12 @@ button,select,input,textarea{border:1px solid var(--border);background:var(--pan
 .torrent-column-hidden{display:none!important}
 #torrentTable{width:100%;min-width:0;table-layout:fixed}
 #torrentTable th[data-col],#torrentTable td[data-col]{box-sizing:border-box;min-width:0;overflow:hidden}
-#torrentTable thead th[data-col]{cursor:pointer;user-select:none;-webkit-user-select:none;text-align:left;padding-left:12px;padding-right:26px;outline:none}
+#torrentTable thead th[data-col]{cursor:pointer;user-select:none;-webkit-user-select:none;text-align:left;padding-left:12px;padding-right:12px;outline:none}
 @media(min-width:821px){#torrentTable [data-col="size"],#torrentTable [data-col="seeds"],#torrentTable [data-col="peers"],#torrentTable [data-col="down"],#torrentTable [data-col="up"],#torrentTable [data-col="eta"],#torrentTable [data-col="ratio"]{text-align:right;white-space:nowrap}}
-.torrent-sort-heading{position:relative;display:flex;width:100%;min-width:0;align-items:center;justify-content:flex-start;padding-right:18px;cursor:pointer;pointer-events:auto}
+.torrent-sort-heading{position:relative;display:flex;width:100%;min-width:0;align-items:center;justify-content:flex-start;gap:5px;cursor:pointer;pointer-events:auto}
 #torrentTable thead th[data-col="size"] .torrent-sort-heading,#torrentTable thead th[data-col="seeds"] .torrent-sort-heading,#torrentTable thead th[data-col="peers"] .torrent-sort-heading,#torrentTable thead th[data-col="down"] .torrent-sort-heading,#torrentTable thead th[data-col="up"] .torrent-sort-heading,#torrentTable thead th[data-col="eta"] .torrent-sort-heading,#torrentTable thead th[data-col="ratio"] .torrent-sort-heading{justify-content:flex-end}
 .torrent-sort-label{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.torrent-sort-icon{position:absolute;right:0;display:grid;place-items:center;width:14px;height:14px;color:var(--muted);opacity:0;transition:opacity .12s ease,color .12s ease;pointer-events:none}
+.torrent-sort-icon{position:static;flex:0 0 14px;display:grid;place-items:center;width:14px;height:14px;color:var(--muted);opacity:0;transition:opacity .12s ease,color .12s ease;pointer-events:none}
 .torrent-sort-icon .material-symbol-icon{width:14px;height:14px;transition:transform .14s ease}
 #torrentTable thead th[data-col]:hover .torrent-sort-icon,#torrentTable thead th[data-col]:focus-visible .torrent-sort-icon{opacity:.32}
 #torrentTable thead th.torrent-sort-active .torrent-sort-icon{opacity:1;color:var(--accent)}
@@ -421,3 +421,5 @@ button,select,input,textarea{border:1px solid var(--border);background:var(--pan
 .brand-mark img{display:block;width:100%;height:100%;object-fit:contain;border-radius:inherit}
 
 /* 0.5.114 consistent trailing-edge torrent sort chevrons */
+
+/* 0.5.115 inline torrent sort chevrons */

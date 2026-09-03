@@ -298,3 +298,13 @@ Do not use this file as a test-results log; it is a stable testing contract for 
 - Hover/focus each sortable header and verify its chevron appears at the right/trailing edge of that same header, including every numeric column.
 - Sort each numeric and text column in both directions and verify the active chevron remains on the right edge and changes direction without shifting the label alignment or column width.
 - Verify no header chevron appears on the left edge or visually reads as belonging to the adjacent column.
+
+
+### Inline torrent sort indicator grouping
+
+Manual regression coverage for desktop torrent headers:
+
+1. Verify Name, Status, Progress, Category, and Tags show the sort chevron immediately after the label when hovered/focused/active.
+2. Verify Size, Seeds, Peers, Down, Up, ETA, and Ratio remain right-aligned while their chevron appears immediately after the label.
+3. Sort ascending and descending through both text and numeric columns and confirm the indicator never jumps to a column boundary.
+4. Confirm fixed column widths, viewport-proportional workspace sizing, and mobile torrent cards are unchanged.

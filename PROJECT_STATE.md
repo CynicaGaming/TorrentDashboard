@@ -6,7 +6,7 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.114** (prerelease)
+- Latest documented build: **v0.5.115** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 - Upstream development branch: `refactor/backend-modularization-users`
 - Upstream prerelease branch: `prerelease/backend-modularization`
@@ -14,7 +14,7 @@
 
 ### Latest release summary
 
-Makes every torrent-table sort indicator use the same trailing edge while preserving content-aligned header labels.
+Makes every torrent-table sort chevron read as part of its owning header label while preserving content-aligned header groups.
 
 ## Current engineering decisions
 
@@ -76,6 +76,14 @@ Makes every torrent-table sort indicator use the same trailing edge while preser
 
 ## Recent work
 
+### v0.5.115 — Inline torrent sort indicators
+
+Makes every torrent-table sort chevron read as part of its owning header label while preserving content-aligned header groups.
+
+- Every sortable torrent header now places its chevron immediately after the header label with a consistent gap.
+- Text-oriented header groups remain left-aligned and numeric header groups remain right-aligned with their body values.
+- Sorting behavior, fixed column sizing, viewport-proportional desktop workspace sizing, and mobile presentation are unchanged.
+
 ### v0.5.114 — Consistent torrent sort chevrons
 
 Makes every torrent-table sort indicator use the same trailing edge while preserving content-aligned header labels.
@@ -107,14 +115,6 @@ Makes the desktop torrent list a deterministic six-row scroll viewport instead o
 - The desktop torrent list now measures its table header and rendered row height and reserves exactly six torrent rows.
 - Comfortable and compact density both retain a six-row viewport because sizing follows the live row-height token.
 - Fewer than six torrents may leave harmless whitespace; additional torrents stay behind the list's existing internal scrollbar.
-
-### v0.5.110 — Desktop detail viewport reveal
-
-Keeps the v0.5.109 torrent-list and General-detail sizing intact while automatically revealing the torrent workspace when desktop Torrent details is opened beneath the dashboard header and summary panels.
-
-- Opening collapsed Torrent details now scrolls the desktop torrent workspace into view so the header, metrics, and filter panels no longer consume the useful detail viewport.
-- Opening a torrent while the inspector is collapsed performs the same one-time workspace reveal.
-- The existing fixed torrent-list height and natural-height General detail behavior remain unchanged.
 
 ## What to do next
 

@@ -208,3 +208,11 @@ The expanded desktop torrent workspace should preserve the visual balance establ
 ### Torrent sort chevrons
 
 Torrent-table header labels continue to align with their body data: text-oriented headers remain left-aligned and numeric headers remain right-aligned. The sort affordance itself is independent of that text alignment. Every sortable torrent header uses the same trailing/right-edge chevron position so the indicator is visually associated with its owning column and never appears to belong to the neighboring column.
+
+
+### Torrent sort indicator grouping
+
+- Sortable torrent headers treat the label and chevron as one inline visual group.
+- Text-oriented header groups align left; numeric header groups align right to match their body values.
+- The chevron always follows the owning label with a small fixed gap rather than floating at an unrelated column edge.
+- Hover, focus, and active-sort emphasis must not change the indicator's geometry.
