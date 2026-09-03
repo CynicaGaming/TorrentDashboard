@@ -172,3 +172,10 @@ Do not use this file as a test-results log; it is a stable testing contract for 
 - Force metadata parsing to fail or use an older qBitTorrent build and verify a local `.torrent` can still fall back to direct upload, without selectable file priorities.
 - After magnet metadata is ready, use **Save .torrent file** and verify a non-empty `.torrent` downloads. Repeat with a source whose torrent already exists in qBitTorrent and verify export fallback succeeds.
 - In .torrent file mode, use **Save .torrent file** and verify the originally selected local file is downloaded without requiring qBitTorrent metadata cache availability.
+
+### Add Torrent hierarchy and repeated detail selection
+
+- Load a multi-folder torrent in Add Torrent and verify each nested level moves its checkbox and filename together to the right; Size and Priority columns should stay aligned across all depths.
+- Verify top-level files/folders remain at the base indentation and nested descendants are visibly distinguishable without relying on folder names alone.
+- Select a torrent row and verify Torrent details expands for it. Click the same torrent row again and verify the selected-row treatment clears and Torrent details returns to the empty collapsed disclosure.
+- Select one torrent and then a different torrent; verify details switch directly to the second torrent rather than clearing first.

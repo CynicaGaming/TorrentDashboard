@@ -1,5 +1,5 @@
 'use strict';
-const FRONTEND_BUILD='0.5.79';
+const FRONTEND_BUILD='0.5.80';
 const HTML_BUILD=document.querySelector('meta[name="torrent-dashboard-build"]')?.content||'';
 const RECOVERY_KEY=`td-frontend-recovery-${FRONTEND_BUILD}`;
 async function recoverFrontendBuild(reason){
@@ -306,10 +306,10 @@ function addTreeNodeSize(node){
 function addContentFolderRow(node,depth){
   const indexes=addTreeNodeIndexes(node),files=indexes.map(index=>addMetadataState.files.find(file=>file.index===index)).filter(Boolean),selected=files.filter(file=>file.selected).length;
   const checked=!!files.length&&selected===files.length,collapsed=addMetadataState.collapsedFolders.has(node.path);
-  return `<div class="add-content-row add-content-folder" data-add-depth="${depth}"><span class="add-content-select"><input type="checkbox" data-add-folder-files="${indexes.join(',')}" ${checked?'checked':''} aria-label="Download folder ${esc(node.name)}"></span><span class="add-content-name" style="--add-depth:${depth}"><button class="add-folder-toggle" data-add-folder-toggle="${esc(node.path)}" type="button" aria-label="${collapsed?'Expand':'Collapse'} folder ${esc(node.name)}" aria-expanded="${String(!collapsed)}">${collapsed?'›':'⌄'}</button><span class="add-folder-name">${esc(node.name)}</span></span><span>${bytes(addTreeNodeSize(node))}</span><span class="add-folder-items">${files.length} ${files.length===1?'file':'files'}</span></div>`;
+  return `<div class="add-content-row add-content-folder" data-add-depth="${depth}" style="--add-depth:${depth}"><span class="add-content-select"><input type="checkbox" data-add-folder-files="${indexes.join(',')}" ${checked?'checked':''} aria-label="Download folder ${esc(node.name)}"></span><span class="add-content-name"><button class="add-folder-toggle" data-add-folder-toggle="${esc(node.path)}" type="button" aria-label="${collapsed?'Expand':'Collapse'} folder ${esc(node.name)}" aria-expanded="${String(!collapsed)}">${collapsed?'›':'⌄'}</button><span class="add-folder-name">${esc(node.name)}</span></span><span>${bytes(addTreeNodeSize(node))}</span><span class="add-folder-items">${files.length} ${files.length===1?'file':'files'}</span></div>`;
 }
 function addContentFileRow(file,depth){
-  return `<div class="add-content-row add-content-file" data-add-depth="${depth}"><span class="add-content-select"><input type="checkbox" data-add-file-check="${file.index}" ${file.selected?'checked':''} aria-label="Download file"></span><span class="add-content-name" style="--add-depth:${depth}">${esc(file.displayName||file.path)}</span><span>${bytes(file.length)}</span><span><select class="add-file-priority" data-add-file-priority="${file.index}" aria-label="File priority" ${file.selected?'':'disabled'}>${addPriorityOptions(file.priority)}</select></span></div>`;
+  return `<div class="add-content-row add-content-file" data-add-depth="${depth}" style="--add-depth:${depth}"><span class="add-content-select"><input type="checkbox" data-add-file-check="${file.index}" ${file.selected?'checked':''} aria-label="Download file"></span><span class="add-content-name">${esc(file.displayName||file.path)}</span><span>${bytes(file.length)}</span><span><select class="add-file-priority" data-add-file-priority="${file.index}" aria-label="File priority" ${file.selected?'':'disabled'}>${addPriorityOptions(file.priority)}</select></span></div>`;
 }
 function addContentTreeRows(node,depth=0){
   const rows=[],folders=[...node.folders.values()].sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true,sensitivity:'base'}));
@@ -734,7 +734,7 @@ function updateFilters(){
   syncFilterSelect($('#trackerFilter'),trackers,state.tracker,'All trackers');
 }
 function rowChange(e){if(!e.target.classList.contains('rowcheck'))return;const tr=e.target.closest('tr'),k=tr.dataset.key;e.target.checked?state.selected.add(k):state.selected.delete(k);render()}
-function rowClick(e){const tr=e.target.closest('tr');if(!tr)return;if(e.target.closest('.rowcheck'))return;if(e.target.closest('.more-row')){e.stopPropagation();showTorrentMenu(tr,e.target.closest('.more-row'));return}openDetail(tr.dataset.server,tr.dataset.hash)}
+function rowClick(e){const tr=e.target.closest('tr');if(!tr)return;if(e.target.closest('.rowcheck'))return;if(e.target.closest('.more-row')){e.stopPropagation();showTorrentMenu(tr,e.target.closest('.more-row'));return}const server=tr.dataset.server,hash=tr.dataset.hash;if(state.detail?.server===server&&state.detail?.hash===hash){resetDetailPane();return}openDetail(server,hash)}
 function rowContext(e){const tr=e.target.closest('tr');if(!tr)return;e.preventDefault();showTorrentMenu(tr,{getBoundingClientRect:()=>({left:e.clientX,top:e.clientY,bottom:e.clientY,right:e.clientX})},true)}
 function showTorrentMenu(tr,anchor,context=false){
   const m=$('#contextMenu'),sid=tr.dataset.server,h=tr.dataset.hash;

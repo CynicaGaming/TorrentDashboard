@@ -6,7 +6,7 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.79** (prerelease)
+- Latest documented build: **v0.5.80** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 - Upstream development branch: `refactor/backend-modularization-users`
 - Upstream prerelease branch: `prerelease/backend-modularization`
@@ -14,7 +14,7 @@
 
 ### Latest release summary
 
-Fixes a v0.5.78 Add Torrent drag-and-drop event binding error that could prevent the Dashboard from initializing in browsers that enforce the EventTarget API argument contract.
+Improves Add Torrent file-tree readability by indenting checkboxes with their hierarchy and makes repeated torrent-row selection clear the active Torrent details context.
 
 ## Architecture state
 
@@ -35,6 +35,8 @@ Fixes a v0.5.78 Add Torrent drag-and-drop event binding error that could prevent
 - Use deliberate mixed capitalization: stable named destinations may read as product labels, while headings, field labels, actions, statuses, errors, and explanatory text generally use sentence case.
 - Prefer user-facing product concepts over legacy implementation terminology, including allowed IP addresses for access controls and client for client-management actions.
 - Use qBitTorrent's parsed/cached metadata path when preselecting files from a local .torrent; raw multipart upload remains only as a compatibility fallback because qBitTorrent rejects filePriorities on raw uploaded torrents.
+- Represent Add Torrent file hierarchy by indenting the selection control and name together while keeping data columns aligned.
+- A repeated click on the torrent currently shown in Torrent details clears the detail context; choosing a different torrent replaces it directly.
 
 ## Development principles
 
@@ -46,6 +48,15 @@ Fixes a v0.5.78 Add Torrent drag-and-drop event binding error that could prevent
 - Keep public development continuity portable across forks; label canonical repository/branch/PR references as upstream context rather than local identity.
 
 ## Recent work
+
+### v0.5.80 — Torrent hierarchy and detail selection polish
+
+Improves Add Torrent file-tree readability by indenting checkboxes with their hierarchy and makes repeated torrent-row selection clear the active Torrent details context.
+
+- Nested Add Torrent folders and files now indent their checkbox and name together, making parent/child relationships immediately visible.
+- Size and Priority columns remain aligned while the selectable tree shifts according to hierarchy depth.
+- Clicking the torrent already displayed in Torrent details now deselects it and returns the persistent dock to its empty collapsed state.
+- Clicking a different torrent still switches directly to that torrent and expands its details.
 
 ### v0.5.79 — Add Torrent startup hotfix
 
@@ -83,15 +94,6 @@ Makes single-client installations select their actual qBitTorrent server automat
 - Client-specific operations such as Add Torrent are immediately available on single-client installations without an unnecessary selector change.
 - With multiple enabled clients, All servers remains available and the last valid server selection is restored across reloads.
 - If a remembered client is removed or disabled, selection falls back safely to All servers or the sole remaining enabled client as appropriate.
-
-### v0.5.75 — Dashboard hierarchy and explicit update checks
-
-Restores the Dashboard heading, quiets the empty Torrent details disclosure, and makes GitHub update checks explicitly user-initiated.
-
-- Dashboard / Live torrent activity is visible again because removing it did not materially improve usable workspace height and weakened page hierarchy.
-- The collapsed Torrent details disclosure shows only Torrent details when no torrent is selected; selection-specific copy appears only for an actual selection.
-- Opening Settings → Updates no longer contacts GitHub automatically; Check for updates is the explicit freshness/network action.
-- The bottom-anchored desktop/tablet torrent workspace and mobile disclosure behavior remain unchanged.
 
 ## What to do next
 

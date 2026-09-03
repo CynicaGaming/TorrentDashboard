@@ -124,7 +124,7 @@ def main():
     assert all(f'data-detailtab="{tab}"' in html for tab in ('general','trackers','peers','webseeds','content'))
     assert 'HTTP sources' in html and '>Content</button>' in html
     assert "Torrent details" not in app_js
-    assert "openDetail(tr.dataset.server,tr.dataset.hash)" in app_js
+    assert "openDetail(server,hash)" in app_js
     assert "torrent-detail-selected" in app_js and "torrent-detail-selected" in app_css
     assert "function toggleDetailPane" in app_js and "function resetDetailPane" in app_js and "function refreshDetailData" in app_js
     assert "now-detailRefreshAt<3000" in app_js
@@ -601,6 +601,17 @@ def main():
     assert '.torrent-detail-pane.collapsed{min-height:48px!important' in app_css
     assert '.torrent-detail-handle[aria-expanded="true"] svg{transform:rotate(180deg)}' in app_css
     assert '@media(max-width:700px)' in app_css and 'bottom:58px;top:auto;height:min(68dvh,640px)' in app_css
+
+    # 0.5.80 makes Add Torrent hierarchy visible at the checkbox level and
+    # treats a repeated click on the active torrent row as detail deselection.
+    assert app_js.count('data-add-depth="${depth}" style="--add-depth:${depth}"') == 2
+    assert 'class="add-content-name" style="--add-depth:${depth}"' not in app_js
+    assert '0.5.80 Add Torrent hierarchy and detail selection polish' in app_css
+    assert 'grid-template-columns:calc(34px + var(--add-depth,0) * 16px)' in app_css
+    assert 'place-items:center end!important' in app_css
+    assert "if(state.detail?.server===server&&state.detail?.hash===hash){resetDetailPane();return}" in app_js
+    assert '## Hierarchical torrent content selection' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')
+    assert '### Add Torrent hierarchy and repeated detail selection' in (ROOT / 'TESTING.md').read_text(encoding='utf-8')
 
     print("UI string audit passed")
 

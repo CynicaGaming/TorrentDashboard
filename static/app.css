@@ -304,3 +304,9 @@ button,select,input,textarea{border:1px solid var(--border);background:var(--pan
 .add-folder-name{min-width:0;overflow:hidden;text-overflow:ellipsis}.add-file-priority{width:100%;min-height:30px;padding:4px 6px;font-size:9px}
 @media(max-width:520px){.add-torrent-drop{min-height:108px}.add-content-columns,.add-content-row{grid-template-columns:30px minmax(130px,1fr) 68px 96px}.add-content-panel{overflow:auto}.add-content-columns,.add-content-body{min-width:470px}}
 @media(min-width:1024px){.add-source-tab{font-size:12px;min-height:38px}.add-torrent-drop strong{font-size:13px}.add-torrent-drop>span:not(.add-drop-icon),.add-torrent-drop small{font-size:11px}.add-content-row{font-size:11.5px;min-height:42px}.add-content-columns{font-size:10px}.add-file-priority{font-size:11px}.add-folder-items{font-size:10.5px}}
+
+/* 0.5.80 Add Torrent hierarchy and detail selection polish. */
+.add-content-row{grid-template-columns:calc(34px + var(--add-depth,0) * 16px) minmax(0,1fr) 90px 112px}
+.add-content-select{place-items:center end!important;padding-right:9px}
+.add-content-name{padding-left:0}
+@media(max-width:520px){.add-content-row{grid-template-columns:calc(30px + var(--add-depth,0) * 14px) minmax(130px,1fr) 68px 96px}.add-content-select{padding-right:7px}}

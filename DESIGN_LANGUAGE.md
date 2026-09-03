@@ -132,3 +132,9 @@ Add Torrent treats a magnet/URL and a local `.torrent` file as distinct source m
 - Included files may retain qBitTorrent's Normal, High, or Maximum priority; excluded files are submitted as Do not download.
 - Local `.torrent` files are parsed through qBitTorrent before add so selected file priorities can be applied through qBitTorrent's cached-metadata add path. Direct file upload remains a fallback when metadata parsing is unavailable.
 - Save `.torrent` file is available for a selected local file without a network round trip. For magnet/URL metadata, Torrent Dashboard first uses qBitTorrent's metadata cache and may fall back to exporting an already-existing torrent by its canonical torrent ID.
+
+## Hierarchical torrent content selection
+
+File-selection trees should communicate ancestry through the selection control as well as the label. In Add Torrent, each nested folder/file level indents the checkbox and name together while size and priority columns remain aligned. Do not represent hierarchy only by shifting filenames away from otherwise flat checkboxes.
+
+For the persistent Torrent details dock, clicking the torrent whose details are already selected clears that detail context and returns the dock to its empty collapsed state. Selecting a different torrent replaces the context and expands the dock normally.
