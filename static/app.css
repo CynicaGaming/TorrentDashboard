@@ -260,7 +260,7 @@ button,select,input,textarea{border:1px solid var(--border);background:var(--pan
 .torrent-list-region{min-width:0;min-height:0}
 @media(min-width:701px){
   .torrent-workspace{display:flex;flex-direction:column;gap:12px;overflow:visible;height:auto}
-  .torrent-list-panel{display:flex;flex:0 0 var(--torrent-list-height,clamp(360px,52vh,560px));height:var(--torrent-list-height,clamp(360px,52vh,560px));min-height:360px;overflow:hidden}
+  .torrent-list-panel{display:flex;flex:0 0 var(--torrent-list-height,456px);height:var(--torrent-list-height,456px);min-height:0;overflow:hidden}
   .torrent-list-region{position:relative;display:flex;flex:1 1 auto;min-height:0;flex-direction:column;overflow:hidden}
   .torrent-list-region .table-wrap{flex:1 1 auto;min-height:0;overflow:auto;overscroll-behavior:contain}
   .torrent-list-region>.empty{position:absolute;inset:44px 0 0;display:grid;place-content:center;padding:20px;text-align:center;pointer-events:none}

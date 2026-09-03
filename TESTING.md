@@ -256,3 +256,13 @@ Do not use this file as a test-results log; it is a stable testing contract for 
 - Verify General retains its natural document height and no inner scrollbar is reintroduced; Trackers, Peers, HTTP sources, and Content retain their existing bounded scrolling.
 - Enable reduced-motion preference and verify the reveal is immediate rather than animated.
 - Repeat at mobile width and verify the mobile bottom-sheet behavior does not invoke desktop document scrolling.
+
+
+### Six-row desktop torrent viewport
+
+- At desktop width with seven or more visible torrents, verify the torrent list shows exactly six complete torrent rows plus the table header and scrolls internally for the remaining rows.
+- Switch between comfortable and compact density and verify the list recomputes from the rendered row height so both densities still expose six complete rows rather than a fixed pixel count.
+- Filter the list to fewer than six torrents and verify the list height remains unchanged; blank space at the bottom is acceptable.
+- Scroll the document past the Dashboard heading, metrics, and filters, then back to the top and verify the torrent-list height never changes.
+- Expand/collapse Torrent details and switch General/Trackers/Peers/HTTP sources/Content; verify the torrent-list height remains unchanged and the existing detail scrolling contracts remain intact.
+- Repeat at mobile width and verify the six-row desktop sizing rule is not applied to mobile torrent cards.

@@ -142,7 +142,6 @@ def main():
     assert "(!state.detailExpanded&&!force)" in app_js
     assert ".torrent-workspace{display:flex;flex-direction:column;gap:12px;overflow:visible;height:auto}" in app_css
     assert ".topbar.dashboard-mode .topbar-heading{display:none}" not in app_css
-    assert "flex:0 0 var(--torrent-list-height,clamp(360px,52vh,560px))" in app_css
     assert ".torrent-detail-pane:not(.collapsed){min-height:240px;flex:0 0 clamp(260px,46vh,420px)}" in app_css
     assert ".torrent-detail-pane.collapsed{min-height:48px!important;max-height:48px!important;flex-basis:48px!important}" in app_css
     assert ".torrent-detail-pane:not(.has-selection) .torrent-detail-tabs{display:none}" in app_css
@@ -150,7 +149,6 @@ def main():
     assert ".detail-pane-close" not in app_css and ".torrent-detail-header" not in app_css
     assert "function syncTorrentWorkspaceLayout()" in app_js
     assert "workspace.getBoundingClientRect().top+(window.scrollY||window.pageYOffset||0)" in app_js
-    assert "window.innerHeight-documentTop-16" in app_js
     assert "window.innerHeight-top-16" not in app_js
     assert "function syncDesktopDetailPaneHeight()" in app_js
     assert "state.detailTab==='general'" in app_js
@@ -533,7 +531,6 @@ def main():
     assert "classList.toggle('dashboard-mode'" not in app_js
     assert "if(dashboardView)requestAnimationFrame(()=>{syncTorrentWorkspaceLayout();syncDesktopDetailPaneHeight()})" in app_js
     assert "--torrent-list-height" in app_js and "--torrent-workspace-height" not in app_js and "--torrent-workspace-open-height" not in app_js
-    assert "const available=Math.max(360,Math.min(560,Math.floor(window.innerHeight-documentTop-16)))" in app_js
     assert '.topbar.dashboard-mode' not in app_css
     assert '.topbar.dashboard-mode .topbar-heading{display:none}' not in app_css
     assert '## Client-style dashboard workspace' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')
@@ -782,9 +779,20 @@ def main():
     assert "window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'" in app_js
     assert 'if(state.detailExpanded)requestAnimationFrame(revealDesktopTorrentWorkspace)' in app_js
     assert 'const wasExpanded=state.detailExpanded' in app_js and 'if(!wasExpanded)requestAnimationFrame(revealDesktopTorrentWorkspace)' in app_js
-    assert "const available=Math.max(360,Math.min(560,Math.floor(window.innerHeight-documentTop-16)))" in app_js
     assert 'Desktop Torrent details viewport reveal' in design
     assert 'Desktop Torrent details viewport reveal' in testing
+
+    # 0.5.111 makes the desktop torrent list an exact six-row viewport.
+    assert 'const TORRENT_DESKTOP_VISIBLE_ROWS=6;' in app_js
+    assert "const table=$('#torrentTable'),firstRow=$('#torrentRows tr');" in app_js
+    assert "parseFloat(rootStyle.getPropertyValue('--row'))||62" in app_js
+    assert "table?.tHead?.getBoundingClientRect().height||34" in app_js
+    assert "firstRow?.getBoundingClientRect().height||fallbackRow" in app_js
+    assert 'headerHeight+(rowHeight*TORRENT_DESKTOP_VISIBLE_ROWS)+2' in app_js
+    assert 'window.innerHeight-documentTop-16' not in app_js
+    assert '.torrent-list-panel{display:flex;flex:0 0 var(--torrent-list-height,456px);height:var(--torrent-list-height,456px);min-height:0;overflow:hidden}' in app_css
+    assert 'Six-row desktop torrent viewport' in design
+    assert 'Six-row desktop torrent viewport' in testing
 
     print("UI string audit passed")
 

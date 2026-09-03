@@ -1,5 +1,5 @@
 'use strict';
-const FRONTEND_BUILD='0.5.110';
+const FRONTEND_BUILD='0.5.111';
 const HTML_BUILD=document.querySelector('meta[name="torrent-dashboard-build"]')?.content||'';
 const RECOVERY_KEY=`td-frontend-recovery-${FRONTEND_BUILD}`;
 async function recoverFrontendBuild(reason){
@@ -783,12 +783,17 @@ function visibleTorrents(){
   });
   return arr;
 }
+const TORRENT_DESKTOP_VISIBLE_ROWS=6;
 function syncTorrentWorkspaceLayout(){
   const workspace=$('.torrent-workspace');if(!workspace)return;
   const mobile=window.matchMedia('(max-width:700px)').matches;
   if(mobile||!$('#view-dashboard')?.classList.contains('active')){workspace.style.removeProperty('--torrent-list-height');return}
-  const documentTop=Math.max(0,workspace.getBoundingClientRect().top+(window.scrollY||window.pageYOffset||0));
-  const available=Math.max(360,Math.min(560,Math.floor(window.innerHeight-documentTop-16)));
+  const table=$('#torrentTable'),firstRow=$('#torrentRows tr');
+  const rootStyle=getComputedStyle(document.documentElement);
+  const fallbackRow=Math.max(1,parseFloat(rootStyle.getPropertyValue('--row'))||62);
+  const headerHeight=Math.max(1,Math.ceil(table?.tHead?.getBoundingClientRect().height||34));
+  const rowHeight=Math.max(1,Math.ceil(firstRow?.getBoundingClientRect().height||fallbackRow));
+  const available=headerHeight+(rowHeight*TORRENT_DESKTOP_VISIBLE_ROWS)+2;
   const value=`${available}px`;
   if(workspace.style.getPropertyValue('--torrent-list-height')!==value)workspace.style.setProperty('--torrent-list-height',value);
 }

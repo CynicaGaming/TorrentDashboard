@@ -188,3 +188,8 @@ This supersedes the earlier shared-height desktop workspace compromise. On deskt
 ### Desktop Torrent details viewport reveal
 
 The fixed desktop torrent-list height and natural-height General detail model remain unchanged. The dashboard header, metrics, and filter controls are ordinary document content above the torrent workspace and must not be folded into a new detail-height calculation. When a user explicitly expands Torrent details from a collapsed state on desktop/tablet, the document should reveal the torrent workspace at the top of the viewport so those preceding panels scroll out naturally. This reproduces the useful manual-scroll state without shrinking the torrent list or reintroducing an inner General scrollbar. Respect reduced-motion preferences and do not force this reveal repeatedly while the detail pane is already expanded.
+
+
+### Six-row desktop torrent viewport
+
+The desktop torrent list is a deterministic data viewport rather than a remainder of the browser viewport. Its height is the rendered torrent-table header plus exactly six normal torrent rows, including the current density's row height and the panel border allowance. Header, metric, filter, login/profile, and Torrent details geometry must not change that list height. If fewer than six rows are visible, leaving unused whitespace in the list is acceptable. If more than six rows are visible, the list scrolls internally. Torrent details remains a separate surface below the list; General may use natural document height while long-data tabs retain bounded internal scrolling.
