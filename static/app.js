@@ -171,7 +171,7 @@ function torrentColumnPreferences(){
 }
 function torrentColumnVisible(key,prefs=torrentColumnPreferences()){const def=TORRENT_COLUMN_DEFS.find(column=>column.key===key);return !!def?.required||prefs.visible[key]!==false}
 function saveTorrentColumnPreferences(prefs){localStorage.tdColumns=JSON.stringify(prefs)}
-function applyTorrentColumnWidth(key,width=null){const valid=Number.isFinite(Number(width)),value=valid?`${Math.round(Number(width))}px`:'';document.querySelectorAll(`#torrentTable [data-col="${key}"]`).forEach(cell=>{cell.style.width=value;cell.style.minWidth=value;cell.style.maxWidth=value})}
+function applyTorrentColumnWidth(key,width=null){const valid=width!==null&&width!==undefined&&Number.isFinite(Number(width)),value=valid?`${Math.round(Number(width))}px`:'';document.querySelectorAll(`#torrentTable [data-col="${key}"]`).forEach(cell=>{cell.style.width=value;cell.style.minWidth=value;cell.style.maxWidth=value;cell.classList.toggle('torrent-column-sized',valid)})}
 function applyTorrentColumnWidths(prefs=torrentColumnPreferences()){for(const column of TORRENT_COLUMN_DEFS)applyTorrentColumnWidth(column.key,prefs.widths?.[column.key])}
 function saveTorrentColumnWidth(key,width){const prefs=torrentColumnPreferences(),value=Math.max(torrentColumnMinWidth(key),Math.min(TORRENT_COLUMN_MAX_WIDTH,Math.round(Number(width)||0)));prefs.widths[key]=value;saveTorrentColumnPreferences(prefs);applyTorrentColumnWidth(key,value)}
 function resetTorrentColumns(){saveTorrentColumnPreferences(defaultTorrentColumnPreferences());render()}

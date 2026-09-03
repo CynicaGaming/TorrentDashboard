@@ -679,6 +679,7 @@ def main():
     assert '.torrent-column-hidden{display:none!important}' in app_css
     assert '0.5.86 direct torrent-column manipulation' in app_css and '0.5.87 resizable torrent columns' in app_css
     assert '.column-resize-handle{' in app_css and 'body.torrent-column-resizing' in app_css
+    assert "cell.classList.toggle('torrent-column-sized',valid)" in app_js and '.torrent-column-sized .torrent-column-text{max-width:none}' in app_css
     assert '0.5.84 torrent column organizer' not in settings_css
     assert '## Configurable torrent columns' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')
     assert 'Drag the narrow right edge' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')

@@ -360,3 +360,6 @@ button,select,input,textarea{border:1px solid var(--border);background:var(--pan
 #torrentTable thead th[data-col]:hover>.column-resize-handle::after,.column-resize-handle:hover::after,body.torrent-column-resizing .column-resize-handle::after{opacity:.72}
 body.torrent-column-resizing,body.torrent-column-resizing *{cursor:col-resize!important;user-select:none!important;-webkit-user-select:none!important}
 @media(max-width:820px){.column-resize-handle{display:none!important}}
+
+#torrentTable td.torrent-column-sized[data-col="name"] .torrent-name{max-width:none}
+#torrentTable td.torrent-column-sized .torrent-column-text{max-width:none}
