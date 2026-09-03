@@ -1,5 +1,5 @@
 'use strict';
-const FRONTEND_BUILD='0.5.107';
+const FRONTEND_BUILD='0.5.108';
 const HTML_BUILD=document.querySelector('meta[name="torrent-dashboard-build"]')?.content||'';
 const RECOVERY_KEY=`td-frontend-recovery-${FRONTEND_BUILD}`;
 async function recoverFrontendBuild(reason){
@@ -676,7 +676,7 @@ function bindUI(){if(bound)return;
 }
 
 function setSettingsNavExpanded(expanded){const group=$('#settingsNavGroup'),submenu=$('#settingsSubnav');if(!group||!submenu)return;group.classList.toggle('expanded',!!expanded);submenu.classList.toggle('hidden',!expanded)}
-function setView(view){if(view==='settings'&&!state.me?.can_manage){view='dashboard';toast('Administrator access is required','error')}const settingsView=view==='settings',dashboardView=view==='dashboard';$$('.view').forEach(v=>v.classList.toggle('active',v.id===`view-${view}`));$$('.nav-root,.mobile-nav button').forEach(b=>b.classList.toggle('active',b.dataset.view===view));setSettingsNavExpanded(settingsView);$('#pageTitle').textContent=uiText(view);$('#subtitle').textContent=uiText(view==='dashboard'?'liveTorrentActivity':view==='notifications'?'recentDashboardActivity':'dashboardConfiguration');if(dashboardView)requestAnimationFrame(syncTorrentWorkspaceLayout);if(view==='notifications')loadNotifications();if(settingsView){TDSettings.activate(localStorage.tdSettingsPage||'general');loadSettings().then(()=>TDSettings.loadExtras())}}
+function setView(view){if(view==='settings'&&!state.me?.can_manage){view='dashboard';toast('Administrator access is required','error')}const settingsView=view==='settings',dashboardView=view==='dashboard';$$('.view').forEach(v=>v.classList.toggle('active',v.id===`view-${view}`));$$('.nav-root,.mobile-nav button').forEach(b=>b.classList.toggle('active',b.dataset.view===view));setSettingsNavExpanded(settingsView);$('#pageTitle').textContent=uiText(view);$('#subtitle').textContent=uiText(view==='dashboard'?'liveTorrentActivity':view==='notifications'?'recentDashboardActivity':'dashboardConfiguration');if(dashboardView)requestAnimationFrame(()=>{syncTorrentWorkspaceLayout();syncDesktopDetailPaneHeight()});if(view==='notifications')loadNotifications();if(settingsView){TDSettings.activate(localStorage.tdSettingsPage||'general');loadSettings().then(()=>TDSettings.loadExtras())}}
 
 function preferredServer(enabled=[]){
   if(enabled.length===1)return String(enabled[0].id);
@@ -792,6 +792,15 @@ function syncTorrentWorkspaceLayout(){
   const value=`${available}px`;
   if(workspace.style.getPropertyValue('--torrent-workspace-height')!==value)workspace.style.setProperty('--torrent-workspace-height',value);
 }
+function syncDesktopDetailPaneHeight(){
+  const pane=$('#torrentDetailPane'),workspace=pane?.closest('.torrent-workspace'),body=$('#detailBody');if(!pane||!workspace||!body)return;
+  const fitGeneral=window.matchMedia('(min-width:701px)').matches&&state.detailExpanded&&state.detailTab==='general'&&!!state.detail?.data;
+  if(!fitGeneral){pane.style.removeProperty('--torrent-detail-expanded-height');return}
+  const handle=$('#detailHandle'),tabs=pane.querySelector('.torrent-detail-tabs');
+  const chrome=(handle?.offsetHeight||0)+(tabs?.offsetHeight||0)+2,desired=Math.ceil(chrome+body.scrollHeight+4);
+  const listReserve=180,gap=12,maxHeight=Math.max(300,(workspace.clientHeight||0)-listReserve-gap),target=Math.min(maxHeight,Math.max(300,desired));
+  pane.style.setProperty('--torrent-detail-expanded-height',`${target}px`);
+}
 function syncMobileBulkbarOffset(){
   const bulk=$('#bulkbar'),pane=$('#torrentDetailPane');if(!bulk||!pane)return;
   if(!window.matchMedia?.('(max-width:700px)').matches){bulk.style.removeProperty('--torrent-bulk-bottom');return}
@@ -800,7 +809,7 @@ function syncMobileBulkbarOffset(){
   const clearance=Math.max(116,Math.min(Math.max(116,viewportHeight-56),Math.ceil(viewportHeight-paneTop+10)));
   bulk.style.setProperty('--torrent-bulk-bottom',`${clearance}px`);
 }
-window.addEventListener('resize',()=>requestAnimationFrame(()=>{syncTorrentWorkspaceLayout();applyFixedTorrentColumnLayout();syncMobileBulkbarOffset()}));
+window.addEventListener('resize',()=>requestAnimationFrame(()=>{syncTorrentWorkspaceLayout();applyFixedTorrentColumnLayout();syncDesktopDetailPaneHeight();syncMobileBulkbarOffset()}));
 window.visualViewport?.addEventListener('resize',()=>requestAnimationFrame(syncMobileBulkbarOffset));
 
 function emptyStateCopy(){
@@ -966,7 +975,7 @@ function syncDetailDock(){
   const expanded=!!state.detailExpanded,selected=!!state.detail;
   pane.classList.toggle('collapsed',!expanded);pane.classList.toggle('has-selection',selected);workspace?.classList.toggle('detail-expanded',expanded);
   handle.setAttribute('aria-expanded',String(expanded));const selection=$('#detailHandleSelection');if(selection)selection.textContent=selected?(detailCurrentTorrent()?.name||'Selected torrent'):'';
-  syncTorrentWorkspaceLayout();requestAnimationFrame(syncMobileBulkbarOffset);setTimeout(syncMobileBulkbarOffset,180);
+  syncTorrentWorkspaceLayout();requestAnimationFrame(()=>{syncDesktopDetailPaneHeight();syncMobileBulkbarOffset()});setTimeout(()=>{syncDesktopDetailPaneHeight();syncMobileBulkbarOffset()},180);
 }
 async function toggleDetailPane(){
   state.detailExpanded=!state.detailExpanded;syncDetailDock();
@@ -992,7 +1001,7 @@ async function refreshDetailData(force=false){
 }
 function detailCurrentTorrent(){if(!state.detail)return null;return state.torrents.find(x=>(x._server_id||state.server)===state.detail.server&&x.hash===state.detail.hash)||null}
 function detailStat(label,value){return`<div class="detail-stat"><span>${esc(label)}</span><b>${esc(value??'—')}</b></div>`}
-function renderDetail(){if(!state.detail?.data)return;const d=state.detail.data,p=d.properties||{},t=detailCurrentTorrent()||{};if(state.detailTab==='general')renderDetailGeneral(t,p);else if(state.detailTab==='trackers')renderTrackers(d.trackers||[]);else if(state.detailTab==='peers')renderPeers(d.peers||{});else if(state.detailTab==='webseeds')renderWebSeeds(d.webseeds||[]);else renderFiles(d.files||[])}
+function renderDetail(){if(!state.detail?.data)return;const d=state.detail.data,p=d.properties||{},t=detailCurrentTorrent()||{};if(state.detailTab==='general')renderDetailGeneral(t,p);else if(state.detailTab==='trackers')renderTrackers(d.trackers||[]);else if(state.detailTab==='peers')renderPeers(d.peers||{});else if(state.detailTab==='webseeds')renderWebSeeds(d.webseeds||[]);else renderFiles(d.files||[]);requestAnimationFrame(syncDesktopDetailPaneHeight)}
 function renderDetailGeneral(t,p){const progress=Math.max(0,Math.min(1,Number(t.progress||p.progress||0))),availabilityRaw=Number(t.availability),availability=Number.isFinite(availabilityRaw)&&availabilityRaw>=0?Math.min(1,availabilityRaw):null;const transfer=[['Time active',eta(p.time_elapsed)],['Downloaded',bytes(p.total_downloaded)],['Download speed',speed(p.dl_speed||t.dlspeed||0)],['Download limit',Number(p.dl_limit)>0?speed(p.dl_limit):'∞'],['Share ratio',Number(p.share_ratio||t.ratio||0).toFixed(2)],['Popularity',Number(p.popularity||0).toFixed(2)],['ETA',eta(p.eta??t.eta)],['Uploaded',bytes(p.total_uploaded)],['Upload speed',speed(p.up_speed||t.upspeed||0)],['Upload limit',Number(p.up_limit)>0?speed(p.up_limit):'∞'],['Reannounce in',eta(p.reannounce)]];const swarm=[['Connections',`${p.nb_connections??0} (${p.nb_connections_limit??'—'} max)`],['Seeds',`${p.seeds??t.num_seeds??0} (${p.seeds_total??t.num_complete??0} total)`],['Peers',`${p.peers??t.num_leechs??0} (${p.peers_total??t.num_incomplete??0} total)`],['Wasted',bytes(p.total_wasted||0)],['Last seen complete',when(p.last_seen)]];const info=[['Total size',bytes(p.total_size||t.total_size||t.size||0)],['Added on',when(p.addition_date||t.added_on)],['Completed on',when(p.completion_date||t.completion_on)],['Private',p.private===true||p.is_private===true?'Yes':p.private===false||p.is_private===false?'No':'—'],['Pieces',`${p.pieces_num??'—'} × ${bytes(p.piece_size||0)}`],['Created by',p.created_by||'—'],['Created on',when(p.creation_date)],['Save path',p.save_path||t.save_path||'—'],['Comment',p.comment||'—']];$('#detailBody').innerHTML=`<div class="detail-progress-grid"><div class="detail-progress-row"><span>Progress</span><div class="detail-progress-bar"><span style="width:${(progress*100).toFixed(1)}%"></span></div><b>${(progress*100).toFixed(1)}%</b></div><div class="detail-progress-row"><span>Availability</span><div class="detail-progress-bar availability"><span style="width:${availability===null?0:(availability*100).toFixed(1)}%"></span></div><b>${availability===null?'—':availabilityRaw.toFixed(3)}</b></div></div><div class="detail-general-grid"><section class="detail-general-section"><strong>Transfer</strong>${transfer.map(x=>detailStat(x[0],x[1])).join('')}</section><section class="detail-general-section"><strong>Swarm</strong>${swarm.map(x=>detailStat(x[0],x[1])).join('')}</section><section class="detail-general-section"><strong>Information</strong>${info.map(x=>detailStat(x[0],x[1])).join('')}</section></div>`}
 function renderFiles(files){const admin=!!state.me?.can_manage;$('#detailBody').innerHTML=`<div class="detail-table-wrap"><table class="detail-table compact"><thead><tr><th>Name</th><th>Progress</th><th>Size</th><th>Priority</th></tr></thead><tbody>${files.map((f,i)=>`<tr><td>${esc(f.name)}</td><td>${(Number(f.progress||0)*100).toFixed(1)}%</td><td>${bytes(f.size)}</td><td><select class="fileprio" data-id="${f.index??i}" ${admin?'':'disabled'}><option value="0" ${f.priority===0?'selected':''}>Do not download</option><option value="1" ${f.priority===1?'selected':''}>Normal</option><option value="6" ${f.priority===6?'selected':''}>High</option><option value="7" ${f.priority===7?'selected':''}>Maximum</option></select></td></tr>`).join('')}</tbody></table></div>`;if(admin)$$('.fileprio').forEach(s=>s.onchange=()=>doAction('file_priority',{server:state.detail.server,hash:state.detail.hash,ids:[s.dataset.id],priority:Number(s.value)}))}
 function peerAddress(p){

@@ -143,7 +143,7 @@ def main():
     assert ".torrent-workspace{display:flex;flex-direction:column;gap:12px;overflow:visible;height:var(--torrent-workspace-height,min(720px,calc(100dvh - 220px)))}" in app_css
     assert ".topbar.dashboard-mode .topbar-heading{display:none}" not in app_css
     assert ".torrent-list-panel{display:flex;flex:1 1 auto;min-height:0;overflow:hidden}" in app_css
-    assert ".torrent-detail-pane:not(.collapsed){min-height:240px;flex:0 1 clamp(260px,46%,420px)}" in app_css
+    assert ".torrent-detail-pane:not(.collapsed){min-height:240px;flex:0 1 var(--torrent-detail-expanded-height,clamp(260px,46%,420px))}" in app_css
     assert ".torrent-detail-pane.collapsed{min-height:48px!important;max-height:48px!important;flex-basis:48px!important}" in app_css
     assert ".torrent-detail-pane:not(.has-selection) .torrent-detail-tabs{display:none}" in app_css
     assert ".torrent-detail-handle{appearance:none;width:100%;min-height:48px" in app_css
@@ -152,6 +152,15 @@ def main():
     assert "workspace.getBoundingClientRect().top+(window.scrollY||window.pageYOffset||0)" in app_js
     assert "window.innerHeight-documentTop-16" in app_js
     assert "window.innerHeight-top-16" not in app_js
+    assert "function syncDesktopDetailPaneHeight()" in app_js
+    assert "state.detailTab==='general'" in app_js
+    assert "body.scrollHeight" in app_js
+    assert "listReserve=180" in app_js
+    assert "--torrent-detail-expanded-height" in app_js
+    assert "var(--torrent-detail-expanded-height,clamp(260px,46%,420px))" in app_css
+    assert "var(--torrent-detail-expanded-height,clamp(300px,46%,440px))" in app_css
+    assert "Content-fit desktop Torrent details" in design_language
+    assert "Desktop Torrent details content-fit sizing" in testing_md
     assert "Stable desktop torrent workspace height" in design_language
     assert "Desktop torrent workspace scroll stability" in testing_md
     assert "--torrent-workspace-height" in app_js
@@ -522,7 +531,7 @@ def main():
     # 0.5.75 retains bottom anchoring, restores Dashboard hierarchy, quiets the empty disclosure, and makes update checks explicit.
     assert 'id="topbar"' in html and 'class="topbar" id="topbar"' in html and 'class="topbar-heading"' in html
     assert "classList.toggle('dashboard-mode'" not in app_js
-    assert "if(dashboardView)requestAnimationFrame(syncTorrentWorkspaceLayout)" in app_js
+    assert "if(dashboardView)requestAnimationFrame(()=>{syncTorrentWorkspaceLayout();syncDesktopDetailPaneHeight()})" in app_js
     assert "--torrent-workspace-height" in app_js and "--torrent-workspace-open-height" not in app_js
     assert "const available=Math.max(360,Math.floor(window.innerHeight-documentTop-16))" in app_js
     assert '.topbar.dashboard-mode' not in app_css
@@ -711,7 +720,7 @@ def main():
     assert 'function syncMobileBulkbarOffset()' in app_js
     assert "bulk.style.setProperty('--torrent-bulk-bottom'" in app_js
     assert "window.visualViewport?.addEventListener('resize'" in app_js
-    assert 'setTimeout(syncMobileBulkbarOffset,180)' in app_js
+    assert 'setTimeout(()=>{syncDesktopDetailPaneHeight();syncMobileBulkbarOffset()},180)' in app_js
     assert '0.5.103 mobile bulk action layering' in app_css
     assert 'bottom:var(--torrent-bulk-bottom,116px)!important;z-index:74' in app_css
     assert 'bulk-selection overlay must clear the current Torrent details pane' in design

@@ -227,3 +227,12 @@ Do not use this file as a test-results log; it is a stable testing contract for 
 - Expand and collapse Torrent details and verify space is reallocated inside the fixed workspace rather than increasing the overall workspace height.
 - Repeat at mobile width and verify the existing mobile bottom-sheet/list behavior is unchanged.
 
+### Desktop Torrent details content-fit sizing
+
+- On a normal desktop viewport, open Torrent details → General and verify the full General content is visible without scrolling the detail body when there is sufficient workspace height.
+- Verify expanding General takes space from the torrent list inside the existing fixed workspace; the overall workspace height must remain unchanged and the torrent list must retain its own scrollbar.
+- Collapse and re-expand Torrent details and verify the content-fit height is restored without layout growth or page-scroll coupling.
+- Switch from General to Peers, Trackers, HTTP sources, and Content with long datasets and verify those tabs use the normal bounded detail height and their own internal scrolling rather than expanding to their full dataset height.
+- Resize the browser vertically and verify General recalculates its fitted height while retaining a usable torrent-list region. On unusually short desktop viewports, detail-body scrolling is acceptable once the reserved list region prevents the full General content from fitting.
+- Repeat at mobile width and verify the existing bottom-sheet behavior is unchanged.
+

@@ -6,7 +6,7 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.107** (prerelease)
+- Latest documented build: **v0.5.108** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 - Upstream development branch: `refactor/backend-modularization-users`
 - Upstream prerelease branch: `prerelease/backend-modularization`
@@ -14,7 +14,7 @@
 
 ### Latest release summary
 
-Keeps the desktop torrent workspace and torrent list at a stable bounded height while document scrolling occurs, preserving the list's independent internal scrollbar.
+Expands the finite desktop General detail view to its rendered content height inside the fixed torrent workspace so routine torrent properties can be read without an unnecessary inner scrollbar.
 
 ## Current engineering decisions
 
@@ -68,6 +68,14 @@ Keeps the desktop torrent workspace and torrent list at a stable bounded height 
 
 ## Recent work
 
+### v0.5.108 — Content-fit desktop Torrent details
+
+Expands the finite desktop General detail view to its rendered content height inside the fixed torrent workspace so routine torrent properties can be read without an unnecessary inner scrollbar.
+
+- Fits the expanded desktop General tab to its complete rendered content whenever the current workspace has enough room.
+- Takes the additional height from the torrent-list region while keeping the overall torrent workspace fixed and preserving the list's independent scrollbar.
+- Keeps Peers, Trackers, HTTP sources, and Content bounded and independently scrollable because those datasets can be arbitrarily long.
+
 ### v0.5.107 — Stable desktop torrent workspace height
 
 Keeps the desktop torrent workspace and torrent list at a stable bounded height while document scrolling occurs, preserving the list's independent internal scrollbar.
@@ -99,14 +107,6 @@ Restores consistent mobile torrent-card metadata alignment after desktop numeric
 - Scopes Size, Seeds, Peers, Down, Up, ETA, and Ratio right-alignment to desktop/tablet layouts only.
 - Keeps every mobile metadata field label anchored to the left side of the card while its value stays anchored to the right.
 - Applies the same mobile value alignment to Category and Tags so the metadata list reads as one consistent two-sided grid.
-
-### v0.5.103 — Mobile bulk action layering
-
-Keeps mobile bulk-selection controls above the persistent Torrent details dock or sheet instead of allowing the two bottom overlays to cover one another.
-
-- Moves the mobile bulk-selection overlay above the currently rendered Torrent details surface rather than using a fixed bottom offset that collides with the detail dock.
-- Tracks the detail pane's rendered top edge so the action bar remains clear when Torrent details is collapsed or expanded.
-- Raises the bulk-selection overlay above the detail pane while keeping dialogs and context menus on their existing higher application layers.
 
 ## What to do next
 
