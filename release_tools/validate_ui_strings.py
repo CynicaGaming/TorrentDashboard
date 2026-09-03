@@ -776,6 +776,16 @@ def main():
     assert '### Responsive torrent detail records' in design
     assert '### Responsive tracker and peer details' in testing
 
+    # 0.5.110 reveals the fixed desktop torrent workspace when details open beneath top-of-page chrome.
+    assert 'function revealDesktopTorrentWorkspace()' in app_js
+    assert "workspace.getBoundingClientRect().top+(window.scrollY||window.pageYOffset||0)-8" in app_js
+    assert "window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'" in app_js
+    assert 'if(state.detailExpanded)requestAnimationFrame(revealDesktopTorrentWorkspace)' in app_js
+    assert 'const wasExpanded=state.detailExpanded' in app_js and 'if(!wasExpanded)requestAnimationFrame(revealDesktopTorrentWorkspace)' in app_js
+    assert "const available=Math.max(360,Math.min(560,Math.floor(window.innerHeight-documentTop-16)))" in app_js
+    assert 'Desktop Torrent details viewport reveal' in design
+    assert 'Desktop Torrent details viewport reveal' in testing
+
     print("UI string audit passed")
 
 

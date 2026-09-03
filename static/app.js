@@ -1,5 +1,5 @@
 'use strict';
-const FRONTEND_BUILD='0.5.109';
+const FRONTEND_BUILD='0.5.110';
 const HTML_BUILD=document.querySelector('meta[name="torrent-dashboard-build"]')?.content||'';
 const RECOVERY_KEY=`td-frontend-recovery-${FRONTEND_BUILD}`;
 async function recoverFrontendBuild(reason){
@@ -798,6 +798,13 @@ function syncDesktopDetailPaneHeight(){
   pane.classList.toggle('detail-general-fit',fitGeneral);
   pane.style.removeProperty('--torrent-detail-expanded-height');
 }
+function revealDesktopTorrentWorkspace(){
+  const workspace=$('.torrent-workspace');if(!workspace||!window.matchMedia('(min-width:701px)').matches)return;
+  const top=Math.max(0,Math.round(workspace.getBoundingClientRect().top+(window.scrollY||window.pageYOffset||0)-8));
+  if(Math.abs((window.scrollY||window.pageYOffset||0)-top)<8)return;
+  const behavior=window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth';
+  window.scrollTo({top,behavior});
+}
 function syncMobileBulkbarOffset(){
   const bulk=$('#bulkbar'),pane=$('#torrentDetailPane');if(!bulk||!pane)return;
   if(!window.matchMedia?.('(max-width:700px)').matches){bulk.style.removeProperty('--torrent-bulk-bottom');return}
@@ -976,6 +983,7 @@ function syncDetailDock(){
 }
 async function toggleDetailPane(){
   state.detailExpanded=!state.detailExpanded;syncDetailDock();
+  if(state.detailExpanded)requestAnimationFrame(revealDesktopTorrentWorkspace);
   if(state.detailExpanded&&state.detail){if(state.detail.data)renderDetail();await refreshDetailData(true)}
 }
 function resetDetailPane(renderList=true){
@@ -987,8 +995,8 @@ function reconcileDetailSelection(){
   if(!exists)resetDetailPane(false);
 }
 async function openDetail(server,hash){
-  const same=state.detail?.server===server&&state.detail?.hash===hash;state.detail={server,hash,data:same?state.detail?.data:null};state.detailExpanded=true;state.detailTab=state.detailTab||'general';
-  syncDetailDock();$$('[data-detailtab]').forEach(b=>b.classList.toggle('active',b.dataset.detailtab===state.detailTab));render();
+  const wasExpanded=state.detailExpanded,same=state.detail?.server===server&&state.detail?.hash===hash;state.detail={server,hash,data:same?state.detail?.data:null};state.detailExpanded=true;state.detailTab=state.detailTab||'general';
+  syncDetailDock();if(!wasExpanded)requestAnimationFrame(revealDesktopTorrentWorkspace);$$('[data-detailtab]').forEach(b=>b.classList.toggle('active',b.dataset.detailtab===state.detailTab));render();
   await refreshDetailData(true);
 }
 async function refreshDetailData(force=false){

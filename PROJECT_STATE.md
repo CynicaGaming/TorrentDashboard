@@ -6,7 +6,7 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.109** (prerelease)
+- Latest documented build: **v0.5.110** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 - Upstream development branch: `refactor/backend-modularization-users`
 - Upstream prerelease branch: `prerelease/backend-modularization`
@@ -14,7 +14,7 @@
 
 ### Latest release summary
 
-Keeps the desktop torrent list at a stable internally scrollable height while allowing the finite General detail view to expand naturally below it, and adds a self-contained Torrent Dashboard favicon/logo.
+Keeps the v0.5.109 torrent-list and General-detail sizing intact while automatically revealing the torrent workspace when desktop Torrent details is opened beneath the dashboard header and summary panels.
 
 ## Current engineering decisions
 
@@ -59,6 +59,7 @@ Keeps the desktop torrent list at a stable internally scrollable height while al
 - Keep the desktop torrent list as the stable bounded scroll surface; finite General details may extend document height instead of competing with the list for one shared height.
 - Keep potentially unbounded Torrent details tabs bounded and internally scrollable while General uses natural content height on desktop.
 - Keep browser/PWA branding self-contained with a local favicon/logo asset and no external icon dependency.
+- Reveal the desktop torrent workspace when Torrent details is explicitly opened from a collapsed state instead of resizing the list/detail surfaces around the header and metrics stack.
 
 ## Development principles
 
@@ -70,6 +71,14 @@ Keeps the desktop torrent list at a stable internally scrollable height while al
 - Keep public development continuity portable across forks; label canonical repository/branch/PR references as upstream context rather than local identity.
 
 ## Recent work
+
+### v0.5.110 — Desktop detail viewport reveal
+
+Keeps the v0.5.109 torrent-list and General-detail sizing intact while automatically revealing the torrent workspace when desktop Torrent details is opened beneath the dashboard header and summary panels.
+
+- Opening collapsed Torrent details now scrolls the desktop torrent workspace into view so the header, metrics, and filter panels no longer consume the useful detail viewport.
+- Opening a torrent while the inspector is collapsed performs the same one-time workspace reveal.
+- The existing fixed torrent-list height and natural-height General detail behavior remain unchanged.
 
 ### v0.5.109 — Fixed desktop list and natural Torrent details
 
@@ -102,14 +111,6 @@ Makes Torrent details → Trackers and Peers readable on mobile with purpose-bui
 - Peers on mobile now shows each address and client with labeled Progress, Download, and Upload metrics instead of an anonymous vertical value stack.
 - Trackers on mobile now shows cleaned tracker names, human-readable status badges, Seeds and Peers counts, and an optional tracker message.
 - Desktop/tablet keeps conventional Tracker and Peer tables, while the General detail tab remains unchanged.
-
-### v0.5.105 — Compact mobile torrent cards
-
-Reduces mobile torrent-card height by pairing metadata fields into a compact two-column matrix while keeping Name and Progress full-width and preserving all displayed torrent information.
-
-- Pairs Size with Status, Seeds with Peers, Download with Upload, ETA with Ratio, and Category with Tags on mobile instead of rendering every field as a full-width row.
-- Returns the selection checkbox to an overlaid top-right position so it no longer consumes a dedicated card row.
-- Allows torrent names to wrap to at most two lines on mobile while preserving the fixed single-line desktop table presentation.
 
 ## What to do next
 

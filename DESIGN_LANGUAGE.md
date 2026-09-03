@@ -183,3 +183,8 @@ The desktop torrent workspace remains a fixed bounded surface. When Torrent deta
 ### Fixed torrent list and natural-height desktop details
 
 This supersedes the earlier shared-height desktop workspace compromise. On desktop/tablet, the torrent list owns a stable bounded height and its own vertical scrollbar; opening Torrent details must not resize that list. The finite General detail view may extend the document below the list and should use its natural content height so routine properties are readable without an inner scrollbar. Potentially unbounded detail tabs such as Trackers, Peers, HTTP sources, and Content remain bounded and internally scrollable. Page scrolling may move the combined list/detail surfaces through the viewport, but must not change the torrent list height. Torrent Dashboard branding and browser/PWA iconography remain local assets with no external runtime dependency.
+
+
+### Desktop Torrent details viewport reveal
+
+The fixed desktop torrent-list height and natural-height General detail model remain unchanged. The dashboard header, metrics, and filter controls are ordinary document content above the torrent workspace and must not be folded into a new detail-height calculation. When a user explicitly expands Torrent details from a collapsed state on desktop/tablet, the document should reveal the torrent workspace at the top of the viewport so those preceding panels scroll out naturally. This reproduces the useful manual-scroll state without shrinking the torrent list or reintroducing an inner General scrollbar. Respect reduced-motion preferences and do not force this reveal repeatedly while the detail pane is already expanded.

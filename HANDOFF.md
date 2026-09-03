@@ -7,14 +7,14 @@
 This handoff is intentionally portable across public forks. Verify the current checkout's Git remote, branch, and open work before using upstream references as instructions.
 
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
-- Last documented upstream build: **v0.5.109** (prerelease)
+- Last documented upstream build: **v0.5.110** (prerelease)
 - Upstream development branch: `refactor/backend-modularization-users`
 - Upstream prerelease branch: `prerelease/backend-modularization`
 - Upstream active PR: **#25**
 
 ## Last known-good state
 
-Keeps the desktop torrent list at a stable internally scrollable height while allowing the finite General detail view to expand naturally below it, and adds a self-contained Torrent Dashboard favicon/logo.
+Keeps the v0.5.109 torrent-list and General-detail sizing intact while automatically revealing the torrent workspace when desktop Torrent details is opened beneath the dashboard header and summary panels.
 
 The released-state details and recent history are in `PROJECT_STATE.md`; architectural constraints are in `ARCHITECTURE.md`.
 

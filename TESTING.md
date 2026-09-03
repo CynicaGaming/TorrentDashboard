@@ -246,3 +246,13 @@ Do not use this file as a test-results log; it is a stable testing contract for 
 - Resize the desktop viewport and verify the torrent list recalculates only within the 360–560 px bounded range; ordinary page scrolling must not alter the chosen height.
 - Verify `/static/favicon.svg` is used as the browser favicon, web-manifest icon, service-worker shell asset, and setup/login/sidebar brand mark.
 - Repeat at mobile width and verify the existing mobile torrent cards and bottom-sheet Torrent details behavior are unchanged.
+
+
+### Desktop Torrent details viewport reveal
+
+- Start at the top of Dashboard with the page heading, metrics, and filters visible. Open Torrent details from its collapsed disclosure and verify the document scrolls the torrent workspace to the top of the viewport while preserving the existing torrent-list height.
+- Repeat by opening a torrent row while Torrent details is collapsed; the same workspace reveal should occur.
+- With Torrent details already expanded, switch torrents and detail tabs and verify the page is not repeatedly forced back to the workspace top.
+- Verify General retains its natural document height and no inner scrollbar is reintroduced; Trackers, Peers, HTTP sources, and Content retain their existing bounded scrolling.
+- Enable reduced-motion preference and verify the reveal is immediate rather than animated.
+- Repeat at mobile width and verify the mobile bottom-sheet behavior does not invoke desktop document scrolling.
