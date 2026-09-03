@@ -6,7 +6,7 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.99** (prerelease)
+- Latest documented build: **v0.5.100** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 - Upstream development branch: `refactor/backend-modularization-users`
 - Upstream prerelease branch: `prerelease/backend-modularization`
@@ -14,7 +14,7 @@
 
 ### Latest release summary
 
-Removes the artificial right-side resize ceiling so a torrent column can be resized independently while the fixed selection and Actions controls remain pinned at the viewport edges.
+Keeps v0.5.99's native-feeling independent resizing while preventing the rightmost visible torrent column from creating a new horizontal scrollbar past the pinned Actions rail.
 
 ## Architecture state
 
@@ -58,6 +58,7 @@ Removes the artificial right-side resize ceiling so a torrent column can be resi
 - Keep the 48 px row-actions surface pinned to the torrent viewport edge with a non-interactive flexible spacer; customized data widths may scroll internally but must not move Actions offscreen or create page-level horizontal overflow.
 - Treat the pinned Actions edge as the maximum width boundary for new torrent-column resize gestures; consume spacer slack first, then stop rather than creating new horizontal overflow or shrinking unrelated columns.
 - Prefer native single-column resizing over a viewport-derived resize ceiling: fixed selection/actions rails remain pinned while user-chosen data widths may create horizontal scrolling only inside the torrent viewport.
+- Use a hybrid resize boundary: interior data columns retain scroll-native independent resizing, while the rightmost visible data column cannot create additional horizontal overflow past the fixed Actions rail.
 
 ## Development principles
 
@@ -69,6 +70,15 @@ Removes the artificial right-side resize ceiling so a torrent column can be resi
 - Keep public development continuity portable across forks; label canonical repository/branch/PR references as upstream context rather than local identity.
 
 ## Recent work
+
+### v0.5.100 — Rightmost column resize boundary
+
+Keeps v0.5.99's native-feeling independent resizing while preventing the rightmost visible torrent column from creating a new horizontal scrollbar past the pinned Actions rail.
+
+- Interior columns retain v0.5.99 behavior: they resize independently and may extend the data plane into the torrent viewport's internal horizontal scrolling when the chosen widths require it.
+- The rightmost visible data column now receives a gesture-specific ceiling derived from the live torrent viewport after reserving the frozen 40 px selection rail, frozen 48 px Actions rail, and every other visible data column.
+- A fitting layout can use all remaining spacer width, but the rightmost boundary stops when it reaches Actions instead of generating a new horizontal scrollbar.
+- Already-wide browser-local layouts are not rewritten; overflow from earlier columns remains scrollable and no unrelated column is shrunk automatically.
 
 ### v0.5.99 — Frozen edge rails and scroll-native column resizing
 
@@ -104,14 +114,6 @@ Aligns torrent-table headers with their row content and makes a resize gesture m
 - Torrent data headers now follow body-cell alignment instead of centering labels across wide columns; Seeds and Peers retain their right-aligned numeric treatment.
 - Beginning a resize snapshots every currently visible data-column width, so untouched columns keep their exact width while columns to the right translate with the dragged boundary.
 - The resize target remains the dedicated inward-only header gutter, preserving resize/reorder mutual exclusion and browser-local tdColumns persistence.
-
-### v0.5.95 — Release provenance module extraction
-
-Moves release/update provenance parsing, installed package metadata, integrity-history persistence, and release-history merging out of dashboard.py without changing the updater protocol or Updates UI.
-
-- Added torrent_dashboard/release_provenance.py as the focused owner of GitHub release asset/digest parsing and package provenance normalization.
-- Installed release-info.json and data/release-integrity.json reads/writes now flow through one injected ReleaseProvenance service.
-- The existing two-release Updates history keeps its bundled/GitHub merge behavior and gives installed package metadata final precedence for the running version.
 
 ## What to do next
 

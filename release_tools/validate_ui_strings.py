@@ -666,14 +666,15 @@ def main():
     assert 'function torrentColumnPreferences()' in app_js and 'function saveTorrentColumnPreferences(prefs)' in app_js
     assert 'function applyTorrentColumnWidths' in app_js and 'function saveTorrentColumnWidth' in app_js
     assert 'function snapshotTorrentColumnWidths' in app_js and 'function syncTorrentTableWidth' in app_js and 'function torrentColumnLayoutWidth' in app_js
-    assert 'function torrentColumnResizeMaxWidth' not in app_js
+    assert 'function torrentColumnResizeMaxWidth' not in app_js and 'function torrentRightmostColumnResizeMaxWidth' in app_js
+    assert "visible[visible.length-1]!==th" in app_js and "return TORRENT_COLUMN_MAX_WIDTH" in app_js
     assert "window.matchMedia?.('(max-width:820px)').matches" in app_js and "table.style.width='100%'" in app_js
     assert 'class="row-spacer" aria-hidden="true"' in app_js and "row.querySelector('.row-spacer-head,.row-spacer,.row-actions-head,.row-actions')" in app_js
     assert "const liveWidth=torrentColumnResize?.key===column.key?torrentColumnResize.width:null" in app_js
     assert "function render(){if(torrentColumnResize){torrentColumnRenderPending=true;return}" in app_js
-    assert "minWidth=Math.max(TORRENT_COLUMN_HARD_MIN,Math.min(torrentColumnMinWidth(key),startWidth)),prefs=snapshotTorrentColumnWidths" in app_js
-    assert 'prefs=snapshotTorrentColumnWidths(torrentColumnPreferences())' in app_js and 'Math.max(resize.minWidth' in app_js and 'Math.min(TORRENT_COLUMN_MAX_WIDTH' in app_js
-    assert 'maxWidth:torrentColumnResizeMaxWidth' not in app_js and 'resize.maxWidth' not in app_js
+    assert "minWidth=Math.max(TORRENT_COLUMN_HARD_MIN,Math.min(torrentColumnMinWidth(key),startWidth)),maxWidth=torrentRightmostColumnResizeMaxWidth(th,startWidth),prefs=snapshotTorrentColumnWidths" in app_js
+    assert 'prefs=snapshotTorrentColumnWidths(torrentColumnPreferences())' in app_js and 'Math.max(resize.minWidth' in app_js and 'Math.min(resize.maxWidth' in app_js
+    assert 'maxWidth:torrentColumnResizeMaxWidth' not in app_js and 'maxWidth=torrentRightmostColumnResizeMaxWidth(th,startWidth)' in app_js and 'resize.maxWidth' in app_js
     assert 'applyTorrentColumnWidth(resize.key,resize.width);syncTorrentTableWidth()' in app_js
     assert 'event.stopImmediatePropagation()' in app_js
     assert "const handle=event.target.closest('.column-resize-handle');if(handle)startTorrentColumnResize(event,handle)" in app_js
@@ -712,8 +713,10 @@ def main():
     assert 'Header labels follow the alignment of their body cells' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')
     assert 'flexible spacer immediately before Actions absorbs unused center width' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')
     assert 'configurable data plane scrolls horizontally inside the torrent viewport' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')
+    assert 'rightmost visible data column is the exception' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')
     assert 'only the dragged right boundary moves' in (ROOT / 'TESTING.md').read_text(encoding='utf-8')
     assert 'internal horizontal scrollbar appears without page-level overflow' in (ROOT / 'TESTING.md').read_text(encoding='utf-8')
+    assert 'gesture must not create a new horizontal scrollbar' in (ROOT / 'TESTING.md').read_text(encoding='utf-8')
     assert 'unused width must be absorbed by the blank spacer immediately before Actions' in (ROOT / 'TESTING.md').read_text(encoding='utf-8')
     assert 'no dead travel before movement and no initial jump' in (ROOT / 'TESTING.md').read_text(encoding='utf-8')
     print("UI string audit passed")
