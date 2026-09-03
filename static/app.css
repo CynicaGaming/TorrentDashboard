@@ -389,3 +389,18 @@ body.torrent-column-resizing,body.torrent-column-resizing *{cursor:col-resize!im
 .column-resize-handle{right:0;width:20px}
 .column-resize-handle::after{right:0}
 #torrentTable th.row-actions-head,#torrentTable td.row-actions{inline-size:48px!important;min-inline-size:48px!important;max-inline-size:48px!important;white-space:nowrap}
+
+
+/* 0.5.92 header sorting and streamlined torrent search. */
+.controls-panel .filters{margin-left:auto}
+.controls-panel .filters input{width:min(360px,36vw)}
+#torrentTable thead th[data-col]{outline:none}
+.torrent-sort-heading{position:relative;display:flex;width:100%;min-width:0;align-items:center;justify-content:center;pointer-events:none}
+.torrent-sort-label{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.torrent-sort-icon{position:absolute;right:0;display:grid;place-items:center;width:14px;height:14px;color:var(--muted);opacity:0;transition:opacity .12s ease,color .12s ease}
+.torrent-sort-icon .material-symbol-icon{width:14px;height:14px;transition:transform .14s ease}
+#torrentTable thead th[data-col]:hover .torrent-sort-icon,#torrentTable thead th[data-col]:focus-visible .torrent-sort-icon{opacity:.32}
+#torrentTable thead th.torrent-sort-active .torrent-sort-icon{opacity:1;color:var(--accent)}
+#torrentTable thead th[aria-sort="ascending"] .torrent-sort-icon .material-symbol-icon{transform:rotate(180deg)}
+#torrentTable thead th[data-col]:focus-visible{box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--accent) 60%,transparent)}
+@media(max-width:700px){.controls-panel .filters{width:100%;margin-left:0}.controls-panel .filters input{width:100%}}

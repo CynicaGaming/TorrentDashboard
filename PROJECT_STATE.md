@@ -6,7 +6,7 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.91** (prerelease)
+- Latest documented build: **v0.5.92** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 - Upstream development branch: `refactor/backend-modularization-users`
 - Upstream prerelease branch: `prerelease/backend-modularization`
@@ -14,7 +14,7 @@
 
 ### Latest release summary
 
-Finishes the torrent-column resize interaction by centering header labels and preventing one-second live rendering from moving a column while its resize edge is being dragged.
+Moves torrent sorting directly into the configurable column headers and removes redundant Category, Tags, Tracker, and standalone sort controls while keeping search across all torrent metadata.
 
 ## Architecture state
 
@@ -50,6 +50,7 @@ Finishes the torrent-column resize interaction by centering header labels and pr
 - Treat torrent-column resizing as an exclusive pointer gesture: use a forgiving edge target, suppress native header drag until release, and preserve the live width through polling before committing it to browser-local preferences.
 - Keep torrent resize hit targets inside their owning data header, allow Name to consume its actual assigned width before ellipsizing, and hard-lock the row-actions column as a fixed right-edge control surface.
 - Center configurable torrent-column headers with symmetric padding, reserve a fully internal resize gutter, and defer torrent-row DOM rendering during an active resize so polling cannot move the target under the pointer.
+- Use the torrent header as the single sorting surface and the unified text search as the single metadata filter: preserve status tabs, retire Category/Tags/Tracker and sort selects, clear obsolete facet preferences, and keep sort direction browser-local.
 
 ## Development principles
 
@@ -61,6 +62,15 @@ Finishes the torrent-column resize interaction by centering header labels and pr
 - Keep public development continuity portable across forks; label canonical repository/branch/PR references as upstream context rather than local identity.
 
 ## Recent work
+
+### v0.5.92 — Header sorting and streamlined torrent search
+
+Moves torrent sorting directly into the configurable column headers and removes redundant Category, Tags, Tracker, and standalone sort controls while keeping search across all torrent metadata.
+
+- Click any configurable torrent data header to sort by that field; click the active header again to toggle ascending and descending.
+- The active sort direction is shown by a local Material-style chevron and exposed through accessible aria-sort state.
+- Category, Tags, Tracker, and the standalone Sort dropdown are removed from the Dashboard controls; the search box continues to match all four metadata sources plus torrent names.
+- Existing tdSort preferences remain compatible, while retired category/tag/tracker local preferences are cleared so hidden filters cannot survive the migration.
 
 ### v0.5.91 — Stable centered column resizing
 
@@ -93,15 +103,6 @@ Removes the last special-case restriction from torrent data columns so Name can 
 - Name remains visible in the default torrent layout but can now be hidden from the header Columns menu.
 - Name remains draggable and resizable, with its minimum width reduced from 220 px to 140 px for denser desktop layouts.
 - The selection checkbox and row-actions control are now the only fixed/non-configurable torrent-table columns.
-
-### v0.5.87 — Resizable torrent columns
-
-Adds direct, persistent column-width resizing to the torrent table while preserving the existing drag-to-reorder and right-click visibility workflow.
-
-- Drag the right edge of any torrent data header to resize that column directly on the Dashboard.
-- Custom widths persist locally through one-second refreshes, browser reloads, column reordering, and hide/show changes.
-- Per-column minimum widths preserve readable Name, Progress, Status, transfer, category, tag, tracker, and date content.
-- Reset columns now restores default order/visibility and clears all custom widths.
 
 ## What to do next
 

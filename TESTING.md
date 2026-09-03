@@ -188,16 +188,20 @@ Do not use this file as a test-results log; it is a stable testing contract for 
 
 - On a browser with no saved column preference, verify Seeds, Peers, Category, and Tags are visible by default alongside Name, Progress, Status, Download, Upload, ETA, and Ratio.
 - Verify Settings → General does not contain a duplicate torrent-column organizer.
-- Drag several visible column headers left and right and verify the table follows the new order immediately, after the next one-second refresh, and after a full browser reload.
-- Drag the right edge of Name, Progress, Status, Category, and Tags to narrower and wider sizes. Hold at least one resize gesture open for several seconds across multiple one-second refreshes and verify the live width never snaps back or jumps because torrent rows rerendered under the pointer. Release the pointer and verify the latest torrent state renders once without changing the chosen width. Verify Name can shrink to its compact minimum, each column stops at its documented readable minimum, and the committed width persists after reload.
-- Hide a resized optional column from the Columns menu, show it again, and verify its saved width returns.
-- Verify the resize edge is easy to acquire without pixel-perfect positioning. Start resizing near the divider and verify header reordering cannot begin until the resize gesture is released; then drag from the body of the same header and verify normal reordering still works and does not discard its saved width.
-- Verify every configurable data-column header label is centered within its column and remains visually centered before, during, and after resizing. The resize gutter should not make labels appear shifted left, and right-aligned data cells such as Seeds/Peers must still use centered headers.
-- Verify the resize gutter never extends into the next header. In particular, move the pointer across the boundary between the last visible data column and the far-right actions column; the actions column must never show resize behavior or change width.
-- With Name at its default/automatic width, verify long torrent names are not truncated by the old fixed 470/620 px cap. Resize Name narrower and confirm ellipsis appears only when the actual cell becomes too narrow; widen it again and confirm additional text becomes visible.
-- Right-click the torrent header bar and verify the Columns menu lists every data column, including Name, and can show/hide all data columns. Hide Name and verify the remaining torrent columns continue to render and operate normally.
-- Hide and restore several columns from the header menu and verify the table updates immediately without changing qBitTorrent state.
-- Use Reset columns from the header menu and verify the default order/visibility is restored, Category remains visible, and custom widths are cleared.
+- Verify the Dashboard filter row contains only the torrent search box; Category, Tags, Tracker, and standalone Sort selects must not be present.
+- Seed old `tdCategory`, `tdTag`, and `tdTracker` local-storage values before loading v0.5.92 and verify they are cleared and cannot silently filter the torrent list.
+- Search for text that appears only in a torrent category, tag, or tracker hostname and verify the matching torrent is found.
+- Click Name, Size, Progress, Status, Seeds, Peers, Download, Upload, ETA, Ratio, Category, Tags, Tracker, and Added headers and verify each can sort the table.
+- On a newly selected sort column, verify the natural initial direction is used; click the same header again and verify ascending/descending toggles and the chevron/`aria-sort` state changes with it.
+- Reload the browser and verify the chosen sort field/direction persists through `tdSort`, including an existing sort preference created by the old dropdown.
+- Use Enter and Space on a focused data header and verify keyboard sorting matches pointer sorting.
+- Drag several visible column headers left and right and verify the table follows the new order immediately, after the next one-second refresh, and after a full browser reload. Reordering must not also change the sort field/direction.
+- Drag the right edge of Name, Progress, Status, Category, and Tags to narrower and wider sizes. Hold at least one resize gesture open for several seconds across multiple live refresh intervals; verify there is no snap, row rebuild, accidental reorder, or accidental sort.
+- Verify each header label is centered within its column; the sort affordance must not offset the label, and the 20 px resize gutter remains entirely inside the owning header.
+- Hide a resized data column from the Columns menu, show it again, and verify its saved width returns. Verify the Columns menu includes every data column, including Name, and can show/hide all data columns.
+- Use Reset columns from the header menu and verify default order/visibility returns, Category remains visible, and custom widths are cleared. The current sort preference may remain independent of the layout reset.
+- Verify widening Name reveals additional torrent-name text and ellipsis appears only when the rendered cell is actually narrower than the name.
+- Horizontally scroll a wide customized table and verify the far-right actions column remains fixed at 48 px. The actions column must never show resize behavior or change width, and it must not cause page-level horizontal overflow.
 - Verify Size, Tracker, and Added can be enabled; Seeds displays connected seeds with the total in parentheses when qBitTorrent supplies a total, and Peers follows the same convention.
-- Verify the selection checkbox and row-actions control remain fixed at the outer edges and do not expose resize handles. The row-actions column must stay at its fixed width and pinned to the right edge while data columns resize or the table scrolls horizontally.
-- Verify a browser with an existing customized v0.5.84-v0.5.86 layout keeps its custom order and visibility; missing width data should simply use automatic sizing until the user resizes a column.
+- Verify the selection checkbox and row-actions control remain fixed at the outer edges and do not expose resize, reorder, hide, or sort behavior.
+- Verify a browser with an existing customized v0.5.84-v0.5.91 layout keeps its custom order, visibility, and widths; missing width data should simply use automatic sizing until the user resizes a column.

@@ -4,10 +4,10 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#0b0d10" name="theme-color"/>
-<meta content="0.5.91" name="torrent-dashboard-build"/>
+<meta content="0.5.92" name="torrent-dashboard-build"/>
 <link href="/manifest.webmanifest" rel="manifest"/>
-<link href="/static/app.css?v=0.5.91" rel="stylesheet"/>
-<link href="/static/settings.css?v=0.5.91" rel="stylesheet"/>
+<link href="/static/app.css?v=0.5.92" rel="stylesheet"/>
+<link href="/static/settings.css?v=0.5.92" rel="stylesheet"/>
 <title>Torrent Dashboard</title>
 </head>
 <body>
@@ -132,10 +132,6 @@
 </div>
 <div class="filters">
 <input id="search" placeholder="Search torrents…" type="search"/>
-<select id="categoryFilter"><option value="">All categories</option></select>
-<select id="tagFilter"><option value="">All tags</option></select>
-<select id="trackerFilter"><option value="">All trackers</option></select>
-<select id="sort"><option value="added_desc">Newest</option><option value="name_asc">Name</option><option value="progress_desc">Progress</option><option value="down_desc">Download speed</option><option value="up_desc">Upload speed</option><option value="eta_asc">ETA</option><option value="size_desc">Size</option><option value="ratio_desc">Ratio</option></select>
 </div>
 </section>
 <section class="bulkbar hidden" id="bulkbar" aria-live="polite"><span class="bulk-summary"><b id="selectedCount">0</b> selected</span><div class="bulk-actions"><button data-bulk="start">Resume</button><button data-bulk="stop">Pause</button><button data-bulk="recheck">Recheck</button><button class="danger" data-bulk="delete">Delete</button><button class="bulk-clear" data-bulk-clear="1" type="button" aria-label="Clear selection" title="Clear selection">×</button></div></section>
@@ -260,7 +256,7 @@
 <div class="menu hidden" id="contextMenu"></div>
 <div class="menu column-menu hidden" id="columnMenu" role="menu" aria-label="Torrent columns"></div>
 <div class="toasts" id="toasts"></div>
-<script src="/static/settings.js?v=0.5.91"></script>
-<script src="/static/app.js?v=0.5.91"></script>
+<script src="/static/settings.js?v=0.5.92"></script>
+<script src="/static/app.js?v=0.5.92"></script>
 </body>
 </html>

@@ -150,16 +150,15 @@ For the persistent Torrent details dock, clicking the torrent whose details are 
 
 The torrent table is a user-configurable local workspace, and column management lives where the columns are used.
 
-- **Name** is visible by default but is otherwise a normal configurable data column: it can be hidden, reordered, and resized. The selection checkbox and row-actions control are the only fixed table columns.
-- On desktop/tablet, drag a visible torrent column header horizontally to change its position. The chosen order is persisted immediately and must survive the one-second live refresh and browser reloads.
-- Drag the right edge of a visible data header to resize that column. The resize gutter stays entirely inside the data header, uses a forgiving hit target, and takes exclusive control of the pointer so it cannot overlap an adjacent column or simultaneously initiate header reordering. While the pointer is held down, live status polling may update state but must defer torrent-row DOM rendering so the column cannot jump under the pointer; render the latest row state once the resize is released. Committed widths are stored with the same browser-local column layout and survive visibility changes, reordering, and reloads.
-- Column resizing has per-column minimums that preserve legibility and a bounded maximum width. Name can shrink to a compact readable width; the fixed selection and row-actions columns are not user-resizable.
-- Configurable data-column headers are visually centered within symmetric horizontal padding. The label center should match the column center even though the right edge contains a resize gutter; selection and row-actions headers are outside this rule.
-- The Name cell must not impose a historical fixed truncation width. It may use all space assigned to its column and should show an ellipsis only when the rendered cell is actually narrower than the torrent name.
-- The row-actions column has a fixed width and remains pinned to the right edge of the torrent viewport. It never exposes a resize gutter and must not cause the dashboard page itself to overflow horizontally; excess data-column width is contained by the torrent table's own scroll region.
-- Right-click anywhere on the torrent header bar to open the **Columns** menu. Optional columns can be shown or hidden there without opening Settings; **Reset columns** restores the documented default order/visibility and clears custom widths.
-- The available column catalog includes Name, Size, Progress, Status, Seeds, Peers, Download, Upload, ETA, Ratio, Category, Tags, Tracker, and Added.
-- Seeds, Peers, Category, and Tags are part of the default visible layout. Size, Tracker, and Added remain available but hidden by default to limit unnecessary width.
-- Column layout is a browser-local presentation preference. It must not mutate shared dashboard configuration or affect another user's browser.
+- **Name** is visible by default but is otherwise a normal configurable data column. The selection checkbox and row-actions control are the only fixed outer-edge columns.
+- On desktop/tablet, drag a visible torrent data header horizontally to change its position. Drag the right edge of a visible data header to resize that column; resizing takes exclusive control of the pointer. During an active resize, defer torrent-row DOM rendering until the gesture ends so live polling cannot move the target.
+- Torrent names and other text columns should consume the width actually assigned to their cell. Use ellipsis only when the rendered cell is actually narrower than its content; it is an overflow treatment, not a fixed historical width cap.
+- Right-click anywhere on the torrent header bar to open the **Columns** menu. Every data column, including Name, can be shown or hidden there; **Reset columns** restores the documented default order/visibility and clears custom widths.
+- Click a data-column header to sort by that field. Clicking the active sort header toggles ascending/descending; the active direction is shown with the local Material-style chevron and exposed through `aria-sort`.
+- Header sorting, header reordering, and edge resizing are separate gestures. Completing a resize or reorder must not accidentally trigger a sort click.
+- The sort choice is a browser-local preference and remains compatible with existing `tdSort` values from the retired sort dropdown.
+- The available column catalog includes Name, Size, Progress, Status, Seeds, Peers, Download, Upload, ETA, Ratio, Category, Tags, Tracker, and Added. Seeds, Peers, Category, and Tags are part of the default visible layout.
+- The Dashboard keeps the status tabs (All, Downloading, Completed, Paused) plus one text search. Search matches torrent name, category, tags, and tracker; separate Category/Tags/Tracker dropdown filters are intentionally omitted because they duplicate searchable metadata.
+- Retired metadata-filter preferences must be cleared during migration so an old hidden Category/Tag/Tracker selection can never continue filtering the table after its control is removed.
+- Column order, visibility, width, and sort are browser-local presentation preferences. They must not mutate shared dashboard configuration or affect another user's browser.
 - When Size or Category is promoted to its own visible column, the Name cell should avoid repeating the same value in its secondary summary line.
-- Direct manipulation should use clear drag/drop and resize feedback plus a conventional header context menu rather than duplicating the same controls in Settings.

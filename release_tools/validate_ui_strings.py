@@ -110,9 +110,9 @@ def main():
     assert 'id="savedView"' not in html
     assert 'id="saveView"' not in html
     assert 'tdSavedViews' not in app_js
-    assert 'function syncFilterSelect' in app_js
-    assert 'document.activeElement===select' in app_js
-    assert 'optionsSignature' in app_js
+    assert 'function syncFilterSelect' not in app_js
+    assert 'document.activeElement===select' not in app_js
+    assert 'optionsSignature' not in app_js
     assert "function normalizeUiAttributes" in app_js
     assert "attributeFilter:['placeholder','title','aria-label']" in app_js
     assert "applySentenceCaseUi(card)" in settings_js
@@ -155,7 +155,7 @@ def main():
     assert 'id="emptyTitle"' in html and 'id="emptyText"' in html
     assert "function emptyStateCopy()" in app_js
     assert "['No active torrents','Nothing is downloading right now.']" in app_js
-    assert "['No torrents match these filters','Adjust your search or filters.']" in app_js
+    assert "['No torrents match your search','Try a different search.']" in app_js
     assert ".torrent-list-region>.empty{position:absolute;inset:44px 0 0;display:grid;place-content:center" in app_css
     assert "/api/v2/torrents/webseeds" in dashboard_py
     assert "renderWebSeeds" in app_js
@@ -554,7 +554,7 @@ def main():
         'Local dashboard address','Authentication mode','Allowed IP addresses',
         'Username and password','Test connection','Not tested yet','Review and finish',
         'Sign in to Torrent Dashboard','Live torrent activity','Free disk space',
-        'All categories','Download speed','HTTP sources','Accent color',
+        'HTTP sources','Accent color',
         'Torrent columns','Copy address','Add client','GitHub repository',
         'Current version','Not checked','Check for updates','Patch notes',
         'Browser notifications','Completion sound','Add integration','Add user',
@@ -674,7 +674,7 @@ def main():
     assert 'function reorderTorrentColumns(sourceKey,targetKey,after=false)' in app_js
     assert 'function renderTorrentColumnMenu()' in app_js and 'function showTorrentColumnMenu(x,y)' in app_js
     assert "materialIconSvg('check')" in app_js
-    assert "row.querySelector('.row-actions-head,.row-actions')" in app_js and 'applyColumnPrefs();applyTorrentColumnWidths();const empty=' in app_js
+    assert "row.querySelector('.row-actions-head,.row-actions')" in app_js and 'applyColumnPrefs();applyTorrentColumnWidths();syncTorrentSortHeaders();const empty=' in app_js
     assert 'data-col="seeds" data-label="Seeds"' in app_js and 'data-col="peers" data-label="Peers"' in app_js and 'data-col="tags" data-label="Tags"' in app_js
     assert 'swarmColumnValue(t.num_seeds,t.num_complete)' in app_js and 'swarmColumnValue(t.num_leechs,t.num_incomplete)' in app_js
     assert 'renderTorrentColumnPreferences' not in app_js and 'saveTorrentColumnPreferencesFromSettings' not in app_js
@@ -728,6 +728,29 @@ def main():
     assert 'inline-size:48px!important;min-inline-size:48px!important;max-inline-size:48px!important' in app_css
     assert 'defer torrent-row DOM rendering' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')
     assert 'header label is centered within its column' in (ROOT / 'TESTING.md').read_text(encoding='utf-8')
+
+
+    # 0.5.92 moves torrent sorting into the configurable headers and retires
+    # redundant metadata facet selects now covered by the unified search field.
+    for retired_id in ('categoryFilter','tagFilter','trackerFilter','sort'):
+        assert f'id="{retired_id}"' not in html
+    assert "for(const key of ['tdCategory','tdTag','tdTracker'])localStorage.removeItem(key)" in app_js
+    assert 'state.category' not in app_js and 'state.tag' not in app_js and 'state.tracker' not in app_js
+    assert 'function syncFilterSelect' not in app_js and 'function updateFilters' not in app_js
+    assert "${t.name||''} ${t.category||''} ${t.tags||''} ${t.tracker||''}" in app_js
+    assert 'const TORRENT_SORT_DEFAULT_DIRECTIONS=' in app_js
+    assert 'function normalizedTorrentSort' in app_js and 'function torrentSortValue' in app_js
+    assert 'function compareTorrentSortValues' in app_js and 'function setTorrentSort' in app_js
+    assert 'function syncTorrentSortHeaders' in app_js and "th.setAttribute('aria-sort'" in app_js
+    assert "sortIcon.innerHTML=materialIconSvg('expand_more')" in app_js
+    assert "head.addEventListener('click'" in app_js and "head.addEventListener('keydown'" in app_js
+    assert 'torrentColumnClickSuppressedUntil=performance.now()+250' in app_js
+    assert 'syncTorrentSortHeaders();const empty=' in app_js
+    assert '0.5.92 header sorting and streamlined torrent search' in app_css
+    assert '.torrent-sort-heading{' in app_css and '.torrent-sort-icon{' in app_css
+    assert 'th[aria-sort="ascending"] .torrent-sort-icon .material-symbol-icon{transform:rotate(180deg)}' in app_css
+    assert 'separate Category/Tags/Tracker dropdown filters are intentionally omitted' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')
+    assert 'Dashboard filter row contains only the torrent search box' in (ROOT / 'TESTING.md').read_text(encoding='utf-8')
 
     print("UI string audit passed")
 
