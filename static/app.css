@@ -381,3 +381,11 @@ body.torrent-column-resizing,body.torrent-column-resizing *{cursor:col-resize!im
 #torrentTable tbody tr:hover td.row-actions{background:color-mix(in srgb,var(--panel2) 50%,var(--panel))}
 #torrentTable td.row-actions .more-row{max-width:38px}
 .torrent-list-region,.torrent-list-region .table-wrap{min-width:0;max-width:100%}
+
+
+/* 0.5.91 centered and polling-stable torrent-column resizing. */
+#torrentTable thead th[data-col]{text-align:center;padding-left:22px;padding-right:22px}
+#torrentTable thead th[data-col="seeds"],#torrentTable thead th[data-col="peers"]{text-align:center}
+.column-resize-handle{right:0;width:20px}
+.column-resize-handle::after{right:0}
+#torrentTable th.row-actions-head,#torrentTable td.row-actions{inline-size:48px!important;min-inline-size:48px!important;max-inline-size:48px!important;white-space:nowrap}

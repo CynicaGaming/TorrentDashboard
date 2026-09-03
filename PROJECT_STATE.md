@@ -6,7 +6,7 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.90** (prerelease)
+- Latest documented build: **v0.5.91** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 - Upstream development branch: `refactor/backend-modularization-users`
 - Upstream prerelease branch: `prerelease/backend-modularization`
@@ -14,7 +14,7 @@
 
 ### Latest release summary
 
-Refines torrent-table resizing so the gutter never overlaps adjacent controls, long names use their assigned space before truncating, and the far-right actions column remains fixed and contained.
+Finishes the torrent-column resize interaction by centering header labels and preventing one-second live rendering from moving a column while its resize edge is being dragged.
 
 ## Architecture state
 
@@ -49,6 +49,7 @@ Refines torrent-table resizing so the gutter never overlaps adjacent controls, l
 - Treat Name as a normal torrent data column: keep it visible by default but allow users to hide, reorder, and resize it; only the selection checkbox and row-actions columns remain fixed.
 - Treat torrent-column resizing as an exclusive pointer gesture: use a forgiving edge target, suppress native header drag until release, and preserve the live width through polling before committing it to browser-local preferences.
 - Keep torrent resize hit targets inside their owning data header, allow Name to consume its actual assigned width before ellipsizing, and hard-lock the row-actions column as a fixed right-edge control surface.
+- Center configurable torrent-column headers with symmetric padding, reserve a fully internal resize gutter, and defer torrent-row DOM rendering during an active resize so polling cannot move the target under the pointer.
 
 ## Development principles
 
@@ -60,6 +61,14 @@ Refines torrent-table resizing so the gutter never overlaps adjacent controls, l
 - Keep public development continuity portable across forks; label canonical repository/branch/PR references as upstream context rather than local identity.
 
 ## Recent work
+
+### v0.5.91 — Stable centered column resizing
+
+Finishes the torrent-column resize interaction by centering header labels and preventing one-second live rendering from moving a column while its resize edge is being dragged.
+
+- All configurable torrent data headers are centered within symmetric horizontal padding so labels visually match their column boundaries.
+- The resize hit target grows to 20 px while remaining entirely inside the owning data header.
+- Torrent-row DOM rendering is deferred during an active resize and reconciled once on release, eliminating polling-driven resize jumps.
 
 ### v0.5.90 — Torrent column boundary polish
 
@@ -93,15 +102,6 @@ Adds direct, persistent column-width resizing to the torrent table while preserv
 - Custom widths persist locally through one-second refreshes, browser reloads, column reordering, and hide/show changes.
 - Per-column minimum widths preserve readable Name, Progress, Status, transfer, category, tag, tracker, and date content.
 - Reset columns now restores default order/visibility and clears all custom widths.
-
-### v0.5.86 — Direct torrent column controls
-
-Moves torrent-column customization out of Settings and onto the torrent table itself with draggable headers, a right-click Columns menu, and Category retained in the default visible layout.
-
-- Visible torrent data columns can be dragged horizontally to reorder them directly in the table header.
-- Right-clicking the torrent header bar opens a Columns menu for showing or hiding optional columns and restoring defaults.
-- Category remains visible by default alongside Seeds, Peers, and Tags.
-- The Settings → General torrent-column organizer has been removed so column management has one clear interaction surface.
 
 ## What to do next
 

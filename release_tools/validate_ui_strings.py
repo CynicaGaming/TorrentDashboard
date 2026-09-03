@@ -696,7 +696,7 @@ def main():
     assert "th.draggable=false;th.classList.add('column-resizing')" in app_js
     assert "if(resize.th)resize.th.draggable=true" in app_js
     assert "event.stopImmediatePropagation()" in app_js
-    assert "event.clientX>=rect.right-14&&event.clientX<=rect.right" in app_js
+    assert "event.clientX>=rect.right-20&&event.clientX<=rect.right" in app_js
     assert "if(torrentColumnResize||event.target.closest('.column-resize-handle'))" in app_js
     assert '.column-resize-handle{right:-8px;width:16px}' in app_css
     assert '0.5.89 stable torrent-column resize gesture' in app_css
@@ -714,6 +714,20 @@ def main():
     assert '<th class="row-actions-head"></th>' in html and 'data-col="actions"' not in html
     assert 'ellipsis only when the rendered cell is actually narrower' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')
     assert 'actions column must never show resize behavior or change width' in (ROOT / 'TESTING.md').read_text(encoding='utf-8')
+
+    # 0.5.91 centers configurable headers and prevents polling-driven DOM
+    # rebuilds from moving a column while the user is actively resizing it.
+    assert "let draggedTorrentColumn='',torrentColumnResize=null,torrentColumnRenderPending=false" in app_js
+    assert "function render(){if(torrentColumnResize){torrentColumnRenderPending=true;return}" in app_js
+    assert "const renderPending=torrentColumnRenderPending;torrentColumnResize=null" in app_js
+    assert "if(renderPending){torrentColumnRenderPending=false;render()}" in app_js
+    assert '0.5.91 centered and polling-stable torrent-column resizing' in app_css
+    assert '#torrentTable thead th[data-col]{text-align:center;padding-left:22px;padding-right:22px}' in app_css
+    assert '#torrentTable thead th[data-col="seeds"],#torrentTable thead th[data-col="peers"]{text-align:center}' in app_css
+    assert '.column-resize-handle{right:0;width:20px}' in app_css
+    assert 'inline-size:48px!important;min-inline-size:48px!important;max-inline-size:48px!important' in app_css
+    assert 'defer torrent-row DOM rendering' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')
+    assert 'header label is centered within its column' in (ROOT / 'TESTING.md').read_text(encoding='utf-8')
 
     print("UI string audit passed")
 
