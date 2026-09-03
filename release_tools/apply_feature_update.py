@@ -6,7 +6,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve()
 previous = subprocess.check_output(
-    ["git", "show", "HEAD^^^:release_tools/apply_feature_update.py"],
+    ["git", "show", "HEAD^^^^:release_tools/apply_feature_update.py"],
     cwd=HERE.parents[1],
     text=True,
 )
@@ -56,7 +56,7 @@ text = text.replace(
 )
 text = text.replace(
     "- Hide a resized data column from the Columns menu, show it again, and verify its saved width returns. Every data column, including Name, can be hidden.\n",
-    "- Hide a resized data column from the Columns menu, show it again, and verify its saved width returns. Verify the menu includes Name, and can show/hide all data columns.\n",
+    "- Hide a resized data column from the Columns menu, show it again, and verify its saved width returns. Verify the Columns menu includes every data column, including Name, and can show/hide all data columns.\n",
     1,
 )
 text = text.replace(
