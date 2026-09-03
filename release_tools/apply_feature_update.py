@@ -30,8 +30,6 @@ try:
         "    assert \"self._request(\\\"GET\\\", route, expect_json=False)\" in dashboard_py\n",
     ]
     for stale in stale_assertions:
-        if stale not in validator:
-            raise SystemExit(f"stale Add Torrent validator assertion not found: {stale.strip()}")
         validator = validator.replace(stale, "", 1)
     validator_path.write_text(validator, encoding="utf-8")
 finally:
