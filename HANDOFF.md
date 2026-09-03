@@ -7,14 +7,14 @@
 This handoff is intentionally portable across public forks. Verify the current checkout's Git remote, branch, and open work before using upstream references as instructions.
 
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
-- Last documented upstream build: **v0.5.93** (prerelease)
+- Last documented upstream build: **v0.5.94** (prerelease)
 - Upstream development branch: `refactor/backend-modularization-users`
 - Upstream prerelease branch: `prerelease/backend-modularization`
 - Upstream active PR: **#25**
 
 ## Last known-good state
 
-Restores natural torrent-table header alignment while retaining the stabilized resize, reorder, sorting, overflow, and fixed-actions behavior from the preceding column releases.
+Removes the remaining resize lag and gesture ambiguity by separating reorder and resize hit surfaces, centering headers, starting resize math from the visible width, and consolidating the accumulated column CSS rules.
 
 The released-state details and recent history are in `PROJECT_STATE.md`; architectural constraints are in `ARCHITECTURE.md`.
 

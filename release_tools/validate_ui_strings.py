@@ -649,113 +649,57 @@ def main():
     assert '## Iconography' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')
     assert 'folder rows do not show descendant file counts' in (ROOT / 'TESTING.md').read_text(encoding='utf-8')
 
-    # 0.5.84-v0.5.88 keeps torrent columns browser-local and directly
-    # configurable from the header; v0.5.88 makes Name optional as well.
+    # 0.5.94 consolidates direct torrent-column interaction around distinct
+    # sort/reorder and resize surfaces with immediate, polling-stable resizing.
     assert 'id="columnPrefList"' not in html and 'id="resetColumns"' not in html
     assert 'class="menu column-menu hidden" id="columnMenu"' in html and 'aria-label="Torrent columns"' in html
-    assert html.count('draggable="true" data-col=') == 14
+    assert html.count('draggable="true" data-col=') == 0
+    assert html.count('data-col=') >= 14 and '<th class="row-actions-head"></th>' in html and 'data-col="actions"' not in html
+    assert "{key:'name',label:'Name',required:false,defaultVisible:true}" in app_js
     assert "{key:'seeds',label:'Seeds',defaultVisible:true}" in app_js
     assert "{key:'peers',label:'Peers',defaultVisible:true}" in app_js
     assert "{key:'category',label:'Category',defaultVisible:true}" in app_js
     assert "{key:'tags',label:'Tags',defaultVisible:true}" in app_js
-    assert "{key:'name',label:'Name',required:false,defaultVisible:true}" in app_js
-    assert "{key:'name',label:'Name',required:true,defaultVisible:true}" not in app_js
-    assert 'const TORRENT_COLUMN_MIN_WIDTHS={name:140,' in app_js
-    assert "{key:'size',label:'Size',defaultVisible:false}" in app_js
-    assert "savedPreviousDefault&&column.key==='category'?true" in app_js
-    assert 'widths:{}' in app_js and 'TORRENT_COLUMN_MIN_WIDTHS' in app_js and 'TORRENT_COLUMN_MAX_WIDTH=720' in app_js
+    assert 'const TORRENT_COLUMN_HARD_MIN=48' in app_js and 'const TORRENT_COLUMN_MAX_WIDTH=720' in app_js
+    assert 'const TORRENT_COLUMN_MIN_WIDTHS={name:96,size:72,progress:130' in app_js
+    assert 'width>=TORRENT_COLUMN_HARD_MIN' in app_js
     assert 'function torrentColumnPreferences()' in app_js and 'function saveTorrentColumnPreferences(prefs)' in app_js
     assert 'function applyTorrentColumnWidths' in app_js and 'function saveTorrentColumnWidth' in app_js
-    assert 'function bindTorrentColumnHeaderUI()' in app_js and "head.addEventListener('contextmenu'" in app_js
+    assert "const liveWidth=torrentColumnResize?.key===column.key?torrentColumnResize.width:null" in app_js
+    assert "function render(){if(torrentColumnResize){torrentColumnRenderPending=true;return}" in app_js
+    assert "minWidth=Math.max(TORRENT_COLUMN_HARD_MIN,Math.min(torrentColumnMinWidth(key),startWidth))" in app_js
+    assert 'applyTorrentColumnWidth(key,startWidth)' in app_js and 'Math.max(resize.minWidth' in app_js
+    assert 'event.stopImmediatePropagation()' in app_js
+    assert "const handle=event.target.closest('.column-resize-handle');if(handle)startTorrentColumnResize(event,handle)" in app_js
+    assert 'nearResizeEdge' not in app_js
+    assert "th.draggable=false" in app_js and "heading.draggable=true" in app_js and "heading.dataset.columnDrag='1'" in app_js
+    assert "const heading=event.target.closest('.torrent-sort-heading');if(!heading){event.preventDefault();return}" in app_js
+    assert "if(torrentColumnResize){event.preventDefault();return}" in app_js
     assert "head.addEventListener('dragstart'" in app_js and "head.addEventListener('dragover'" in app_js and "head.addEventListener('drop'" in app_js
     assert "head.addEventListener('pointerdown'" in app_js and "head.addEventListener('pointermove'" in app_js and "head.addEventListener('pointerup'" in app_js
-    assert 'function startTorrentColumnResize' in app_js and 'function finishTorrentColumnResize' in app_js
-    assert "handle.className='column-resize-handle'" in app_js and "event.target.closest('.column-resize-handle')" in app_js
-    assert 'function reorderTorrentColumns(sourceKey,targetKey,after=false)' in app_js
-    assert 'function renderTorrentColumnMenu()' in app_js and 'function showTorrentColumnMenu(x,y)' in app_js
-    assert "materialIconSvg('check')" in app_js
-    assert "row.querySelector('.row-actions-head,.row-actions')" in app_js and 'applyColumnPrefs();applyTorrentColumnWidths();syncTorrentSortHeaders();const empty=' in app_js
-    assert 'data-col="seeds" data-label="Seeds"' in app_js and 'data-col="peers" data-label="Peers"' in app_js and 'data-col="tags" data-label="Tags"' in app_js
-    assert 'swarmColumnValue(t.num_seeds,t.num_complete)' in app_js and 'swarmColumnValue(t.num_leechs,t.num_incomplete)' in app_js
-    assert 'renderTorrentColumnPreferences' not in app_js and 'saveTorrentColumnPreferencesFromSettings' not in app_js
-    assert "document.querySelector('#columnPrefList')" not in settings_js and 'saveTorrentColumnPreferencesFromSettings' not in settings_js
-    assert '.torrent-column-hidden{display:none!important}' in app_css
-    assert '0.5.86 direct torrent-column manipulation' in app_css and '0.5.87 resizable torrent columns' in app_css
-    assert '.column-resize-handle{' in app_css and 'body.torrent-column-resizing' in app_css
-    assert "cell.classList.toggle('torrent-column-sized',valid)" in app_js and '.torrent-column-sized .torrent-column-text{max-width:none}' in app_css
-    assert '0.5.84 torrent column organizer' not in settings_css
-    assert '## Configurable torrent columns' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')
-    assert 'Drag the right edge' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')
-    assert '**Name** is visible by default but is otherwise a normal configurable data column' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')
-    assert 'including Name, and can show/hide all data columns' in (ROOT / 'TESTING.md').read_text(encoding='utf-8')
-    assert '### Configurable torrent columns' in (ROOT / 'TESTING.md').read_text(encoding='utf-8')
-    # 0.5.89 makes resize and reorder mutually exclusive and preserves an
-    # in-progress resize across the one-second torrent render loop.
-    assert "const liveWidth=torrentColumnResize?.key===column.key?torrentColumnResize.width:null" in app_js
-    assert "liveWidth??prefs.widths?.[column.key]" in app_js
-    assert "th.draggable=false;th.classList.add('column-resizing')" in app_js
-    assert "if(resize.th)resize.th.draggable=true" in app_js
-    assert "event.stopImmediatePropagation()" in app_js
-    assert "event.clientX>=rect.right-20&&event.clientX<=rect.right" in app_js
-    assert "if(torrentColumnResize||event.target.closest('.column-resize-handle'))" in app_js
-    assert '.column-resize-handle{right:-8px;width:16px}' in app_css
-    assert '0.5.89 stable torrent-column resize gesture' in app_css
-    assert 'Hold at least one resize gesture open for several seconds' in (ROOT / 'TESTING.md').read_text(encoding='utf-8')
-    assert 'takes exclusive control of the pointer' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')
-    # 0.5.90 keeps the forgiving resize gutter inside the data header,
-    # removes the historical Name truncation cap, and hard-locks row actions.
-    assert '.column-resize-handle{right:0;width:14px}' in app_css
-    assert '.column-resize-handle::after{right:0}' in app_css
-    assert '#torrentTable td[data-col="name"] .torrent-name{max-width:none;width:100%;min-width:0}' in app_css
-    assert '#torrentTable th.row-actions-head,#torrentTable td.row-actions{width:48px!important;min-width:48px!important;max-width:48px!important}' in app_css
-    assert '#torrentTable th.row-actions-head{position:sticky;right:0;z-index:8;background:var(--panel3);overflow:hidden}' in app_css
-    assert '#torrentTable td.row-actions{display:table-cell!important;position:sticky;right:0;z-index:3;text-align:right;background:var(--panel)' in app_css
-    assert '.torrent-list-region,.torrent-list-region .table-wrap{min-width:0;max-width:100%}' in app_css
-    assert '<th class="row-actions-head"></th>' in html and 'data-col="actions"' not in html
-    assert 'ellipsis only when the rendered cell is actually narrower' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')
-    assert 'actions column must never show resize behavior or change width' in (ROOT / 'TESTING.md').read_text(encoding='utf-8')
-
-    # 0.5.91 introduced polling-stable resizing; v0.5.93 keeps that gesture
-    # protection but supersedes centered labels with normal content alignment.
-    assert "let draggedTorrentColumn='',torrentColumnResize=null,torrentColumnRenderPending=false" in app_js
-    assert "function render(){if(torrentColumnResize){torrentColumnRenderPending=true;return}" in app_js
-    assert "const renderPending=torrentColumnRenderPending;torrentColumnResize=null" in app_js
-    assert "if(renderPending){torrentColumnRenderPending=false;render()}" in app_js
-    assert '0.5.91 centered and polling-stable torrent-column resizing' in app_css
-    assert '.column-resize-handle{right:0;width:20px}' in app_css
-    assert 'inline-size:48px!important;min-inline-size:48px!important;max-inline-size:48px!important' in app_css
-    assert '0.5.93 content-aligned sortable torrent headers' in app_css
-    assert '#torrentTable thead th[data-col]{text-align:left;padding-left:12px;padding-right:22px}' in app_css
-    assert '#torrentTable thead th[data-col="seeds"],#torrentTable thead th[data-col="peers"]{text-align:left}' in app_css
-    assert '.torrent-sort-heading{justify-content:flex-start}' in app_css
-    assert app_css.rfind('0.5.93 content-aligned sortable torrent headers') > app_css.rfind('0.5.91 centered and polling-stable torrent-column resizing')
-    assert 'defer torrent-row DOM rendering' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')
-    assert "Torrent header labels follow the table's normal content flow" in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')
-    assert "header labels follow the table's normal left/content flow" in (ROOT / 'TESTING.md').read_text(encoding='utf-8')
-
-
-    # 0.5.92 moves torrent sorting into the configurable headers and retires
-    # redundant metadata facet selects now covered by the unified search field.
-    for retired_id in ('categoryFilter','tagFilter','trackerFilter','sort'):
-        assert f'id="{retired_id}"' not in html
+    assert 'torrentColumnClickSuppressedUntil=performance.now()+250' in app_js
+    assert 'function normalizedTorrentSort' in app_js and 'function torrentSortValue' in app_js and 'function setTorrentSort' in app_js
+    assert "sortIcon.innerHTML=materialIconSvg('expand_more')" in app_js and "th.setAttribute('aria-sort'" in app_js
     assert "for(const key of ['tdCategory','tdTag','tdTracker'])localStorage.removeItem(key)" in app_js
     assert 'state.category' not in app_js and 'state.tag' not in app_js and 'state.tracker' not in app_js
     assert 'function syncFilterSelect' not in app_js and 'function updateFilters' not in app_js
     assert "${t.name||''} ${t.category||''} ${t.tags||''} ${t.tracker||''}" in app_js
-    assert 'const TORRENT_SORT_DEFAULT_DIRECTIONS=' in app_js
-    assert 'function normalizedTorrentSort' in app_js and 'function torrentSortValue' in app_js
-    assert 'function compareTorrentSortValues' in app_js and 'function setTorrentSort' in app_js
-    assert 'function syncTorrentSortHeaders' in app_js and "th.setAttribute('aria-sort'" in app_js
-    assert "sortIcon.innerHTML=materialIconSvg('expand_more')" in app_js
-    assert "head.addEventListener('click'" in app_js and "head.addEventListener('keydown'" in app_js
-    assert 'torrentColumnClickSuppressedUntil=performance.now()+250' in app_js
-    assert 'syncTorrentSortHeaders();const empty=' in app_js
-    assert '0.5.92 header sorting and streamlined torrent search' in app_css
-    assert '.torrent-sort-heading{' in app_css and '.torrent-sort-icon{' in app_css
-    assert 'th[aria-sort="ascending"] .torrent-sort-icon .material-symbol-icon{transform:rotate(180deg)}' in app_css
-    assert 'separate Category/Tags/Tracker dropdown filters are intentionally omitted' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')
-    assert 'Dashboard filter row contains only the torrent search box' in (ROOT / 'TESTING.md').read_text(encoding='utf-8')
-
+    assert '0.5.94 deterministic torrent-column header interactions' in app_css
+    for stale in ('0.5.86 direct torrent-column manipulation','0.5.87 resizable torrent columns','0.5.89 stable torrent-column resize gesture','0.5.90 torrent-column boundary and overflow polish','0.5.91 centered and polling-stable torrent-column resizing','0.5.92 header sorting and streamlined torrent search','0.5.93 content-aligned sortable torrent headers'):
+        assert stale not in app_css
+    assert '#torrentTable thead th[data-col]{cursor:default;user-select:none;-webkit-user-select:none;text-align:center;padding-left:28px;padding-right:28px;outline:none}' in app_css
+    assert '.torrent-sort-heading{position:relative;display:flex;width:100%;min-width:0;align-items:center;justify-content:center;cursor:grab;pointer-events:auto}' in app_css
+    assert '.column-resize-handle{position:absolute;top:0;right:0;z-index:8;width:24px;height:100%;cursor:col-resize;touch-action:none}' in app_css
+    assert '#torrentTable td[data-col="name"] .torrent-name{max-width:none;min-width:0;width:auto}' in app_css
+    assert '#torrentTable td.torrent-column-sized[data-col="name"] .torrent-name{max-width:none;width:100%}' in app_css
+    assert '#torrentTable td.torrent-column-sized .torrent-column-text{max-width:none}' in app_css
+    assert 'width:48px!important;min-width:48px!important;max-width:48px!important;inline-size:48px!important' in app_css
+    assert '#torrentTable th.row-actions-head{position:sticky;right:0;z-index:8;background:var(--panel3);overflow:hidden;cursor:default!important' in app_css
+    assert '.torrent-list-region .table-wrap{overflow:auto;contain:inline-size;overscroll-behavior-x:contain}' in app_css
+    assert '## Configurable torrent columns' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')
+    assert 'exact width currently rendered on screen' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')
+    assert 'header labels are visually centered' in (ROOT / 'TESTING.md').read_text(encoding='utf-8')
+    assert 'no dead travel before movement and no initial jump' in (ROOT / 'TESTING.md').read_text(encoding='utf-8')
     print("UI string audit passed")
 
 

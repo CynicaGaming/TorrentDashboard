@@ -6,7 +6,7 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.93** (prerelease)
+- Latest documented build: **v0.5.94** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 - Upstream development branch: `refactor/backend-modularization-users`
 - Upstream prerelease branch: `prerelease/backend-modularization`
@@ -14,7 +14,7 @@
 
 ### Latest release summary
 
-Restores natural torrent-table header alignment while retaining the stabilized resize, reorder, sorting, overflow, and fixed-actions behavior from the preceding column releases.
+Removes the remaining resize lag and gesture ambiguity by separating reorder and resize hit surfaces, centering headers, starting resize math from the visible width, and consolidating the accumulated column CSS rules.
 
 ## Architecture state
 
@@ -50,7 +50,7 @@ Restores natural torrent-table header alignment while retaining the stabilized r
 - Treat torrent-column resizing as an exclusive pointer gesture: use a forgiving edge target, suppress native header drag until release, and preserve the live width through polling before committing it to browser-local preferences.
 - Keep torrent resize hit targets inside their owning data header, allow Name to consume its actual assigned width before ellipsizing, and hard-lock the row-actions column as a fixed right-edge control surface.
 - Use the torrent header as the single sorting surface and the unified text search as the single metadata filter: preserve status tabs, retire Category/Tags/Tracker and sort selects, clear obsolete facet preferences, and keep sort direction browser-local.
-- Align sortable torrent header labels with the table's normal content flow rather than centering them; keep resize discovery on the internal edge gutter so header placement and row content remain visually coherent.
+- Keep torrent header labels centered, isolate native reordering to the header-label drag surface, reserve a separate inward-only resize gutter, and begin resizing from the exact rendered width so pointer movement maps immediately to column movement.
 
 ## Development principles
 
@@ -62,6 +62,16 @@ Restores natural torrent-table header alignment while retaining the stabilized r
 - Keep public development continuity portable across forks; label canonical repository/branch/PR references as upstream context rather than local identity.
 
 ## Recent work
+
+### v0.5.94 — Deterministic torrent column gestures
+
+Removes the remaining resize lag and gesture ambiguity by separating reorder and resize hit surfaces, centering headers, starting resize math from the visible width, and consolidating the accumulated column CSS rules.
+
+- Torrent column headers are centered again with symmetric padding so visual labels line up cleanly with their resize boundaries.
+- A 24 px inward-only resize gutter owns the divider while only the centered header-label area can initiate native column reordering.
+- Resizing begins from the exact rendered width, including columns currently narrower than their normal ergonomic minimum, eliminating dead pointer travel and initial jumps.
+- Torrent names no longer inherit the old fixed display cap; ellipsis remains only when the final Name cell truly cannot fit the text.
+- The far-right actions column remains a fixed, non-resizable 48 px sticky control surface and horizontal overflow is contained inside the torrent viewport.
 
 ### v0.5.93 — Content-aligned torrent headers
 
@@ -95,14 +105,6 @@ Refines torrent-table resizing so the gutter never overlaps adjacent controls, l
 - The resize gutter remains a forgiving 14 px target but now lives entirely inside the owning data header instead of extending into its neighbor.
 - Torrent names no longer inherit the historical 470/620 px truncation cap; ellipsis appears only when the actual Name cell is too narrow.
 - The far-right actions column is explicitly fixed at 48 px and pinned to the right edge of the torrent viewport.
-
-### v0.5.89 — Stable torrent column resizing
-
-Eliminates resize/reorder gesture overlap and one-second polling snap-back so torrent columns resize predictably even during slow drags.
-
-- The resize edge now has a wider, more forgiving pointer target instead of requiring pixel-perfect divider placement.
-- Beginning a resize temporarily disables native header dragging, so the same gesture cannot reorder the column.
-- An in-progress width is retained across the one-second torrent refresh instead of snapping back to the last saved width mid-drag.
 
 ## What to do next
 
