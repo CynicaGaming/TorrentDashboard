@@ -721,6 +721,15 @@ def main():
     assert '#torrentTable td.mobile-grid>span{justify-self:end;text-align:right;max-width:100%}' in app_css
     assert 'consistent left-label/right-value grid' in design
     assert 'desktop right-alignment rules must not move numeric labels toward the center divider' in testing
+    # 0.5.105 compacts mobile torrent cards without changing the desktop table.
+    assert '0.5.105 compact mobile torrent cards' in app_css
+    assert '#torrentTable tbody tr{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr)' in app_css
+    assert '#torrentTable td[data-col="name"],#torrentTable td[data-col="progress"]{grid-column:1/-1}' in app_css
+    assert '#torrentTable td.check{position:absolute;right:12px;left:auto;top:10px' in app_css
+    assert '-webkit-line-clamp:2' in app_css
+    assert 'two-column metadata matrix' in design
+    assert 'Size/Status, Seeds/Peers, Download/Upload, ETA/Ratio, and Category/Tags' in testing
+
     print("UI string audit passed")
 
 

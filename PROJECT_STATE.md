@@ -6,7 +6,7 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.104** (prerelease)
+- Latest documented build: **v0.5.105** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 - Upstream development branch: `refactor/backend-modularization-users`
 - Upstream prerelease branch: `prerelease/backend-modularization`
@@ -14,7 +14,7 @@
 
 ### Latest release summary
 
-Restores consistent mobile torrent-card metadata alignment after desktop numeric-column alignment leaked into responsive card labels.
+Reduces mobile torrent-card height by pairing metadata fields into a compact two-column matrix while keeping Name and Progress full-width and preserving all displayed torrent information.
 
 ## Current engineering decisions
 
@@ -67,6 +67,14 @@ Restores consistent mobile torrent-card metadata alignment after desktop numeric
 
 ## Recent work
 
+### v0.5.105 — Compact mobile torrent cards
+
+Reduces mobile torrent-card height by pairing metadata fields into a compact two-column matrix while keeping Name and Progress full-width and preserving all displayed torrent information.
+
+- Pairs Size with Status, Seeds with Peers, Download with Upload, ETA with Ratio, and Category with Tags on mobile instead of rendering every field as a full-width row.
+- Returns the selection checkbox to an overlaid top-right position so it no longer consumes a dedicated card row.
+- Allows torrent names to wrap to at most two lines on mobile while preserving the fixed single-line desktop table presentation.
+
 ### v0.5.104 — Mobile torrent metadata alignment
 
 Restores consistent mobile torrent-card metadata alignment after desktop numeric-column alignment leaked into responsive card labels.
@@ -100,15 +108,6 @@ Replaces the iterative configurable-column geometry with the requested fixed tor
 - Allocates the desktop data plane proportionally on every viewport resize so the table fits the available width without a horizontal scrollbar.
 - Removes active resize, drag reorder, visibility menu, Reset columns, spacer geometry, and tdColumns persistence; old tdColumns state is discarded during migration.
 - Retains sortable headers, content-aligned labels, real-width Name ellipsis, one-second polling stability, and the existing responsive card presentation.
-
-### v0.5.100 — Rightmost column resize boundary
-
-Keeps v0.5.99's native-feeling independent resizing while preventing the rightmost visible torrent column from creating a new horizontal scrollbar past the pinned Actions rail.
-
-- Interior columns retain v0.5.99 behavior: they resize independently and may extend the data plane into the torrent viewport's internal horizontal scrolling when the chosen widths require it.
-- The rightmost visible data column now receives a gesture-specific ceiling derived from the live torrent viewport after reserving the frozen 40 px selection rail, frozen 48 px Actions rail, and every other visible data column.
-- A fitting layout can use all remaining spacer width, but the rightmost boundary stops when it reaches Actions instead of generating a new horizontal scrollbar.
-- Already-wide browser-local layouts are not rewritten; overflow from earlier columns remains scrollable and no unrelated column is shrunk automatically.
 
 ## What to do next
 

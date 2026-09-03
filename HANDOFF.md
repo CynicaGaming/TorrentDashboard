@@ -7,14 +7,14 @@
 This handoff is intentionally portable across public forks. Verify the current checkout's Git remote, branch, and open work before using upstream references as instructions.
 
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
-- Last documented upstream build: **v0.5.104** (prerelease)
+- Last documented upstream build: **v0.5.105** (prerelease)
 - Upstream development branch: `refactor/backend-modularization-users`
 - Upstream prerelease branch: `prerelease/backend-modularization`
 - Upstream active PR: **#25**
 
 ## Last known-good state
 
-Restores consistent mobile torrent-card metadata alignment after desktop numeric-column alignment leaked into responsive card labels.
+Reduces mobile torrent-card height by pairing metadata fields into a compact two-column matrix while keeping Name and Progress full-width and preserving all displayed torrent information.
 
 The released-state details and recent history are in `PROJECT_STATE.md`; architectural constraints are in `ARCHITECTURE.md`.
 

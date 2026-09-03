@@ -199,3 +199,13 @@ Do not use this file as a test-results log; it is a stable testing contract for 
 - At the mobile breakpoint, verify the existing torrent card layout returns and no desktop inline fixed widths interfere with card sizing. Long-press a non-control area of a torrent card for roughly half a second and verify the same torrent context menu opens; move/scroll before the threshold and verify no menu opens. A normal tap must still open Torrent details, while the tap following a completed long press must not.
 - On mobile cards, verify Size, Status, Seeds, Peers, Download, Upload, ETA, Ratio, Category, and Tags all keep their field label at the left edge and their value at the right edge; desktop right-alignment rules must not move numeric labels toward the center divider.
 - On mobile, check a torrent while Torrent details is collapsed and verify the bulk action bar is fully visible above the disclosure bar and mobile navigation. Expand Torrent details while the torrent remains checked and verify the bulk action bar moves above the expanded sheet instead of being covered by it.
+
+### Compact mobile torrent cards
+
+- At 820 px and below, verify each torrent card uses two metadata columns: Size/Status, Seeds/Peers, Download/Upload, ETA/Ratio, and Category/Tags. Name and Progress must span the full card width.
+- Verify the selection checkbox is overlaid at the card's top-right and no longer consumes its own full-width row.
+- Verify long torrent names wrap to no more than two lines and do not force horizontal overflow.
+- Verify each compact metadata item keeps its label left and its value right, including the Status pill and long Category/Tags values.
+- Compare several cards with v0.5.104-sized content and verify substantially more than one torrent can fit in a typical phone viewport while preserving all displayed metadata.
+- Recheck long-press row actions, normal tap-to-open Torrent details, checkbox selection, and the mobile bulk-action/detail-pane stacking behavior after the grid compaction.
+

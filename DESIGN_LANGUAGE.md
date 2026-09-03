@@ -161,3 +161,8 @@ For the current desktop/tablet interaction model, the torrent list uses one fixe
 - Torrent row commands use one shared context menu: right-click opens it on pointer-based desktop interfaces, while a deliberate long press opens it on touch. Touch movement cancels the pending long press so normal vertical scrolling is not intercepted.
 - On mobile, the bulk-selection overlay must clear the current Torrent details pane rather than sharing its bottom stack. Its bottom offset follows the rendered detail pane so selection actions remain fully visible in both collapsed and expanded detail states.
 - Sorting remains browser-local in `tdSort`. The default may still be Added descending even though Added is not one of the visible fixed columns.
+
+### Compact mobile torrent cards
+
+At the mobile breakpoint, torrent cards use a compact two-column metadata matrix rather than giving every desktop field a full-width row. Name and Progress remain full-width; Size/Status, Seeds/Peers, Download/Upload, ETA/Ratio, and Category/Tags share paired rows. The selection checkbox is positioned at the card's top-right without consuming layout height. Torrent names may wrap to at most two lines. Every metadata item keeps its label at the left of its local cell and its value at the right. This mobile layout is independent of the fixed desktop column proportions.
+
