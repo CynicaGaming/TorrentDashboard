@@ -790,7 +790,7 @@ def main():
     assert 'Math.max(TORRENT_DESKTOP_MIN_ROWS,Math.min(TORRENT_DESKTOP_PREFERRED_ROWS' in app_js
     assert "pane.style.removeProperty('--torrent-detail-expanded-height');\n  syncTorrentWorkspaceLayout();" in app_js
     assert "requestAnimationFrame(syncDesktopDetailPaneHeight)" in app_js
-    assert "window.addEventListener('resize',()=>requestAnimationFrame(()=>{applyFixedTorrentColumnLayout();syncDesktopDetailPaneHeight();syncMobileBulkbarOffset()}))" in app_js
+    assert app_js.count("window.addEventListener('resize',()=>requestAnimationFrame(()=>{applyFixedTorrentColumnLayout();syncDesktopDetailPaneHeight();syncMobileBulkbarOffset()}))") == 1
     assert 'function revealDesktopTorrentWorkspace()' not in app_js
     assert 'requestAnimationFrame(revealDesktopTorrentWorkspace)' not in app_js
     assert '.torrent-list-panel{display:flex;flex:0 0 var(--torrent-list-height,456px);height:var(--torrent-list-height,456px);min-height:0;overflow:hidden}' in app_css
