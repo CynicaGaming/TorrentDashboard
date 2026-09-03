@@ -654,7 +654,7 @@ def main():
     assert 'id="columnPrefList"' not in html and 'id="resetColumns"' not in html
     assert 'class="menu column-menu hidden" id="columnMenu"' in html and 'aria-label="Torrent columns"' in html
     assert html.count('draggable="true" data-col=') == 0
-    assert html.count('data-col=') >= 14 and '<th class="row-actions-head"></th>' in html and 'data-col="actions"' not in html
+    assert html.count('data-col=') >= 14 and '<th class="row-spacer-head" aria-hidden="true"></th><th class="row-actions-head"></th>' in html and 'data-col="actions"' not in html
     assert "{key:'name',label:'Name',required:false,defaultVisible:true}" in app_js
     assert "{key:'seeds',label:'Seeds',defaultVisible:true}" in app_js
     assert "{key:'peers',label:'Peers',defaultVisible:true}" in app_js
@@ -666,6 +666,8 @@ def main():
     assert 'function torrentColumnPreferences()' in app_js and 'function saveTorrentColumnPreferences(prefs)' in app_js
     assert 'function applyTorrentColumnWidths' in app_js and 'function saveTorrentColumnWidth' in app_js
     assert 'function snapshotTorrentColumnWidths' in app_js and 'function syncTorrentTableWidth' in app_js and 'function torrentColumnLayoutWidth' in app_js
+    assert "window.matchMedia?.('(max-width:820px)').matches" in app_js and "table.style.width='100%'" in app_js
+    assert 'class="row-spacer" aria-hidden="true"' in app_js and "row.querySelector('.row-spacer-head,.row-spacer,.row-actions-head,.row-actions')" in app_js
     assert "const liveWidth=torrentColumnResize?.key===column.key?torrentColumnResize.width:null" in app_js
     assert "function render(){if(torrentColumnResize){torrentColumnRenderPending=true;return}" in app_js
     assert "minWidth=Math.max(TORRENT_COLUMN_HARD_MIN,Math.min(torrentColumnMinWidth(key),startWidth))" in app_js
@@ -686,8 +688,8 @@ def main():
     assert 'state.category' not in app_js and 'state.tag' not in app_js and 'state.tracker' not in app_js
     assert 'function syncFilterSelect' not in app_js and 'function updateFilters' not in app_js
     assert "${t.name||''} ${t.category||''} ${t.tags||''} ${t.tracker||''}" in app_js
-    assert '0.5.96 content-aligned one-edge torrent-column resizing' in app_css
-    for stale in ('0.5.86 direct torrent-column manipulation','0.5.87 resizable torrent columns','0.5.89 stable torrent-column resize gesture','0.5.90 torrent-column boundary and overflow polish','0.5.91 centered and polling-stable torrent-column resizing','0.5.92 header sorting and streamlined torrent search','0.5.93 content-aligned sortable torrent headers','0.5.94 deterministic torrent-column header interactions'):
+    assert '0.5.97 pinned torrent actions and contained horizontal overflow' in app_css
+    for stale in ('0.5.86 direct torrent-column manipulation','0.5.87 resizable torrent columns','0.5.89 stable torrent-column resize gesture','0.5.90 torrent-column boundary and overflow polish','0.5.91 centered and polling-stable torrent-column resizing','0.5.92 header sorting and streamlined torrent search','0.5.93 content-aligned sortable torrent headers','0.5.94 deterministic torrent-column header interactions','0.5.96 content-aligned one-edge torrent-column resizing'):
         assert stale not in app_css
     assert '#torrentTable thead th[data-col]{cursor:default;user-select:none;-webkit-user-select:none;text-align:left;padding-left:12px;padding-right:28px;outline:none}' in app_css
     assert '#torrentTable thead th[data-col="seeds"],#torrentTable thead th[data-col="peers"]{text-align:right}' in app_css
@@ -697,13 +699,16 @@ def main():
     assert '#torrentTable td[data-col="name"] .torrent-name{max-width:none;min-width:0;width:auto}' in app_css
     assert '#torrentTable td.torrent-column-sized[data-col="name"] .torrent-name{max-width:none;width:100%}' in app_css
     assert '#torrentTable td.torrent-column-sized .torrent-column-text{max-width:none}' in app_css
+    assert 'width:auto!important;min-width:0!important;max-width:none!important;inline-size:auto!important' in app_css
     assert 'width:48px!important;min-width:48px!important;max-width:48px!important;inline-size:48px!important' in app_css
     assert '#torrentTable th.row-actions-head{position:sticky;right:0;z-index:8;background:var(--panel3);overflow:hidden;cursor:default!important' in app_css
-    assert '.torrent-list-region .table-wrap{overflow:auto;contain:inline-size;overscroll-behavior-x:contain}' in app_css
+    assert '.torrent-list-region .table-wrap{width:100%;max-inline-size:100%;overflow-x:auto;overflow-y:auto;contain:inline-size;overscroll-behavior-x:contain}' in app_css
     assert '## Configurable torrent columns' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')
     assert 'exact width currently rendered on screen' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')
     assert 'Header labels follow the alignment of their body cells' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')
+    assert 'flexible spacer immediately before it absorbs unused table width' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')
     assert 'only the dragged right boundary moves' in (ROOT / 'TESTING.md').read_text(encoding='utf-8')
+    assert 'unused width must be absorbed by the blank spacer immediately before Actions' in (ROOT / 'TESTING.md').read_text(encoding='utf-8')
     assert 'no dead travel before movement and no initial jump' in (ROOT / 'TESTING.md').read_text(encoding='utf-8')
     print("UI string audit passed")
 

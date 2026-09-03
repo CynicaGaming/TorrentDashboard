@@ -6,7 +6,7 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.96** (prerelease)
+- Latest documented build: **v0.5.97** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 - Upstream development branch: `refactor/backend-modularization-users`
 - Upstream prerelease branch: `prerelease/backend-modularization`
@@ -14,7 +14,7 @@
 
 ### Latest release summary
 
-Aligns torrent-table headers with their row content and makes a resize gesture move only the grabbed right boundary instead of letting automatic table layout redistribute neighboring widths.
+Keeps the torrent row Actions surface locked to the far-right edge while allowing intentionally wide customized data columns to scroll only inside the torrent viewport.
 
 ## Architecture state
 
@@ -55,6 +55,7 @@ Aligns torrent-table headers with their row content and makes a resize gesture m
 - Keep GitHub network/update orchestration in dashboard.py while the torrent_dashboard release-provenance module owns parsing and filesystem provenance behavior behind injected runtime paths.
 - Align torrent data headers with their body content rather than centering every label.
 - When resizing, snapshot visible data-column widths and change table width with the active column so only the grabbed right boundary moves; keep selection and actions outside that model.
+- Keep the 48 px row-actions surface pinned to the torrent viewport edge with a non-interactive flexible spacer; customized data widths may scroll internally but must not move Actions offscreen or create page-level horizontal overflow.
 
 ## Development principles
 
@@ -66,6 +67,15 @@ Aligns torrent-table headers with their row content and makes a resize gesture m
 - Keep public development continuity portable across forks; label canonical repository/branch/PR references as upstream context rather than local identity.
 
 ## Recent work
+
+### v0.5.97 — Pinned torrent actions and contained horizontal overflow
+
+Keeps the torrent row Actions surface locked to the far-right edge while allowing intentionally wide customized data columns to scroll only inside the torrent viewport.
+
+- Adds a non-interactive flexible spacer immediately before the fixed 48 px Actions column so unused table width is absorbed before Actions rather than leaving the menu column floating inward.
+- Keeps the torrent table at 100% of its viewport while using the customized data-column total only as a minimum width, preserving v0.5.96 one-edge resizing without redistributing neighboring data widths.
+- When customized data columns exceed the available width, the data region scrolls horizontally beneath the sticky Actions column while the surrounding dashboard remains width-contained.
+- Responsive layouts clear desktop fixed-table sizing and suppress the spacer so card-style mobile torrent rows do not inherit desktop horizontal geometry.
 
 ### v0.5.96 — Content-aligned one-edge torrent resizing
 
@@ -100,15 +110,6 @@ Restores natural torrent-table header alignment while retaining the stabilized r
 - Sortable torrent header labels return to normal left/content flow instead of being centered independently of their row data.
 - The 20 px inward-only resize gutter remains unchanged, so column boundaries stay easy to grab without using label centering as a resize cue.
 - Header sorting, drag-to-reorder, persistent resizing, long-name expansion, and the fixed 48 px actions column remain intact.
-
-### v0.5.92 — Header sorting and streamlined torrent search
-
-Moves torrent sorting directly into the configurable column headers and removes redundant Category, Tags, Tracker, and standalone sort controls while keeping search across all torrent metadata.
-
-- Click any configurable torrent data header to sort by that field; click the active header again to toggle ascending and descending.
-- The active sort direction is shown by a local Material-style chevron and exposed through accessible aria-sort state.
-- Category, Tags, Tracker, and the standalone Sort dropdown are removed from the Dashboard controls; the search box continues to match all four metadata sources plus torrent names.
-- Existing tdSort preferences remain compatible, while retired category/tag/tracker local preferences are cleared so hidden filters cannot survive the migration.
 
 ## What to do next
 
