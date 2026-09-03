@@ -189,10 +189,10 @@ Do not use this file as a test-results log; it is a stable testing contract for 
 - On a browser with no saved column preference, verify Seeds, Peers, Category, and Tags are visible by default alongside Name, Progress, Status, Download, Upload, ETA, and Ratio.
 - Verify Settings → General does not contain a duplicate torrent-column organizer.
 - Drag several visible column headers left and right and verify the table follows the new order immediately, after the next one-second refresh, and after a full browser reload.
-- Drag the right edge of Name, Progress, Status, Category, and Tags to narrower and wider sizes. Verify each stops at a readable minimum, remains stable during the one-second refresh, and persists after reload.
+- Drag the right edge of Name, Progress, Status, Category, and Tags to narrower and wider sizes. Verify Name can shrink to its compact minimum, each column stops at its documented readable minimum, remains stable during the one-second refresh, and persists after reload.
 - Hide a resized optional column from the Columns menu, show it again, and verify its saved width returns.
 - Verify resizing a header does not accidentally start header reordering and reordering does not discard a saved width.
-- Right-click the torrent header bar and verify the Columns menu lists every data column, keeps Name required, and can show/hide every optional column.
+- Right-click the torrent header bar and verify the Columns menu lists every data column, including Name, and can show/hide all data columns. Hide Name and verify the remaining torrent columns continue to render and operate normally.
 - Hide and restore several columns from the header menu and verify the table updates immediately without changing qBitTorrent state.
 - Use Reset columns from the header menu and verify the default order/visibility is restored, Category remains visible, and custom widths are cleared.
 - Verify Size, Tracker, and Added can be enabled; Seeds displays connected seeds with the total in parentheses when qBitTorrent supplies a total, and Peers follows the same convention.

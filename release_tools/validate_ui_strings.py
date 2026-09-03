@@ -649,8 +649,8 @@ def main():
     assert '## Iconography' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')
     assert 'folder rows do not show descendant file counts' in (ROOT / 'TESTING.md').read_text(encoding='utf-8')
 
-    # 0.5.84-v0.5.87 keeps torrent columns browser-local and directly
-    # configurable from the header; v0.5.87 adds persisted edge resizing.
+    # 0.5.84-v0.5.88 keeps torrent columns browser-local and directly
+    # configurable from the header; v0.5.88 makes Name optional as well.
     assert 'id="columnPrefList"' not in html and 'id="resetColumns"' not in html
     assert 'class="menu column-menu hidden" id="columnMenu"' in html and 'aria-label="Torrent columns"' in html
     assert html.count('draggable="true" data-col=') == 14
@@ -658,6 +658,9 @@ def main():
     assert "{key:'peers',label:'Peers',defaultVisible:true}" in app_js
     assert "{key:'category',label:'Category',defaultVisible:true}" in app_js
     assert "{key:'tags',label:'Tags',defaultVisible:true}" in app_js
+    assert "{key:'name',label:'Name',required:false,defaultVisible:true}" in app_js
+    assert "{key:'name',label:'Name',required:true,defaultVisible:true}" not in app_js
+    assert 'const TORRENT_COLUMN_MIN_WIDTHS={name:140,' in app_js
     assert "{key:'size',label:'Size',defaultVisible:false}" in app_js
     assert "savedPreviousDefault&&column.key==='category'?true" in app_js
     assert 'widths:{}' in app_js and 'TORRENT_COLUMN_MIN_WIDTHS' in app_js and 'TORRENT_COLUMN_MAX_WIDTH=720' in app_js
@@ -683,6 +686,8 @@ def main():
     assert '0.5.84 torrent column organizer' not in settings_css
     assert '## Configurable torrent columns' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')
     assert 'Drag the narrow right edge' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')
+    assert '**Name** is visible by default but is otherwise a normal configurable data column' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')
+    assert 'including Name, and can show/hide all data columns' in (ROOT / 'TESTING.md').read_text(encoding='utf-8')
     assert '### Configurable torrent columns' in (ROOT / 'TESTING.md').read_text(encoding='utf-8')
     print("UI string audit passed")
 

@@ -7,14 +7,14 @@
 This handoff is intentionally portable across public forks. Verify the current checkout's Git remote, branch, and open work before using upstream references as instructions.
 
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
-- Last documented upstream build: **v0.5.87** (prerelease)
+- Last documented upstream build: **v0.5.88** (prerelease)
 - Upstream development branch: `refactor/backend-modularization-users`
 - Upstream prerelease branch: `prerelease/backend-modularization`
 - Upstream active PR: **#25**
 
 ## Last known-good state
 
-Adds direct, persistent column-width resizing to the torrent table while preserving the existing drag-to-reorder and right-click visibility workflow.
+Removes the last special-case restriction from torrent data columns so Name can be hidden and resized like the rest of the configurable table.
 
 The released-state details and recent history are in `PROJECT_STATE.md`; architectural constraints are in `ARCHITECTURE.md`.
 

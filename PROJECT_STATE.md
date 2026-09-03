@@ -6,7 +6,7 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.87** (prerelease)
+- Latest documented build: **v0.5.88** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 - Upstream development branch: `refactor/backend-modularization-users`
 - Upstream prerelease branch: `prerelease/backend-modularization`
@@ -14,7 +14,7 @@
 
 ### Latest release summary
 
-Adds direct, persistent column-width resizing to the torrent table while preserving the existing drag-to-reorder and right-click visibility workflow.
+Removes the last special-case restriction from torrent data columns so Name can be hidden and resized like the rest of the configurable table.
 
 ## Architecture state
 
@@ -43,11 +43,10 @@ Adds direct, persistent column-width resizing to the torrent table while preserv
 - Use locally embedded Material-style SVGs for common disclosure and file-source affordances rather than platform-dependent text glyphs or remote icon-font dependencies.
 - Keep the Add Torrent content preview visually minimal: left-align Name, omit redundant folder descendant counts, and let the live file/size summary replace a separate Content heading.
 - Treat torrent-table column layout as a browser-local presentation preference rather than shared application configuration.
-- Keep Name, the selection checkbox, and row actions fixed; allow the remaining torrent data columns to be hidden and reordered.
 - Expose Seeds, Peers, and Tags in the default torrent table while keeping less frequently needed Size, Category, Tracker, and Added available but hidden by default.
 - Treat Category as core torrent-list context and include it in the default visible column set.
-- Manage torrent columns directly from the torrent header: drag visible headers to reorder and use the header context menu to show/hide optional columns; keep Name required and Category visible in the default layout.
 - Treat torrent column width as part of the browser-local table layout: resize from the header edge, preserve widths across refresh/reorder/visibility changes, and clear them with Reset columns.
+- Treat Name as a normal torrent data column: keep it visible by default but allow users to hide, reorder, and resize it; only the selection checkbox and row-actions columns remain fixed.
 
 ## Development principles
 
@@ -59,6 +58,14 @@ Adds direct, persistent column-width resizing to the torrent table while preserv
 - Keep public development continuity portable across forks; label canonical repository/branch/PR references as upstream context rather than local identity.
 
 ## Recent work
+
+### v0.5.88 — Fully configurable Name column
+
+Removes the last special-case restriction from torrent data columns so Name can be hidden and resized like the rest of the configurable table.
+
+- Name remains visible in the default torrent layout but can now be hidden from the header Columns menu.
+- Name remains draggable and resizable, with its minimum width reduced from 220 px to 140 px for denser desktop layouts.
+- The selection checkbox and row-actions control are now the only fixed/non-configurable torrent-table columns.
 
 ### v0.5.87 — Resizable torrent columns
 
@@ -95,15 +102,6 @@ Adds a persistent torrent-column organizer with visibility and ordering controls
 - Name remains the required first data column while the selection checkbox and row-actions control remain fixed.
 - Column visibility and order persist as a browser-local preference and survive live refreshes and reloads.
 - Legacy visibility-only tdColumns preferences are migrated automatically into the ordered preference model.
-
-### v0.5.83 — Material icon and Add Torrent table polish
-
-Uses locally embedded Material-style disclosure/file icons and simplifies the Add Torrent content table for clearer hierarchy and less redundant information.
-
-- Folder disclosure, Torrent details disclosure, update-note disclosure, and .torrent upload affordances now use locally embedded Material-style SVG icons.
-- Add Torrent no longer repeats a Content heading above the live file/size summary.
-- The Name header is left-aligned at the beginning of its column.
-- Folder rows no longer display redundant descendant file counts in the Priority column.
 
 ## What to do next
 
