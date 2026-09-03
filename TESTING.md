@@ -219,3 +219,11 @@ Do not use this file as a test-results log; it is a stable testing contract for 
 - Above 820 px, verify Peers and Trackers remain conventional tables with visible column headers.
 - Recheck General before and after switching through Trackers and Peers; its layout and content must remain unchanged.
 
+### Desktop torrent workspace scroll stability
+
+- On a desktop-width viewport, note the rendered torrent workspace/list height, then scroll the document above and below the workspace while live one-second polling continues. Verify the torrent workspace and torrent-list panel do not grow or shrink as a consequence of document scroll position.
+- Scroll a long torrent list using the table's own vertical scrollbar and verify the list remains bounded while the page position stays independent.
+- Resize the browser vertically and verify the workspace recalculates to the new viewport height, then remains stable again during document scrolling.
+- Expand and collapse Torrent details and verify space is reallocated inside the fixed workspace rather than increasing the overall workspace height.
+- Repeat at mobile width and verify the existing mobile bottom-sheet/list behavior is unchanged.
+

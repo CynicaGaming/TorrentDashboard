@@ -100,6 +100,8 @@ def main():
     config_store_py = (ROOT / "torrent_dashboard" / "config_store.py").read_text(encoding="utf-8")
     integrations_py = (ROOT / "torrent_dashboard" / "integrations.py").read_text(encoding="utf-8")
     users_py = (ROOT / "torrent_dashboard" / "users.py").read_text(encoding="utf-8")
+    design_language = (ROOT / "DESIGN_LANGUAGE.md").read_text(encoding="utf-8")
+    testing_md = (ROOT / "TESTING.md").read_text(encoding="utf-8")
 
     validate_html_attributes(html)
     validate_javascript("static/app.js", app_js)
@@ -147,7 +149,11 @@ def main():
     assert ".torrent-detail-handle{appearance:none;width:100%;min-height:48px" in app_css
     assert ".detail-pane-close" not in app_css and ".torrent-detail-header" not in app_css
     assert "function syncTorrentWorkspaceLayout()" in app_js
-    assert "window.innerHeight-top-16" in app_js
+    assert "workspace.getBoundingClientRect().top+(window.scrollY||window.pageYOffset||0)" in app_js
+    assert "window.innerHeight-documentTop-16" in app_js
+    assert "window.innerHeight-top-16" not in app_js
+    assert "Stable desktop torrent workspace height" in design_language
+    assert "Desktop torrent workspace scroll stability" in testing_md
     assert "--torrent-workspace-height" in app_js
     assert "height:calc(100dvh - 320px);min-height:480px" not in app_css
     assert 'id="mTotal"' in html and 'id="mTorrentSummary"' in html
@@ -518,7 +524,7 @@ def main():
     assert "classList.toggle('dashboard-mode'" not in app_js
     assert "if(dashboardView)requestAnimationFrame(syncTorrentWorkspaceLayout)" in app_js
     assert "--torrent-workspace-height" in app_js and "--torrent-workspace-open-height" not in app_js
-    assert "const available=Math.max(360,Math.floor(window.innerHeight-top-16))" in app_js
+    assert "const available=Math.max(360,Math.floor(window.innerHeight-documentTop-16))" in app_js
     assert '.topbar.dashboard-mode' not in app_css
     assert '.topbar.dashboard-mode .topbar-heading{display:none}' not in app_css
     assert '## Client-style dashboard workspace' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')

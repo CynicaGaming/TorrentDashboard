@@ -6,7 +6,7 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.106** (prerelease)
+- Latest documented build: **v0.5.107** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 - Upstream development branch: `refactor/backend-modularization-users`
 - Upstream prerelease branch: `prerelease/backend-modularization`
@@ -14,47 +14,7 @@
 
 ### Latest release summary
 
-Makes Torrent details → Trackers and Peers readable on mobile with purpose-built labeled records while preserving desktop tables and the existing General tab.
-
-## Current engineering decisions
-
-- Prefer two visually distinct surfaces for list/detail hierarchy rather than joining them with only an internal divider.
-- Keep viewport-derived docking and independent list/detail scrolling.
-- Keep active backend modularization work separate from this presentation correction.
-- Treat torrent-detail selection and inspector disclosure as independent state: collapse changes presentation, not selection.
-- Keep the torrent-detail dock persistently discoverable and use the full disclosure bar as the primary keyboard/touch interaction target.
-- Treat All servers as an aggregation mode: omit it when only one enabled client exists, and prefer the actual client so client-specific actions remain available.
-- Author user-facing copy in its final display form; runtime token normalization is compatibility behavior for legacy generated tokens, not a presentation system.
-- Use deliberate mixed capitalization: stable named destinations may read as product labels, while headings, field labels, actions, statuses, errors, and explanatory text generally use sentence case.
-- Prefer user-facing product concepts over legacy implementation terminology, including allowed IP addresses for access controls and client for client-management actions.
-- Use qBitTorrent's parsed/cached metadata path when preselecting files from a local .torrent; raw multipart upload remains only as a compatibility fallback because qBitTorrent rejects filePriorities on raw uploaded torrents.
-- A repeated click on the torrent currently shown in Torrent details clears the detail context; choosing a different torrent replaces it directly.
-- Keep Add Torrent checkboxes in one aligned selection column; communicate hierarchy by indenting folder/file labels while preserving aligned Size and Priority columns.
-- Reconcile Torrent details against every refreshed torrent list and clear the detail context when its selected server/hash no longer exists.
-- Reserve a fixed disclosure/expander slot for every Add Torrent content row; files use a spacer while folders use the chevron, and hierarchy indentation begins after that slot.
-- Use the persistent Torrent details disclosure bar as the sole selection identity surface; expanded details begin directly with tabs/content rather than repeating title/hash metadata.
-- Use locally embedded Material-style SVGs for common disclosure and file-source affordances rather than platform-dependent text glyphs or remote icon-font dependencies.
-- Keep the Add Torrent content preview visually minimal: left-align Name, omit redundant folder descendant counts, and let the live file/size summary replace a separate Content heading.
-- Treat torrent-table column layout as a browser-local presentation preference rather than shared application configuration.
-- Expose Seeds, Peers, and Tags in the default torrent table while keeping less frequently needed Size, Category, Tracker, and Added available but hidden by default.
-- Treat Category as core torrent-list context and include it in the default visible column set.
-- Treat torrent column width as part of the browser-local table layout: resize from the header edge, preserve widths across refresh/reorder/visibility changes, and clear them with Reset columns.
-- Treat Name as a normal torrent data column: keep it visible by default but allow users to hide, reorder, and resize it; only the selection checkbox and row-actions columns remain fixed.
-- Treat torrent-column resizing as an exclusive pointer gesture: use a forgiving edge target, suppress native header drag until release, and preserve the live width through polling before committing it to browser-local preferences.
-- Keep torrent resize hit targets inside their owning data header, allow Name to consume its actual assigned width before ellipsizing, and hard-lock the row-actions column as a fixed right-edge control surface.
-- Use the torrent header as the single sorting surface and the unified text search as the single metadata filter: preserve status tabs, retire Category/Tags/Tracker and sort selects, clear obsolete facet preferences, and keep sort direction browser-local.
-- Keep torrent header labels centered, isolate native reordering to the header-label drag surface, reserve a separate inward-only resize gutter, and begin resizing from the exact rendered width so pointer movement maps immediately to column movement.
-- Keep GitHub network/update orchestration in dashboard.py while the torrent_dashboard release-provenance module owns parsing and filesystem provenance behavior behind injected runtime paths.
-- Align torrent data headers with their body content rather than centering every label.
-- When resizing, snapshot visible data-column widths and change table width with the active column so only the grabbed right boundary moves; keep selection and actions outside that model.
-- Keep the 48 px row-actions surface pinned to the torrent viewport edge with a non-interactive flexible spacer; customized data widths may scroll internally but must not move Actions offscreen or create page-level horizontal overflow.
-- Treat the pinned Actions edge as the maximum width boundary for new torrent-column resize gestures; consume spacer slack first, then stop rather than creating new horizontal overflow or shrinking unrelated columns.
-- Prefer native single-column resizing over a viewport-derived resize ceiling: fixed selection/actions rails remain pinned while user-chosen data widths may create horizontal scrolling only inside the torrent viewport.
-- Use a hybrid resize boundary: interior data columns retain scroll-native independent resizing, while the rightmost visible data column cannot create additional horizontal overflow past the fixed Actions rail.
-- Temporarily prefer one fixed torrent-table column set and deterministic proportional sizing over resize/reorder/visibility customization while the interaction model is simplified.
-- Keep torrent row commands contextual instead of reserving a permanent Actions column: use right-click on pointer interfaces and a movement-cancellable long press on touch while retaining the shared menu implementation.
-- Treat the mobile bulk-selection overlay and Torrent details as stacked bottom surfaces: bulk actions must remain fully visible above the current detail pane instead of competing for the same layer and screen region.
-- Keep desktop torrent-column alignment breakpoint-scoped: mobile cards use a consistent left-label/right-value metadata grid regardless of desktop numeric alignment.
+Keeps the desktop torrent workspace and torrent list at a stable bounded height while document scrolling occurs, preserving the list's independent internal scrollbar.
 
 ## Development principles
 
@@ -66,6 +26,14 @@ Makes Torrent details → Trackers and Peers readable on mobile with purpose-bui
 - Keep public development continuity portable across forks; label canonical repository/branch/PR references as upstream context rather than local identity.
 
 ## Recent work
+
+### v0.5.107 — Stable desktop torrent workspace height
+
+Keeps the desktop torrent workspace and torrent list at a stable bounded height while document scrolling occurs, preserving the list's independent internal scrollbar.
+
+- Makes desktop torrent workspace height independent of document scroll position while preserving viewport-resize responsiveness.
+- Keeps the torrent list bounded and continues to use its existing internal vertical scrollbar for torrent navigation.
+- Preserves the existing Torrent details space-sharing behavior and mobile bottom-sheet layout.
 
 ### v0.5.106 — Responsive tracker and peer details
 
@@ -98,15 +66,6 @@ Keeps mobile bulk-selection controls above the persistent Torrent details dock o
 - Moves the mobile bulk-selection overlay above the currently rendered Torrent details surface rather than using a fixed bottom offset that collides with the detail dock.
 - Tracks the detail pane's rendered top edge so the action bar remains clear when Torrent details is collapsed or expanded.
 - Raises the bulk-selection overlay above the detail pane while keeping dialogs and context menus on their existing higher application layers.
-
-### v0.5.102 — Contextual torrent row actions
-
-Removes the redundant torrent Actions ellipsis column and keeps one shared command menu available through desktop right-click and a scroll-safe mobile long press.
-
-- Removes the permanent 48 px Actions rail and ellipsis button so the fixed torrent data columns can use the reclaimed width.
-- Keeps the existing torrent context menu as the single row-command surface and opens it at the pointer location on desktop right-click.
-- Adds a 550 ms touch long press for mobile cards; movement beyond a small threshold cancels the gesture so ordinary scrolling remains natural.
-- Suppresses the synthetic tap after a completed long press so opening the menu does not also open Torrent details.
 
 ## What to do next
 

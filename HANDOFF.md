@@ -7,14 +7,14 @@
 This handoff is intentionally portable across public forks. Verify the current checkout's Git remote, branch, and open work before using upstream references as instructions.
 
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
-- Last documented upstream build: **v0.5.106** (prerelease)
+- Last documented upstream build: **v0.5.107** (prerelease)
 - Upstream development branch: `refactor/backend-modularization-users`
 - Upstream prerelease branch: `prerelease/backend-modularization`
 - Upstream active PR: **#25**
 
 ## Last known-good state
 
-Makes Torrent details → Trackers and Peers readable on mobile with purpose-built labeled records while preserving desktop tables and the existing General tab.
+Keeps the desktop torrent workspace and torrent list at a stable bounded height while document scrolling occurs, preserving the list's independent internal scrollbar.
 
 The released-state details and recent history are in `PROJECT_STATE.md`; architectural constraints are in `ARCHITECTURE.md`.
 

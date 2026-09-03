@@ -1,5 +1,5 @@
 'use strict';
-const FRONTEND_BUILD='0.5.106';
+const FRONTEND_BUILD='0.5.107';
 const HTML_BUILD=document.querySelector('meta[name="torrent-dashboard-build"]')?.content||'';
 const RECOVERY_KEY=`td-frontend-recovery-${FRONTEND_BUILD}`;
 async function recoverFrontendBuild(reason){
@@ -787,8 +787,8 @@ function syncTorrentWorkspaceLayout(){
   const workspace=$('.torrent-workspace');if(!workspace)return;
   const mobile=window.matchMedia('(max-width:700px)').matches;
   if(mobile||!$('#view-dashboard')?.classList.contains('active')){workspace.style.removeProperty('--torrent-workspace-height');return}
-  const top=Math.max(0,workspace.getBoundingClientRect().top);
-  const available=Math.max(360,Math.floor(window.innerHeight-top-16));
+  const documentTop=Math.max(0,workspace.getBoundingClientRect().top+(window.scrollY||window.pageYOffset||0));
+  const available=Math.max(360,Math.floor(window.innerHeight-documentTop-16));
   const value=`${available}px`;
   if(workspace.style.getPropertyValue('--torrent-workspace-height')!==value)workspace.style.setProperty('--torrent-workspace-height',value);
 }

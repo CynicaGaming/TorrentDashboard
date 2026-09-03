@@ -170,3 +170,7 @@ At the mobile breakpoint, torrent cards use a compact two-column metadata matrix
 
 Trackers and Peers use purpose-built responsive detail records rather than inheriting the generic mobile table-to-card fallback. Desktop/tablet retains the normal labeled tables. At the mobile breakpoint, Peers presents the peer address as the record heading, client as secondary context, and labeled Progress, Download, and Upload metrics. Trackers presents a cleaned tracker name or URL, a human-readable status badge, labeled Seeds and Peers counts, and the tracker message only when one exists. qBitTorrent tracker status codes must not be exposed as unexplained numbers, and pseudo-trackers such as DHT, PeX, and LSD must not display literal Markdown-style asterisks. The General tab remains an independent presentation and is not altered by this responsive record treatment.
 
+### Stable desktop torrent workspace height
+
+On desktop/tablet, the torrent workspace has one bounded height derived from the viewport and its fixed document position. Ordinary document scrolling must never change that height. The torrent list keeps its own vertical scroller inside the bounded workspace, while expanding/collapsing Torrent details only reallocates space inside that same workspace. Viewport resizing may legitimately recalculate the workspace height; page scroll position must not be an input to that calculation.
+
