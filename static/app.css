@@ -356,6 +356,9 @@ button,select,input,textarea{border:1px solid var(--border);background:var(--pan
 
 /* 0.5.102 contextual torrent row actions. */
 @media(max-width:820px){#torrentTable tbody tr{-webkit-touch-callout:none}}
+
+/* 0.5.103 mobile bulk action layering. */
+@media(max-width:700px){.bulkbar{bottom:var(--torrent-bulk-bottom,116px)!important;z-index:74}}
 .controls-panel .filters{margin-left:auto}
 .controls-panel .filters input{width:min(360px,36vw)}
 @media(max-width:700px){.controls-panel .filters{width:100%;margin-left:0}.controls-panel .filters input{width:100%}}

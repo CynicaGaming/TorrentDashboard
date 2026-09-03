@@ -158,4 +158,5 @@ For the current desktop/tablet interaction model, the torrent list uses one fixe
 - Name and other text cells use only their assigned cell width for ellipsis. There is no historical independent Name maximum-width cap.
 - Mobile keeps the existing card presentation; the fixed desktop width calculation is cleared at the mobile breakpoint.
 - Torrent row commands use one shared context menu: right-click opens it on pointer-based desktop interfaces, while a deliberate long press opens it on touch. Touch movement cancels the pending long press so normal vertical scrolling is not intercepted.
+- On mobile, the bulk-selection overlay must clear the current Torrent details pane rather than sharing its bottom stack. Its bottom offset follows the rendered detail pane so selection actions remain fully visible in both collapsed and expanded detail states.
 - Sorting remains browser-local in `tdSort`. The default may still be Added descending even though Added is not one of the visible fixed columns.

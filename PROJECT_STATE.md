@@ -6,7 +6,7 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.102** (prerelease)
+- Latest documented build: **v0.5.103** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 - Upstream development branch: `refactor/backend-modularization-users`
 - Upstream prerelease branch: `prerelease/backend-modularization`
@@ -14,7 +14,7 @@
 
 ### Latest release summary
 
-Removes the redundant torrent Actions ellipsis column and keeps one shared command menu available through desktop right-click and a scroll-safe mobile long press.
+Keeps mobile bulk-selection controls above the persistent Torrent details dock or sheet instead of allowing the two bottom overlays to cover one another.
 
 ## Current engineering decisions
 
@@ -53,6 +53,7 @@ Removes the redundant torrent Actions ellipsis column and keeps one shared comma
 - Use a hybrid resize boundary: interior data columns retain scroll-native independent resizing, while the rightmost visible data column cannot create additional horizontal overflow past the fixed Actions rail.
 - Temporarily prefer one fixed torrent-table column set and deterministic proportional sizing over resize/reorder/visibility customization while the interaction model is simplified.
 - Keep torrent row commands contextual instead of reserving a permanent Actions column: use right-click on pointer interfaces and a movement-cancellable long press on touch while retaining the shared menu implementation.
+- Treat the mobile bulk-selection overlay and Torrent details as stacked bottom surfaces: bulk actions must remain fully visible above the current detail pane instead of competing for the same layer and screen region.
 
 ## Development principles
 
@@ -64,6 +65,14 @@ Removes the redundant torrent Actions ellipsis column and keeps one shared comma
 - Keep public development continuity portable across forks; label canonical repository/branch/PR references as upstream context rather than local identity.
 
 ## Recent work
+
+### v0.5.103 — Mobile bulk action layering
+
+Keeps mobile bulk-selection controls above the persistent Torrent details dock or sheet instead of allowing the two bottom overlays to cover one another.
+
+- Moves the mobile bulk-selection overlay above the currently rendered Torrent details surface rather than using a fixed bottom offset that collides with the detail dock.
+- Tracks the detail pane's rendered top edge so the action bar remains clear when Torrent details is collapsed or expanded.
+- Raises the bulk-selection overlay above the detail pane while keeping dialogs and context menus on their existing higher application layers.
 
 ### v0.5.102 — Contextual torrent row actions
 
@@ -100,15 +109,6 @@ Removes the artificial right-side resize ceiling so a torrent column can be resi
 - Makes the 40 px selection checkbox column sticky on the left, matching the existing fixed 48 px Actions surface on the right.
 - Keeps the flexible spacer for layouts that fit, but allows deliberately wider browser-local data layouts to use the torrent viewport's internal horizontal scroll area.
 - Preserves one-edge resizing, polling deferral, browser-local tdColumns persistence, header sorting/reordering, and mobile reset behavior.
-
-### v0.5.98 — Bounded torrent-column resizing
-
-Stops torrent-column resize gestures at the pinned Actions boundary so widening a column cannot create new horizontal overflow.
-
-- Calculates each resize gesture's maximum width from the live torrent viewport after reserving the rendered selection checkbox, pinned Actions column, and every other visible data column.
-- A column may expand into the flexible spacer introduced in v0.5.97, but the drag stops when that slack is exhausted and the data region reaches Actions.
-- Preserves v0.5.96 one-edge geometry: the active column's left edge stays fixed and no unrelated column is shrunk or redistributed.
-- Existing oversized browser-local layouts are not silently rewritten; they can still be narrowed or reset without allowing a new resize to make them wider.
 
 ## What to do next
 

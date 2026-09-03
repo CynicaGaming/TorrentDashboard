@@ -699,6 +699,17 @@ def main():
     assert 'without a horizontal scrollbar' in testing
     assert 'there must be no dedicated Actions column' in testing
     assert 'Long-press a non-control area of a torrent card' in testing
+
+    # 0.5.103 keeps the mobile bulk-selection overlay above the persistent
+    # Torrent details surface instead of letting equal-z-index bottom overlays collide.
+    assert 'function syncMobileBulkbarOffset()' in app_js
+    assert "bulk.style.setProperty('--torrent-bulk-bottom'" in app_js
+    assert "window.visualViewport?.addEventListener('resize'" in app_js
+    assert 'setTimeout(syncMobileBulkbarOffset,180)' in app_js
+    assert '0.5.103 mobile bulk action layering' in app_css
+    assert 'bottom:var(--torrent-bulk-bottom,116px)!important;z-index:74' in app_css
+    assert 'bulk-selection overlay must clear the current Torrent details pane' in design
+    assert 'bulk action bar is fully visible above the disclosure bar' in testing
     print("UI string audit passed")
 
 
