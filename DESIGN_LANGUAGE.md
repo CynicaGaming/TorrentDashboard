@@ -166,3 +166,7 @@ For the current desktop/tablet interaction model, the torrent list uses one fixe
 
 At the mobile breakpoint, torrent cards use a compact two-column metadata matrix rather than giving every desktop field a full-width row. Name and Progress remain full-width; Size/Status, Seeds/Peers, Download/Upload, ETA/Ratio, and Category/Tags share paired rows. The selection checkbox is positioned at the card's top-right without consuming layout height. Torrent names may wrap to at most two lines. Every metadata item keeps its label at the left of its local cell and its value at the right. This mobile layout is independent of the fixed desktop column proportions.
 
+### Responsive torrent detail records
+
+Trackers and Peers use purpose-built responsive detail records rather than inheriting the generic mobile table-to-card fallback. Desktop/tablet retains the normal labeled tables. At the mobile breakpoint, Peers presents the peer address as the record heading, client as secondary context, and labeled Progress, Download, and Upload metrics. Trackers presents a cleaned tracker name or URL, a human-readable status badge, labeled Seeds and Peers counts, and the tracker message only when one exists. qBitTorrent tracker status codes must not be exposed as unexplained numbers, and pseudo-trackers such as DHT, PeX, and LSD must not display literal Markdown-style asterisks. The General tab remains an independent presentation and is not altered by this responsive record treatment.
+

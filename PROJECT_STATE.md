@@ -6,7 +6,7 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.105** (prerelease)
+- Latest documented build: **v0.5.106** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 - Upstream development branch: `refactor/backend-modularization-users`
 - Upstream prerelease branch: `prerelease/backend-modularization`
@@ -14,7 +14,7 @@
 
 ### Latest release summary
 
-Reduces mobile torrent-card height by pairing metadata fields into a compact two-column matrix while keeping Name and Progress full-width and preserving all displayed torrent information.
+Makes Torrent details → Trackers and Peers readable on mobile with purpose-built labeled records while preserving desktop tables and the existing General tab.
 
 ## Current engineering decisions
 
@@ -67,6 +67,14 @@ Reduces mobile torrent-card height by pairing metadata fields into a compact two
 
 ## Recent work
 
+### v0.5.106 — Responsive tracker and peer details
+
+Makes Torrent details → Trackers and Peers readable on mobile with purpose-built labeled records while preserving desktop tables and the existing General tab.
+
+- Peers on mobile now shows each address and client with labeled Progress, Download, and Upload metrics instead of an anonymous vertical value stack.
+- Trackers on mobile now shows cleaned tracker names, human-readable status badges, Seeds and Peers counts, and an optional tracker message.
+- Desktop/tablet keeps conventional Tracker and Peer tables, while the General detail tab remains unchanged.
+
 ### v0.5.105 — Compact mobile torrent cards
 
 Reduces mobile torrent-card height by pairing metadata fields into a compact two-column matrix while keeping Name and Progress full-width and preserving all displayed torrent information.
@@ -99,15 +107,6 @@ Removes the redundant torrent Actions ellipsis column and keeps one shared comma
 - Keeps the existing torrent context menu as the single row-command surface and opens it at the pointer location on desktop right-click.
 - Adds a 550 ms touch long press for mobile cards; movement beyond a small threshold cancels the gesture so ordinary scrolling remains natural.
 - Suppresses the synthetic tap after a completed long press so opening the menu does not also open Torrent details.
-
-### v0.5.101 — Fixed torrent table layout
-
-Replaces the iterative configurable-column geometry with the requested fixed torrent column set, fixed order, and deterministic viewport-fitting proportions while retaining header sorting and the mobile card layout.
-
-- Uses the fixed visible order Name, Size, Status, Progress, Seeds, Peers, Down, Up, ETA, Ratio, Category, Tags, with selection/actions remaining the only fixed rails.
-- Allocates the desktop data plane proportionally on every viewport resize so the table fits the available width without a horizontal scrollbar.
-- Removes active resize, drag reorder, visibility menu, Reset columns, spacer geometry, and tdColumns persistence; old tdColumns state is discarded during migration.
-- Retains sortable headers, content-aligned labels, real-width Name ellipsis, one-second polling stability, and the existing responsive card presentation.
 
 ## What to do next
 

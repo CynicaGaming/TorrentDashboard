@@ -390,3 +390,28 @@ button,select,input,textarea{border:1px solid var(--border);background:var(--pan
   #torrentTable tbody tr{column-gap:10px;padding-left:10px;padding-right:10px}
   #torrentTable td.mobile-grid{gap:4px}
 }
+
+
+/* 0.5.106 responsive tracker and peer details. */
+.detail-mobile-only{display:none}
+.detail-record-list{gap:8px}
+.detail-record-card{min-width:0;border:1px solid var(--border);background:var(--panel3);border-radius:12px;padding:11px 12px}
+.detail-record-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;min-width:0}
+.detail-record-title{min-width:0;flex:1 1 auto}
+.detail-record-title strong{display:block;font-size:12px;line-height:1.35;overflow-wrap:anywhere}
+.detail-record-title span{display:block;margin-top:3px;color:var(--muted);font-size:10px;line-height:1.35;overflow-wrap:anywhere}
+.detail-record-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px}
+.detail-tracker-card .detail-record-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
+.detail-record-metric{min-width:0}
+.detail-record-metric span,.detail-record-message span{display:block;color:var(--muted);font-size:8.5px;text-transform:uppercase;letter-spacing:.06em}
+.detail-record-metric b{display:block;margin-top:3px;font-size:11px;font-weight:550;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.detail-status-badge{flex:0 0 auto;display:inline-flex;align-items:center;border:1px solid var(--border);border-radius:999px;padding:4px 7px;font-size:9.5px;line-height:1.2;color:var(--muted);background:var(--panel2);white-space:nowrap}
+.detail-status-badge.good{color:var(--good);border-color:color-mix(in srgb,var(--good) 40%,var(--border));background:color-mix(in srgb,var(--good) 8%,var(--panel2))}
+.detail-status-badge.warn{color:var(--warn);border-color:color-mix(in srgb,var(--warn) 40%,var(--border));background:color-mix(in srgb,var(--warn) 8%,var(--panel2))}
+.detail-status-badge.bad{color:var(--bad);border-color:color-mix(in srgb,var(--bad) 40%,var(--border));background:color-mix(in srgb,var(--bad) 8%,var(--panel2))}
+.detail-record-message{margin-top:9px;padding-top:8px;border-top:1px solid color-mix(in srgb,var(--border) 65%,transparent);min-width:0}
+.detail-record-message b{display:block;margin-top:3px;font-size:10px;font-weight:500;line-height:1.4;overflow-wrap:anywhere}
+@media(max-width:820px){
+  .torrent-detail-body .detail-desktop-only{display:none!important}
+  .torrent-detail-body .detail-mobile-only{display:grid}
+}

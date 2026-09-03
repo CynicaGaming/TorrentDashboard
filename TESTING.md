@@ -209,3 +209,13 @@ Do not use this file as a test-results log; it is a stable testing contract for 
 - Compare several cards with v0.5.104-sized content and verify substantially more than one torrent can fit in a typical phone viewport while preserving all displayed metadata.
 - Recheck long-press row actions, normal tap-to-open Torrent details, checkbox selection, and the mobile bulk-action/detail-pane stacking behavior after the grid compaction.
 
+### Responsive tracker and peer details
+
+- At 820 px and below, open Peers and verify each connected peer is a compact labeled record: address heading, client beneath it, then Progress, Download, and Upload metrics. No anonymous vertical value stacks should remain.
+- Open Trackers and verify each record shows a cleaned tracker name/URL, a human-readable status badge, labeled Seeds and Peers counts, and a Message section only when the tracker reports one.
+- Verify qBitTorrent tracker statuses 0 through 4 render as Disabled, Not contacted, Working, Updating, and Not working rather than raw numeric codes.
+- Verify pseudo-trackers such as DHT, PeX, and LSD do not display literal surrounding `**` markers.
+- Test a long IPv6 peer address, long client name, long tracker URL, and long tracker message; records must wrap or ellipsize without horizontal overflow.
+- Above 820 px, verify Peers and Trackers remain conventional tables with visible column headers.
+- Recheck General before and after switching through Trackers and Peers; its layout and content must remain unchanged.
+

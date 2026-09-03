@@ -730,6 +730,22 @@ def main():
     assert 'two-column metadata matrix' in design
     assert 'Size/Status, Seeds/Peers, Download/Upload, ETA/Ratio, and Category/Tags' in testing
 
+    # 0.5.106 gives Trackers and Peers dedicated responsive detail records.
+    assert 'function peerAddress(p)' in app_js
+    assert "function trackerDisplayName(value='')" in app_js
+    assert 'function trackerStatusInfo(value)' in app_js
+    for label in ('Disabled','Not contacted','Working','Updating','Not working'):
+        assert f"'{label}'" in app_js
+    assert 'detail-mobile-only detail-record-list' in app_js
+    assert 'detail-peer-card' in app_js and 'detail-tracker-card' in app_js
+    assert 'No peers are currently connected.' in app_js
+    assert 'This torrent does not report any trackers.' in app_js
+    assert '0.5.106 responsive tracker and peer details' in app_css
+    assert '.torrent-detail-body .detail-desktop-only{display:none!important}' in app_css
+    assert '.torrent-detail-body .detail-mobile-only{display:grid}' in app_css
+    assert '### Responsive torrent detail records' in design
+    assert '### Responsive tracker and peer details' in testing
+
     print("UI string audit passed")
 
 

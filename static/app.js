@@ -1,5 +1,5 @@
 'use strict';
-const FRONTEND_BUILD='0.5.105';
+const FRONTEND_BUILD='0.5.106';
 const HTML_BUILD=document.querySelector('meta[name="torrent-dashboard-build"]')?.content||'';
 const RECOVERY_KEY=`td-frontend-recovery-${FRONTEND_BUILD}`;
 async function recoverFrontendBuild(reason){
@@ -995,8 +995,42 @@ function detailStat(label,value){return`<div class="detail-stat"><span>${esc(lab
 function renderDetail(){if(!state.detail?.data)return;const d=state.detail.data,p=d.properties||{},t=detailCurrentTorrent()||{};if(state.detailTab==='general')renderDetailGeneral(t,p);else if(state.detailTab==='trackers')renderTrackers(d.trackers||[]);else if(state.detailTab==='peers')renderPeers(d.peers||{});else if(state.detailTab==='webseeds')renderWebSeeds(d.webseeds||[]);else renderFiles(d.files||[])}
 function renderDetailGeneral(t,p){const progress=Math.max(0,Math.min(1,Number(t.progress||p.progress||0))),availabilityRaw=Number(t.availability),availability=Number.isFinite(availabilityRaw)&&availabilityRaw>=0?Math.min(1,availabilityRaw):null;const transfer=[['Time active',eta(p.time_elapsed)],['Downloaded',bytes(p.total_downloaded)],['Download speed',speed(p.dl_speed||t.dlspeed||0)],['Download limit',Number(p.dl_limit)>0?speed(p.dl_limit):'∞'],['Share ratio',Number(p.share_ratio||t.ratio||0).toFixed(2)],['Popularity',Number(p.popularity||0).toFixed(2)],['ETA',eta(p.eta??t.eta)],['Uploaded',bytes(p.total_uploaded)],['Upload speed',speed(p.up_speed||t.upspeed||0)],['Upload limit',Number(p.up_limit)>0?speed(p.up_limit):'∞'],['Reannounce in',eta(p.reannounce)]];const swarm=[['Connections',`${p.nb_connections??0} (${p.nb_connections_limit??'—'} max)`],['Seeds',`${p.seeds??t.num_seeds??0} (${p.seeds_total??t.num_complete??0} total)`],['Peers',`${p.peers??t.num_leechs??0} (${p.peers_total??t.num_incomplete??0} total)`],['Wasted',bytes(p.total_wasted||0)],['Last seen complete',when(p.last_seen)]];const info=[['Total size',bytes(p.total_size||t.total_size||t.size||0)],['Added on',when(p.addition_date||t.added_on)],['Completed on',when(p.completion_date||t.completion_on)],['Private',p.private===true||p.is_private===true?'Yes':p.private===false||p.is_private===false?'No':'—'],['Pieces',`${p.pieces_num??'—'} × ${bytes(p.piece_size||0)}`],['Created by',p.created_by||'—'],['Created on',when(p.creation_date)],['Save path',p.save_path||t.save_path||'—'],['Comment',p.comment||'—']];$('#detailBody').innerHTML=`<div class="detail-progress-grid"><div class="detail-progress-row"><span>Progress</span><div class="detail-progress-bar"><span style="width:${(progress*100).toFixed(1)}%"></span></div><b>${(progress*100).toFixed(1)}%</b></div><div class="detail-progress-row"><span>Availability</span><div class="detail-progress-bar availability"><span style="width:${availability===null?0:(availability*100).toFixed(1)}%"></span></div><b>${availability===null?'—':availabilityRaw.toFixed(3)}</b></div></div><div class="detail-general-grid"><section class="detail-general-section"><strong>Transfer</strong>${transfer.map(x=>detailStat(x[0],x[1])).join('')}</section><section class="detail-general-section"><strong>Swarm</strong>${swarm.map(x=>detailStat(x[0],x[1])).join('')}</section><section class="detail-general-section"><strong>Information</strong>${info.map(x=>detailStat(x[0],x[1])).join('')}</section></div>`}
 function renderFiles(files){const admin=!!state.me?.can_manage;$('#detailBody').innerHTML=`<div class="detail-table-wrap"><table class="detail-table compact"><thead><tr><th>Name</th><th>Progress</th><th>Size</th><th>Priority</th></tr></thead><tbody>${files.map((f,i)=>`<tr><td>${esc(f.name)}</td><td>${(Number(f.progress||0)*100).toFixed(1)}%</td><td>${bytes(f.size)}</td><td><select class="fileprio" data-id="${f.index??i}" ${admin?'':'disabled'}><option value="0" ${f.priority===0?'selected':''}>Do not download</option><option value="1" ${f.priority===1?'selected':''}>Normal</option><option value="6" ${f.priority===6?'selected':''}>High</option><option value="7" ${f.priority===7?'selected':''}>Maximum</option></select></td></tr>`).join('')}</tbody></table></div>`;if(admin)$$('.fileprio').forEach(s=>s.onchange=()=>doAction('file_priority',{server:state.detail.server,hash:state.detail.hash,ids:[s.dataset.id],priority:Number(s.value)}))}
-function renderPeers(peers){let arr=Object.values(peers.peers||{});$('#detailBody').innerHTML=`<div class="detail-table-wrap"><table class="detail-table compact"><thead><tr><th>Address</th><th>Client</th><th>Progress</th><th>Down</th><th>Up</th></tr></thead><tbody>${arr.map(p=>`<tr><td>${esc(p.ip)}:${esc(p.port)}</td><td>${esc(p.client||'')}</td><td>${(Number(p.progress||0)*100).toFixed(1)}%</td><td>${speed(p.dl_speed||0)}</td><td>${speed(p.up_speed||0)}</td></tr>`).join('')}</tbody></table></div>`}
-function renderTrackers(a){$('#detailBody').innerHTML=`<div class="detail-table-wrap"><table class="detail-table compact"><thead><tr><th>Tracker</th><th>Status</th><th>Seeds</th><th>Peers</th><th>Message</th></tr></thead><tbody>${a.map(x=>`<tr><td>${esc(x.url)}</td><td>${esc(x.status)}</td><td>${esc(x.num_seeds)}</td><td>${esc(x.num_leeches)}</td><td>${esc(x.msg||'')}</td></tr>`).join('')}</tbody></table></div>`}
+function peerAddress(p){
+  const ip=String(p?.ip||'').trim(),port=String(p?.port??'').trim();
+  if(!ip)return port?`Port ${port}`:'—';
+  const host=ip.includes(':')&&!ip.startsWith('[')?`[${ip}]`:ip;
+  return port?`${host}:${port}`:host
+}
+function trackerDisplayName(value=''){
+  const raw=String(value||'').trim();
+  const match=raw.match(/^\*\*\s*(.*?)\s*\*\*$/);
+  return String(match?.[1]||raw||'—').trim()
+}
+function trackerStatusInfo(value){
+  const raw=String(value??'').trim();
+  if(!raw)return['Unknown','neutral'];
+  const code=Number(raw);
+  if(code===0)return['Disabled','neutral'];
+  if(code===1)return['Not contacted','warn'];
+  if(code===2)return['Working','good'];
+  if(code===3)return['Updating','warn'];
+  if(code===4)return['Not working','bad'];
+  return[raw,'neutral']
+}
+function renderPeers(peers){
+  const arr=Object.values(peers.peers||{});
+  if(!arr.length){$('#detailBody').innerHTML='<div class="empty"><strong>No peers</strong><span>No peers are currently connected.</span></div>';return}
+  const desktop=`<div class="detail-desktop-only detail-table-wrap"><table class="detail-table compact"><thead><tr><th>Address</th><th>Client</th><th>Progress</th><th>Down</th><th>Up</th></tr></thead><tbody>${arr.map(p=>`<tr><td>${esc(peerAddress(p))}</td><td>${esc(p.client||'')}</td><td>${(Number(p.progress||0)*100).toFixed(1)}%</td><td>${esc(speed(p.dl_speed||0))}</td><td>${esc(speed(p.up_speed||0))}</td></tr>`).join('')}</tbody></table></div>`;
+  const mobile=arr.map(p=>`<article class="detail-record-card detail-peer-card"><div class="detail-record-heading"><div class="detail-record-title"><strong>${esc(peerAddress(p))}</strong><span>${esc(p.client||'Unknown client')}</span></div></div><div class="detail-record-metrics"><div class="detail-record-metric"><span>Progress</span><b>${(Number(p.progress||0)*100).toFixed(1)}%</b></div><div class="detail-record-metric"><span>Download</span><b>${esc(speed(p.dl_speed||0))}</b></div><div class="detail-record-metric"><span>Upload</span><b>${esc(speed(p.up_speed||0))}</b></div></div></article>`).join('');
+  $('#detailBody').innerHTML=`${desktop}<div class="detail-mobile-only detail-record-list">${mobile}</div>`
+}
+function renderTrackers(a){
+  const arr=Array.isArray(a)?a:[];
+  if(!arr.length){$('#detailBody').innerHTML='<div class="empty"><strong>No trackers</strong><span>This torrent does not report any trackers.</span></div>';return}
+  const desktop=`<div class="detail-desktop-only detail-table-wrap"><table class="detail-table compact"><thead><tr><th>Tracker</th><th>Status</th><th>Seeds</th><th>Peers</th><th>Message</th></tr></thead><tbody>${arr.map(x=>{const status=trackerStatusInfo(x.status)[0];return`<tr><td>${esc(trackerDisplayName(x.url))}</td><td>${esc(status)}</td><td>${esc(x.num_seeds)}</td><td>${esc(x.num_leeches)}</td><td>${esc(x.msg||'')}</td></tr>`}).join('')}</tbody></table></div>`;
+  const mobile=arr.map(x=>{const[status,tone]=trackerStatusInfo(x.status),message=String(x.msg||'').trim();return`<article class="detail-record-card detail-tracker-card"><div class="detail-record-heading"><div class="detail-record-title"><strong>${esc(trackerDisplayName(x.url))}</strong></div><span class="detail-status-badge ${tone}">${esc(status)}</span></div><div class="detail-record-metrics"><div class="detail-record-metric"><span>Seeds</span><b>${esc(x.num_seeds??'—')}</b></div><div class="detail-record-metric"><span>Peers</span><b>${esc(x.num_leeches??'—')}</b></div></div>${message?`<div class="detail-record-message"><span>Message</span><b>${esc(message)}</b></div>`:''}</article>`}).join('');
+  $('#detailBody').innerHTML=`${desktop}<div class="detail-mobile-only detail-record-list">${mobile}</div>`
+}
 function renderWebSeeds(a){$('#detailBody').innerHTML=a.length?`<div class="detail-table-wrap"><table class="detail-table compact"><thead><tr><th>URL</th></tr></thead><tbody>${a.map(x=>`<tr><td>${esc(x.url||x)}</td></tr>`).join('')}</tbody></table></div>`:'<div class="empty"><strong>No HTTP sources</strong><span>This torrent does not advertise any web seeds.</span></div>'}
 
 function addRateBytes(selector,label){const value=Number($(selector)?.value||0);if(!Number.isFinite(value)||value<0)throw new Error(`${label} must be zero or greater`);return Math.round(value*1024)}
