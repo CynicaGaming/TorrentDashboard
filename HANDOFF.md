@@ -7,14 +7,14 @@
 This handoff is intentionally portable across public forks. Verify the current checkout's Git remote, branch, and open work before using upstream references as instructions.
 
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
-- Last documented upstream build: **v0.5.112** (prerelease)
+- Last documented upstream build: **v0.5.113** (prerelease)
 - Upstream development branch: `refactor/backend-modularization-users`
 - Upstream prerelease branch: `prerelease/backend-modularization`
 - Upstream active PR: **#25**
 
 ## Last known-good state
 
-Reconciles viewport sizing with whole-row torrent geometry so the desktop list shrinks below six rows when the expanded detail pane would otherwise push the Dashboard past the viewport.
+Preserves the accepted torrent-list/detail balance across monitor heights by making the desktop list a viewport-proportional preference rather than a six-row preference.
 
 The released-state details and recent history are in `PROJECT_STATE.md`; architectural constraints are in `ARCHITECTURE.md`.
 

@@ -773,29 +773,25 @@ def main():
     assert '### Responsive torrent detail records' in design
     assert '### Responsive tracker and peer details' in testing
 
-    # 0.5.112 adapts the preferred six-row list to the real remaining desktop viewport.
-    assert 'const TORRENT_DESKTOP_PREFERRED_ROWS=6;' in app_js
+    # 0.5.113 preserves the accepted desktop list/detail balance with a viewport-proportional preference.
+    assert 'const TORRENT_DESKTOP_LIST_VIEWPORT_RATIO=.44;' in app_js
     assert 'const TORRENT_DESKTOP_MIN_ROWS=3;' in app_js
     assert 'const TORRENT_DESKTOP_BOTTOM_GAP=12;' in app_js
+    assert 'TORRENT_DESKTOP_PREFERRED_ROWS' not in app_js
     assert "const table=$('#torrentTable'),firstRow=$('#torrentRows tr'),pane=$('#torrentDetailPane');" in app_js
-    assert "parseFloat(rootStyle.getPropertyValue('--row'))||62" in app_js
-    assert "table?.tHead?.getBoundingClientRect().height||34" in app_js
-    assert "firstRow?.getBoundingClientRect().height||fallbackRow" in app_js
     assert "workspace.getBoundingClientRect().top+(window.scrollY||window.pageYOffset||0)" in app_js
     assert 'window.innerHeight-documentTop-TORRENT_DESKTOP_BOTTOM_GAP' in app_js
-    assert 'parseFloat(workspaceStyle.rowGap||workspaceStyle.gap)||12' in app_js
     assert "pane?.getBoundingClientRect().height||0" in app_js
+    assert 'viewportBudget*TORRENT_DESKTOP_LIST_VIEWPORT_RATIO' in app_js
     assert 'viewportBudget-paneHeight-gap' in app_js
-    assert 'Math.floor((rawListBudget-headerHeight-borderAllowance)/rowHeight)' in app_js
-    assert 'Math.max(TORRENT_DESKTOP_MIN_ROWS,Math.min(TORRENT_DESKTOP_PREFERRED_ROWS' in app_js
+    assert 'Math.min(preferredListBudget,fitListBudget)' in app_js
+    assert 'Math.floor((targetListBudget-headerHeight-borderAllowance)/rowHeight)' in app_js
+    assert 'Math.max(TORRENT_DESKTOP_MIN_ROWS' in app_js
     assert "pane.style.removeProperty('--torrent-detail-expanded-height');\n  syncTorrentWorkspaceLayout();" in app_js
-    assert "requestAnimationFrame(syncDesktopDetailPaneHeight)" in app_js
     assert app_js.count("window.addEventListener('resize',()=>requestAnimationFrame(()=>{applyFixedTorrentColumnLayout();syncDesktopDetailPaneHeight();syncMobileBulkbarOffset()}))") == 1
-    assert 'function revealDesktopTorrentWorkspace()' not in app_js
-    assert 'requestAnimationFrame(revealDesktopTorrentWorkspace)' not in app_js
     assert '.torrent-list-panel{display:flex;flex:0 0 var(--torrent-list-height,456px);height:var(--torrent-list-height,456px);min-height:0;overflow:hidden}' in app_css
-    assert 'Adaptive desktop torrent viewport fit' in design
-    assert 'Adaptive desktop torrent viewport fit' in testing
+    assert 'Viewport-proportional desktop torrent workspace' in design
+    assert 'Viewport-proportional desktop torrent workspace' in testing
 
     print("UI string audit passed")
 

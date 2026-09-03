@@ -1,5 +1,5 @@
 'use strict';
-const FRONTEND_BUILD='0.5.112';
+const FRONTEND_BUILD='0.5.113';
 const HTML_BUILD=document.querySelector('meta[name="torrent-dashboard-build"]')?.content||'';
 const RECOVERY_KEY=`td-frontend-recovery-${FRONTEND_BUILD}`;
 async function recoverFrontendBuild(reason){
@@ -783,7 +783,7 @@ function visibleTorrents(){
   });
   return arr;
 }
-const TORRENT_DESKTOP_PREFERRED_ROWS=6;
+const TORRENT_DESKTOP_LIST_VIEWPORT_RATIO=.44;
 const TORRENT_DESKTOP_MIN_ROWS=3;
 const TORRENT_DESKTOP_BOTTOM_GAP=12;
 function syncTorrentWorkspaceLayout(){
@@ -799,8 +799,11 @@ function syncTorrentWorkspaceLayout(){
   const viewportBudget=Math.max(0,Math.floor(window.innerHeight-documentTop-TORRENT_DESKTOP_BOTTOM_GAP));
   const gap=Math.max(0,parseFloat(workspaceStyle.rowGap||workspaceStyle.gap)||12);
   const paneHeight=Math.max(0,Math.ceil(pane?.getBoundingClientRect().height||0));
-  const borderAllowance=2,rawListBudget=Math.max(0,viewportBudget-paneHeight-gap);
-  const wholeRows=Math.max(TORRENT_DESKTOP_MIN_ROWS,Math.min(TORRENT_DESKTOP_PREFERRED_ROWS,Math.floor((rawListBudget-headerHeight-borderAllowance)/rowHeight)));
+  const borderAllowance=2,minListHeight=headerHeight+(rowHeight*TORRENT_DESKTOP_MIN_ROWS)+borderAllowance;
+  const preferredListBudget=Math.max(minListHeight,Math.floor(viewportBudget*TORRENT_DESKTOP_LIST_VIEWPORT_RATIO));
+  const fitListBudget=Math.max(0,viewportBudget-paneHeight-gap);
+  const targetListBudget=Math.min(preferredListBudget,fitListBudget);
+  const wholeRows=Math.max(TORRENT_DESKTOP_MIN_ROWS,Math.floor((targetListBudget-headerHeight-borderAllowance)/rowHeight));
   const available=headerHeight+(rowHeight*wholeRows)+borderAllowance;
   const value=`${available}px`;
   if(workspace.style.getPropertyValue('--torrent-list-height')!==value)workspace.style.setProperty('--torrent-list-height',value);

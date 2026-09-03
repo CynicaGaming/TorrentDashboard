@@ -278,3 +278,14 @@ Do not use this file as a test-results log; it is a stable testing contract for 
 - Expand/collapse Torrent details and switch General/Trackers/Peers/HTTP sources/Content; verify the list recomputes against the rendered detail-pane height and long-data tabs keep their internal scrolling.
 - Opening Torrent details from the disclosure or a torrent row must not automatically scroll the document.
 - Repeat at mobile width and verify the adaptive desktop rule does not alter the mobile bottom sheet or torrent cards.
+
+
+### Viewport-proportional desktop torrent workspace
+
+- At the reported approximately 771 px desktop viewport, expand General and verify the torrent list occupies roughly the same visual share as the accepted reference layout (about 44% of the usable workspace) while General remains fully visible.
+- Repeat at common desktop heights such as 768/800, 900, 1080, 1200, 1440, and taller displays; verify the list scales with the usable viewport instead of stopping at six rows on large screens.
+- Verify the detail pane has priority over the preferred ratio: if General needs more height, the list reduces to the largest whole-row height that preserves the detail content, with three rows as the minimum desktop list.
+- Verify the list height is always the table header plus a whole number of rendered rows; no partial torrent row may be clipped at the bottom.
+- Switch comfortable/compact density and resize the browser height; verify the proportional target is recalculated from live row/header/detail measurements.
+- Scroll the document without resizing and verify one-second polling does not change the list height merely because the workspace moved within the viewport.
+- Verify Trackers, Peers, HTTP sources, and Content retain their bounded/internal-scroll behavior and mobile remains unchanged.
