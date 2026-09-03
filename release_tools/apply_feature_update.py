@@ -27,9 +27,6 @@ def replace_once(path: str, old: str, new: str) -> None:
     write(path, text.replace(old, new, 1))
 
 
-# Desktop Torrent details: keep the workspace itself fixed, but let the finite General tab
-# claim enough of that workspace to show its full content. Long/unbounded tabs retain their
-# existing bounded pane and independent scrolling behavior.
 replace_once(
     "static/app.css",
     ".torrent-detail-pane:not(.collapsed){min-height:240px;flex:0 1 clamp(260px,46%,420px)}",
@@ -42,8 +39,7 @@ replace_once(
 )
 
 app = read("static/app.js")
-needle = """function syncMobileBulkbarOffset(){
-"""
+needle = "function syncMobileBulkbarOffset(){\n"
 helper = """function syncDesktopDetailPaneHeight(){
   const pane=$('#torrentDetailPane'),workspace=pane?.closest('.torrent-workspace'),body=$('#detailBody');if(!pane||!workspace||!body)return;
   const fitGeneral=window.matchMedia('(min-width:701px)').matches&&state.detailExpanded&&state.detailTab==='general'&&!!state.detail?.data;
@@ -84,7 +80,6 @@ if old_view not in app:
 app = app.replace(old_view, new_view, 1)
 write("static/app.js", app)
 
-# Version synchronization.
 replace_once("dashboard.py", f'VERSION = "{OLD}"', f'VERSION = "{NEW}"')
 replace_once("static/app.js", f"const FRONTEND_BUILD='{OLD}';", f"const FRONTEND_BUILD='{NEW}';")
 index = read("static/index.html")
@@ -98,7 +93,6 @@ if old_cache not in sw or OLD not in sw:
     raise RuntimeError("static/sw.js is not synchronized to the previous version")
 write("static/sw.js", sw.replace(old_cache, new_cache).replace(OLD, NEW))
 
-# Durable design/testing contract.
 design = read("DESIGN_LANGUAGE.md")
 design_note = """
 
@@ -124,9 +118,12 @@ testing_note = """
 if "### Desktop Torrent details content-fit sizing" not in testing:
     write("TESTING.md", testing.rstrip() + testing_note + "\n")
 
-# Replace the old fixed-height validation with the new behavioral contract while preserving
-# the v0.5.107 document-coordinate workspace assertions.
 validator = read("release_tools/validate_ui_strings.py")
+old_detail_assert = '    assert ".torrent-detail-pane:not(.collapsed){min-height:240px;flex:0 1 clamp(260px,46%,420px)}" in app_css\n'
+new_detail_assert = '    assert ".torrent-detail-pane:not(.collapsed){min-height:240px;flex:0 1 var(--torrent-detail-expanded-height,clamp(260px,46%,420px))}" in app_css\n'
+if old_detail_assert not in validator:
+    raise RuntimeError("Could not find fixed desktop detail-pane assertion")
+validator = validator.replace(old_detail_assert, new_detail_assert, 1)
 anchor = '    assert "window.innerHeight-top-16" not in app_js\n'
 checks = (
     anchor
@@ -145,8 +142,6 @@ if anchor not in validator:
 validator = validator.replace(anchor, checks, 1)
 write("release_tools/validate_ui_strings.py", validator)
 
-# Structured release metadata. Preserve accumulated durable decisions/next steps so generated
-# handoff state does not lose engineering context when this presentation increment becomes latest.
 meta_path = ROOT / "release_notes" / "releases.json"
 meta = json.loads(meta_path.read_text(encoding="utf-8"))
 releases = meta.get("releases")
