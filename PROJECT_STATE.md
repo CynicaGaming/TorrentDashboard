@@ -6,7 +6,7 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.97** (prerelease)
+- Latest documented build: **v0.5.98** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 - Upstream development branch: `refactor/backend-modularization-users`
 - Upstream prerelease branch: `prerelease/backend-modularization`
@@ -14,7 +14,7 @@
 
 ### Latest release summary
 
-Keeps the torrent row Actions surface locked to the far-right edge while allowing intentionally wide customized data columns to scroll only inside the torrent viewport.
+Stops torrent-column resize gestures at the pinned Actions boundary so widening a column cannot create new horizontal overflow.
 
 ## Architecture state
 
@@ -56,6 +56,7 @@ Keeps the torrent row Actions surface locked to the far-right edge while allowin
 - Align torrent data headers with their body content rather than centering every label.
 - When resizing, snapshot visible data-column widths and change table width with the active column so only the grabbed right boundary moves; keep selection and actions outside that model.
 - Keep the 48 px row-actions surface pinned to the torrent viewport edge with a non-interactive flexible spacer; customized data widths may scroll internally but must not move Actions offscreen or create page-level horizontal overflow.
+- Treat the pinned Actions edge as the maximum width boundary for new torrent-column resize gestures; consume spacer slack first, then stop rather than creating new horizontal overflow or shrinking unrelated columns.
 
 ## Development principles
 
@@ -67,6 +68,15 @@ Keeps the torrent row Actions surface locked to the far-right edge while allowin
 - Keep public development continuity portable across forks; label canonical repository/branch/PR references as upstream context rather than local identity.
 
 ## Recent work
+
+### v0.5.98 — Bounded torrent-column resizing
+
+Stops torrent-column resize gestures at the pinned Actions boundary so widening a column cannot create new horizontal overflow.
+
+- Calculates each resize gesture's maximum width from the live torrent viewport after reserving the rendered selection checkbox, pinned Actions column, and every other visible data column.
+- A column may expand into the flexible spacer introduced in v0.5.97, but the drag stops when that slack is exhausted and the data region reaches Actions.
+- Preserves v0.5.96 one-edge geometry: the active column's left edge stays fixed and no unrelated column is shrunk or redistributed.
+- Existing oversized browser-local layouts are not silently rewritten; they can still be narrowed or reset without allowing a new resize to make them wider.
 
 ### v0.5.97 — Pinned torrent actions and contained horizontal overflow
 
@@ -102,14 +112,6 @@ Removes the remaining resize lag and gesture ambiguity by separating reorder and
 - Resizing begins from the exact rendered width, including columns currently narrower than their normal ergonomic minimum, eliminating dead pointer travel and initial jumps.
 - Torrent names no longer inherit the old fixed display cap; ellipsis remains only when the final Name cell truly cannot fit the text.
 - The far-right actions column remains a fixed, non-resizable 48 px sticky control surface and horizontal overflow is contained inside the torrent viewport.
-
-### v0.5.93 — Content-aligned torrent headers
-
-Restores natural torrent-table header alignment while retaining the stabilized resize, reorder, sorting, overflow, and fixed-actions behavior from the preceding column releases.
-
-- Sortable torrent header labels return to normal left/content flow instead of being centered independently of their row data.
-- The 20 px inward-only resize gutter remains unchanged, so column boundaries stay easy to grab without using label centering as a resize cue.
-- Header sorting, drag-to-reorder, persistent resizing, long-name expansion, and the fixed 48 px actions column remain intact.
 
 ## What to do next
 

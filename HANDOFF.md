@@ -7,14 +7,14 @@
 This handoff is intentionally portable across public forks. Verify the current checkout's Git remote, branch, and open work before using upstream references as instructions.
 
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
-- Last documented upstream build: **v0.5.97** (prerelease)
+- Last documented upstream build: **v0.5.98** (prerelease)
 - Upstream development branch: `refactor/backend-modularization-users`
 - Upstream prerelease branch: `prerelease/backend-modularization`
 - Upstream active PR: **#25**
 
 ## Last known-good state
 
-Keeps the torrent row Actions surface locked to the far-right edge while allowing intentionally wide customized data columns to scroll only inside the torrent viewport.
+Stops torrent-column resize gestures at the pinned Actions boundary so widening a column cannot create new horizontal overflow.
 
 The released-state details and recent history are in `PROJECT_STATE.md`; architectural constraints are in `ARCHITECTURE.md`.
 
