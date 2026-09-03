@@ -25,65 +25,41 @@ def replace_once(text: str, old: str, new: str, label: str) -> str:
     return text.replace(old, new, 1)
 
 
-# Make the sort label and chevron one inline alignment group. Text-oriented
-# groups remain left-aligned and numeric groups remain right-aligned.
 css = read("static/app.css")
-css = replace_once(
-    css,
+css = replace_once(css,
     '#torrentTable thead th[data-col]{cursor:pointer;user-select:none;-webkit-user-select:none;text-align:left;padding-left:12px;padding-right:26px;outline:none}',
     '#torrentTable thead th[data-col]{cursor:pointer;user-select:none;-webkit-user-select:none;text-align:left;padding-left:12px;padding-right:12px;outline:none}',
-    "torrent header padding",
-)
-css = replace_once(
-    css,
+    "torrent header padding")
+css = replace_once(css,
     '.torrent-sort-heading{position:relative;display:flex;width:100%;min-width:0;align-items:center;justify-content:flex-start;padding-right:18px;cursor:pointer;pointer-events:auto}',
     '.torrent-sort-heading{position:relative;display:flex;width:100%;min-width:0;align-items:center;justify-content:flex-start;gap:5px;cursor:pointer;pointer-events:auto}',
-    "sort heading geometry",
-)
-css = replace_once(
-    css,
+    "sort heading geometry")
+css = replace_once(css,
     '.torrent-sort-icon{position:absolute;right:0;display:grid;place-items:center;width:14px;height:14px;color:var(--muted);opacity:0;transition:opacity .12s ease,color .12s ease;pointer-events:none}',
     '.torrent-sort-icon{position:static;flex:0 0 14px;display:grid;place-items:center;width:14px;height:14px;color:var(--muted);opacity:0;transition:opacity .12s ease,color .12s ease;pointer-events:none}',
-    "sort icon geometry",
-)
+    "sort icon geometry")
 css += '\n/* 0.5.115 inline torrent sort chevrons */\n'
 write("static/app.css", css)
 
-# Update only the v0.5.114 assertions whose behavioral contract changed.
 validator = read("release_tools/validate_ui_strings.py")
-validator = replace_once(
-    validator,
+validator = replace_once(validator,
     "    # 0.5.114 uses a single trailing-edge sort affordance while preserving body-aligned header labels.",
     "    # 0.5.115 keeps each chevron inline with its owning label while preserving body-aligned header groups.",
-    "sort validator comment",
-)
-validator = replace_once(
-    validator,
+    "sort validator comment")
+validator = replace_once(validator,
     "    assert '.torrent-sort-heading{position:relative;display:flex;width:100%;min-width:0;align-items:center;justify-content:flex-start;padding-right:18px' in app_css",
     "    assert '.torrent-sort-heading{position:relative;display:flex;width:100%;min-width:0;align-items:center;justify-content:flex-start;gap:5px' in app_css",
-    "sort heading validator",
-)
-validator = replace_once(
-    validator,
+    "sort heading validator")
+validator = replace_once(validator,
     "    assert '.torrent-sort-icon{position:absolute;right:0;' in app_css",
     "    assert '.torrent-sort-icon{position:static;flex:0 0 14px;' in app_css\n    assert '.torrent-sort-icon{position:absolute' not in app_css",
-    "sort icon validator",
-)
-validator = replace_once(
-    validator,
+    "sort icon validator")
+validator = replace_once(validator,
     "    assert '0.5.114 consistent trailing-edge torrent sort chevrons' in app_css",
-    "    assert '0.5.114 consistent trailing-edge torrent sort chevrons' in app_css\n    assert '0.5.115 inline torrent sort chevrons' in app_css",
-    "sort release marker validator",
-)
-validator = replace_once(
-    validator,
-    "    assert '### Torrent sort chevrons' in design_language",
-    "    assert '### Torrent sort chevrons' in design_language\n    assert '### Torrent sort indicator grouping' in design_language\n    assert 'Inline torrent sort indicator grouping' in testing_md",
-    "sort documentation validator",
-)
+    "    assert '0.5.114 consistent trailing-edge torrent sort chevrons' in app_css\n    assert '0.5.115 inline torrent sort chevrons' in app_css\n    assert '### Torrent sort indicator grouping' in design_language\n    assert 'Inline torrent sort indicator grouping' in testing_md",
+    "sort release marker validator")
 write("release_tools/validate_ui_strings.py", validator)
 
-# Synchronize application/frontend/cache version identifiers.
 dashboard = read("dashboard.py")
 dashboard, count = re.subn(r'VERSION\s*=\s*[\"\']0\.5\.114[\"\']', 'VERSION = "0.5.115"', dashboard, count=1)
 if count != 1:
@@ -100,7 +76,6 @@ for path in ("static/index.html", "static/sw.js"):
         raise SystemExit(f"{path}: missing {OLD}")
     write(path, text.replace(OLD, NEW))
 
-# Record the current visual contract and manual regression coverage.
 design = read("DESIGN_LANGUAGE.md")
 if "### Torrent sort indicator grouping" not in design:
     design += '''\n\n### Torrent sort indicator grouping\n\n- Sortable torrent headers treat the label and chevron as one inline visual group.\n- Text-oriented header groups align left; numeric header groups align right to match their body values.\n- The chevron always follows the owning label with a small fixed gap rather than floating at an unrelated column edge.\n- Hover, focus, and active-sort emphasis must not change the indicator's geometry.\n'''
@@ -111,8 +86,6 @@ if "Inline torrent sort indicator grouping" not in testing:
     testing += '''\n\n### Inline torrent sort indicator grouping\n\nManual regression coverage for desktop torrent headers:\n\n1. Verify Name, Status, Progress, Category, and Tags show the sort chevron immediately after the label when hovered/focused/active.\n2. Verify Size, Seeds, Peers, Down, Up, ETA, and Ratio remain right-aligned while their chevron appears immediately after the label.\n3. Sort ascending and descending through both text and numeric columns and confirm the indicator never jumps to a column boundary.\n4. Confirm fixed column widths, viewport-proportional workspace sizing, and mobile torrent cards are unchanged.\n'''
 write("TESTING.md", testing)
 
-# Append structured release metadata while preserving the latest architecture,
-# decisions, and next-step handoff state.
 meta_path = ROOT / "release_notes" / "releases.json"
 data = json.loads(meta_path.read_text(encoding="utf-8"))
 releases = data["releases"]
