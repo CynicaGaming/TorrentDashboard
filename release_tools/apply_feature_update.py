@@ -109,6 +109,12 @@ testing = replace_once(testing, old_testing, new_testing, "hierarchy/detail test
 write("TESTING.md", testing)
 
 validator = read("release_tools/validate_ui_strings.py")
+validator = replace_once(
+    validator,
+    "    assert 'function resetDetailPane()' in app_js and 'closeDetailPane' not in app_js\n",
+    "    assert 'function resetDetailPane(' in app_js and 'closeDetailPane' not in app_js\n",
+    "legacy reset-detail declaration assertion",
+)
 old_validator = '''    # 0.5.80 makes Add Torrent hierarchy visible at the checkbox level and
     # treats a repeated click on the active torrent row as detail deselection.
     assert app_js.count('data-add-depth="${depth}" style="--add-depth:${depth}"') == 2
