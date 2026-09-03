@@ -6,7 +6,7 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.88** (prerelease)
+- Latest documented build: **v0.5.89** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 - Upstream development branch: `refactor/backend-modularization-users`
 - Upstream prerelease branch: `prerelease/backend-modularization`
@@ -14,7 +14,7 @@
 
 ### Latest release summary
 
-Removes the last special-case restriction from torrent data columns so Name can be hidden and resized like the rest of the configurable table.
+Eliminates resize/reorder gesture overlap and one-second polling snap-back so torrent columns resize predictably even during slow drags.
 
 ## Architecture state
 
@@ -47,6 +47,7 @@ Removes the last special-case restriction from torrent data columns so Name can 
 - Treat Category as core torrent-list context and include it in the default visible column set.
 - Treat torrent column width as part of the browser-local table layout: resize from the header edge, preserve widths across refresh/reorder/visibility changes, and clear them with Reset columns.
 - Treat Name as a normal torrent data column: keep it visible by default but allow users to hide, reorder, and resize it; only the selection checkbox and row-actions columns remain fixed.
+- Treat torrent-column resizing as an exclusive pointer gesture: use a forgiving edge target, suppress native header drag until release, and preserve the live width through polling before committing it to browser-local preferences.
 
 ## Development principles
 
@@ -58,6 +59,14 @@ Removes the last special-case restriction from torrent data columns so Name can 
 - Keep public development continuity portable across forks; label canonical repository/branch/PR references as upstream context rather than local identity.
 
 ## Recent work
+
+### v0.5.89 — Stable torrent column resizing
+
+Eliminates resize/reorder gesture overlap and one-second polling snap-back so torrent columns resize predictably even during slow drags.
+
+- The resize edge now has a wider, more forgiving pointer target instead of requiring pixel-perfect divider placement.
+- Beginning a resize temporarily disables native header dragging, so the same gesture cannot reorder the column.
+- An in-progress width is retained across the one-second torrent refresh instead of snapping back to the last saved width mid-drag.
 
 ### v0.5.88 — Fully configurable Name column
 
@@ -92,16 +101,6 @@ Adds Category to the default visible torrent columns while preserving genuinely 
 - Category is now visible by default alongside Seeds, Peers, and Tags.
 - Reset columns restores a default layout that includes Category.
 - Browsers with no saved column preferences immediately receive the new default.
-
-### v0.5.84 — Configurable torrent table columns
-
-Adds a persistent torrent-column organizer with visibility and ordering controls, expands the available table data, and makes Seeds, Peers, and Tags part of the default dashboard layout.
-
-- Settings → General now provides a Torrent columns organizer where optional columns can be shown, hidden, and moved up or down.
-- Seeds, Peers, and Tags are visible by default, with Size, Category, Tracker, and Added available as optional columns.
-- Name remains the required first data column while the selection checkbox and row-actions control remain fixed.
-- Column visibility and order persist as a browser-local preference and survive live refreshes and reloads.
-- Legacy visibility-only tdColumns preferences are migrated automatically into the ordered preference model.
 
 ## What to do next
 

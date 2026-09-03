@@ -685,10 +685,24 @@ def main():
     assert "cell.classList.toggle('torrent-column-sized',valid)" in app_js and '.torrent-column-sized .torrent-column-text{max-width:none}' in app_css
     assert '0.5.84 torrent column organizer' not in settings_css
     assert '## Configurable torrent columns' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')
-    assert 'Drag the narrow right edge' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')
+    assert 'Drag the right edge' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')
     assert '**Name** is visible by default but is otherwise a normal configurable data column' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')
     assert 'including Name, and can show/hide all data columns' in (ROOT / 'TESTING.md').read_text(encoding='utf-8')
     assert '### Configurable torrent columns' in (ROOT / 'TESTING.md').read_text(encoding='utf-8')
+    # 0.5.89 makes resize and reorder mutually exclusive and preserves an
+    # in-progress resize across the one-second torrent render loop.
+    assert "const liveWidth=torrentColumnResize?.key===column.key?torrentColumnResize.width:null" in app_js
+    assert "liveWidth??prefs.widths?.[column.key]" in app_js
+    assert "th.draggable=false;th.classList.add('column-resizing')" in app_js
+    assert "if(resize.th)resize.th.draggable=true" in app_js
+    assert "event.stopImmediatePropagation()" in app_js
+    assert "event.clientX>=rect.right-14&&event.clientX<=rect.right+8" in app_js
+    assert "if(torrentColumnResize||event.target.closest('.column-resize-handle'))" in app_js
+    assert '.column-resize-handle{right:-8px;width:16px}' in app_css
+    assert '0.5.89 stable torrent-column resize gesture' in app_css
+    assert 'Hold at least one resize gesture open for several seconds' in (ROOT / 'TESTING.md').read_text(encoding='utf-8')
+    assert 'takes exclusive control of the pointer' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')
+
     print("UI string audit passed")
 
 

@@ -363,3 +363,9 @@ body.torrent-column-resizing,body.torrent-column-resizing *{cursor:col-resize!im
 
 #torrentTable td.torrent-column-sized[data-col="name"] .torrent-name{max-width:none}
 #torrentTable td.torrent-column-sized .torrent-column-text{max-width:none}
+
+
+/* 0.5.89 stable torrent-column resize gesture. */
+.column-resize-handle{right:-8px;width:16px}
+.column-resize-handle::after{right:8px}
+#torrentTable thead th.column-resizing{cursor:col-resize}

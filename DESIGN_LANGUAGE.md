@@ -152,7 +152,7 @@ The torrent table is a user-configurable local workspace, and column management 
 
 - **Name** is visible by default but is otherwise a normal configurable data column: it can be hidden, reordered, and resized. The selection checkbox and row-actions control are the only fixed table columns.
 - On desktop/tablet, drag a visible torrent column header horizontally to change its position. The chosen order is persisted immediately and must survive the one-second live refresh and browser reloads.
-- Drag the narrow right edge of a visible data header to resize that column. Widths are stored with the same browser-local column layout and must survive live refreshes, visibility changes, reordering, and reloads.
+- Drag the right edge of a visible data header to resize that column. The resize edge uses a forgiving hit target and takes exclusive control of the pointer so it cannot simultaneously initiate header reordering. The in-progress width must survive the one-second live refresh while the pointer remains down; committed widths are stored with the same browser-local column layout and survive visibility changes, reordering, and reloads.
 - Column resizing has per-column minimums that preserve legibility and a bounded maximum width. Name can shrink to a compact readable width; the fixed selection and row-actions columns are not user-resizable.
 - Right-click anywhere on the torrent header bar to open the **Columns** menu. Optional columns can be shown or hidden there without opening Settings; **Reset columns** restores the documented default order/visibility and clears custom widths.
 - The available column catalog includes Name, Size, Progress, Status, Seeds, Peers, Download, Upload, ETA, Ratio, Category, Tags, Tracker, and Added.
