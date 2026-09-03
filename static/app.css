@@ -335,10 +335,12 @@ button,select,input,textarea{border:1px solid var(--border);background:var(--pan
 @media(max-width:820px){.torrent-column-text{justify-self:end;max-width:min(58vw,260px);text-align:right}.torrent-column-hidden{display:none!important}}
 
 
-/* 0.5.94 deterministic torrent-column header interactions. */
-#torrentTable thead th[data-col]{cursor:default;user-select:none;-webkit-user-select:none;text-align:center;padding-left:28px;padding-right:28px;outline:none}
-#torrentTable thead th[data-col="seeds"],#torrentTable thead th[data-col="peers"]{text-align:center}
-.torrent-sort-heading{position:relative;display:flex;width:100%;min-width:0;align-items:center;justify-content:center;cursor:grab;pointer-events:auto}
+/* 0.5.96 content-aligned one-edge torrent-column resizing. */
+#torrentTable thead th[data-col]{cursor:default;user-select:none;-webkit-user-select:none;text-align:left;padding-left:12px;padding-right:28px;outline:none}
+#torrentTable thead th[data-col="seeds"],#torrentTable thead th[data-col="peers"]{text-align:right}
+.torrent-sort-heading{position:relative;display:flex;width:100%;min-width:0;align-items:center;justify-content:flex-start;padding-right:18px;cursor:grab;pointer-events:auto}
+#torrentTable thead th[data-col="seeds"] .torrent-sort-heading,#torrentTable thead th[data-col="peers"] .torrent-sort-heading{justify-content:flex-end;padding-left:18px;padding-right:0}
+#torrentTable thead th[data-col="seeds"] .torrent-sort-icon,#torrentTable thead th[data-col="peers"] .torrent-sort-icon{left:0;right:auto}
 .torrent-sort-heading:active{cursor:grabbing}
 .torrent-sort-label{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .torrent-sort-icon{position:absolute;right:0;display:grid;place-items:center;width:14px;height:14px;color:var(--muted);opacity:0;transition:opacity .12s ease,color .12s ease;pointer-events:none}
@@ -351,6 +353,7 @@ button,select,input,textarea{border:1px solid var(--border);background:var(--pan
 #torrentTable thead th.column-drop-before{box-shadow:inset 3px 0 0 var(--accent)}
 #torrentTable thead th.column-drop-after{box-shadow:inset -3px 0 0 var(--accent)}
 #torrentTable th[data-col],#torrentTable td[data-col]{box-sizing:border-box}
+#torrentTable.torrent-column-fixed-layout{table-layout:fixed}
 .column-resize-handle{position:absolute;top:0;right:0;z-index:8;width:24px;height:100%;cursor:col-resize;touch-action:none}
 .column-resize-handle::after{content:"";position:absolute;top:20%;bottom:20%;right:0;width:1px;border-radius:1px;background:var(--accent);opacity:0;transition:opacity .12s ease}
 #torrentTable thead th[data-col]:hover>.column-resize-handle::after,.column-resize-handle:hover::after,body.torrent-column-resizing .column-resize-handle::after{opacity:.78}

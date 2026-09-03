@@ -192,11 +192,11 @@ Do not use this file as a test-results log; it is a stable testing contract for 
 - Seed old `tdCategory`, `tdTag`, and `tdTracker` local-storage values before loading and verify they are cleared and cannot silently filter the torrent list.
 - Search for text that appears only in a torrent category, tag, or tracker hostname and verify the matching torrent is found.
 - Click Name, Size, Progress, Status, Seeds, Peers, Download, Upload, ETA, Ratio, Category, Tags, Tracker, and Added headers and verify each can sort the table.
-- Verify all data-header labels are visually centered between their column boundaries. The sort chevron must not shift the label toward the resize divider.
+- Verify data-header labels follow their body content instead of centering in wide columns: ordinary columns start from the left content edge, while Seeds and Peers remain right-aligned. The sort chevron must stay separate from the resize divider.
 - Use Enter and Space on a focused data header and verify keyboard sorting matches pointer sorting.
 - Drag several header labels left and right and verify the table follows the new order immediately, after the next one-second refresh, and after a full browser reload. Reordering must not also change the sort field/direction.
 - Verify dragging from the right-edge resize gutter can never start a column reorder. Conversely, begin a reorder from the header-label area and verify it cannot become a resize gesture.
-- Drag the right edge of Name, Progress, Status, Category, and Tags by only a few pixels in both directions. Width must begin changing immediately with the pointer; there must be no dead travel before movement and no initial jump.
+- Drag the right edge of Name, Progress, Status, Category, and Tags by only a few pixels in both directions. Width must begin changing immediately with the pointer; there must be no dead travel before movement and no initial jump. Verify the active column's left edge stays fixed and only the dragged right boundary moves; every other visible data column must keep its width while later columns translate as a block.
 - Hold at least one resize gesture open for several seconds across multiple live refresh intervals; verify there is no snap, row rebuild, accidental reorder, or accidental sort.
 - Test a column whose automatic rendered width is smaller than its configured ergonomic minimum and verify resizing still begins from the visible width instead of waiting for the pointer to cross the nominal minimum.
 - Hide a resized data column from the Columns menu, show it again, and verify its saved width returns. Verify the Columns menu includes every data column, including Name, and can show/hide all data columns.

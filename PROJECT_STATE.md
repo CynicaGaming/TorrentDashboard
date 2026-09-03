@@ -6,7 +6,7 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.95** (prerelease)
+- Latest documented build: **v0.5.96** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 - Upstream development branch: `refactor/backend-modularization-users`
 - Upstream prerelease branch: `prerelease/backend-modularization`
@@ -14,7 +14,7 @@
 
 ### Latest release summary
 
-Moves release/update provenance parsing, installed package metadata, integrity-history persistence, and release-history merging out of dashboard.py without changing the updater protocol or Updates UI.
+Aligns torrent-table headers with their row content and makes a resize gesture move only the grabbed right boundary instead of letting automatic table layout redistribute neighboring widths.
 
 ## Architecture state
 
@@ -53,6 +53,8 @@ Moves release/update provenance parsing, installed package metadata, integrity-h
 - Use the torrent header as the single sorting surface and the unified text search as the single metadata filter: preserve status tabs, retire Category/Tags/Tracker and sort selects, clear obsolete facet preferences, and keep sort direction browser-local.
 - Keep torrent header labels centered, isolate native reordering to the header-label drag surface, reserve a separate inward-only resize gutter, and begin resizing from the exact rendered width so pointer movement maps immediately to column movement.
 - Keep GitHub network/update orchestration in dashboard.py while the torrent_dashboard release-provenance module owns parsing and filesystem provenance behavior behind injected runtime paths.
+- Align torrent data headers with their body content rather than centering every label.
+- When resizing, snapshot visible data-column widths and change table width with the active column so only the grabbed right boundary moves; keep selection and actions outside that model.
 
 ## Development principles
 
@@ -64,6 +66,14 @@ Moves release/update provenance parsing, installed package metadata, integrity-h
 - Keep public development continuity portable across forks; label canonical repository/branch/PR references as upstream context rather than local identity.
 
 ## Recent work
+
+### v0.5.96 — Content-aligned one-edge torrent resizing
+
+Aligns torrent-table headers with their row content and makes a resize gesture move only the grabbed right boundary instead of letting automatic table layout redistribute neighboring widths.
+
+- Torrent data headers now follow body-cell alignment instead of centering labels across wide columns; Seeds and Peers retain their right-aligned numeric treatment.
+- Beginning a resize snapshots every currently visible data-column width, so untouched columns keep their exact width while columns to the right translate with the dragged boundary.
+- The resize target remains the dedicated inward-only header gutter, preserving resize/reorder mutual exclusion and browser-local tdColumns persistence.
 
 ### v0.5.95 — Release provenance module extraction
 
@@ -99,14 +109,6 @@ Moves torrent sorting directly into the configurable column headers and removes 
 - The active sort direction is shown by a local Material-style chevron and exposed through accessible aria-sort state.
 - Category, Tags, Tracker, and the standalone Sort dropdown are removed from the Dashboard controls; the search box continues to match all four metadata sources plus torrent names.
 - Existing tdSort preferences remain compatible, while retired category/tag/tracker local preferences are cleared so hidden filters cannot survive the migration.
-
-### v0.5.91 — Stable centered column resizing
-
-Finishes the torrent-column resize interaction by centering header labels and preventing one-second live rendering from moving a column while its resize edge is being dragged.
-
-- All configurable torrent data headers are centered within symmetric horizontal padding so labels visually match their column boundaries.
-- The resize hit target grows to 20 px while remaining entirely inside the owning data header.
-- Torrent-row DOM rendering is deferred during an active resize and reconciled once on release, eliminating polling-driven resize jumps.
 
 ## What to do next
 
