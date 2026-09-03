@@ -6,7 +6,7 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.84** (prerelease)
+- Latest documented build: **v0.5.85** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 - Upstream development branch: `refactor/backend-modularization-users`
 - Upstream prerelease branch: `prerelease/backend-modularization`
@@ -14,7 +14,7 @@
 
 ### Latest release summary
 
-Adds a persistent torrent-column organizer with visibility and ordering controls, expands the available table data, and makes Seeds, Peers, and Tags part of the default dashboard layout.
+Adds Category to the default visible torrent columns while preserving genuinely customized browser layouts and migrating browsers that only saved the previous default snapshot.
 
 ## Architecture state
 
@@ -45,6 +45,7 @@ Adds a persistent torrent-column organizer with visibility and ordering controls
 - Treat torrent-table column layout as a browser-local presentation preference rather than shared application configuration.
 - Keep Name, the selection checkbox, and row actions fixed; allow the remaining torrent data columns to be hidden and reordered.
 - Expose Seeds, Peers, and Tags in the default torrent table while keeping less frequently needed Size, Category, Tracker, and Added available but hidden by default.
+- Treat Category as core torrent-list context and include it in the default visible column set.
 
 ## Development principles
 
@@ -56,6 +57,14 @@ Adds a persistent torrent-column organizer with visibility and ordering controls
 - Keep public development continuity portable across forks; label canonical repository/branch/PR references as upstream context rather than local identity.
 
 ## Recent work
+
+### v0.5.85 — Category in the default torrent layout
+
+Adds Category to the default visible torrent columns while preserving genuinely customized browser layouts and migrating browsers that only saved the previous default snapshot.
+
+- Category is now visible by default alongside Seeds, Peers, and Tags.
+- Reset columns restores a default layout that includes Category.
+- Browsers with no saved column preferences immediately receive the new default.
 
 ### v0.5.84 — Configurable torrent table columns
 
@@ -92,15 +101,6 @@ Keeps Add Torrent checkboxes aligned while indenting hierarchical content labels
 - Nested folder and file names indent by hierarchy depth while Size and Priority stay aligned.
 - Torrent details are reconciled with every live status refresh; if the selected torrent is removed, the stale detail context clears automatically.
 - Removing a different torrent leaves the current Torrent details selection intact.
-
-### v0.5.80 — Torrent hierarchy and detail selection polish
-
-Improves Add Torrent file-tree readability by indenting checkboxes with their hierarchy and makes repeated torrent-row selection clear the active Torrent details context.
-
-- Nested Add Torrent folders and files now indent their checkbox and name together, making parent/child relationships immediately visible.
-- Size and Priority columns remain aligned while the selectable tree shifts according to hierarchy depth.
-- Clicking the torrent already displayed in Torrent details now deselects it and returns the persistent dock to its empty collapsed state.
-- Clicking a different torrent still switches directly to that torrent and expands its details.
 
 ## What to do next
 

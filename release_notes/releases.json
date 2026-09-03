@@ -116,9 +116,9 @@
       "date": "2026-09-02",
       "status": "prerelease",
       "title": "Collapsible revision patch notes",
-      "summary": "Expanded Settings \u2192 Updates from a single latest-release note block into a collapsible patch-note history for every documented Torrent Dashboard revision.",
+      "summary": "Expanded Settings → Updates from a single latest-release note block into a collapsible patch-note history for every documented Torrent Dashboard revision.",
       "highlights": [
-        "Settings \u2192 Updates now shows one collapsible patch-note entry per documented revision, ordered newest first.",
+        "Settings → Updates now shows one collapsible patch-note entry per documented revision, ordered newest first.",
         "Bundled release metadata is available immediately when the Updates page opens; a newly discovered GitHub release is merged into the history before it is installed.",
         "The newest revision opens by default and each older revision can be expanded independently.",
         "Future prerelease publication preserves older prereleases instead of deleting the complete prerelease history."
@@ -175,9 +175,9 @@
       "date": "2026-09-02",
       "status": "prerelease",
       "title": "Patch notes presentation cleanup",
-      "summary": "Simplified Settings \u2192 Updates to focus on the latest two releases while retaining the complete release history for changelog and project handoff purposes, with a cleaner release-card presentation.",
+      "summary": "Simplified Settings → Updates to focus on the latest two releases while retaining the complete release history for changelog and project handoff purposes, with a cleaner release-card presentation.",
       "highlights": [
-        "Settings \u2192 Updates now shows only the latest release and the immediately previous release instead of the complete historical list.",
+        "Settings → Updates now shows only the latest release and the immediately previous release instead of the complete historical list.",
         "Release cards now use a dedicated version badge, release-status badges, publication date, clearer typography, and improved spacing.",
         "The expanded release no longer repeats the version/title heading inside the patch-note body.",
         "The full structured release history remains preserved in release_notes/releases.json, CHANGELOG.md, and PROJECT_STATE.md."
@@ -235,7 +235,7 @@
       "title": "Installed package integrity metadata",
       "summary": "Persists the verified release-package SHA-256 with installed builds and surfaces the exact package digest alongside patch notes.",
       "highlights": [
-        "Settings \u2192 Updates shows Package SHA-256 for a release whenever authoritative package metadata is available, with a one-click Copy control.",
+        "Settings → Updates shows Package SHA-256 for a release whenever authoritative package metadata is available, with a one-click Copy control.",
         "The normal updater writes release-info.json into the staged application only after the downloaded ZIP matches GitHub's published SHA-256.",
         "Recovery updates persist the same release metadata after independently verifying the GitHub asset digest.",
         "The release build emits a Torrent-Dashboard-<version>.release.json sidecar containing the final ZIP digest, version, repository, tag, and commit."
@@ -360,7 +360,7 @@
       "highlights": [
         "Successful GitHub release lookups persist authoritative package digests to data/release-integrity.json.",
         "Normal Settings loads merge the persisted integrity cache into the two displayed patch-note revisions.",
-        "Opening Settings \u2192 Updates silently refreshes release metadata at most once per minute, so historical SHA-256 values self-populate without requiring a manual Check for updates click."
+        "Opening Settings → Updates silently refreshes release metadata at most once per minute, so historical SHA-256 values self-populate without requiring a manual Check for updates click."
       ],
       "fixes": [
         "The previous patch-note card no longer loses its SHA-256 when Settings is reloaded or opened in a new browser session after the remote metadata was fetched."
@@ -1200,7 +1200,7 @@
       "highlights": [
         "Dashboard / Live torrent activity is visible again because removing it did not materially improve usable workspace height and weakened page hierarchy.",
         "The collapsed Torrent details disclosure shows only Torrent details when no torrent is selected; selection-specific copy appears only for an actual selection.",
-        "Opening Settings \u2192 Updates no longer contacts GitHub automatically; Check for updates is the explicit freshness/network action.",
+        "Opening Settings → Updates no longer contacts GitHub automatically; Check for updates is the explicit freshness/network action.",
         "The bottom-anchored desktop/tablet torrent workspace and mobile disclosure behavior remain unchanged."
       ],
       "fixes": [
@@ -1809,7 +1809,7 @@
       "title": "Configurable torrent table columns",
       "summary": "Adds a persistent torrent-column organizer with visibility and ordering controls, expands the available table data, and makes Seeds, Peers, and Tags part of the default dashboard layout.",
       "highlights": [
-        "Settings \u2192 General now provides a Torrent columns organizer where optional columns can be shown, hidden, and moved up or down.",
+        "Settings → General now provides a Torrent columns organizer where optional columns can be shown, hidden, and moved up or down.",
         "Seeds, Peers, and Tags are visible by default, with Size, Category, Tracker, and Added available as optional columns.",
         "Name remains the required first data column while the selection checkbox and row-actions control remain fixed.",
         "Column visibility and order persist as a browser-local preference and survive live refreshes and reloads.",
@@ -1878,6 +1878,82 @@
         "Treat torrent-table column layout as a browser-local presentation preference rather than shared application configuration.",
         "Keep Name, the selection checkbox, and row actions fixed; allow the remaining torrent data columns to be hidden and reordered.",
         "Expose Seeds, Peers, and Tags in the default torrent table while keeping less frequently needed Size, Category, Tracker, and Added available but hidden by default."
+      ]
+    },
+    {
+      "version": "0.5.85",
+      "date": "2026-09-03",
+      "status": "prerelease",
+      "title": "Category in the default torrent layout",
+      "summary": "Adds Category to the default visible torrent columns while preserving genuinely customized browser layouts and migrating browsers that only saved the previous default snapshot.",
+      "highlights": [
+        "Category is now visible by default alongside Seeds, Peers, and Tags.",
+        "Reset columns restores a default layout that includes Category.",
+        "Browsers with no saved column preferences immediately receive the new default."
+      ],
+      "fixes": [
+        "A browser that saved the exact v0.5.84 default column snapshot is migrated to the new Category-visible default instead of remaining on the superseded default.",
+        "Custom column orders or visibility choices are left unchanged."
+      ],
+      "technical": [
+        "The column catalog changes Category defaultVisible from false to true.",
+        "Preference normalization detects only the exact prior default order/visibility snapshot before applying the one-time Category default migration."
+      ],
+      "validation": [
+        "The UI audit requires Category to be default-visible and verifies the prior-default migration path.",
+        "Existing backend tests, JavaScript syntax checks, generated continuity files, frontend/service-worker synchronization, and package-integrity gates remain required."
+      ],
+      "known_issues": [],
+      "architecture": [
+        "Torrent Dashboard remains a Python standard-library application with dashboard.py as the HTTP composition root.",
+        "Configuration, integrations, users, and configuration transaction coordination remain separated into torrent_dashboard package modules.",
+        "Torrent detail presentation remains frontend-owned and continues to use the existing /api/detail contract.",
+        "Desktop/tablet use separate docked list and detail panels; mobile uses a bottom-sheet presentation."
+      ],
+      "decisions": [
+        "Prefer two visually distinct surfaces for list/detail hierarchy rather than joining them with only an internal divider.",
+        "Keep viewport-derived docking and independent list/detail scrolling.",
+        "Keep active backend modularization work separate from this presentation correction.",
+        "Treat torrent-detail selection and inspector disclosure as independent state: collapse changes presentation, not selection.",
+        "Keep the torrent-detail dock persistently discoverable and use the full disclosure bar as the primary keyboard/touch interaction target.",
+        "Treat All servers as an aggregation mode: omit it when only one enabled client exists, and prefer the actual client so client-specific actions remain available.",
+        "Author user-facing copy in its final display form; runtime token normalization is compatibility behavior for legacy generated tokens, not a presentation system.",
+        "Use deliberate mixed capitalization: stable named destinations may read as product labels, while headings, field labels, actions, statuses, errors, and explanatory text generally use sentence case.",
+        "Prefer user-facing product concepts over legacy implementation terminology, including allowed IP addresses for access controls and client for client-management actions.",
+        "Use qBitTorrent's parsed/cached metadata path when preselecting files from a local .torrent; raw multipart upload remains only as a compatibility fallback because qBitTorrent rejects filePriorities on raw uploaded torrents.",
+        "A repeated click on the torrent currently shown in Torrent details clears the detail context; choosing a different torrent replaces it directly.",
+        "Keep Add Torrent checkboxes in one aligned selection column; communicate hierarchy by indenting folder/file labels while preserving aligned Size and Priority columns.",
+        "Reconcile Torrent details against every refreshed torrent list and clear the detail context when its selected server/hash no longer exists.",
+        "Reserve a fixed disclosure/expander slot for every Add Torrent content row; files use a spacer while folders use the chevron, and hierarchy indentation begins after that slot.",
+        "Use the persistent Torrent details disclosure bar as the sole selection identity surface; expanded details begin directly with tabs/content rather than repeating title/hash metadata.",
+        "Use locally embedded Material-style SVGs for common disclosure and file-source affordances rather than platform-dependent text glyphs or remote icon-font dependencies.",
+        "Keep the Add Torrent content preview visually minimal: left-align Name, omit redundant folder descendant counts, and let the live file/size summary replace a separate Content heading.",
+        "Treat torrent-table column layout as a browser-local presentation preference rather than shared application configuration.",
+        "Keep Name, the selection checkbox, and row actions fixed; allow the remaining torrent data columns to be hidden and reordered.",
+        "Expose Seeds, Peers, and Tags in the default torrent table while keeping less frequently needed Size, Category, Tracker, and Added available but hidden by default.",
+        "Treat Category as core torrent-list context and include it in the default visible column set."
+      ],
+      "next_steps": [
+        {
+          "priority": 1,
+          "title": "Extract release and update provenance",
+          "detail": "Move GitHub release parsing, installed release metadata, package-integrity normalization, and historical digest caching out of dashboard.py."
+        },
+        {
+          "priority": 2,
+          "title": "Extract qBitTorrent transport and normalization",
+          "detail": "Move QBitClient, server normalization, proxy/preference translation, and Web API transport away from HTTP routing."
+        },
+        {
+          "priority": 3,
+          "title": "Expand request-level behavioral tests",
+          "detail": "Add authorization, CSRF, setup, account-route, and settings-mutation coverage around extracted service boundaries."
+        },
+        {
+          "priority": 4,
+          "title": "Harden secrets at rest",
+          "detail": "Use the configuration boundary to add restrictive file permissions and separate ordinary configuration from stored credentials."
+        }
       ]
     }
   ]

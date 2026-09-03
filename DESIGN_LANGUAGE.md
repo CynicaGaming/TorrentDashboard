@@ -153,6 +153,6 @@ The torrent table is a user-configurable local workspace rather than a fixed ser
 - **Name** is the required identity column and remains fixed at the beginning of the torrent data columns. The selection checkbox and row-actions control also remain fixed.
 - Other torrent columns may be shown, hidden, and reordered from Settings → General. Reordering is exposed through explicit keyboard-accessible move controls rather than requiring pointer-only drag and drop.
 - The available column catalog includes Size, Progress, Status, Seeds, Peers, Download, Upload, ETA, Ratio, Category, Tags, Tracker, and Added.
-- Seeds, Peers, and Tags are part of the default visible layout. Size, Category, Tracker, and Added remain available but hidden by default to avoid unnecessary width.
+- Seeds, Peers, Category, and Tags are part of the default visible layout. Size, Tracker, and Added remain available but hidden by default to avoid unnecessary width.
 - Column layout is a browser-local presentation preference. It must not mutate shared dashboard configuration or affect another user's browser.
 - When Size or Category is promoted to its own column, the Name cell should avoid repeating the same value in its secondary summary line.

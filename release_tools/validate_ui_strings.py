@@ -655,8 +655,10 @@ def main():
     assert "{key:'seeds',label:'Seeds',defaultVisible:true}" in app_js
     assert "{key:'peers',label:'Peers',defaultVisible:true}" in app_js
     assert "{key:'tags',label:'Tags',defaultVisible:true}" in app_js
+    assert "{key:'category',label:'Category',defaultVisible:true}" in app_js
     assert "{key:'size',label:'Size',defaultVisible:false}" in app_js
     assert 'function torrentColumnPreferences()' in app_js and 'function renderTorrentColumnPreferences' in app_js
+    assert "savedPreviousDefault&&column.key==='category'?true" in app_js
     assert 'function moveTorrentColumnPreference' in app_js and 'function saveTorrentColumnPreferencesFromSettings' in app_js
     assert "row.querySelector('.row-actions-head,.row-actions')" in app_js and 'applyColumnPrefs();const empty=' in app_js
     assert 'data-col="seeds" data-label="Seeds"' in app_js and 'data-col="peers" data-label="Peers"' in app_js and 'data-col="tags" data-label="Tags"' in app_js
