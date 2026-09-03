@@ -4084,6 +4084,80 @@
         "Treat six desktop torrent rows as a preferred maximum and size the list from the stable viewport budget remaining after the actual rendered Torrent details pane.",
         "Prefer a viewport-proportional desktop torrent list at roughly 44% of the usable workspace, but let rendered Torrent details content override that preference and always snap the list to complete rows."
       ]
+    },
+    {
+      "version": "0.5.114",
+      "date": "2026-09-03",
+      "status": "prerelease",
+      "title": "Consistent torrent sort chevrons",
+      "summary": "Makes every torrent-table sort indicator use the same trailing edge while preserving content-aligned header labels.",
+      "highlights": [
+        "All sortable torrent headers now place their chevron on the right edge of the owning column.",
+        "Numeric header labels remain right-aligned with their body values; text-oriented headers remain left-aligned.",
+        "Sorting behavior, fixed column sizing, viewport-proportional workspace sizing, and mobile presentation are unchanged."
+      ],
+      "fixes": [
+        "Removes the numeric-column CSS override that moved Size, Seeds, Peers, Down, Up, ETA, and Ratio chevrons to the left edge.",
+        "Prevents sort indicators from visually reading as though they belong to the preceding column."
+      ],
+      "technical": [
+        "Numeric torrent-sort headings now inherit the shared right-side padding used to reserve chevron space and override only justify-content:flex-end.",
+        "The generic .torrent-sort-icon right:0 rule now owns icon placement for every configurable data header."
+      ],
+      "validation": [
+        "The UI audit requires the numeric heading alignment override, rejects any left-side numeric sort-icon override, and preserves the generic right:0 icon contract.",
+        "Manual coverage checks hover/focus and ascending/descending sort states across both numeric and text columns.",
+        "Existing backend tests, JavaScript syntax checks, generated continuity files, frontend/service-worker synchronization, and prerelease package-integrity gates remain required."
+      ],
+      "known_issues": [],
+      "decisions": [
+        "Prefer two visually distinct surfaces for list/detail hierarchy rather than joining them with only an internal divider.",
+        "Keep viewport-derived docking and independent list/detail scrolling.",
+        "Keep active backend modularization work separate from this presentation correction.",
+        "Treat torrent-detail selection and inspector disclosure as independent state: collapse changes presentation, not selection.",
+        "Keep the torrent-detail dock persistently discoverable and use the full disclosure bar as the primary keyboard/touch interaction target.",
+        "Treat All servers as an aggregation mode: omit it when only one enabled client exists, and prefer the actual client so client-specific actions remain available.",
+        "Author user-facing copy in its final display form; runtime token normalization is compatibility behavior for legacy generated tokens, not a presentation system.",
+        "Use deliberate mixed capitalization: stable named destinations may read as product labels, while headings, field labels, actions, statuses, errors, and explanatory text generally use sentence case.",
+        "Prefer user-facing product concepts over legacy implementation terminology, including allowed IP addresses for access controls and client for client-management actions.",
+        "Use qBitTorrent's parsed/cached metadata path when preselecting files from a local .torrent; raw multipart upload remains only as a compatibility fallback because qBitTorrent rejects filePriorities on raw uploaded torrents.",
+        "A repeated click on the torrent currently shown in Torrent details clears the detail context; choosing a different torrent replaces it directly.",
+        "Keep Add Torrent checkboxes in one aligned selection column; communicate hierarchy by indenting folder/file labels while preserving aligned Size and Priority columns.",
+        "Reconcile Torrent details against every refreshed torrent list and clear the detail context when its selected server/hash no longer exists.",
+        "Reserve a fixed disclosure/expander slot for every Add Torrent content row; files use a spacer while folders use the chevron, and hierarchy indentation begins after that slot.",
+        "Use the persistent Torrent details disclosure bar as the sole selection identity surface; expanded details begin directly with tabs/content rather than repeating title/hash metadata.",
+        "Use locally embedded Material-style SVGs for common disclosure and file-source affordances rather than platform-dependent text glyphs or remote icon-font dependencies.",
+        "Keep the Add Torrent content preview visually minimal: left-align Name, omit redundant folder descendant counts, and let the live file/size summary replace a separate Content heading.",
+        "Treat torrent-table column layout as a browser-local presentation preference rather than shared application configuration.",
+        "Expose Seeds, Peers, and Tags in the default torrent table while keeping less frequently needed Size, Category, Tracker, and Added available but hidden by default.",
+        "Treat Category as core torrent-list context and include it in the default visible column set.",
+        "Treat torrent column width as part of the browser-local table layout: resize from the header edge, preserve widths across refresh/reorder/visibility changes, and clear them with Reset columns.",
+        "Treat Name as a normal torrent data column: keep it visible by default but allow users to hide, reorder, and resize it; only the selection checkbox and row-actions columns remain fixed.",
+        "Treat torrent-column resizing as an exclusive pointer gesture: use a forgiving edge target, suppress native header drag until release, and preserve the live width through polling before committing it to browser-local preferences.",
+        "Keep torrent resize hit targets inside their owning data header, allow Name to consume its actual assigned width before ellipsizing, and hard-lock the row-actions column as a fixed right-edge control surface.",
+        "Use the torrent header as the single sorting surface and the unified text search as the single metadata filter: preserve status tabs, retire Category/Tags/Tracker and sort selects, clear obsolete facet preferences, and keep sort direction browser-local.",
+        "Keep torrent header labels centered, isolate native reordering to the header-label drag surface, reserve a separate inward-only resize gutter, and begin resizing from the exact rendered width so pointer movement maps immediately to column movement.",
+        "Keep GitHub network/update orchestration in dashboard.py while the torrent_dashboard release-provenance module owns parsing and filesystem provenance behavior behind injected runtime paths.",
+        "Align torrent data headers with their body content rather than centering every label.",
+        "When resizing, snapshot visible data-column widths and change table width with the active column so only the grabbed right boundary moves; keep selection and actions outside that model.",
+        "Keep the 48 px row-actions surface pinned to the torrent viewport edge with a non-interactive flexible spacer; customized data widths may scroll internally but must not move Actions offscreen or create page-level horizontal overflow.",
+        "Treat the pinned Actions edge as the maximum width boundary for new torrent-column resize gestures; consume spacer slack first, then stop rather than creating new horizontal overflow or shrinking unrelated columns.",
+        "Prefer native single-column resizing over a viewport-derived resize ceiling: fixed selection/actions rails remain pinned while user-chosen data widths may create horizontal scrolling only inside the torrent viewport.",
+        "Use a hybrid resize boundary: interior data columns retain scroll-native independent resizing, while the rightmost visible data column cannot create additional horizontal overflow past the fixed Actions rail.",
+        "Temporarily prefer one fixed torrent-table column set and deterministic proportional sizing over resize/reorder/visibility customization while the interaction model is simplified.",
+        "Keep torrent row commands contextual instead of reserving a permanent Actions column: use right-click on pointer interfaces and a movement-cancellable long press on touch while retaining the shared menu implementation.",
+        "Treat the mobile bulk-selection overlay and Torrent details as stacked bottom surfaces: bulk actions must remain fully visible above the current detail pane instead of competing for the same layer and screen region.",
+        "Keep desktop torrent-column alignment breakpoint-scoped: mobile cards use a consistent left-label/right-value metadata grid regardless of desktop numeric alignment.",
+        "Calculate desktop torrent workspace height from its stable document position rather than its scroll-relative viewport position; document scrolling must not resize the workspace.",
+        "Keep the desktop torrent list as the stable bounded scroll surface; finite General details may extend document height instead of competing with the list for one shared height.",
+        "Keep potentially unbounded Torrent details tabs bounded and internally scrollable while General uses natural content height on desktop.",
+        "Keep browser/PWA branding self-contained with a local favicon/logo asset and no external icon dependency.",
+        "Reveal the desktop torrent workspace when Torrent details is explicitly opened from a collapsed state instead of resizing the list/detail surfaces around the header and metrics stack.",
+        "Size the desktop torrent list from one rendered row and the table header so exactly six rows are visible, independent of surrounding Dashboard panels or viewport remainder.",
+        "Treat six desktop torrent rows as a preferred maximum and size the list from the stable viewport budget remaining after the actual rendered Torrent details pane.",
+        "Prefer a viewport-proportional desktop torrent list at roughly 44% of the usable workspace, but let rendered Torrent details content override that preference and always snap the list to complete rows.",
+        "Keep torrent header text aligned with its body content while placing every sort chevron on the same trailing/right edge regardless of column type."
+      ]
     }
   ]
 }

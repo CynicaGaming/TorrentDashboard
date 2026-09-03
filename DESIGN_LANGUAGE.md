@@ -203,3 +203,8 @@ The desktop torrent list uses six rows as a preferred maximum, not an unconditio
 ### Viewport-proportional desktop torrent workspace
 
 The expanded desktop torrent workspace should preserve the visual balance established by the v0.5.112 layout across different monitor heights. The torrent list prefers roughly 44% of the usable viewport remaining below the workspace's stable document position, while Torrent details receives the rest. The split is not a hard percentage: the rendered detail pane has priority, and the list shrinks when necessary so finite General content remains fully readable. The list height is always snapped to complete rendered torrent rows with a three-row minimum, and taller viewports may expose more than six rows instead of leaving unnecessary dead space. Document scrolling must not change the calculation; browser height and density changes may recompute it.
+
+
+### Torrent sort chevrons
+
+Torrent-table header labels continue to align with their body data: text-oriented headers remain left-aligned and numeric headers remain right-aligned. The sort affordance itself is independent of that text alignment. Every sortable torrent header uses the same trailing/right-edge chevron position so the indicator is visually associated with its owning column and never appears to belong to the neighboring column.

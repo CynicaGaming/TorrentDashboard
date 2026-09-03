@@ -289,3 +289,12 @@ Do not use this file as a test-results log; it is a stable testing contract for 
 - Switch comfortable/compact density and resize the browser height; verify the proportional target is recalculated from live row/header/detail measurements.
 - Scroll the document without resizing and verify one-second polling does not change the list height merely because the workspace moved within the viewport.
 - Verify Trackers, Peers, HTTP sources, and Content retain their bounded/internal-scroll behavior and mobile remains unchanged.
+
+
+### Torrent sort chevrons
+
+- On desktop, verify Name, Status, Progress, Category, and Tags keep their existing left-aligned header labels.
+- Verify Size, Seeds, Peers, Down, Up, ETA, and Ratio remain right-aligned with their body values.
+- Hover/focus each sortable header and verify its chevron appears at the right/trailing edge of that same header, including every numeric column.
+- Sort each numeric and text column in both directions and verify the active chevron remains on the right edge and changes direction without shifting the label alignment or column width.
+- Verify no header chevron appears on the left edge or visually reads as belonging to the adjacent column.

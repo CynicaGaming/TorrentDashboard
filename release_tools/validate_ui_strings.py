@@ -793,6 +793,18 @@ def main():
     assert 'Viewport-proportional desktop torrent workspace' in design
     assert 'Viewport-proportional desktop torrent workspace' in testing
 
+    # 0.5.114 uses a single trailing-edge sort affordance while preserving body-aligned header labels.
+    numeric_heading = '#torrentTable thead th[data-col=\"size\"] .torrent-sort-heading,#torrentTable thead th[data-col=\"seeds\"] .torrent-sort-heading,#torrentTable thead th[data-col=\"peers\"] .torrent-sort-heading,#torrentTable thead th[data-col=\"down\"] .torrent-sort-heading,#torrentTable thead th[data-col=\"up\"] .torrent-sort-heading,#torrentTable thead th[data-col=\"eta\"] .torrent-sort-heading,#torrentTable thead th[data-col=\"ratio\"] .torrent-sort-heading{justify-content:flex-end}'
+    assert numeric_heading in app_css
+    assert '.torrent-sort-heading{position:relative;display:flex;width:100%;min-width:0;align-items:center;justify-content:flex-start;padding-right:18px' in app_css
+    assert '.torrent-sort-icon{position:absolute;right:0;' in app_css
+    assert '.torrent-sort-icon{left:0' not in app_css
+    assert '.torrent-sort-icon{left:' not in app_css
+    assert 'left:0;right:auto' not in app_css
+    assert '0.5.114 consistent trailing-edge torrent sort chevrons' in app_css
+    assert '### Torrent sort chevrons' in design
+    assert '### Torrent sort chevrons' in testing
+
     print("UI string audit passed")
 
 

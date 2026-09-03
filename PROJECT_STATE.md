@@ -6,7 +6,7 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.113** (prerelease)
+- Latest documented build: **v0.5.114** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 - Upstream development branch: `refactor/backend-modularization-users`
 - Upstream prerelease branch: `prerelease/backend-modularization`
@@ -14,7 +14,7 @@
 
 ### Latest release summary
 
-Preserves the accepted torrent-list/detail balance across monitor heights by making the desktop list a viewport-proportional preference rather than a six-row preference.
+Makes every torrent-table sort indicator use the same trailing edge while preserving content-aligned header labels.
 
 ## Current engineering decisions
 
@@ -63,6 +63,7 @@ Preserves the accepted torrent-list/detail balance across monitor heights by mak
 - Size the desktop torrent list from one rendered row and the table header so exactly six rows are visible, independent of surrounding Dashboard panels or viewport remainder.
 - Treat six desktop torrent rows as a preferred maximum and size the list from the stable viewport budget remaining after the actual rendered Torrent details pane.
 - Prefer a viewport-proportional desktop torrent list at roughly 44% of the usable workspace, but let rendered Torrent details content override that preference and always snap the list to complete rows.
+- Keep torrent header text aligned with its body content while placing every sort chevron on the same trailing/right edge regardless of column type.
 
 ## Development principles
 
@@ -74,6 +75,14 @@ Preserves the accepted torrent-list/detail balance across monitor heights by mak
 - Keep public development continuity portable across forks; label canonical repository/branch/PR references as upstream context rather than local identity.
 
 ## Recent work
+
+### v0.5.114 — Consistent torrent sort chevrons
+
+Makes every torrent-table sort indicator use the same trailing edge while preserving content-aligned header labels.
+
+- All sortable torrent headers now place their chevron on the right edge of the owning column.
+- Numeric header labels remain right-aligned with their body values; text-oriented headers remain left-aligned.
+- Sorting behavior, fixed column sizing, viewport-proportional workspace sizing, and mobile presentation are unchanged.
 
 ### v0.5.113 — Viewport-proportional desktop workspace
 
@@ -106,14 +115,6 @@ Keeps the v0.5.109 torrent-list and General-detail sizing intact while automatic
 - Opening collapsed Torrent details now scrolls the desktop torrent workspace into view so the header, metrics, and filter panels no longer consume the useful detail viewport.
 - Opening a torrent while the inspector is collapsed performs the same one-time workspace reveal.
 - The existing fixed torrent-list height and natural-height General detail behavior remain unchanged.
-
-### v0.5.109 — Fixed desktop list and natural Torrent details
-
-Keeps the desktop torrent list at a stable internally scrollable height while allowing the finite General detail view to expand naturally below it, and adds a self-contained Torrent Dashboard favicon/logo.
-
-- Decouples desktop torrent-list height from Torrent details so opening General no longer steals vertical space from the list.
-- Lets the General tab expand to its complete natural content height and rely on normal page scrolling instead of an unnecessary inner scrollbar.
-- Adds a locally hosted Torrent Dashboard SVG favicon/logo and reuses it in browser/PWA and existing brand surfaces.
 
 ## What to do next
 
