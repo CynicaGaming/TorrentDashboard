@@ -27,17 +27,12 @@ def replace_once(path: str, old: str, new: str) -> None:
     write(path, text.replace(old, new, 1))
 
 
-# Fix the desktop workspace calculation. getBoundingClientRect().top is viewport-relative,
-# so feeding it directly into the height calculation makes the workspace grow after the
-# page scrolls and the next one-second torrent render runs. Convert it to a stable document
-# coordinate before calculating the available desktop height.
 replace_once(
     "static/app.js",
     "  const top=Math.max(0,workspace.getBoundingClientRect().top);\n  const available=Math.max(360,Math.floor(window.innerHeight-top-16));",
     "  const documentTop=Math.max(0,workspace.getBoundingClientRect().top+(window.scrollY||window.pageYOffset||0));\n  const available=Math.max(360,Math.floor(window.innerHeight-documentTop-16));",
 )
 
-# Version synchronization.
 replace_once("dashboard.py", f'VERSION = "{OLD}"', f'VERSION = "{NEW}"')
 replace_once("static/app.js", f"const FRONTEND_BUILD='{OLD}';", f"const FRONTEND_BUILD='{NEW}';")
 
@@ -49,10 +44,8 @@ write("static/index.html", index.replace(OLD, NEW))
 sw = read("static/sw.js")
 if f"v{OLD.replace('.', '')}" not in sw or OLD not in sw:
     raise RuntimeError("static/sw.js is not synchronized to the previous version")
-sw = sw.replace(f"v{OLD.replace('.', '')}", f"v{NEW.replace('.', '')}").replace(OLD, NEW)
-write("static/sw.js", sw)
+write("static/sw.js", sw.replace(f"v{OLD.replace('.', '')}", f"v{NEW.replace('.', '')}").replace(OLD, NEW))
 
-# Record the interaction contract in the design/testing docs.
 design = read("DESIGN_LANGUAGE.md")
 design_note = """
 
@@ -77,7 +70,6 @@ testing_note = """
 if "### Desktop torrent workspace scroll stability" not in testing:
     write("TESTING.md", testing.rstrip() + testing_note + "\n")
 
-# Update the UI/source contract so this regression cannot silently return.
 validator = read("release_tools/validate_ui_strings.py")
 old_assert = '    assert "window.innerHeight-top-16" in app_js\n'
 new_assert = (
@@ -90,9 +82,12 @@ new_assert = (
 if old_assert not in validator:
     raise RuntimeError("Could not find the desktop workspace validation assertion")
 validator = validator.replace(old_assert, new_assert, 1)
+old_exact_assert = '    assert "const available=Math.max(360,Math.floor(window.innerHeight-top-16))" in app_js\n'
+new_exact_assert = '    assert "const available=Math.max(360,Math.floor(window.innerHeight-documentTop-16))" in app_js\n'
+if old_exact_assert not in validator:
+    raise RuntimeError("Could not find the exact desktop workspace height assertion")
+validator = validator.replace(old_exact_assert, new_exact_assert, 1)
 
-# The validator currently loads the files it audits individually. Add the two documentation
-# files once so the new contract can be asserted without weakening existing checks.
 needle = '    users_py = (ROOT / "torrent_dashboard" / "users.py").read_text(encoding="utf-8")\n'
 insert = needle + '    design_language = (ROOT / "DESIGN_LANGUAGE.md").read_text(encoding="utf-8")\n    testing_md = (ROOT / "TESTING.md").read_text(encoding="utf-8")\n'
 if 'design_language = (ROOT / "DESIGN_LANGUAGE.md")' not in validator:
@@ -101,7 +96,6 @@ if 'design_language = (ROOT / "DESIGN_LANGUAGE.md")' not in validator:
     validator = validator.replace(needle, insert, 1)
 write("release_tools/validate_ui_strings.py", validator)
 
-# Structured release metadata remains the source of generated changelog/handoff files.
 meta_path = ROOT / "release_notes" / "releases.json"
 meta = json.loads(meta_path.read_text(encoding="utf-8"))
 releases = meta.get("releases")
@@ -137,7 +131,6 @@ releases.append({
 })
 meta_path.write_text(json.dumps(meta, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
-# Regenerate all derived release/handoff files before workflow validation.
 subprocess.run(
     [sys.executable, str(ROOT / "release_tools" / "generate_release_notes.py"), "--version", NEW],
     cwd=ROOT,
