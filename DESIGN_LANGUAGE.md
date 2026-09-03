@@ -148,11 +148,13 @@ For the persistent Torrent details dock, clicking the torrent whose details are 
 
 ## Configurable torrent columns
 
-The torrent table is a user-configurable local workspace rather than a fixed server-side schema.
+The torrent table is a user-configurable local workspace, and column management lives where the columns are used.
 
-- **Name** is the required identity column and remains fixed at the beginning of the torrent data columns. The selection checkbox and row-actions control also remain fixed.
-- Other torrent columns may be shown, hidden, and reordered from Settings → General. Reordering is exposed through explicit keyboard-accessible move controls rather than requiring pointer-only drag and drop.
-- The available column catalog includes Size, Progress, Status, Seeds, Peers, Download, Upload, ETA, Ratio, Category, Tags, Tracker, and Added.
-- Seeds, Peers, Category, and Tags are part of the default visible layout. Size, Tracker, and Added remain available but hidden by default to avoid unnecessary width.
+- **Name** is required and cannot be hidden. The selection checkbox and row-actions control remain fixed at the outer edges; visible data columns can be reordered directly.
+- On desktop/tablet, drag a visible torrent column header horizontally to change its position. The chosen order is persisted immediately and must survive the one-second live refresh and browser reloads.
+- Right-click anywhere on the torrent header bar to open the **Columns** menu. Optional columns can be shown or hidden there without opening Settings; **Reset columns** restores the documented default.
+- The available column catalog includes Name, Size, Progress, Status, Seeds, Peers, Download, Upload, ETA, Ratio, Category, Tags, Tracker, and Added.
+- Seeds, Peers, Category, and Tags are part of the default visible layout. Size, Tracker, and Added remain available but hidden by default to limit unnecessary width.
 - Column layout is a browser-local presentation preference. It must not mutate shared dashboard configuration or affect another user's browser.
-- When Size or Category is promoted to its own column, the Name cell should avoid repeating the same value in its secondary summary line.
+- When Size or Category is promoted to its own visible column, the Name cell should avoid repeating the same value in its secondary summary line.
+- Direct manipulation should use clear drag/drop feedback and a conventional header context menu rather than duplicating the same controls in Settings.

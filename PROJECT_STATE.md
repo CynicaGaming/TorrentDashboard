@@ -6,7 +6,7 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.85** (prerelease)
+- Latest documented build: **v0.5.86** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 - Upstream development branch: `refactor/backend-modularization-users`
 - Upstream prerelease branch: `prerelease/backend-modularization`
@@ -14,7 +14,7 @@
 
 ### Latest release summary
 
-Adds Category to the default visible torrent columns while preserving genuinely customized browser layouts and migrating browsers that only saved the previous default snapshot.
+Moves torrent-column customization out of Settings and onto the torrent table itself with draggable headers, a right-click Columns menu, and Category retained in the default visible layout.
 
 ## Architecture state
 
@@ -46,6 +46,7 @@ Adds Category to the default visible torrent columns while preserving genuinely 
 - Keep Name, the selection checkbox, and row actions fixed; allow the remaining torrent data columns to be hidden and reordered.
 - Expose Seeds, Peers, and Tags in the default torrent table while keeping less frequently needed Size, Category, Tracker, and Added available but hidden by default.
 - Treat Category as core torrent-list context and include it in the default visible column set.
+- Manage torrent columns directly from the torrent header: drag visible headers to reorder and use the header context menu to show/hide optional columns; keep Name required and Category visible in the default layout.
 
 ## Development principles
 
@@ -57,6 +58,15 @@ Adds Category to the default visible torrent columns while preserving genuinely 
 - Keep public development continuity portable across forks; label canonical repository/branch/PR references as upstream context rather than local identity.
 
 ## Recent work
+
+### v0.5.86 — Direct torrent column controls
+
+Moves torrent-column customization out of Settings and onto the torrent table itself with draggable headers, a right-click Columns menu, and Category retained in the default visible layout.
+
+- Visible torrent data columns can be dragged horizontally to reorder them directly in the table header.
+- Right-clicking the torrent header bar opens a Columns menu for showing or hiding optional columns and restoring defaults.
+- Category remains visible by default alongside Seeds, Peers, and Tags.
+- The Settings → General torrent-column organizer has been removed so column management has one clear interaction surface.
 
 ### v0.5.85 — Category in the default torrent layout
 
@@ -92,15 +102,6 @@ Corrects Add Torrent tree indentation by reserving a shared disclosure slot and 
 - Add Torrent checkboxes remain aligned while file/folder labels now share a fixed expander slot before hierarchy indentation.
 - Files beneath folders visibly begin to the right of their parent folder label, including deeper nested levels.
 - Expanded Torrent details now starts directly with its information tabs; the persistent disclosure bar remains the single selected-torrent identity surface.
-
-### v0.5.81 — Aligned file selection and stale detail cleanup
-
-Keeps Add Torrent checkboxes aligned while indenting hierarchical content labels, and automatically clears Torrent details when the selected torrent disappears from the client.
-
-- All Add Torrent folder/file checkboxes now remain in one stable selection column.
-- Nested folder and file names indent by hierarchy depth while Size and Priority stay aligned.
-- Torrent details are reconciled with every live status refresh; if the selected torrent is removed, the stale detail context clears automatically.
-- Removing a different torrent leaves the current Torrent details selection intact.
 
 ## What to do next
 

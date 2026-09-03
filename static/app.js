@@ -1,5 +1,5 @@
 'use strict';
-const FRONTEND_BUILD='0.5.85';
+const FRONTEND_BUILD='0.5.86';
 const HTML_BUILD=document.querySelector('meta[name="torrent-dashboard-build"]')?.content||'';
 const RECOVERY_KEY=`td-frontend-recovery-${FRONTEND_BUILD}`;
 async function recoverFrontendBuild(reason){
@@ -47,6 +47,7 @@ const UI_MATERIAL_ICON_PATHS={
   expand_more:'M7.41 8.59 12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41Z',
   arrow_upward:'M4 12l1.41 1.41L11 7.83V20h2V7.83l5.59 5.58L20 12l-8-8-8 8Z',
   arrow_downward:'M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.59-5.58L4 12l8 8 8-8Z',
+  check:'M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z',
 };
 function materialIconSvg(name){const path=UI_MATERIAL_ICON_PATHS[name]||UI_MATERIAL_ICON_PATHS.expand_more;return `<svg class="material-symbol-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="${path}"/></svg>`}
 function normalizeUiAttributes(el){
@@ -154,13 +155,44 @@ const TORRENT_COLUMN_DEFS=[
 ];
 const DEFAULT_TORRENT_COLUMN_ORDER=TORRENT_COLUMN_DEFS.map(column=>column.key);
 function defaultTorrentColumnPreferences(){return{order:[...DEFAULT_TORRENT_COLUMN_ORDER],visible:Object.fromEntries(TORRENT_COLUMN_DEFS.map(column=>[column.key,!!column.defaultVisible]))}}
-function torrentColumnPreferences(){let raw={};try{raw=JSON.parse(localStorage.tdColumns||'{}')||{}}catch{raw={}}const known=new Set(DEFAULT_TORRENT_COLUMN_ORDER),legacy=raw&&typeof raw==='object'&&!Array.isArray(raw)?raw:{},source=raw?.visible&&typeof raw.visible==='object'?raw.visible:legacy,supplied=Array.isArray(raw?.order)?raw.order.map(String).filter(key=>known.has(key)&&key!=='name'):[],order=['name',...supplied,...DEFAULT_TORRENT_COLUMN_ORDER.filter(key=>key!=='name'&&!supplied.includes(key))],previousDefault={name:true,size:false,progress:true,state:true,seeds:true,peers:true,down:true,up:true,eta:true,ratio:true,category:false,tags:true,tracker:false,added:false},savedPreviousDefault=!!raw?.visible&&Array.isArray(raw.order)&&raw.order.length===DEFAULT_TORRENT_COLUMN_ORDER.length&&raw.order.every((key,index)=>key===DEFAULT_TORRENT_COLUMN_ORDER[index])&&DEFAULT_TORRENT_COLUMN_ORDER.every(key=>raw.visible[key]===previousDefault[key]),visible={};for(const column of TORRENT_COLUMN_DEFS)visible[column.key]=column.required?true:(savedPreviousDefault&&column.key==='category'?true:(Object.prototype.hasOwnProperty.call(source,column.key)?source[column.key]!==false:!!column.defaultVisible));return{order,visible}}
+function torrentColumnPreferences(){
+  let raw={};try{raw=JSON.parse(localStorage.tdColumns||'{}')||{}}catch{raw={}}
+  const known=new Set(DEFAULT_TORRENT_COLUMN_ORDER),legacy=raw&&typeof raw==='object'&&!Array.isArray(raw)?raw:{},source=raw?.visible&&typeof raw.visible==='object'?raw.visible:legacy;
+  const supplied=Array.isArray(raw?.order)?raw.order.map(String).filter((key,index,list)=>known.has(key)&&list.indexOf(key)===index):[];
+  const order=[...supplied,...DEFAULT_TORRENT_COLUMN_ORDER.filter(key=>!supplied.includes(key))];
+  const previousDefault={name:true,size:false,progress:true,state:true,seeds:true,peers:true,down:true,up:true,eta:true,ratio:true,category:false,tags:true,tracker:false,added:false};
+  const savedPreviousDefault=!!raw?.visible&&Array.isArray(raw.order)&&raw.order.length===DEFAULT_TORRENT_COLUMN_ORDER.length&&raw.order.every((key,index)=>key===DEFAULT_TORRENT_COLUMN_ORDER[index])&&DEFAULT_TORRENT_COLUMN_ORDER.every(key=>raw.visible[key]===previousDefault[key]);
+  const visible={};for(const column of TORRENT_COLUMN_DEFS)visible[column.key]=column.required?true:(savedPreviousDefault&&column.key==='category'?true:(Object.prototype.hasOwnProperty.call(source,column.key)?source[column.key]!==false:!!column.defaultVisible));
+  return{order,visible};
+}
 function torrentColumnVisible(key,prefs=torrentColumnPreferences()){const def=TORRENT_COLUMN_DEFS.find(column=>column.key===key);return !!def?.required||prefs.visible[key]!==false}
-function syncColumnPreferenceMoveButtons(){const rows=[...document.querySelectorAll('#columnPrefList [data-column-key]')];rows.forEach((row,index)=>{const required=row.dataset.columnKey==='name',up=row.querySelector('[data-column-move="up"]'),down=row.querySelector('[data-column-move="down"]');if(up)up.disabled=required||index<=1;if(down)down.disabled=required||index===rows.length-1})}
-function renderTorrentColumnPreferences(prefs=torrentColumnPreferences()){const list=$('#columnPrefList');if(!list)return;const defs=new Map(TORRENT_COLUMN_DEFS.map(column=>[column.key,column]));list.innerHTML=prefs.order.map(key=>{const column=defs.get(key);if(!column)return'';const checked=torrentColumnVisible(key,prefs),required=!!column.required;return `<div class="column-pref-row${required?' required':''}" data-column-key="${esc(key)}"><label class="column-pref-toggle"><input type="checkbox" data-column="${esc(key)}" ${checked?'checked':''} ${required?'disabled':''}><span>${esc(column.label)}</span>${required?'<small>Always shown</small>':''}</label>${required?'<span class="column-pref-fixed">Fixed</span>':`<span class="column-pref-actions"><button class="column-pref-move" data-column-move="up" type="button" aria-label="Move ${esc(column.label)} up" title="Move up">${materialIconSvg('arrow_upward')}</button><button class="column-pref-move" data-column-move="down" type="button" aria-label="Move ${esc(column.label)} down" title="Move down">${materialIconSvg('arrow_downward')}</button></span>`}</div>`}).join('');syncColumnPreferenceMoveButtons()}
-function moveTorrentColumnPreference(key,direction){const list=$('#columnPrefList');if(!list||key==='name')return;const rows=[...list.querySelectorAll('[data-column-key]')],row=rows.find(item=>item.dataset.columnKey===key),index=rows.indexOf(row),delta=direction==='up'?-1:1,target=index+delta;if(!row||target<1||target>=rows.length)return;if(delta<0)list.insertBefore(row,rows[target]);else list.insertBefore(row,rows[target].nextSibling);syncColumnPreferenceMoveButtons()}
-function resetTorrentColumnPreferences(){renderTorrentColumnPreferences(defaultTorrentColumnPreferences())}
-function saveTorrentColumnPreferencesFromSettings(){const list=$('#columnPrefList');if(!list)return;const order=[...list.querySelectorAll('[data-column-key]')].map(row=>row.dataset.columnKey),visible={};for(const column of TORRENT_COLUMN_DEFS){const input=list.querySelector(`[data-column="${column.key}"]`);visible[column.key]=column.required?true:input?.checked!==false}localStorage.tdColumns=JSON.stringify({order,visible})}
+function saveTorrentColumnPreferences(prefs){localStorage.tdColumns=JSON.stringify(prefs)}
+function resetTorrentColumns(){saveTorrentColumnPreferences(defaultTorrentColumnPreferences());render()}
+function setTorrentColumnVisibility(key,visible){const column=TORRENT_COLUMN_DEFS.find(item=>item.key===key);if(!column||column.required)return;const prefs=torrentColumnPreferences();prefs.visible[key]=!!visible;saveTorrentColumnPreferences(prefs);render()}
+function reorderTorrentColumns(sourceKey,targetKey,after=false){
+  if(!sourceKey||!targetKey||sourceKey===targetKey)return;const prefs=torrentColumnPreferences(),order=[...prefs.order],source=order.indexOf(sourceKey),target=order.indexOf(targetKey);if(source<0||target<0)return;
+  order.splice(source,1);let insert=order.indexOf(targetKey)+(after?1:0);insert=Math.max(0,Math.min(order.length,insert));order.splice(insert,0,sourceKey);prefs.order=order;saveTorrentColumnPreferences(prefs);applyColumnPrefs();
+}
+let draggedTorrentColumn='';
+function clearTorrentColumnDropHints(){document.querySelectorAll('#torrentTable thead th.column-drop-before,#torrentTable thead th.column-drop-after').forEach(th=>th.classList.remove('column-drop-before','column-drop-after'))}
+function renderTorrentColumnMenu(){
+  const menu=$('#columnMenu');if(!menu)return;const prefs=torrentColumnPreferences(),defs=new Map(TORRENT_COLUMN_DEFS.map(column=>[column.key,column]));
+  menu.innerHTML='<div class="menu-caption">Columns</div>'+prefs.order.map(key=>{const column=defs.get(key);if(!column)return'';const checked=torrentColumnVisible(key,prefs),required=!!column.required;return `<button class="column-menu-item" type="button" role="menuitemcheckbox" aria-checked="${checked}" data-column-toggle="${esc(key)}" ${required?'disabled':''}><span class="column-menu-check">${checked?materialIconSvg('check'):''}</span><span>${esc(column.label)}</span>${required?'<small>Required</small>':''}</button>`}).join('')+'<div class="menu-separator" role="separator"></div><button class="column-menu-reset" data-column-reset="1" type="button">Reset columns</button>';
+  menu.querySelectorAll('[data-column-toggle]').forEach(button=>button.addEventListener('click',()=>{if(button.disabled)return;setTorrentColumnVisibility(button.dataset.columnToggle,button.getAttribute('aria-checked')!=='true');renderTorrentColumnMenu()}));
+  menu.querySelector('[data-column-reset]')?.addEventListener('click',()=>{resetTorrentColumns();renderTorrentColumnMenu()});
+}
+function showTorrentColumnMenu(x,y){
+  const menu=$('#columnMenu');if(!menu)return;$$('.menu').forEach(item=>{if(item!==menu)item.classList.add('hidden')});renderTorrentColumnMenu();menu.classList.remove('hidden');const rect=menu.getBoundingClientRect();menu.style.left=Math.max(8,Math.min(innerWidth-rect.width-8,x))+'px';menu.style.top=Math.max(8,Math.min(innerHeight-rect.height-8,y))+'px';
+}
+function bindTorrentColumnHeaderUI(){
+  const head=$('#torrentTable thead');if(!head||head.dataset.columnUiBound==='1')return;head.dataset.columnUiBound='1';
+  head.querySelectorAll('th[data-col]').forEach(th=>{th.draggable=true;th.title='Drag to reorder. Right-click to show or hide columns.'});
+  head.addEventListener('contextmenu',event=>{event.preventDefault();showTorrentColumnMenu(event.clientX,event.clientY)});
+  head.addEventListener('dragstart',event=>{const th=event.target.closest('th[data-col]');if(!th)return;draggedTorrentColumn=th.dataset.col||'';event.dataTransfer.effectAllowed='move';event.dataTransfer.setData('text/plain',draggedTorrentColumn);requestAnimationFrame(()=>th.classList.add('column-dragging'))});
+  head.addEventListener('dragover',event=>{if(!draggedTorrentColumn)return;const th=event.target.closest('th[data-col]');if(!th||th.dataset.col===draggedTorrentColumn)return;event.preventDefault();clearTorrentColumnDropHints();const after=event.clientX>th.getBoundingClientRect().left+th.getBoundingClientRect().width/2;th.classList.add(after?'column-drop-after':'column-drop-before');event.dataTransfer.dropEffect='move'});
+  head.addEventListener('drop',event=>{if(!draggedTorrentColumn)return;const th=event.target.closest('th[data-col]');if(!th)return;event.preventDefault();const rect=th.getBoundingClientRect(),after=event.clientX>rect.left+rect.width/2;reorderTorrentColumns(draggedTorrentColumn,th.dataset.col,after);clearTorrentColumnDropHints()});
+  head.addEventListener('dragend',event=>{event.target.closest('th[data-col]')?.classList.remove('column-dragging');draggedTorrentColumn='';clearTorrentColumnDropHints()});
+}
 
 function esc(v=''){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function bytes(n,d=1){n=Number(n);if(!Number.isFinite(n)||n<0)return'—';if(n===0)return'0 B';const u=['B','KB','MB','GB','TB','PB'];let i=Math.min(Math.floor(Math.log(n)/Math.log(1024)),u.length-1);return`${(n/1024**i).toFixed(i?d:0)} ${u[i]}`}
@@ -605,7 +637,7 @@ function bindUI(){if(bound)return;
   $('#sort').value=state.sort;$('#sort').addEventListener('change',e=>{state.sort=e.target.value;localStorage.tdSort=state.sort;render()});
   $('#serverSelect').addEventListener('change',async e=>{state.server=e.target.value;localStorage.tdServer=state.server;state.selected.clear();resetDetailPane();await refreshStatus();if(state.server!=='all')await loadMeta();if($('#view-notifications')?.classList.contains('active'))renderNotifications()});
   $('#selectAll').addEventListener('change',e=>{visibleTorrents().forEach(t=>e.target.checked?state.selected.add(keyFor(t)):state.selected.delete(keyFor(t)));render()});
-  $('#torrentRows').addEventListener('click',rowClick);$('#torrentRows').addEventListener('change',rowChange);$('#torrentRows').addEventListener('contextmenu',rowContext);
+  $('#torrentRows').addEventListener('click',rowClick);$('#torrentRows').addEventListener('change',rowChange);$('#torrentRows').addEventListener('contextmenu',rowContext);bindTorrentColumnHeaderUI();
   $('#bulkbar').addEventListener('click',e=>{if(e.target.closest('[data-bulk-clear]')){state.selected.clear();render();return}const a=e.target.closest('[data-bulk]')?.dataset.bulk;if(a)bulkAction(a)});
   bindAddTorrentUI();$('#removeForm')?.addEventListener('submit',e=>{e.preventDefault();closeRemoveDialog({deleteFiles:!!$('#removeFiles')?.checked})});$$('[data-remove-cancel]').forEach(x=>x.addEventListener('click',()=>closeRemoveDialog(null)));
   $('#detailHandle').addEventListener('click',toggleDetailPane);$$('[data-detailtab]').forEach(x=>x.addEventListener('click',()=>{state.detailTab=x.dataset.detailtab;$$('[data-detailtab]').forEach(b=>b.classList.toggle('active',b===x));renderDetail()}));
@@ -614,7 +646,7 @@ function bindUI(){if(bound)return;
   $('#pauseAllBtn').addEventListener('click',()=>globalAction('stop'));$('#resumeAllBtn').addEventListener('click',()=>globalAction('start'));
   $('#notificationFilter')?.addEventListener('change',renderNotifications);$('#refreshNotifications')?.addEventListener('click',loadNotifications);
   if(state.me?.can_manage)TDSettings.bind();
-  window.addEventListener('keydown',e=>{if(e.key==='/'&&!['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName)){e.preventDefault();$('#search').focus()}if(e.key==='Escape'){if(!$('#passwordConfirmModal')?.classList.contains('hidden')){closePasswordConfirmation(null);return}if(!$('#clientSettingsModal')?.classList.contains('hidden')){TDSettings.closeClientSettings();return}if(!$('#accountModal')?.classList.contains('hidden')){closeAccountModal();return}if(!$('#accountMenu')?.classList.contains('hidden')){hideAccountMenu();return}if(!$('#actionDialogModal')?.classList.contains('hidden')){closeActionDialog(null);return}if(!$('#removeModal')?.classList.contains('hidden')){closeRemoveDialog(null);return}if(!$('#addModal')?.classList.contains('hidden')){closeAddTorrent();return}if(state.selected.size){state.selected.clear();render();return}if(state.detailExpanded){state.detailExpanded=false;syncDetailDock()}}});
+  window.addEventListener('keydown',e=>{if(e.key==='/'&&!['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName)){e.preventDefault();$('#search').focus()}if(e.key==='Escape'){if(!$('#passwordConfirmModal')?.classList.contains('hidden')){closePasswordConfirmation(null);return}if(!$('#clientSettingsModal')?.classList.contains('hidden')){TDSettings.closeClientSettings();return}if(!$('#accountModal')?.classList.contains('hidden')){closeAccountModal();return}if(!$('#accountMenu')?.classList.contains('hidden')){hideAccountMenu();return}if(!$('#columnMenu')?.classList.contains('hidden')){$('#columnMenu').classList.add('hidden');return}if(!$('#actionDialogModal')?.classList.contains('hidden')){closeActionDialog(null);return}if(!$('#removeModal')?.classList.contains('hidden')){closeRemoveDialog(null);return}if(!$('#addModal')?.classList.contains('hidden')){closeAddTorrent();return}if(state.selected.size){state.selected.clear();render();return}if(state.detailExpanded){state.detailExpanded=false;syncDetailDock()}}});
   bound=true;
 }
 

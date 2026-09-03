@@ -187,9 +187,11 @@ Do not use this file as a test-results log; it is a stable testing contract for 
 ### Configurable torrent columns
 
 - On a browser with no saved column preference, verify Seeds, Peers, Category, and Tags are visible by default alongside Name, Progress, Status, Download, Upload, ETA, and Ratio.
-- Open Settings → General → Torrent columns and verify Name is always enabled/fixed while every other listed column can be enabled or disabled.
-- Move several columns up and down, save Settings, and verify the torrent table follows that order after the next one-second refresh and after a full browser reload.
-- Verify hidden columns remain hidden after refresh/reload and Reset columns restores the documented default order/visibility after saving.
-- Verify Category is visible in the default layout; enable Size, Tracker, and Added individually and verify their values render without changing qBitTorrent state.
-- Verify Seeds displays connected seeds with the total in parentheses when qBitTorrent supplies a total; Peers follows the same convention.
-- Verify the selection checkbox and row-actions control remain fixed at the outer edges of the table regardless of column order.
+- Verify Settings → General no longer contains a duplicate torrent-column organizer.
+- Drag several visible column headers left and right and verify the table follows the new order immediately, after the next one-second refresh, and after a full browser reload.
+- Right-click the torrent header bar and verify the Columns menu lists every data column, keeps Name required, and can show/hide every optional column.
+- Hide and restore several columns from the header menu and verify the table updates immediately without changing qBitTorrent state.
+- Use Reset columns from the header menu and verify the default order/visibility is restored, including Category.
+- Verify Size, Tracker, and Added can be enabled; Seeds displays connected seeds with the total in parentheses when qBitTorrent supplies a total, and Peers follows the same convention.
+- Verify the selection checkbox and row-actions control remain fixed at the outer edges regardless of data-column order.
+- Verify a browser with an existing customized v0.5.84/v0.5.85 layout keeps that custom order and visibility instead of being overwritten by the new interaction model.
