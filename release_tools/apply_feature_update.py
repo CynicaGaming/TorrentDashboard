@@ -136,6 +136,8 @@ old_assert = '    assert "const available=Math.max(360,Math.min(560,Math.floor(w
 validator = validator.replace(old_assert, "")
 old_css_assert = '    assert "flex:0 0 var(--torrent-list-height,clamp(360px,52vh,560px))" in app_css\n'
 validator = validator.replace(old_css_assert, "")
+old_remainder_assert = '    assert "window.innerHeight-documentTop-16" in app_js\n'
+validator = validator.replace(old_remainder_assert, "")
 insert = """    # 0.5.111 makes the desktop torrent list an exact six-row viewport.\n    assert 'const TORRENT_DESKTOP_VISIBLE_ROWS=6;' in app_js\n    assert \"const table=$('#torrentTable'),firstRow=$('#torrentRows tr');\" in app_js\n    assert \"parseFloat(rootStyle.getPropertyValue('--row'))||62\" in app_js\n    assert \"table?.tHead?.getBoundingClientRect().height||34\" in app_js\n    assert \"firstRow?.getBoundingClientRect().height||fallbackRow\" in app_js\n    assert 'headerHeight+(rowHeight*TORRENT_DESKTOP_VISIBLE_ROWS)+2' in app_js\n    assert 'window.innerHeight-documentTop-16' not in app_js\n    assert '.torrent-list-panel{display:flex;flex:0 0 var(--torrent-list-height,456px);height:var(--torrent-list-height,456px);min-height:0;overflow:hidden}' in app_css\n    assert 'Six-row desktop torrent viewport' in design\n    assert 'Six-row desktop torrent viewport' in testing\n\n"""
 validator = replace_once(validator, '    print("UI string audit passed")\n', insert + '    print("UI string audit passed")\n', "UI audit footer")
 write("release_tools/validate_ui_strings.py", validator)
