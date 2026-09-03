@@ -404,3 +404,9 @@ body.torrent-column-resizing,body.torrent-column-resizing *{cursor:col-resize!im
 #torrentTable thead th[aria-sort="ascending"] .torrent-sort-icon .material-symbol-icon{transform:rotate(180deg)}
 #torrentTable thead th[data-col]:focus-visible{box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--accent) 60%,transparent)}
 @media(max-width:700px){.controls-panel .filters{width:100%;margin-left:0}.controls-panel .filters input{width:100%}}
+
+
+/* 0.5.93 content-aligned sortable torrent headers. */
+#torrentTable thead th[data-col]{text-align:left;padding-left:12px;padding-right:22px}
+#torrentTable thead th[data-col="seeds"],#torrentTable thead th[data-col="peers"]{text-align:left}
+.torrent-sort-heading{justify-content:flex-start}

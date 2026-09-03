@@ -6,7 +6,7 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.92** (prerelease)
+- Latest documented build: **v0.5.93** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 - Upstream development branch: `refactor/backend-modularization-users`
 - Upstream prerelease branch: `prerelease/backend-modularization`
@@ -14,7 +14,7 @@
 
 ### Latest release summary
 
-Moves torrent sorting directly into the configurable column headers and removes redundant Category, Tags, Tracker, and standalone sort controls while keeping search across all torrent metadata.
+Restores natural torrent-table header alignment while retaining the stabilized resize, reorder, sorting, overflow, and fixed-actions behavior from the preceding column releases.
 
 ## Architecture state
 
@@ -49,8 +49,8 @@ Moves torrent sorting directly into the configurable column headers and removes 
 - Treat Name as a normal torrent data column: keep it visible by default but allow users to hide, reorder, and resize it; only the selection checkbox and row-actions columns remain fixed.
 - Treat torrent-column resizing as an exclusive pointer gesture: use a forgiving edge target, suppress native header drag until release, and preserve the live width through polling before committing it to browser-local preferences.
 - Keep torrent resize hit targets inside their owning data header, allow Name to consume its actual assigned width before ellipsizing, and hard-lock the row-actions column as a fixed right-edge control surface.
-- Center configurable torrent-column headers with symmetric padding, reserve a fully internal resize gutter, and defer torrent-row DOM rendering during an active resize so polling cannot move the target under the pointer.
 - Use the torrent header as the single sorting surface and the unified text search as the single metadata filter: preserve status tabs, retire Category/Tags/Tracker and sort selects, clear obsolete facet preferences, and keep sort direction browser-local.
+- Align sortable torrent header labels with the table's normal content flow rather than centering them; keep resize discovery on the internal edge gutter so header placement and row content remain visually coherent.
 
 ## Development principles
 
@@ -62,6 +62,14 @@ Moves torrent sorting directly into the configurable column headers and removes 
 - Keep public development continuity portable across forks; label canonical repository/branch/PR references as upstream context rather than local identity.
 
 ## Recent work
+
+### v0.5.93 — Content-aligned torrent headers
+
+Restores natural torrent-table header alignment while retaining the stabilized resize, reorder, sorting, overflow, and fixed-actions behavior from the preceding column releases.
+
+- Sortable torrent header labels return to normal left/content flow instead of being centered independently of their row data.
+- The 20 px inward-only resize gutter remains unchanged, so column boundaries stay easy to grab without using label centering as a resize cue.
+- Header sorting, drag-to-reorder, persistent resizing, long-name expansion, and the fixed 48 px actions column remain intact.
 
 ### v0.5.92 — Header sorting and streamlined torrent search
 
@@ -95,14 +103,6 @@ Eliminates resize/reorder gesture overlap and one-second polling snap-back so to
 - The resize edge now has a wider, more forgiving pointer target instead of requiring pixel-perfect divider placement.
 - Beginning a resize temporarily disables native header dragging, so the same gesture cannot reorder the column.
 - An in-progress width is retained across the one-second torrent refresh instead of snapping back to the last saved width mid-drag.
-
-### v0.5.88 — Fully configurable Name column
-
-Removes the last special-case restriction from torrent data columns so Name can be hidden and resized like the rest of the configurable table.
-
-- Name remains visible in the default torrent layout but can now be hidden from the header Columns menu.
-- Name remains draggable and resizable, with its minimum width reduced from 220 px to 140 px for denser desktop layouts.
-- The selection checkbox and row-actions control are now the only fixed/non-configurable torrent-table columns.
 
 ## What to do next
 

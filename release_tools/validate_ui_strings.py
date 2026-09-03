@@ -715,19 +715,23 @@ def main():
     assert 'ellipsis only when the rendered cell is actually narrower' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')
     assert 'actions column must never show resize behavior or change width' in (ROOT / 'TESTING.md').read_text(encoding='utf-8')
 
-    # 0.5.91 centers configurable headers and prevents polling-driven DOM
-    # rebuilds from moving a column while the user is actively resizing it.
+    # 0.5.91 introduced polling-stable resizing; v0.5.93 keeps that gesture
+    # protection but supersedes centered labels with normal content alignment.
     assert "let draggedTorrentColumn='',torrentColumnResize=null,torrentColumnRenderPending=false" in app_js
     assert "function render(){if(torrentColumnResize){torrentColumnRenderPending=true;return}" in app_js
     assert "const renderPending=torrentColumnRenderPending;torrentColumnResize=null" in app_js
     assert "if(renderPending){torrentColumnRenderPending=false;render()}" in app_js
     assert '0.5.91 centered and polling-stable torrent-column resizing' in app_css
-    assert '#torrentTable thead th[data-col]{text-align:center;padding-left:22px;padding-right:22px}' in app_css
-    assert '#torrentTable thead th[data-col="seeds"],#torrentTable thead th[data-col="peers"]{text-align:center}' in app_css
     assert '.column-resize-handle{right:0;width:20px}' in app_css
     assert 'inline-size:48px!important;min-inline-size:48px!important;max-inline-size:48px!important' in app_css
+    assert '0.5.93 content-aligned sortable torrent headers' in app_css
+    assert '#torrentTable thead th[data-col]{text-align:left;padding-left:12px;padding-right:22px}' in app_css
+    assert '#torrentTable thead th[data-col="seeds"],#torrentTable thead th[data-col="peers"]{text-align:left}' in app_css
+    assert '.torrent-sort-heading{justify-content:flex-start}' in app_css
+    assert app_css.rfind('0.5.93 content-aligned sortable torrent headers') > app_css.rfind('0.5.91 centered and polling-stable torrent-column resizing')
     assert 'defer torrent-row DOM rendering' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')
-    assert 'header label is centered within its column' in (ROOT / 'TESTING.md').read_text(encoding='utf-8')
+    assert "Torrent header labels follow the table's normal content flow" in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')
+    assert "header labels follow the table's normal left/content flow" in (ROOT / 'TESTING.md').read_text(encoding='utf-8')
 
 
     # 0.5.92 moves torrent sorting into the configurable headers and retires

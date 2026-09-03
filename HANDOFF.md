@@ -7,14 +7,14 @@
 This handoff is intentionally portable across public forks. Verify the current checkout's Git remote, branch, and open work before using upstream references as instructions.
 
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
-- Last documented upstream build: **v0.5.92** (prerelease)
+- Last documented upstream build: **v0.5.93** (prerelease)
 - Upstream development branch: `refactor/backend-modularization-users`
 - Upstream prerelease branch: `prerelease/backend-modularization`
 - Upstream active PR: **#25**
 
 ## Last known-good state
 
-Moves torrent sorting directly into the configurable column headers and removes redundant Category, Tags, Tracker, and standalone sort controls while keeping search across all torrent metadata.
+Restores natural torrent-table header alignment while retaining the stabilized resize, reorder, sorting, overflow, and fixed-actions behavior from the preceding column releases.
 
 The released-state details and recent history are in `PROJECT_STATE.md`; architectural constraints are in `ARCHITECTURE.md`.
 

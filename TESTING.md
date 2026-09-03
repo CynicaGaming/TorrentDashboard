@@ -197,7 +197,7 @@ Do not use this file as a test-results log; it is a stable testing contract for 
 - Use Enter and Space on a focused data header and verify keyboard sorting matches pointer sorting.
 - Drag several visible column headers left and right and verify the table follows the new order immediately, after the next one-second refresh, and after a full browser reload. Reordering must not also change the sort field/direction.
 - Drag the right edge of Name, Progress, Status, Category, and Tags to narrower and wider sizes. Hold at least one resize gesture open for several seconds across multiple live refresh intervals; verify there is no snap, row rebuild, accidental reorder, or accidental sort.
-- Verify each header label is centered within its column; the sort affordance must not offset the label, and the 20 px resize gutter remains entirely inside the owning header.
+- Verify torrent header labels follow the table's normal left/content flow rather than being centered; the sort affordance stays at the far edge and the 20 px resize gutter remains entirely inside the owning header.
 - Hide a resized data column from the Columns menu, show it again, and verify its saved width returns. Verify the Columns menu includes every data column, including Name, and can show/hide all data columns.
 - Use Reset columns from the header menu and verify default order/visibility returns, Category remains visible, and custom widths are cleared. The current sort preference may remain independent of the layout reset.
 - Verify widening Name reveals additional torrent-name text and ellipsis appears only when the rendered cell is actually narrower than the name.
