@@ -840,6 +840,19 @@ def main():
     assert '### Header completion notification inbox' in design_language
     assert '### Header completion notification inbox' in testing_md
 
+    # 0.5.118 adds bulk disclosure controls to the Add Torrent metadata tree.
+    assert 'id="addExpandAllFolders"' in html and 'id="addCollapseAllFolders"' in html
+    assert 'class="add-content-folder-actions"' in html
+    assert 'function addTreeFolderPaths(node)' in app_js
+    assert 'function syncAddFolderActions()' in app_js
+    assert 'function expandAllAddFolders()' in app_js and 'function collapseAllAddFolders()' in app_js
+    assert "$('#addExpandAllFolders').addEventListener('click',expandAllAddFolders)" in app_js
+    assert "$('#addCollapseAllFolders').addEventListener('click',collapseAllAddFolders)" in app_js
+    assert 'for(const path of addTreeFolderPaths(buildAddFileTree(addMetadataState.files||[])))addMetadataState.collapsedFolders.add(path)' in app_js
+    assert '0.5.118 Add Torrent folder disclosure actions' in app_css
+    assert '## Add Torrent folder disclosure actions' in design_language
+    assert '### Add Torrent folder disclosure actions' in testing_md
+
     print("UI string audit passed")
 
 

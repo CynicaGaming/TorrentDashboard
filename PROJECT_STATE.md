@@ -6,7 +6,7 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.117** (prerelease)
+- Latest documented build: **v0.5.118** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 - Upstream development branch: `refactor/backend-modularization-users`
 - Upstream prerelease branch: `prerelease/backend-modularization`
@@ -14,7 +14,7 @@
 
 ### Latest release summary
 
-Adds a compact Material-style notification bell for recent completed torrents while preserving the full Notifications view as durable activity history.
+Adds Expand all and Collapse all controls to the Add Torrent content tree so nested torrent metadata can be opened or compacted in one action without changing download selections.
 
 ## Current engineering decisions
 
@@ -66,6 +66,7 @@ Adds a compact Material-style notification bell for recent completed torrents wh
 - Keep torrent header text aligned with its body content while placing every sort chevron on the same trailing/right edge regardless of column type.
 - Treat the header notification bell as a browser-local transient completion inbox; clearing it must not delete durable Notifications history.
 - Keep detailed security, account, system, integration, and update activity in the full Notifications view while the header bell initially surfaces completed torrents only.
+- Keep Add Torrent bulk folder disclosure as presentation state over the existing metadata tree; expand/collapse actions must never alter file selection or priority state.
 
 ## Development principles
 
@@ -77,6 +78,15 @@ Adds a compact Material-style notification bell for recent completed torrents wh
 - Keep public development continuity portable across forks; label canonical repository/branch/PR references as upstream context rather than local identity.
 
 ## Recent work
+
+### v0.5.118 — Add Torrent folder disclosure controls
+
+Adds Expand all and Collapse all controls to the Add Torrent content tree so nested torrent metadata can be opened or compacted in one action without changing download selections.
+
+- Adds compact Expand all and Collapse all actions beside the Add Torrent content summary.
+- Bulk disclosure operates across every known nested folder path while preserving the existing per-folder chevrons.
+- The controls automatically disable when the requested state is already satisfied or when the torrent contains no folders.
+- Responsive layout keeps the controls usable on narrow/mobile Add Torrent sheets without widening the content preview.
 
 ### v0.5.117 — Header completion notification inbox
 
@@ -111,14 +121,6 @@ Makes every torrent-table sort indicator use the same trailing edge while preser
 - All sortable torrent headers now place their chevron on the right edge of the owning column.
 - Numeric header labels remain right-aligned with their body values; text-oriented headers remain left-aligned.
 - Sorting behavior, fixed column sizing, viewport-proportional workspace sizing, and mobile presentation are unchanged.
-
-### v0.5.113 — Viewport-proportional desktop workspace
-
-Preserves the accepted torrent-list/detail balance across monitor heights by making the desktop list a viewport-proportional preference rather than a six-row preference.
-
-- The desktop torrent list now prefers about 44% of the usable viewport below the workspace start, matching the accepted reference layout.
-- Taller displays can show more than six complete torrent rows instead of leaving a large unused area.
-- Torrent details remains authoritative: General can take additional height and force the list smaller whenever its rendered content requires it.
 
 ## What to do next
 

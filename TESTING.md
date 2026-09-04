@@ -334,3 +334,13 @@ Manual regression coverage:
 7. Reload the same browser and verify seen/cleared bell state persists; a separate browser profile should maintain independent bell presentation state.
 8. Verify **View all notifications** navigates to the existing Notifications destination with detailed torrent, security, system, account, integration, and update events intact.
 9. On mobile, confirm the bell popover remains above Torrent Details/bulk actions, fits the viewport without horizontal overflow, closes on outside tap/Escape, and does not displace the existing top controls.
+
+
+### Add Torrent folder disclosure actions
+
+- Open Add Torrent with a torrent containing multiple nested folders. Confirm **Expand all** and **Collapse all** appear beside the content summary on desktop and below it on narrow/mobile layouts.
+- Before metadata is available, and for a flat torrent with no folders, both controls must remain disabled.
+- Collapse several folders individually, then choose **Expand all**. Every folder and nested subfolder must become visible without changing file checkboxes or priorities.
+- Choose **Collapse all**. All known folder paths must become collapsed. Expanding one parent afterward must retain the collapsed state of nested descendants until they are individually expanded or **Expand all** is used.
+- After **Expand all**, the Expand control must be disabled and Collapse enabled. After **Collapse all**, Collapse must be disabled and Expand enabled.
+- Switch source/magnet metadata or reset the Add Torrent form. Disclosure state must be reset for the new metadata tree and must not leak between torrents.

@@ -235,3 +235,12 @@ Torrent-table header labels continue to align with their body data: text-oriente
 - Bell seen/cleared state is browser-local presentation state. Clearing the bell must never delete or mutate the durable server-side event history.
 - **View all notifications** opens the main Notifications view, which remains the detailed history for torrent, security, account, update, integration, and system events.
 - The popover must remain above mobile Torrent Details and bulk-action layers and must not introduce header overflow on narrow screens.
+
+
+## Add Torrent folder disclosure actions
+
+The Add Torrent content preview keeps per-folder chevrons as the primary local disclosure control and adds **Expand all** / **Collapse all** as compact secondary actions beside the file summary. The actions operate only on the currently loaded metadata tree; they do not change file selection, priority, or torrent add options.
+
+The controls remain disabled until the metadata contains at least one folder. **Expand all** is disabled when every folder is already open, and **Collapse all** is disabled when every known folder path is already collapsed. Bulk disclosure must preserve the same folder ordering, indentation, checkbox state, and file-priority state used by individual folder toggles.
+
+On narrow layouts the summary stays above the two disclosure actions and the actions share the available row width rather than forcing the content preview wider than the modal.
