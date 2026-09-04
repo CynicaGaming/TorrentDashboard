@@ -818,6 +818,28 @@ def main():
     assert '### Torrent sort chevrons' in design
     assert '### Torrent sort chevrons' in testing
 
+    # 0.5.117 adds a browser-local completion inbox over durable event history.
+    for control in ('notificationBellBtn','notificationBellBadge','notificationBellPanel','notificationBellList','notificationBellClear','notificationBellHistory'):
+        assert f'id="{control}"' in html
+    assert 'aria-label="Open notifications"' in html and 'View all notifications' in html
+    assert "notifications:'M12 22" in app_js
+    assert 'const NOTIFICATION_BELL_LIMIT=8;' in app_js
+    assert 'const NOTIFICATION_REFRESH_MS=10000;' in app_js
+    assert "const NOTIFICATION_SEEN_KEY='tdNotificationBellSeen';" in app_js
+    assert "const NOTIFICATION_CLEARED_KEY='tdNotificationBellCleared';" in app_js
+    assert 'function initializeNotificationBellState()' in app_js
+    assert "String(item?.event||'').toLowerCase()!=='completed'" in app_js
+    assert 'localStorage.setItem(key,JSON.stringify' in app_js
+    assert 'function clearNotificationBell()' in app_js and 'function markNotificationBellSeen()' in app_js
+    assert "setView('notifications')" in app_js and 'scheduleNotificationRefresh()' in app_js
+    assert 'await loadNotifications(true);scheduleRefresh();scheduleNotificationRefresh();registerPwa();' in app_js
+    assert "if(completedNow)setTimeout(()=>loadNotifications(true),1200)" in app_js
+    assert '/api/events/clear' not in dashboard_py and '/api/events/clear' not in app_js
+    assert '0.5.117 header completion notification inbox' in app_css
+    assert '.topbar.notification-open{z-index:85}' in app_css
+    assert '### Header completion notification inbox' in design_language
+    assert '### Header completion notification inbox' in testing_md
+
     print("UI string audit passed")
 
 

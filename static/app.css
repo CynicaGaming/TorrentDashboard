@@ -436,3 +436,25 @@ button,select,input,textarea{border:1px solid var(--border);background:var(--pan
 .detail-loading .detail-record-card{pointer-events:none}
 @keyframes detailSkeletonSweep{to{transform:translateX(110%)}}
 @media(prefers-reduced-motion:reduce){.detail-skeleton-line::after,.detail-skeleton-block::after{animation:none}}
+
+
+/* 0.5.117 header completion notification inbox */
+.notification-bell-wrap{position:relative;flex:0 0 auto}
+.notification-bell-button{position:relative;width:38px;height:38px;display:grid;place-items:center;padding:0;border:1px solid var(--border);background:var(--panel3);color:var(--muted);border-radius:10px}
+.notification-bell-button:hover,.notification-bell-button[aria-expanded="true"]{background:var(--panel2);color:var(--text)}
+.notification-bell-button:focus-visible{box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 48%,transparent)}
+.notification-bell-button .material-symbol-icon{width:19px;height:19px}
+.notification-bell-badge{position:absolute;right:1px;top:1px;min-width:16px;height:16px;padding:0 4px;border-radius:999px;display:grid;place-items:center;background:var(--accent);color:#08111e;font-size:8px;font-weight:800;line-height:1;border:2px solid var(--panel3);pointer-events:none}
+.notification-bell-panel{position:absolute;right:0;top:calc(100% + 8px);z-index:110;width:min(380px,calc(100vw - 24px));max-height:min(520px,70vh);display:flex;flex-direction:column;background:var(--panel2);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);overflow:hidden}
+.notification-bell-header{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border-bottom:1px solid var(--border)}
+.notification-bell-header strong{font-size:11px}.notification-bell-clear{border:0;background:transparent;color:var(--muted);font-size:9.5px;padding:5px 7px}.notification-bell-clear:hover:not(:disabled){color:var(--text);background:var(--panel3)}.notification-bell-clear:disabled{opacity:.45;cursor:default}
+.notification-bell-list{display:grid;overflow:auto;max-height:min(380px,55vh)}
+.notification-bell-item{display:grid;grid-template-columns:8px minmax(0,1fr) auto;gap:9px;align-items:start;padding:11px 12px;border-bottom:1px solid color-mix(in srgb,var(--border) 68%,transparent)}
+.notification-bell-item:last-child{border-bottom:0}.notification-bell-item.good .notification-dot{background:var(--good)}.notification-bell-item.warn .notification-dot{background:var(--warn)}.notification-bell-item.bad .notification-dot{background:var(--bad)}
+.notification-bell-copy{display:grid;gap:3px;min-width:0}.notification-bell-copy b{font-size:10.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.notification-bell-copy span{color:var(--muted);font-size:9px}.notification-bell-item time{color:var(--muted);font-size:8.5px;white-space:nowrap;padding-top:1px}
+.notification-bell-empty{padding:26px 14px;text-align:center;color:var(--muted);font-size:10px}
+.notification-bell-history{border:0;border-top:1px solid var(--border);border-radius:0;background:color-mix(in srgb,var(--panel3) 55%,transparent);color:var(--text);padding:10px 12px;font-size:10px;text-align:center}
+.notification-bell-history:hover{background:var(--panel3)}
+.topbar.notification-open{z-index:85}
+@media(max-width:760px){.notification-bell-button{width:32px;height:32px}.notification-bell-button .material-symbol-icon{width:17px;height:17px}}
+@media(max-width:520px){.notification-bell-button{width:34px;height:34px}.notification-bell-panel{position:fixed;right:8px;top:58px;width:min(360px,calc(100vw - 16px));max-height:calc(100dvh - 142px)}.notification-bell-list{max-height:calc(100dvh - 240px)}}

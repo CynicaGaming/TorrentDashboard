@@ -4,11 +4,11 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#0b0d10" name="theme-color"/>
-<meta content="0.5.116" name="torrent-dashboard-build"/>
+<meta content="0.5.117" name="torrent-dashboard-build"/>
 <link href="/manifest.webmanifest" rel="manifest"/>
 <link href="/static/favicon.svg" rel="icon" type="image/svg+xml"/>
-<link href="/static/app.css?v=0.5.116" rel="stylesheet"/>
-<link href="/static/settings.css?v=0.5.116" rel="stylesheet"/>
+<link href="/static/app.css?v=0.5.117" rel="stylesheet"/>
+<link href="/static/settings.css?v=0.5.117" rel="stylesheet"/>
 <title>Torrent Dashboard</title>
 </head>
 <body>
@@ -107,6 +107,17 @@
 <span class="toolbar-divider" aria-hidden="true"></span>
 <button class="toolbar-icon" id="resumeAllBtn" type="button" aria-label="Resume all torrents" title="Resume all torrents"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="m8 5 11 7-11 7z"/></svg></button>
 <button class="toolbar-icon" id="pauseAllBtn" type="button" aria-label="Pause all torrents" title="Pause all torrents"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M8 5v14M16 5v14"/></svg></button>
+</div>
+<div class="notification-bell-wrap">
+<button class="notification-bell-button" id="notificationBellBtn" type="button" aria-label="Open notifications" aria-haspopup="dialog" aria-expanded="false" aria-controls="notificationBellPanel">
+<svg class="material-symbol-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M12 22c1.1 0 1.99-.9 1.99-2h-4A2 2 0 0 0 12 22Zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4a1.5 1.5 0 0 0-3 0v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2Z"/></svg>
+<span class="notification-bell-badge hidden" id="notificationBellBadge" aria-hidden="true"></span>
+</button>
+<section class="notification-bell-panel hidden" id="notificationBellPanel" role="dialog" aria-label="Recent torrent completions">
+<header class="notification-bell-header"><strong>Notifications</strong><button class="notification-bell-clear" id="notificationBellClear" type="button">Clear</button></header>
+<div class="notification-bell-list" id="notificationBellList"></div>
+<button class="notification-bell-history" id="notificationBellHistory" type="button">View all notifications</button>
+</section>
 </div>
 <button class="profile-button" id="profileBtn" type="button" aria-label="Open account menu" aria-haspopup="menu" aria-expanded="false">
 <span class="profile-avatar profile-avatar-small"><img alt="" class="hidden" data-avatar-image/><span class="avatar-default" data-avatar-default aria-hidden="true"></span></span>
@@ -256,7 +267,7 @@
 <div class="menu account-menu hidden" id="accountMenu" role="menu"><div class="account-menu-head"><span class="profile-avatar profile-avatar-menu"><img alt="" class="hidden" data-avatar-image/><span class="avatar-default" data-avatar-default aria-hidden="true"></span></span><div><strong id="accountMenuName">Account</strong><small id="accountMenuGroup">User</small></div></div><div class="menu-separator" role="separator"></div><button id="accountSettingsBtn" type="button">Account settings</button><button class="hidden" id="installPwa" type="button">Install app</button><div class="menu-separator" role="separator"></div><button id="logoutBtn" type="button">Sign out</button></div>
 <div class="menu hidden" id="contextMenu"></div>
 <div class="toasts" id="toasts"></div>
-<script src="/static/settings.js?v=0.5.116"></script>
-<script src="/static/app.js?v=0.5.116"></script>
+<script src="/static/settings.js?v=0.5.117"></script>
+<script src="/static/app.js?v=0.5.117"></script>
 </body>
 </html>

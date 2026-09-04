@@ -321,3 +321,16 @@ Manual regression coverage:
 5. Confirm a selected torrent with legitimately empty Peers/Trackers/HTTP sources still uses the existing meaningful empty-data copy for that selected torrent.
 6. On mobile, confirm Torrent Details remains collapsed by default; manually expand it with no selection and verify the same template contract.
 7. Confirm desktop viewport-proportional torrent-list sizing and General natural-fit behavior remain stable with the persistent shell present.
+
+
+### Header completion notification inbox
+
+1. On a browser with no prior bell state, load existing event history and confirm old completion events may appear in the list but do not generate a historical unread-count flood.
+2. Complete a torrent and confirm the header bell badge increments after the durable completion event is recorded; open the bell and confirm the torrent name, completion label, and relative timestamp appear.
+3. Opening the bell marks currently listed completion events seen: the badge clears while the entries remain visible.
+4. Press **Clear** and confirm the current completion entries disappear from the bell. Open **View all notifications** and verify the same completion events remain in the durable Notifications history.
+5. Complete another torrent after clearing and confirm it appears as a new unread bell entry.
+6. Switch between individual clients and **All servers** and verify the bell list/badge follow the selected scope. Clearing one scope must not silently erase durable history or another browser's presentation state.
+7. Reload the same browser and verify seen/cleared bell state persists; a separate browser profile should maintain independent bell presentation state.
+8. Verify **View all notifications** navigates to the existing Notifications destination with detailed torrent, security, system, account, integration, and update events intact.
+9. On mobile, confirm the bell popover remains above Torrent Details/bulk actions, fits the viewport without horizontal overflow, closes on outside tap/Escape, and does not displace the existing top controls.

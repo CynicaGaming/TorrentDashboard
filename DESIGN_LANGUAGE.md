@@ -225,3 +225,13 @@ Torrent-table header labels continue to align with their body data: text-oriente
 - Static em-dash placeholders communicate unavailable values; animated skeletons are reserved for the brief interval after a real torrent is selected and detail data is loading.
 - Mobile keeps Torrent Details collapsed by default so the persistent shell does not obscure the dashboard, but opening it exposes the same no-selection templates.
 - The desktop no-selection General template participates in the existing viewport/detail fitting contract rather than introducing a second sizing model.
+
+
+### Header completion notification inbox
+
+- The application header includes a locally embedded Material-style notification bell beside the client controls and account control.
+- The bell is a compact transient inbox for completed torrents, not a duplicate of the full Notifications destination. Its unread badge and recent list follow the currently selected client scope.
+- Opening the bell marks the currently visible completion entries as seen while leaving them in the bell. **Clear** dismisses the bell's current completion entries only in that browser.
+- Bell seen/cleared state is browser-local presentation state. Clearing the bell must never delete or mutate the durable server-side event history.
+- **View all notifications** opens the main Notifications view, which remains the detailed history for torrent, security, account, update, integration, and system events.
+- The popover must remain above mobile Torrent Details and bulk-action layers and must not introduce header overflow on narrow screens.

@@ -116,9 +116,9 @@
       "date": "2026-09-02",
       "status": "prerelease",
       "title": "Collapsible revision patch notes",
-      "summary": "Expanded Settings \u2192 Updates from a single latest-release note block into a collapsible patch-note history for every documented Torrent Dashboard revision.",
+      "summary": "Expanded Settings → Updates from a single latest-release note block into a collapsible patch-note history for every documented Torrent Dashboard revision.",
       "highlights": [
-        "Settings \u2192 Updates now shows one collapsible patch-note entry per documented revision, ordered newest first.",
+        "Settings → Updates now shows one collapsible patch-note entry per documented revision, ordered newest first.",
         "Bundled release metadata is available immediately when the Updates page opens; a newly discovered GitHub release is merged into the history before it is installed.",
         "The newest revision opens by default and each older revision can be expanded independently.",
         "Future prerelease publication preserves older prereleases instead of deleting the complete prerelease history."
@@ -175,9 +175,9 @@
       "date": "2026-09-02",
       "status": "prerelease",
       "title": "Patch notes presentation cleanup",
-      "summary": "Simplified Settings \u2192 Updates to focus on the latest two releases while retaining the complete release history for changelog and project handoff purposes, with a cleaner release-card presentation.",
+      "summary": "Simplified Settings → Updates to focus on the latest two releases while retaining the complete release history for changelog and project handoff purposes, with a cleaner release-card presentation.",
       "highlights": [
-        "Settings \u2192 Updates now shows only the latest release and the immediately previous release instead of the complete historical list.",
+        "Settings → Updates now shows only the latest release and the immediately previous release instead of the complete historical list.",
         "Release cards now use a dedicated version badge, release-status badges, publication date, clearer typography, and improved spacing.",
         "The expanded release no longer repeats the version/title heading inside the patch-note body.",
         "The full structured release history remains preserved in release_notes/releases.json, CHANGELOG.md, and PROJECT_STATE.md."
@@ -235,7 +235,7 @@
       "title": "Installed package integrity metadata",
       "summary": "Persists the verified release-package SHA-256 with installed builds and surfaces the exact package digest alongside patch notes.",
       "highlights": [
-        "Settings \u2192 Updates shows Package SHA-256 for a release whenever authoritative package metadata is available, with a one-click Copy control.",
+        "Settings → Updates shows Package SHA-256 for a release whenever authoritative package metadata is available, with a one-click Copy control.",
         "The normal updater writes release-info.json into the staged application only after the downloaded ZIP matches GitHub's published SHA-256.",
         "Recovery updates persist the same release metadata after independently verifying the GitHub asset digest.",
         "The release build emits a Torrent-Dashboard-<version>.release.json sidecar containing the final ZIP digest, version, repository, tag, and commit."
@@ -360,7 +360,7 @@
       "highlights": [
         "Successful GitHub release lookups persist authoritative package digests to data/release-integrity.json.",
         "Normal Settings loads merge the persisted integrity cache into the two displayed patch-note revisions.",
-        "Opening Settings \u2192 Updates silently refreshes release metadata at most once per minute, so historical SHA-256 values self-populate without requiring a manual Check for updates click."
+        "Opening Settings → Updates silently refreshes release metadata at most once per minute, so historical SHA-256 values self-populate without requiring a manual Check for updates click."
       ],
       "fixes": [
         "The previous patch-note card no longer loses its SHA-256 when Settings is reloaded or opened in a new browser session after the remote metadata was fetched."
@@ -1200,7 +1200,7 @@
       "highlights": [
         "Dashboard / Live torrent activity is visible again because removing it did not materially improve usable workspace height and weakened page hierarchy.",
         "The collapsed Torrent details disclosure shows only Torrent details when no torrent is selected; selection-specific copy appears only for an actual selection.",
-        "Opening Settings \u2192 Updates no longer contacts GitHub automatically; Check for updates is the explicit freshness/network action.",
+        "Opening Settings → Updates no longer contacts GitHub automatically; Check for updates is the explicit freshness/network action.",
         "The bottom-anchored desktop/tablet torrent workspace and mobile disclosure behavior remain unchanged."
       ],
       "fixes": [
@@ -1809,7 +1809,7 @@
       "title": "Configurable torrent table columns",
       "summary": "Adds a persistent torrent-column organizer with visibility and ordering controls, expands the available table data, and makes Seeds, Peers, and Tags part of the default dashboard layout.",
       "highlights": [
-        "Settings \u2192 General now provides a Torrent columns organizer where optional columns can be shown, hidden, and moved up or down.",
+        "Settings → General now provides a Torrent columns organizer where optional columns can be shown, hidden, and moved up or down.",
         "Seeds, Peers, and Tags are visible by default, with Size, Category, Tracker, and Added available as optional columns.",
         "Name remains the required first data column while the selection checkbox and row-actions control remain fixed.",
         "Column visibility and order persist as a browser-local preference and survive live refreshes and reloads.",
@@ -1966,7 +1966,7 @@
         "Visible torrent data columns can be dragged horizontally to reorder them directly in the table header.",
         "Right-clicking the torrent header bar opens a Columns menu for showing or hiding optional columns and restoring defaults.",
         "Category remains visible by default alongside Seeds, Peers, and Tags.",
-        "The Settings \u2192 General torrent-column organizer has been removed so column management has one clear interaction surface."
+        "The Settings → General torrent-column organizer has been removed so column management has one clear interaction surface."
       ],
       "fixes": [
         "Removes the extra navigation round trip required to adjust a table layout while looking at the Dashboard.",
@@ -3524,7 +3524,7 @@
       "date": "2026-09-03",
       "status": "prerelease",
       "title": "Responsive tracker and peer details",
-      "summary": "Makes Torrent details \u2192 Trackers and Peers readable on mobile with purpose-built labeled records while preserving desktop tables and the existing General tab.",
+      "summary": "Makes Torrent details → Trackers and Peers readable on mobile with purpose-built labeled records while preserving desktop tables and the existing General tab.",
       "highlights": [
         "Peers on mobile now shows each address and client with labeled Progress, Download, and Upload metrics instead of an anonymous vertical value stack.",
         "Trackers on mobile now shows cleaned tracker names, human-readable status badges, Seeds and Peers counts, and an optional tracker message.",
@@ -3735,7 +3735,7 @@
       ],
       "fixes": [
         "Removes the v0.5.108 shared-workspace cap that still left General too shallow on shorter desktop viewports.",
-        "Preserves a stable 360\u2013560 px torrent-list region across page scrolling and detail expansion while long detail datasets retain their own scrolling."
+        "Preserves a stable 360–560 px torrent-list region across page scrolling and detail expansion while long detail datasets retain their own scrolling."
       ],
       "technical": [
         "syncTorrentWorkspaceLayout now writes a bounded --torrent-list-height derived from the workspace stable document position; the workspace itself uses natural document height.",
@@ -4303,6 +4303,81 @@
         "Treat six desktop torrent rows as a preferred maximum and size the list from the stable viewport budget remaining after the actual rendered Torrent details pane.",
         "Prefer a viewport-proportional desktop torrent list at roughly 44% of the usable workspace, but let rendered Torrent details content override that preference and always snap the list to complete rows.",
         "Keep torrent header text aligned with its body content while placing every sort chevron on the same trailing/right edge regardless of column type."
+      ]
+    },
+    {
+      "version": "0.5.117",
+      "date": "2026-09-04",
+      "status": "prerelease",
+      "title": "Header completion notification inbox",
+      "summary": "Adds a compact Material-style notification bell for recent completed torrents while preserving the full Notifications view as durable activity history.",
+      "highlights": [
+        "Adds a locally embedded Material-style bell to the application header with an unread completion count and a compact recent-completions popover.",
+        "Opening the bell marks the currently scoped completion entries seen; Clear dismisses those bell entries only in the current browser.",
+        "View all notifications opens the existing Notifications destination for complete torrent, security, account, update, integration, and system history.",
+        "The bell follows the selected client scope and is responsive on both desktop and mobile without replacing existing browser/sound completion notifications."
+      ],
+      "fixes": [],
+      "technical": [
+        "The bell derives from the existing /api/events HistoryStore feed; no backend event-deletion route or alternate notification store is introduced.",
+        "Seen and cleared completion-event tokens are stored browser-locally with bounded localStorage sets, so dismissal cannot mutate shared application history.",
+        "The event feed refreshes quietly every ten seconds and requests an additional refresh shortly after a live completion transition so the bell updates promptly."
+      ],
+      "validation": [
+        "The UI audit requires the bell controls, local Material icon, browser-local seen/cleared state, quiet refresh path, completion-triggered synchronization, and absence of a server-side clear endpoint.",
+        "Manual coverage verifies unread/seen/clear behavior, durable full-history preservation, client-scope isolation, new completions after clear, desktop/mobile layering, and View all navigation.",
+        "Existing backend tests, JavaScript syntax checks, generated continuity files, frontend/service-worker synchronization, and prerelease package-integrity gates remain required."
+      ],
+      "known_issues": [],
+      "decisions": [
+        "Prefer two visually distinct surfaces for list/detail hierarchy rather than joining them with only an internal divider.",
+        "Keep viewport-derived docking and independent list/detail scrolling.",
+        "Keep active backend modularization work separate from this presentation correction.",
+        "Treat torrent-detail selection and inspector disclosure as independent state: collapse changes presentation, not selection.",
+        "Keep the torrent-detail dock persistently discoverable and use the full disclosure bar as the primary keyboard/touch interaction target.",
+        "Treat All servers as an aggregation mode: omit it when only one enabled client exists, and prefer the actual client so client-specific actions remain available.",
+        "Author user-facing copy in its final display form; runtime token normalization is compatibility behavior for legacy generated tokens, not a presentation system.",
+        "Use deliberate mixed capitalization: stable named destinations may read as product labels, while headings, field labels, actions, statuses, errors, and explanatory text generally use sentence case.",
+        "Prefer user-facing product concepts over legacy implementation terminology, including allowed IP addresses for access controls and client for client-management actions.",
+        "Use qBitTorrent's parsed/cached metadata path when preselecting files from a local .torrent; raw multipart upload remains only as a compatibility fallback because qBitTorrent rejects filePriorities on raw uploaded torrents.",
+        "A repeated click on the torrent currently shown in Torrent details clears the detail context; choosing a different torrent replaces it directly.",
+        "Keep Add Torrent checkboxes in one aligned selection column; communicate hierarchy by indenting folder/file labels while preserving aligned Size and Priority columns.",
+        "Reconcile Torrent details against every refreshed torrent list and clear the detail context when its selected server/hash no longer exists.",
+        "Reserve a fixed disclosure/expander slot for every Add Torrent content row; files use a spacer while folders use the chevron, and hierarchy indentation begins after that slot.",
+        "Use the persistent Torrent details disclosure bar as the sole selection identity surface; expanded details begin directly with tabs/content rather than repeating title/hash metadata.",
+        "Use locally embedded Material-style SVGs for common disclosure and file-source affordances rather than platform-dependent text glyphs or remote icon-font dependencies.",
+        "Keep the Add Torrent content preview visually minimal: left-align Name, omit redundant folder descendant counts, and let the live file/size summary replace a separate Content heading.",
+        "Treat torrent-table column layout as a browser-local presentation preference rather than shared application configuration.",
+        "Expose Seeds, Peers, and Tags in the default torrent table while keeping less frequently needed Size, Category, Tracker, and Added available but hidden by default.",
+        "Treat Category as core torrent-list context and include it in the default visible column set.",
+        "Treat torrent column width as part of the browser-local table layout: resize from the header edge, preserve widths across refresh/reorder/visibility changes, and clear them with Reset columns.",
+        "Treat Name as a normal torrent data column: keep it visible by default but allow users to hide, reorder, and resize it; only the selection checkbox and row-actions columns remain fixed.",
+        "Treat torrent-column resizing as an exclusive pointer gesture: use a forgiving edge target, suppress native header drag until release, and preserve the live width through polling before committing it to browser-local preferences.",
+        "Keep torrent resize hit targets inside their owning data header, allow Name to consume its actual assigned width before ellipsizing, and hard-lock the row-actions column as a fixed right-edge control surface.",
+        "Use the torrent header as the single sorting surface and the unified text search as the single metadata filter: preserve status tabs, retire Category/Tags/Tracker and sort selects, clear obsolete facet preferences, and keep sort direction browser-local.",
+        "Keep torrent header labels centered, isolate native reordering to the header-label drag surface, reserve a separate inward-only resize gutter, and begin resizing from the exact rendered width so pointer movement maps immediately to column movement.",
+        "Keep GitHub network/update orchestration in dashboard.py while the torrent_dashboard release-provenance module owns parsing and filesystem provenance behavior behind injected runtime paths.",
+        "Align torrent data headers with their body content rather than centering every label.",
+        "When resizing, snapshot visible data-column widths and change table width with the active column so only the grabbed right boundary moves; keep selection and actions outside that model.",
+        "Keep the 48 px row-actions surface pinned to the torrent viewport edge with a non-interactive flexible spacer; customized data widths may scroll internally but must not move Actions offscreen or create page-level horizontal overflow.",
+        "Treat the pinned Actions edge as the maximum width boundary for new torrent-column resize gestures; consume spacer slack first, then stop rather than creating new horizontal overflow or shrinking unrelated columns.",
+        "Prefer native single-column resizing over a viewport-derived resize ceiling: fixed selection/actions rails remain pinned while user-chosen data widths may create horizontal scrolling only inside the torrent viewport.",
+        "Use a hybrid resize boundary: interior data columns retain scroll-native independent resizing, while the rightmost visible data column cannot create additional horizontal overflow past the fixed Actions rail.",
+        "Temporarily prefer one fixed torrent-table column set and deterministic proportional sizing over resize/reorder/visibility customization while the interaction model is simplified.",
+        "Keep torrent row commands contextual instead of reserving a permanent Actions column: use right-click on pointer interfaces and a movement-cancellable long press on touch while retaining the shared menu implementation.",
+        "Treat the mobile bulk-selection overlay and Torrent details as stacked bottom surfaces: bulk actions must remain fully visible above the current detail pane instead of competing for the same layer and screen region.",
+        "Keep desktop torrent-column alignment breakpoint-scoped: mobile cards use a consistent left-label/right-value metadata grid regardless of desktop numeric alignment.",
+        "Calculate desktop torrent workspace height from its stable document position rather than its scroll-relative viewport position; document scrolling must not resize the workspace.",
+        "Keep the desktop torrent list as the stable bounded scroll surface; finite General details may extend document height instead of competing with the list for one shared height.",
+        "Keep potentially unbounded Torrent details tabs bounded and internally scrollable while General uses natural content height on desktop.",
+        "Keep browser/PWA branding self-contained with a local favicon/logo asset and no external icon dependency.",
+        "Reveal the desktop torrent workspace when Torrent details is explicitly opened from a collapsed state instead of resizing the list/detail surfaces around the header and metrics stack.",
+        "Size the desktop torrent list from one rendered row and the table header so exactly six rows are visible, independent of surrounding Dashboard panels or viewport remainder.",
+        "Treat six desktop torrent rows as a preferred maximum and size the list from the stable viewport budget remaining after the actual rendered Torrent details pane.",
+        "Prefer a viewport-proportional desktop torrent list at roughly 44% of the usable workspace, but let rendered Torrent details content override that preference and always snap the list to complete rows.",
+        "Keep torrent header text aligned with its body content while placing every sort chevron on the same trailing/right edge regardless of column type.",
+        "Treat the header notification bell as a browser-local transient completion inbox; clearing it must not delete durable Notifications history.",
+        "Keep detailed security, account, system, integration, and update activity in the full Notifications view while the header bell initially surfaces completed torrents only."
       ]
     }
   ]

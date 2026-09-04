@@ -6,7 +6,7 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.116** (prerelease)
+- Latest documented build: **v0.5.117** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 - Upstream development branch: `refactor/backend-modularization-users`
 - Upstream prerelease branch: `prerelease/backend-modularization`
@@ -14,7 +14,7 @@
 
 ### Latest release summary
 
-Keeps Torrent Details structurally populated when no torrent is selected, without instructional empty-state copy.
+Adds a compact Material-style notification bell for recent completed torrents while preserving the full Notifications view as durable activity history.
 
 ## Current engineering decisions
 
@@ -64,6 +64,8 @@ Keeps Torrent Details structurally populated when no torrent is selected, withou
 - Treat six desktop torrent rows as a preferred maximum and size the list from the stable viewport budget remaining after the actual rendered Torrent details pane.
 - Prefer a viewport-proportional desktop torrent list at roughly 44% of the usable workspace, but let rendered Torrent details content override that preference and always snap the list to complete rows.
 - Keep torrent header text aligned with its body content while placing every sort chevron on the same trailing/right edge regardless of column type.
+- Treat the header notification bell as a browser-local transient completion inbox; clearing it must not delete durable Notifications history.
+- Keep detailed security, account, system, integration, and update activity in the full Notifications view while the header bell initially surfaces completed torrents only.
 
 ## Development principles
 
@@ -75,6 +77,15 @@ Keeps Torrent Details structurally populated when no torrent is selected, withou
 - Keep public development continuity portable across forks; label canonical repository/branch/PR references as upstream context rather than local identity.
 
 ## Recent work
+
+### v0.5.117 — Header completion notification inbox
+
+Adds a compact Material-style notification bell for recent completed torrents while preserving the full Notifications view as durable activity history.
+
+- Adds a locally embedded Material-style bell to the application header with an unread completion count and a compact recent-completions popover.
+- Opening the bell marks the currently scoped completion entries seen; Clear dismisses those bell entries only in the current browser.
+- View all notifications opens the existing Notifications destination for complete torrent, security, account, update, integration, and system history.
+- The bell follows the selected client scope and is responsive on both desktop and mobile without replacing existing browser/sound completion notifications.
 
 ### v0.5.116 — Persistent Torrent Details shell
 
@@ -108,14 +119,6 @@ Preserves the accepted torrent-list/detail balance across monitor heights by mak
 - The desktop torrent list now prefers about 44% of the usable viewport below the workspace start, matching the accepted reference layout.
 - Taller displays can show more than six complete torrent rows instead of leaving a large unused area.
 - Torrent details remains authoritative: General can take additional height and force the list smaller whenever its rendered content requires it.
-
-### v0.5.112 — Adaptive desktop viewport fit
-
-Reconciles viewport sizing with whole-row torrent geometry so the desktop list shrinks below six rows when the expanded detail pane would otherwise push the Dashboard past the viewport.
-
-- The torrent list now uses up to six complete rows, reducing to the largest whole-row count that fits beside the actual rendered Torrent details pane.
-- Viewport budgeting uses the workspace's stable document position, so ordinary document scrolling cannot make the torrent list resize during live polling.
-- Opening Torrent details no longer forces a document scroll; the layout itself is responsible for fitting the visible Dashboard stack.
 
 ## What to do next
 
