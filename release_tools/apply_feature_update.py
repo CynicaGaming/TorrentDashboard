@@ -112,8 +112,6 @@ app_js = replace_once(
 app_js = replace_once(app_js, "const FRONTEND_BUILD='0.5.115';", "const FRONTEND_BUILD='0.5.116';", "frontend build")
 write("static/app.js", app_js)
 
-# HTML keeps the startup body quiet; JavaScript immediately renders the
-# appropriate structural template after binding.
 html = read("static/index.html")
 html = replace_once(
     html,
@@ -124,7 +122,6 @@ html = replace_once(
 html = html.replace(OLD, NEW)
 write("static/index.html", html)
 
-# Keep tabs visible without a selection and style structural placeholders.
 css = read("static/app.css")
 css = replace_once(css, ".torrent-detail-pane:not(.has-selection) .torrent-detail-tabs{display:none}", "", "no-selection tab hiding")
 css += r'''
@@ -143,14 +140,18 @@ css += r'''
 '''
 write("static/app.css", css)
 
-# Update validation from the retired hidden/no-message model to the persistent
-# structural shell contract.
 validator = read("release_tools/validate_ui_strings.py")
 validator = replace_once(
     validator,
     '    assert "detailExpanded:false" in app_js',
     '    assert "detailExpanded:window.matchMedia(\'(min-width:701px)\').matches" in app_js',
     "initial detail expansion validator",
+)
+validator = replace_once(
+    validator,
+    "    assert 'detailExpanded:false' in app_js and 'detailCollapsed' not in app_js",
+    "    assert \"detailExpanded:window.matchMedia('(min-width:701px)').matches\" in app_js and 'detailCollapsed' not in app_js",
+    "legacy detail expansion validator",
 )
 validator = replace_once(
     validator,
@@ -172,7 +173,6 @@ validator = replace_once(
 )
 write("release_tools/validate_ui_strings.py", validator)
 
-# Synchronize backend and service-worker version identifiers.
 dashboard = read("dashboard.py")
 dashboard, count = re.subn(r'VERSION\s*=\s*[\"\']0\.5\.115[\"\']', 'VERSION = "0.5.116"', dashboard, count=1)
 if count != 1:
@@ -184,7 +184,6 @@ sw = sw.replace("0.5.115", "0.5.116")
 sw = replace_once(sw, "torrent-dashboard-v05115", "torrent-dashboard-v05116", "service-worker cache key")
 write("static/sw.js", sw)
 
-# Durable design/testing contract.
 design = read("DESIGN_LANGUAGE.md")
 if "### Persistent Torrent Details shell" not in design:
     design += '''\n\n### Persistent Torrent Details shell\n\n- On desktop, Torrent Details remains a stable structural part of the dashboard even when no torrent is selected.\n- The no-selection state renders the normal General structure and keeps Trackers, Peers, HTTP sources, and Content tabs available without explanatory empty-state copy.\n- Static em-dash placeholders communicate unavailable values; animated skeletons are reserved for the brief interval after a real torrent is selected and detail data is loading.\n- Mobile keeps Torrent Details collapsed by default so the persistent shell does not obscure the dashboard, but opening it exposes the same no-selection templates.\n- The desktop no-selection General template participates in the existing viewport/detail fitting contract rather than introducing a second sizing model.\n'''
@@ -195,7 +194,6 @@ if "Persistent no-selection Torrent Details shell" not in testing:
     testing += '''\n\n### Persistent no-selection Torrent Details shell\n\nManual regression coverage:\n\n1. Load the desktop dashboard with no torrent selected and verify Torrent Details is expanded with General, Trackers, Peers, HTTP sources, and Content tabs visible.\n2. Verify General mirrors the normal progress/Transfer/Swarm/Information structure using em-dash values and contains no instructional empty-state message.\n3. Switch through Trackers, Peers, HTTP sources, and Content with no selection; confirm structural headers/templates remain visible without fabricated torrent data.\n4. Select a torrent and confirm the interim state uses animated skeleton placeholders until detail data arrives, then replaces them with live values.\n5. Confirm a selected torrent with legitimately empty Peers/Trackers/HTTP sources still uses the existing meaningful empty-data copy for that selected torrent.\n6. On mobile, confirm Torrent Details remains collapsed by default; manually expand it with no selection and verify the same template contract.\n7. Confirm desktop viewport-proportional torrent-list sizing and General natural-fit behavior remain stable with the persistent shell present.\n'''
 write("TESTING.md", testing)
 
-# Structured release metadata, preserving current architectural state.
 meta_path = ROOT / "release_notes" / "releases.json"
 data = json.loads(meta_path.read_text(encoding="utf-8"))
 releases = data["releases"]
