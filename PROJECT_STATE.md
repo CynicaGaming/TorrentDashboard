@@ -6,7 +6,7 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.115** (prerelease)
+- Latest documented build: **v0.5.116** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 - Upstream development branch: `refactor/backend-modularization-users`
 - Upstream prerelease branch: `prerelease/backend-modularization`
@@ -14,7 +14,7 @@
 
 ### Latest release summary
 
-Makes every torrent-table sort chevron read as part of its owning header label while preserving content-aligned header groups.
+Keeps Torrent Details structurally populated when no torrent is selected, without instructional empty-state copy.
 
 ## Current engineering decisions
 
@@ -76,6 +76,15 @@ Makes every torrent-table sort chevron read as part of its owning header label w
 
 ## Recent work
 
+### v0.5.116 — Persistent Torrent Details shell
+
+Keeps Torrent Details structurally populated when no torrent is selected, without instructional empty-state copy.
+
+- Desktop now opens the no-selection Torrent Details shell by default with all existing detail tabs available.
+- General preserves its normal progress, Transfer, Swarm, and Information structure with em-dash placeholders instead of an empty message.
+- Trackers, Peers, HTTP sources, and Content retain their structural headers/templates without inventing torrent data.
+- Animated skeleton placeholders are used only while a selected torrent's detail request is loading; mobile remains collapsed by default.
+
 ### v0.5.115 — Inline torrent sort indicators
 
 Makes every torrent-table sort chevron read as part of its owning header label while preserving content-aligned header groups.
@@ -107,14 +116,6 @@ Reconciles viewport sizing with whole-row torrent geometry so the desktop list s
 - The torrent list now uses up to six complete rows, reducing to the largest whole-row count that fits beside the actual rendered Torrent details pane.
 - Viewport budgeting uses the workspace's stable document position, so ordinary document scrolling cannot make the torrent list resize during live polling.
 - Opening Torrent details no longer forces a document scroll; the layout itself is responsible for fitting the visible Dashboard stack.
-
-### v0.5.111 — Six-row desktop torrent viewport
-
-Makes the desktop torrent list a deterministic six-row scroll viewport instead of deriving its height from the remaining browser viewport below Dashboard panels.
-
-- The desktop torrent list now measures its table header and rendered row height and reserves exactly six torrent rows.
-- Comfortable and compact density both retain a six-row viewport because sizing follows the live row-height token.
-- Fewer than six torrents may leave harmless whitespace; additional torrents stay behind the list's existing internal scrollbar.
 
 ## What to do next
 

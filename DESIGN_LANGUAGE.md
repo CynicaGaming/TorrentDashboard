@@ -216,3 +216,12 @@ Torrent-table header labels continue to align with their body data: text-oriente
 - Text-oriented header groups align left; numeric header groups align right to match their body values.
 - The chevron always follows the owning label with a small fixed gap rather than floating at an unrelated column edge.
 - Hover, focus, and active-sort emphasis must not change the indicator's geometry.
+
+
+### Persistent Torrent Details shell
+
+- On desktop, Torrent Details remains a stable structural part of the dashboard even when no torrent is selected.
+- The no-selection state renders the normal General structure and keeps Trackers, Peers, HTTP sources, and Content tabs available without explanatory empty-state copy.
+- Static em-dash placeholders communicate unavailable values; animated skeletons are reserved for the brief interval after a real torrent is selected and detail data is loading.
+- Mobile keeps Torrent Details collapsed by default so the persistent shell does not obscure the dashboard, but opening it exposes the same no-selection templates.
+- The desktop no-selection General template participates in the existing viewport/detail fitting contract rather than introducing a second sizing model.

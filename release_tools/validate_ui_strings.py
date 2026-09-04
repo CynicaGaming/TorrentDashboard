@@ -130,7 +130,7 @@ def main():
     assert "torrent-detail-selected" in app_js and "torrent-detail-selected" in app_css
     assert "function toggleDetailPane" in app_js and "function resetDetailPane" in app_js and "function refreshDetailData" in app_js
     assert "now-detailRefreshAt<3000" in app_js
-    assert "detailExpanded:false" in app_js
+    assert "detailExpanded:window.matchMedia('(min-width:701px)').matches" in app_js
     assert "workspace?.classList.toggle('detail-expanded',expanded)" in app_js
     assert 'class="torrent-workspace"' in html and 'class="torrent-panel torrent-list-panel"' in html
     assert 'class="torrent-detail-pane collapsed"' in html and 'id="detailHandle"' in html
@@ -139,12 +139,20 @@ def main():
     assert "detailCollapsed" not in app_js and "tdDetailCollapsed" not in app_js
     assert "state.detailExpanded=!state.detailExpanded" in app_js
     assert "state.detailExpanded=true" in app_js
+    assert "state.detailExpanded=window.matchMedia('(min-width:701px)').matches" in app_js
+    assert "if(state.detailExpanded){renderDetail();if(state.detail)await refreshDetailData(true)}" in app_js
+    assert "if(!state.detail){$('#detailBody').innerHTML=detailEmptyMarkup()" in app_js
     assert "(!state.detailExpanded&&!force)" in app_js
     assert ".torrent-workspace{display:flex;flex-direction:column;gap:12px;overflow:visible;height:auto}" in app_css
     assert ".topbar.dashboard-mode .topbar-heading{display:none}" not in app_css
     assert ".torrent-detail-pane:not(.collapsed){min-height:240px;flex:0 0 clamp(260px,46vh,420px)}" in app_css
     assert ".torrent-detail-pane.collapsed{min-height:48px!important;max-height:48px!important;flex-basis:48px!important}" in app_css
-    assert ".torrent-detail-pane:not(.has-selection) .torrent-detail-tabs{display:none}" in app_css
+    assert ".torrent-detail-pane:not(.has-selection) .torrent-detail-tabs{display:none}" not in app_css
+    assert "function detailEmptyMarkup(tab=state.detailTab)" in app_js
+    assert "function detailLoadingMarkup(tab=state.detailTab)" in app_js
+    assert "function detailTemplateMarkup(tab=state.detailTab,loading=false)" in app_js
+    assert "Select a torrent to view details." not in html and "Select a torrent to view details." not in app_js
+    assert "detail-skeleton-line" in app_css and "@keyframes detailSkeletonSweep" in app_css
     assert ".torrent-detail-handle{appearance:none;width:100%;min-height:48px" in app_css
     assert ".detail-pane-close" not in app_css and ".torrent-detail-header" not in app_css
     assert "function syncTorrentWorkspaceLayout()" in app_js
@@ -152,6 +160,7 @@ def main():
     assert "window.innerHeight-top-16" not in app_js
     assert "function syncDesktopDetailPaneHeight()" in app_js
     assert "state.detailTab==='general'" in app_js
+    assert "state.detailTab==='general'&&(!state.detail||!!state.detail.data)" in app_js
     assert "body.scrollHeight" not in app_js
     assert "listReserve=180" not in app_js
     assert "pane.style.removeProperty('--torrent-detail-expanded-height')" in app_js
@@ -604,7 +613,7 @@ def main():
     assert 'class="torrent-detail-pane collapsed"' in html
     assert 'id="detailHandle"' in html and 'id="detailHandleSelection"' in html
     assert 'id="detailClose"' not in html and 'Close torrent details' not in html
-    assert 'detailExpanded:false' in app_js and 'detailCollapsed' not in app_js
+    assert "detailExpanded:window.matchMedia('(min-width:701px)').matches" in app_js and 'detailCollapsed' not in app_js
     assert 'function syncDetailDock()' in app_js and 'async function toggleDetailPane()' in app_js
     assert 'function resetDetailPane(' in app_js and 'closeDetailPane' not in app_js
     assert '0.5.74 bottom-anchored client workspace' in app_css

@@ -308,3 +308,16 @@ Manual regression coverage for desktop torrent headers:
 2. Verify Size, Seeds, Peers, Down, Up, ETA, and Ratio remain right-aligned while their chevron appears immediately after the label.
 3. Sort ascending and descending through both text and numeric columns and confirm the indicator never jumps to a column boundary.
 4. Confirm fixed column widths, viewport-proportional workspace sizing, and mobile torrent cards are unchanged.
+
+
+### Persistent no-selection Torrent Details shell
+
+Manual regression coverage:
+
+1. Load the desktop dashboard with no torrent selected and verify Torrent Details is expanded with General, Trackers, Peers, HTTP sources, and Content tabs visible.
+2. Verify General mirrors the normal progress/Transfer/Swarm/Information structure using em-dash values and contains no instructional empty-state message.
+3. Switch through Trackers, Peers, HTTP sources, and Content with no selection; confirm structural headers/templates remain visible without fabricated torrent data.
+4. Select a torrent and confirm the interim state uses animated skeleton placeholders until detail data arrives, then replaces them with live values.
+5. Confirm a selected torrent with legitimately empty Peers/Trackers/HTTP sources still uses the existing meaningful empty-data copy for that selected torrent.
+6. On mobile, confirm Torrent Details remains collapsed by default; manually expand it with no selection and verify the same template contract.
+7. Confirm desktop viewport-proportional torrent-list sizing and General natural-fit behavior remain stable with the persistent shell present.

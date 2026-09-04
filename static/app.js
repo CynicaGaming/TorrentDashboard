@@ -1,5 +1,5 @@
 'use strict';
-const FRONTEND_BUILD='0.5.115';
+const FRONTEND_BUILD='0.5.116';
 const HTML_BUILD=document.querySelector('meta[name="torrent-dashboard-build"]')?.content||'';
 const RECOVERY_KEY=`td-frontend-recovery-${FRONTEND_BUILD}`;
 async function recoverFrontendBuild(reason){
@@ -148,7 +148,7 @@ const caseObserver=new MutationObserver(records=>{for(const r of records){if(r.t
 
 const LIVE_REFRESH_MS=1000;
 for(const key of ['tdCategory','tdTag','tdTracker','tdColumns'])localStorage.removeItem(key);
-const state={me:null,csrf:'',setup:null,setupStep:0,setupMaxStep:0,server:localStorage.tdServer||'all',torrents:[],transfer:{},meta:{},filter:localStorage.tdFilter||'all',sort:localStorage.tdSort||'added_desc',search:localStorage.tdSearch||'',selected:new Set(),detail:null,detailExpanded:false,detailTab:'general',settings:null,lastComplete:new Set(),deferredPrompt:null,setupInterfaceSelectionInitialized:false,settingsInterfaceSelectionInitialized:false,updateInfo:null,notificationEvents:[]};
+const state={me:null,csrf:'',setup:null,setupStep:0,setupMaxStep:0,server:localStorage.tdServer||'all',torrents:[],transfer:{},meta:{},filter:localStorage.tdFilter||'all',sort:localStorage.tdSort||'added_desc',search:localStorage.tdSearch||'',selected:new Set(),detail:null,detailExpanded:window.matchMedia('(min-width:701px)').matches,detailTab:'general',settings:null,lastComplete:new Set(),deferredPrompt:null,setupInterfaceSelectionInitialized:false,settingsInterfaceSelectionInitialized:false,updateInfo:null,notificationEvents:[]};
 
 
 const FIXED_TORRENT_COLUMN_ORDER=['name','size','state','progress','seeds','peers','down','up','eta','ratio','category','tags'];
@@ -672,6 +672,7 @@ function bindUI(){if(bound)return;
   $('#notificationFilter')?.addEventListener('change',renderNotifications);$('#refreshNotifications')?.addEventListener('click',loadNotifications);
   if(state.me?.can_manage)TDSettings.bind();
   window.addEventListener('keydown',e=>{if(e.key==='/'&&!['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName)){e.preventDefault();$('#search').focus()}if(e.key==='Escape'){if(!$('#passwordConfirmModal')?.classList.contains('hidden')){closePasswordConfirmation(null);return}if(!$('#clientSettingsModal')?.classList.contains('hidden')){TDSettings.closeClientSettings();return}if(!$('#accountModal')?.classList.contains('hidden')){closeAccountModal();return}if(!$('#accountMenu')?.classList.contains('hidden')){hideAccountMenu();return}if(!$('#actionDialogModal')?.classList.contains('hidden')){closeActionDialog(null);return}if(!$('#removeModal')?.classList.contains('hidden')){closeRemoveDialog(null);return}if(!$('#addModal')?.classList.contains('hidden')){closeAddTorrent();return}if(state.selected.size){state.selected.clear();render();return}if(state.detailExpanded){state.detailExpanded=false;syncDetailDock()}}});
+  syncDetailDock();renderDetail();
   bound=true;
 }
 
@@ -810,7 +811,7 @@ function syncTorrentWorkspaceLayout(){
 }
 function syncDesktopDetailPaneHeight(){
   const pane=$('#torrentDetailPane');if(!pane)return;
-  const fitGeneral=window.matchMedia('(min-width:701px)').matches&&state.detailExpanded&&state.detailTab==='general'&&!!state.detail?.data;
+  const fitGeneral=window.matchMedia('(min-width:701px)').matches&&state.detailExpanded&&state.detailTab==='general'&&(!state.detail||!!state.detail.data);
   pane.classList.toggle('detail-general-fit',fitGeneral);
   pane.style.removeProperty('--torrent-detail-expanded-height');
   syncTorrentWorkspaceLayout();
@@ -983,7 +984,35 @@ async function bulkAction(a){if(a==='delete'){const targets=[...state.selected].
 
 async function loadMeta(){if(state.server==='all')return;try{state.meta=await api(`/api/meta?server=${encodeURIComponent(state.server)}`)}catch(e){toast(e.message,'error')}}
 let detailRefreshAt=0;
-function detailEmptyMarkup(){return '<div class="empty detail-empty"><span>Select a torrent to view details.</span></div>'}
+const DETAIL_TEMPLATE_GROUPS={
+  transfer:['Time active','Downloaded','Download speed','Download limit','Share ratio','Popularity','ETA','Uploaded','Upload speed','Upload limit','Reannounce in'],
+  swarm:['Connections','Seeds','Peers','Wasted','Last seen complete'],
+  information:['Total size','Added on','Completed on','Private','Pieces','Created by','Created on','Save path','Comment'],
+};
+function detailTemplateValue(loading=false){return loading?'<span class="detail-skeleton-line" aria-hidden="true"></span>':'—'}
+function detailTemplateStat(label,loading=false){return`<div class="detail-stat"><span>${esc(label)}</span><b>${detailTemplateValue(loading)}</b></div>`}
+function detailGeneralTemplateMarkup(loading=false){
+  const mode=loading?'detail-loading':'detail-template-empty',value=detailTemplateValue(loading),bar=loading?' detail-skeleton-block':'';
+  return`<div class="detail-template ${mode}"><div class="detail-progress-grid"><div class="detail-progress-row"><span>Progress</span><div class="detail-progress-bar${bar}"><span style="width:0"></span></div><b>${value}</b></div><div class="detail-progress-row"><span>Availability</span><div class="detail-progress-bar availability${bar}"><span style="width:0"></span></div><b>${value}</b></div></div><div class="detail-general-grid"><section class="detail-general-section"><strong>Transfer</strong>${DETAIL_TEMPLATE_GROUPS.transfer.map(x=>detailTemplateStat(x,loading)).join('')}</section><section class="detail-general-section"><strong>Swarm</strong>${DETAIL_TEMPLATE_GROUPS.swarm.map(x=>detailTemplateStat(x,loading)).join('')}</section><section class="detail-general-section"><strong>Information</strong>${DETAIL_TEMPLATE_GROUPS.information.map(x=>detailTemplateStat(x,loading)).join('')}</section></div></div>`
+}
+function detailTemplateTable(headers,loading=false,rows=3){
+  const body=loading?Array.from({length:rows},()=>`<tr>${headers.map(()=>`<td><span class="detail-skeleton-line" aria-hidden="true"></span></td>`).join('')}</tr>`).join(''):'';
+  return`<div class="detail-desktop-only detail-table-wrap detail-template ${loading?'detail-loading':'detail-template-empty'}"><table class="detail-table compact"><thead><tr>${headers.map(x=>`<th>${esc(x)}</th>`).join('')}</tr></thead><tbody>${body}</tbody></table></div>`
+}
+function detailTemplateMobile(tab,loading=false){
+  const value=detailTemplateValue(loading),mode=loading?'detail-loading':'detail-template-empty';
+  if(tab==='peers')return`<div class="detail-mobile-only detail-record-list detail-template ${mode}"><article class="detail-record-card detail-peer-card"><div class="detail-record-heading"><div class="detail-record-title"><strong>${value}</strong><span>${value}</span></div></div><div class="detail-record-metrics"><div class="detail-record-metric"><span>Progress</span><b>${value}</b></div><div class="detail-record-metric"><span>Download</span><b>${value}</b></div><div class="detail-record-metric"><span>Upload</span><b>${value}</b></div></div></article></div>`;
+  if(tab==='trackers')return`<div class="detail-mobile-only detail-record-list detail-template ${mode}"><article class="detail-record-card detail-tracker-card"><div class="detail-record-heading"><div class="detail-record-title"><strong>${value}</strong></div><span class="detail-status-badge neutral">${value}</span></div><div class="detail-record-metrics"><div class="detail-record-metric"><span>Seeds</span><b>${value}</b></div><div class="detail-record-metric"><span>Peers</span><b>${value}</b></div></div></article></div>`;
+  if(tab==='webseeds')return`<div class="detail-mobile-only detail-record-list detail-template ${mode}"><article class="detail-record-card"><div class="detail-record-metric"><span>URL</span><b>${value}</b></div></article></div>`;
+  return`<div class="detail-mobile-only detail-record-list detail-template ${mode}"><article class="detail-record-card"><div class="detail-record-title"><strong>${value}</strong></div><div class="detail-record-metrics"><div class="detail-record-metric"><span>Progress</span><b>${value}</b></div><div class="detail-record-metric"><span>Size</span><b>${value}</b></div><div class="detail-record-metric"><span>Priority</span><b>${value}</b></div></div></article></div>`
+}
+function detailTemplateMarkup(tab=state.detailTab,loading=false){
+  if(tab==='general')return detailGeneralTemplateMarkup(loading);
+  const headers=tab==='trackers'?['Tracker','Status','Seeds','Peers','Message']:tab==='peers'?['Address','Client','Progress','Down','Up']:tab==='webseeds'?['URL']:['Name','Progress','Size','Priority'];
+  return detailTemplateTable(headers,loading,tab==='webseeds'?2:3)+detailTemplateMobile(tab,loading)
+}
+function detailEmptyMarkup(tab=state.detailTab){return detailTemplateMarkup(tab,false)}
+function detailLoadingMarkup(tab=state.detailTab){return detailTemplateMarkup(tab,true)}
 function syncDetailDock(){
   const pane=$('#torrentDetailPane'),handle=$('#detailHandle'),workspace=pane?.closest('.torrent-workspace');if(!pane||!handle)return;
   const expanded=!!state.detailExpanded,selected=!!state.detail;
@@ -993,10 +1022,10 @@ function syncDetailDock(){
 }
 async function toggleDetailPane(){
   state.detailExpanded=!state.detailExpanded;syncDetailDock();
-  if(state.detailExpanded&&state.detail){if(state.detail.data)renderDetail();await refreshDetailData(true)}
+  if(state.detailExpanded){renderDetail();if(state.detail)await refreshDetailData(true)}
 }
 function resetDetailPane(renderList=true){
-  state.detail=null;state.detailExpanded=false;detailRefreshAt=0;$('#detailHandleSelection').textContent='';$('#detailBody').innerHTML=detailEmptyMarkup();syncDetailDock();if(renderList)render();
+  state.detail=null;state.detailExpanded=window.matchMedia('(min-width:701px)').matches;detailRefreshAt=0;$('#detailHandleSelection').textContent='';$('#detailBody').innerHTML=detailEmptyMarkup();syncDetailDock();if(renderList)render();
 }
 function reconcileDetailSelection(){
   if(!state.detail)return;
@@ -1010,12 +1039,12 @@ async function openDetail(server,hash){
 }
 async function refreshDetailData(force=false){
   if(!state.detail||(!state.detailExpanded&&!force))return;const now=Date.now();if(!force&&now-detailRefreshAt<3000)return;detailRefreshAt=now;const {server,hash}=state.detail;
-  if(!state.detail.data)$('#detailBody').innerHTML='<div class="empty">Loading…</div>';
+  if(!state.detail.data)renderDetail();
   try{const data=await api(`/api/detail?server=${encodeURIComponent(server)}&hash=${encodeURIComponent(hash)}`);if(!state.detail||state.detail.server!==server||state.detail.hash!==hash)return;state.detail.data=data;renderDetail()}catch(e){if(state.detail)$('#detailBody').innerHTML=`<div class="banner error">${esc(e.message)}</div>`}
 }
 function detailCurrentTorrent(){if(!state.detail)return null;return state.torrents.find(x=>(x._server_id||state.server)===state.detail.server&&x.hash===state.detail.hash)||null}
 function detailStat(label,value){return`<div class="detail-stat"><span>${esc(label)}</span><b>${esc(value??'—')}</b></div>`}
-function renderDetail(){if(!state.detail?.data)return;const d=state.detail.data,p=d.properties||{},t=detailCurrentTorrent()||{};if(state.detailTab==='general')renderDetailGeneral(t,p);else if(state.detailTab==='trackers')renderTrackers(d.trackers||[]);else if(state.detailTab==='peers')renderPeers(d.peers||{});else if(state.detailTab==='webseeds')renderWebSeeds(d.webseeds||[]);else renderFiles(d.files||[]);requestAnimationFrame(syncDesktopDetailPaneHeight)}
+function renderDetail(){if(!state.detail){$('#detailBody').innerHTML=detailEmptyMarkup();requestAnimationFrame(syncDesktopDetailPaneHeight);return}if(!state.detail.data){$('#detailBody').innerHTML=detailLoadingMarkup();requestAnimationFrame(syncDesktopDetailPaneHeight);return}const d=state.detail.data,p=d.properties||{},t=detailCurrentTorrent()||{};if(state.detailTab==='general')renderDetailGeneral(t,p);else if(state.detailTab==='trackers')renderTrackers(d.trackers||[]);else if(state.detailTab==='peers')renderPeers(d.peers||{});else if(state.detailTab==='webseeds')renderWebSeeds(d.webseeds||[]);else renderFiles(d.files||[]);requestAnimationFrame(syncDesktopDetailPaneHeight)}
 function renderDetailGeneral(t,p){const progress=Math.max(0,Math.min(1,Number(t.progress||p.progress||0))),availabilityRaw=Number(t.availability),availability=Number.isFinite(availabilityRaw)&&availabilityRaw>=0?Math.min(1,availabilityRaw):null;const transfer=[['Time active',eta(p.time_elapsed)],['Downloaded',bytes(p.total_downloaded)],['Download speed',speed(p.dl_speed||t.dlspeed||0)],['Download limit',Number(p.dl_limit)>0?speed(p.dl_limit):'∞'],['Share ratio',Number(p.share_ratio||t.ratio||0).toFixed(2)],['Popularity',Number(p.popularity||0).toFixed(2)],['ETA',eta(p.eta??t.eta)],['Uploaded',bytes(p.total_uploaded)],['Upload speed',speed(p.up_speed||t.upspeed||0)],['Upload limit',Number(p.up_limit)>0?speed(p.up_limit):'∞'],['Reannounce in',eta(p.reannounce)]];const swarm=[['Connections',`${p.nb_connections??0} (${p.nb_connections_limit??'—'} max)`],['Seeds',`${p.seeds??t.num_seeds??0} (${p.seeds_total??t.num_complete??0} total)`],['Peers',`${p.peers??t.num_leechs??0} (${p.peers_total??t.num_incomplete??0} total)`],['Wasted',bytes(p.total_wasted||0)],['Last seen complete',when(p.last_seen)]];const info=[['Total size',bytes(p.total_size||t.total_size||t.size||0)],['Added on',when(p.addition_date||t.added_on)],['Completed on',when(p.completion_date||t.completion_on)],['Private',p.private===true||p.is_private===true?'Yes':p.private===false||p.is_private===false?'No':'—'],['Pieces',`${p.pieces_num??'—'} × ${bytes(p.piece_size||0)}`],['Created by',p.created_by||'—'],['Created on',when(p.creation_date)],['Save path',p.save_path||t.save_path||'—'],['Comment',p.comment||'—']];$('#detailBody').innerHTML=`<div class="detail-progress-grid"><div class="detail-progress-row"><span>Progress</span><div class="detail-progress-bar"><span style="width:${(progress*100).toFixed(1)}%"></span></div><b>${(progress*100).toFixed(1)}%</b></div><div class="detail-progress-row"><span>Availability</span><div class="detail-progress-bar availability"><span style="width:${availability===null?0:(availability*100).toFixed(1)}%"></span></div><b>${availability===null?'—':availabilityRaw.toFixed(3)}</b></div></div><div class="detail-general-grid"><section class="detail-general-section"><strong>Transfer</strong>${transfer.map(x=>detailStat(x[0],x[1])).join('')}</section><section class="detail-general-section"><strong>Swarm</strong>${swarm.map(x=>detailStat(x[0],x[1])).join('')}</section><section class="detail-general-section"><strong>Information</strong>${info.map(x=>detailStat(x[0],x[1])).join('')}</section></div>`}
 function renderFiles(files){const admin=!!state.me?.can_manage;$('#detailBody').innerHTML=`<div class="detail-table-wrap"><table class="detail-table compact"><thead><tr><th>Name</th><th>Progress</th><th>Size</th><th>Priority</th></tr></thead><tbody>${files.map((f,i)=>`<tr><td>${esc(f.name)}</td><td>${(Number(f.progress||0)*100).toFixed(1)}%</td><td>${bytes(f.size)}</td><td><select class="fileprio" data-id="${f.index??i}" ${admin?'':'disabled'}><option value="0" ${f.priority===0?'selected':''}>Do not download</option><option value="1" ${f.priority===1?'selected':''}>Normal</option><option value="6" ${f.priority===6?'selected':''}>High</option><option value="7" ${f.priority===7?'selected':''}>Maximum</option></select></td></tr>`).join('')}</tbody></table></div>`;if(admin)$$('.fileprio').forEach(s=>s.onchange=()=>doAction('file_priority',{server:state.detail.server,hash:state.detail.hash,ids:[s.dataset.id],priority:Number(s.value)}))}
 function peerAddress(p){
