@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import json
-import re
 from copy import deepcopy
 from pathlib import Path
 
@@ -82,6 +81,12 @@ write("static/app.css", css)
 
 # Strengthen the applied UI contract around the icon-only controls.
 validator = read("release_tools/validate_ui_strings.py")
+validator = replace_once(
+    validator,
+    "    assert '0.5.118 Add Torrent folder disclosure actions' in app_css",
+    "    assert '0.5.119 Material Add Torrent folder disclosure actions' in app_css",
+    "legacy folder CSS validator",
+)
 anchor = "    assert '### Add Torrent folder disclosure actions' in testing_md\n\n    print(\"UI string audit passed\")"
 replacement = '''    assert '### Add Torrent folder disclosure actions' in testing_md
 
