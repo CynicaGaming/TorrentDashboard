@@ -244,3 +244,11 @@ The Add Torrent content preview keeps per-folder chevrons as the primary local d
 The controls remain disabled until the metadata contains at least one folder. **Expand all** is disabled when every folder is already open, and **Collapse all** is disabled when every known folder path is already collapsed. Bulk disclosure must preserve the same folder ordering, indentation, checkbox state, and file-priority state used by individual folder toggles.
 
 On narrow layouts the summary stays above the two disclosure actions and the actions share the available row width rather than forcing the content preview wider than the modal.
+
+
+## Material Add Torrent folder controls
+
+- Keep Add Torrent bulk folder disclosure visually compact: Expand all and Collapse all use locally embedded Material-style unfold icons rather than text buttons.
+- The two disclosure controls are a single non-wrapping horizontal pair. On narrow layouts the pair may move as a unit, but the controls must not stack vertically or stretch into full-width actions.
+- Preserve explicit accessible names and native tooltips (`Expand all folders` and `Collapse all folders`) because the visible controls are icon-only.
+- Bulk disclosure remains presentation-only and must not change file selection, priority, metadata, or add-torrent options.

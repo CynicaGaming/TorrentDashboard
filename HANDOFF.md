@@ -7,14 +7,14 @@
 This handoff is intentionally portable across public forks. Verify the current checkout's Git remote, branch, and open work before using upstream references as instructions.
 
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
-- Last documented upstream build: **v0.5.118** (prerelease)
+- Last documented upstream build: **v0.5.119** (prerelease)
 - Upstream development branch: `refactor/backend-modularization-users`
 - Upstream prerelease branch: `prerelease/backend-modularization`
 - Upstream active PR: **#25**
 
 ## Last known-good state
 
-Adds Expand all and Collapse all controls to the Add Torrent content tree so nested torrent metadata can be opened or compacted in one action without changing download selections.
+Refines Add Torrent's bulk folder disclosure into a compact side-by-side Material icon pair while preserving the existing recursive expand/collapse behavior.
 
 The released-state details and recent history are in `PROJECT_STATE.md`; architectural constraints are in `ARCHITECTURE.md`.
 

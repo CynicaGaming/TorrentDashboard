@@ -849,9 +849,21 @@ def main():
     assert "$('#addExpandAllFolders').addEventListener('click',expandAllAddFolders)" in app_js
     assert "$('#addCollapseAllFolders').addEventListener('click',collapseAllAddFolders)" in app_js
     assert 'for(const path of addTreeFolderPaths(buildAddFileTree(addMetadataState.files||[])))addMetadataState.collapsedFolders.add(path)' in app_js
-    assert '0.5.118 Add Torrent folder disclosure actions' in app_css
+    assert '0.5.119 Material Add Torrent folder disclosure actions' in app_css
     assert '## Add Torrent folder disclosure actions' in design_language
     assert '### Add Torrent folder disclosure actions' in testing_md
+
+    # 0.5.119 presents bulk disclosure as a compact Material icon pair.
+    assert 'aria-label="Expand all folders"' in html and 'aria-label="Collapse all folders"' in html
+    assert 'data-material-symbol="unfold_more"' in html and 'data-material-symbol="unfold_less"' in html
+    assert '>Expand all</button>' not in html and '>Collapse all</button>' not in html
+    assert '0.5.119 Material Add Torrent folder disclosure actions' in app_css
+    assert '.add-content-folder-actions{display:flex;align-items:center;gap:5px;flex:0 0 auto;flex-wrap:nowrap}' in app_css
+    assert '.add-folder-action-button{width:32px;height:32px;min-width:32px;min-height:32px' in app_css
+    assert '.add-content-folder-actions{width:100%}' not in app_css
+    assert '.add-content-folder-actions button{flex:1}' not in app_css
+    assert '## Material Add Torrent folder controls' in design_language
+    assert '### Material Add Torrent folder controls' in testing_md
 
     print("UI string audit passed")
 

@@ -460,15 +460,14 @@ button,select,input,textarea{border:1px solid var(--border);background:var(--pan
 @media(max-width:520px){.notification-bell-button{width:34px;height:34px}.notification-bell-panel{position:fixed;right:8px;top:58px;width:min(360px,calc(100vw - 16px));max-height:calc(100dvh - 142px)}.notification-bell-list{max-height:calc(100dvh - 240px)}}
 
 
-/* 0.5.118 Add Torrent folder disclosure actions. */
+/* 0.5.119 Material Add Torrent folder disclosure actions. */
 .add-content-summary-heading{justify-content:space-between;gap:10px}
 .add-content-summary-heading>span{min-width:0;flex:1}
-.add-content-folder-actions{display:flex;align-items:center;gap:6px;flex:0 0 auto}
-.add-content-folder-actions button{white-space:nowrap;min-height:30px;padding:6px 9px;font-size:9.5px}
-.add-content-folder-actions button:disabled{cursor:default;opacity:.45}
+.add-content-folder-actions{display:flex;align-items:center;gap:5px;flex:0 0 auto;flex-wrap:nowrap}
+.add-folder-action-button{width:32px;height:32px;min-width:32px;min-height:32px;padding:0!important;display:grid;place-items:center;flex:0 0 32px}
+.add-folder-action-button .material-symbol-icon{width:18px;height:18px}
+.add-folder-action-button:disabled{cursor:default;opacity:.45}
 @media(max-width:700px){
-  .add-content-summary-heading{align-items:flex-start;flex-wrap:wrap}
-  .add-content-summary-heading>span{flex:1 0 100%}
-  .add-content-folder-actions{width:100%}
-  .add-content-folder-actions button{flex:1}
+  .add-content-summary-heading{align-items:center;flex-wrap:wrap}
+  .add-content-folder-actions{margin-left:auto}
 }

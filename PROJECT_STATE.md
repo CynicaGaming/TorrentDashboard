@@ -6,7 +6,7 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.118** (prerelease)
+- Latest documented build: **v0.5.119** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 - Upstream development branch: `refactor/backend-modularization-users`
 - Upstream prerelease branch: `prerelease/backend-modularization`
@@ -14,7 +14,7 @@
 
 ### Latest release summary
 
-Adds Expand all and Collapse all controls to the Add Torrent content tree so nested torrent metadata can be opened or compacted in one action without changing download selections.
+Refines Add Torrent's bulk folder disclosure into a compact side-by-side Material icon pair while preserving the existing recursive expand/collapse behavior.
 
 ## Current engineering decisions
 
@@ -67,6 +67,7 @@ Adds Expand all and Collapse all controls to the Add Torrent content tree so nes
 - Treat the header notification bell as a browser-local transient completion inbox; clearing it must not delete durable Notifications history.
 - Keep detailed security, account, system, integration, and update activity in the full Notifications view while the header bell initially surfaces completed torrents only.
 - Keep Add Torrent bulk folder disclosure as presentation state over the existing metadata tree; expand/collapse actions must never alter file selection or priority state.
+- Use compact locally embedded Material icon buttons for Add Torrent bulk folder disclosure; keep Expand all and Collapse all adjacent and presentation-only.
 
 ## Development principles
 
@@ -78,6 +79,14 @@ Adds Expand all and Collapse all controls to the Add Torrent content tree so nes
 - Keep public development continuity portable across forks; label canonical repository/branch/PR references as upstream context rather than local identity.
 
 ## Recent work
+
+### v0.5.119 — Material Add Torrent folder controls
+
+Refines Add Torrent's bulk folder disclosure into a compact side-by-side Material icon pair while preserving the existing recursive expand/collapse behavior.
+
+- Replaces the Expand all and Collapse all text buttons with locally embedded Material-style unfold-more and unfold-less icons.
+- Keeps both folder disclosure actions adjacent in one non-wrapping pair on desktop and mobile.
+- Retains explicit accessible labels and tooltips for the icon-only controls.
 
 ### v0.5.118 — Add Torrent folder disclosure controls
 
@@ -113,14 +122,6 @@ Makes every torrent-table sort chevron read as part of its owning header label w
 - Every sortable torrent header now places its chevron immediately after the header label with a consistent gap.
 - Text-oriented header groups remain left-aligned and numeric header groups remain right-aligned with their body values.
 - Sorting behavior, fixed column sizing, viewport-proportional desktop workspace sizing, and mobile presentation are unchanged.
-
-### v0.5.114 — Consistent torrent sort chevrons
-
-Makes every torrent-table sort indicator use the same trailing edge while preserving content-aligned header labels.
-
-- All sortable torrent headers now place their chevron on the right edge of the owning column.
-- Numeric header labels remain right-aligned with their body values; text-oriented headers remain left-aligned.
-- Sorting behavior, fixed column sizing, viewport-proportional workspace sizing, and mobile presentation are unchanged.
 
 ## What to do next
 

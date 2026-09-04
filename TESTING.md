@@ -344,3 +344,11 @@ Manual regression coverage:
 - Choose **Collapse all**. All known folder paths must become collapsed. Expanding one parent afterward must retain the collapsed state of nested descendants until they are individually expanded or **Expand all** is used.
 - After **Expand all**, the Expand control must be disabled and Collapse enabled. After **Collapse all**, Collapse must be disabled and Expand enabled.
 - Switch source/magnet metadata or reset the Add Torrent form. Disclosure state must be reset for the new metadata tree and must not leak between torrents.
+
+
+### Material Add Torrent folder controls
+
+- Load a torrent containing nested folders and verify the two folder bulk actions render as adjacent Material-style icon buttons, not text controls.
+- Verify the Expand all folders and Collapse all folders tooltips/accessible names match their actions.
+- At desktop and narrow/mobile widths, verify the two buttons remain side-by-side; the pair may wrap below the summary text but must not stack or stretch to full width.
+- Verify disabled-state transitions still follow the current tree state and that bulk disclosure does not change file checkboxes or priority values.
