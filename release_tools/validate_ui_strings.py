@@ -865,6 +865,14 @@ def main():
     assert '## Material Add Torrent folder controls' in design_language
     assert '### Material Add Torrent folder controls' in testing_md
 
+    # 0.5.120 fixes cascade precedence so the Material folder controls render as one row.
+    assert '.add-preview-heading div{display:grid;gap:2px}' not in app_css
+    assert '.add-preview-heading>div:not(.add-content-folder-actions){display:grid;gap:2px}' in app_css
+    assert '.add-content-folder-actions{display:flex;align-items:center;gap:5px;flex:0 0 auto;flex-wrap:nowrap}' in app_css
+    assert '0.5.120 Add Torrent folder action cascade fix' in app_css
+    assert '## Add Torrent folder control row' in design_language
+    assert '### Add Torrent folder control row' in testing_md
+
     print("UI string audit passed")
 
 

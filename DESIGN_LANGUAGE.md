@@ -252,3 +252,10 @@ On narrow layouts the summary stays above the two disclosure actions and the act
 - The two disclosure controls are a single non-wrapping horizontal pair. On narrow layouts the pair may move as a unit, but the controls must not stack vertically or stretch into full-width actions.
 - Preserve explicit accessible names and native tooltips (`Expand all folders` and `Collapse all folders`) because the visible controls are icon-only.
 - Bulk disclosure remains presentation-only and must not change file selection, priority, metadata, or add-torrent options.
+
+
+## Add Torrent folder control row
+
+- The Add Torrent Expand all folders and Collapse all folders Material controls are one horizontal action pair.
+- Generic Add Torrent preview-heading copy layout must not apply `display:grid` to `.add-content-folder-actions`; keep the action wrapper as the explicit non-wrapping flex row.
+- The pair may move as a unit when space is constrained, but the two icon buttons must remain side-by-side.

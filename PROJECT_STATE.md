@@ -6,7 +6,7 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.119** (prerelease)
+- Latest documented build: **v0.5.120** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 - Upstream development branch: `refactor/backend-modularization-users`
 - Upstream prerelease branch: `prerelease/backend-modularization`
@@ -14,7 +14,7 @@
 
 ### Latest release summary
 
-Refines Add Torrent's bulk folder disclosure into a compact side-by-side Material icon pair while preserving the existing recursive expand/collapse behavior.
+Fixes CSS cascade precedence so the Add Torrent Material Expand all and Collapse all folder controls actually render beside each other instead of stacking vertically.
 
 ## Current engineering decisions
 
@@ -80,6 +80,13 @@ Refines Add Torrent's bulk folder disclosure into a compact side-by-side Materia
 
 ## Recent work
 
+### v0.5.120 — Side-by-side Add Torrent folder controls
+
+Fixes CSS cascade precedence so the Add Torrent Material Expand all and Collapse all folder controls actually render beside each other instead of stacking vertically.
+
+- Keeps the two Add Torrent bulk folder disclosure icons in one horizontal row on desktop and mobile.
+- Narrows the older preview-heading grid rule so it applies only to heading-copy containers and no longer overrides the folder-action flex wrapper.
+
 ### v0.5.119 — Material Add Torrent folder controls
 
 Refines Add Torrent's bulk folder disclosure into a compact side-by-side Material icon pair while preserving the existing recursive expand/collapse behavior.
@@ -114,14 +121,6 @@ Keeps Torrent Details structurally populated when no torrent is selected, withou
 - General preserves its normal progress, Transfer, Swarm, and Information structure with em-dash placeholders instead of an empty message.
 - Trackers, Peers, HTTP sources, and Content retain their structural headers/templates without inventing torrent data.
 - Animated skeleton placeholders are used only while a selected torrent's detail request is loading; mobile remains collapsed by default.
-
-### v0.5.115 — Inline torrent sort indicators
-
-Makes every torrent-table sort chevron read as part of its owning header label while preserving content-aligned header groups.
-
-- Every sortable torrent header now places its chevron immediately after the header label with a consistent gap.
-- Text-oriented header groups remain left-aligned and numeric header groups remain right-aligned with their body values.
-- Sorting behavior, fixed column sizing, viewport-proportional desktop workspace sizing, and mobile presentation are unchanged.
 
 ## What to do next
 

@@ -352,3 +352,11 @@ Manual regression coverage:
 - Verify the Expand all folders and Collapse all folders tooltips/accessible names match their actions.
 - At desktop and narrow/mobile widths, verify the two buttons remain side-by-side; the pair may wrap below the summary text but must not stack or stretch to full width.
 - Verify disabled-state transitions still follow the current tree state and that bulk disclosure does not change file checkboxes or priority values.
+
+
+### Add Torrent folder control row
+
+- Open Add Torrent with metadata containing folders and verify the Expand all folders and Collapse all folders Material buttons render side-by-side in one row.
+- Verify this at desktop and narrow/mobile modal widths. The pair may move below the file summary, but the buttons must never stack vertically.
+- Confirm individual folder disclosure, Expand all, Collapse all, disabled-state transitions, file selections, and file priorities are unchanged.
+- The source audit rejects the old generic `.add-preview-heading div` grid selector so it cannot override the folder-action flex wrapper again.
