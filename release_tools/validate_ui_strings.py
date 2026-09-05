@@ -43,6 +43,52 @@ def validate_javascript(name: str, text: str):
         raise SystemExit(f"{name}: camelCase UI strings remain: " + ", ".join(offenders))
 
 
+
+def validate_design_language(app_js: str, settings_js: str):
+    if settings_js.count("toast('Settings saved');") != 2:
+        raise SystemExit("Core Settings pages must share the exact 'Settings saved' confirmation")
+
+    forbidden_settings = (
+        "updateSourceSaved",
+        "settingsSaved",
+        "clientSettingsSaved",
+        "Save The Client Before Opening Client Settings",
+        "Enter A GitHub Repository",
+        "Choose An Integration Type",
+        "Enter A Username",
+        "Passwords Do Not Match",
+        "No Integrations Added",
+        "No Users Found",
+        "Testing Connection…",
+        "Not Tested Yet",
+    )
+    leaked = [value for value in forbidden_settings if value in settings_js]
+    if leaked:
+        raise SystemExit("Legacy Settings language remains: " + ", ".join(leaked))
+
+    redundant_modal_toasts = (
+        "toast('profileSaved')",
+        "toast('passwordChanged')",
+        "toast('profilePictureUpdated')",
+        "toast('profilePictureRemoved')",
+    )
+    leaked = [value for value in redundant_modal_toasts if value in app_js]
+    if leaked:
+        raise SystemExit("Duplicate modal success toasts remain: " + ", ".join(leaked))
+
+    required = (
+        "toast('Address copied')",
+        "toast('Integration saved')",
+        "toast('Integration deleted')",
+        "toast('User saved')",
+        "toast('User deleted')",
+        "toast('Administrator access is required','error')",
+        "toast('Select a specific client first','error')",
+    )
+    missing = [value for value in required if value not in app_js and value not in settings_js]
+    if missing:
+        raise SystemExit("Required canonical interface language is missing: " + ", ".join(missing))
+
 def main():
     html = (ROOT / "static" / "index.html").read_text(encoding="utf-8")
     app_js = (ROOT / "static" / "app.js").read_text(encoding="utf-8")
@@ -50,18 +96,25 @@ def main():
     app_css = (ROOT / "static" / "app.css").read_text(encoding="utf-8")
     settings_css = (ROOT / "static" / "settings.css").read_text(encoding="utf-8")
     dashboard_py = (ROOT / "dashboard.py").read_text(encoding="utf-8")
+    config_py = (ROOT / "torrent_dashboard" / "config.py").read_text(encoding="utf-8")
+    config_store_py = (ROOT / "torrent_dashboard" / "config_store.py").read_text(encoding="utf-8")
+    integrations_py = (ROOT / "torrent_dashboard" / "integrations.py").read_text(encoding="utf-8")
+    users_py = (ROOT / "torrent_dashboard" / "users.py").read_text(encoding="utf-8")
+    design_language = (ROOT / "DESIGN_LANGUAGE.md").read_text(encoding="utf-8")
+    testing_md = (ROOT / "TESTING.md").read_text(encoding="utf-8")
 
     validate_html_attributes(html)
     validate_javascript("static/app.js", app_js)
     validate_javascript("static/settings.js", settings_js)
+    validate_design_language(app_js, settings_js)
 
     assert 'placeholder="Search torrents…"' in html
     assert 'id="savedView"' not in html
     assert 'id="saveView"' not in html
     assert 'tdSavedViews' not in app_js
-    assert 'function syncFilterSelect' in app_js
-    assert 'document.activeElement===select' in app_js
-    assert 'optionsSignature' in app_js
+    assert 'function syncFilterSelect' not in app_js
+    assert 'document.activeElement===select' not in app_js
+    assert 'optionsSignature' not in app_js
     assert "function normalizeUiAttributes" in app_js
     assert "attributeFilter:['placeholder','title','aria-label']" in app_js
     assert "applySentenceCaseUi(card)" in settings_js
@@ -71,12 +124,61 @@ def main():
     assert 'id="torrentDetailPane"' in html
     assert 'id="drawer"' not in html
     assert all(f'data-detailtab="{tab}"' in html for tab in ('general','trackers','peers','webseeds','content'))
-    assert 'HTTP Sources' in html and '>Content</button>' in html
+    assert 'HTTP sources' in html and '>Content</button>' in html
     assert "Torrent details" not in app_js
-    assert "openDetail(tr.dataset.server,tr.dataset.hash)" in app_js
+    assert "openDetail(server,hash)" in app_js
     assert "torrent-detail-selected" in app_js and "torrent-detail-selected" in app_css
-    assert "function closeDetailPane" in app_js and "function refreshDetailData" in app_js
+    assert "function toggleDetailPane" in app_js and "function resetDetailPane" in app_js and "function refreshDetailData" in app_js
     assert "now-detailRefreshAt<3000" in app_js
+    assert "detailExpanded:window.matchMedia('(min-width:701px)').matches" in app_js
+    assert "workspace?.classList.toggle('detail-expanded',expanded)" in app_js
+    assert 'class="torrent-workspace"' in html and 'class="torrent-panel torrent-list-panel"' in html
+    assert 'class="torrent-detail-pane collapsed"' in html and 'id="detailHandle"' in html
+    assert 'aria-expanded="false"' in html and 'aria-controls="detailPanelContent"' in html
+    assert 'id="detailClose"' not in html and "closeDetailPane" not in app_js
+    assert "detailCollapsed" not in app_js and "tdDetailCollapsed" not in app_js
+    assert "state.detailExpanded=!state.detailExpanded" in app_js
+    assert "state.detailExpanded=true" in app_js
+    assert "state.detailExpanded=window.matchMedia('(min-width:701px)').matches" in app_js
+    assert "if(state.detailExpanded){renderDetail();if(state.detail)await refreshDetailData(true)}" in app_js
+    assert "if(!state.detail){$('#detailBody').innerHTML=detailEmptyMarkup()" in app_js
+    assert "(!state.detailExpanded&&!force)" in app_js
+    assert ".torrent-workspace{display:flex;flex-direction:column;gap:12px;overflow:visible;height:auto}" in app_css
+    assert ".topbar.dashboard-mode .topbar-heading{display:none}" not in app_css
+    assert ".torrent-detail-pane:not(.collapsed){min-height:240px;flex:0 0 clamp(260px,46vh,420px)}" in app_css
+    assert ".torrent-detail-pane.collapsed{min-height:48px!important;max-height:48px!important;flex-basis:48px!important}" in app_css
+    assert ".torrent-detail-pane:not(.has-selection) .torrent-detail-tabs{display:none}" not in app_css
+    assert "function detailEmptyMarkup(tab=state.detailTab)" in app_js
+    assert "function detailLoadingMarkup(tab=state.detailTab)" in app_js
+    assert "function detailTemplateMarkup(tab=state.detailTab,loading=false)" in app_js
+    assert "Select a torrent to view details." not in html and "Select a torrent to view details." not in app_js
+    assert "detail-skeleton-line" in app_css and "@keyframes detailSkeletonSweep" in app_css
+    assert ".torrent-detail-handle{appearance:none;width:100%;min-height:48px" in app_css
+    assert ".detail-pane-close" not in app_css and ".torrent-detail-header" not in app_css
+    assert "function syncTorrentWorkspaceLayout()" in app_js
+    assert "workspace.getBoundingClientRect().top+(window.scrollY||window.pageYOffset||0)" in app_js
+    assert "window.innerHeight-top-16" not in app_js
+    assert "function syncDesktopDetailPaneHeight()" in app_js
+    assert "state.detailTab==='general'" in app_js
+    assert "state.detailTab==='general'&&(!state.detail||!!state.detail.data)" in app_js
+    assert "body.scrollHeight" not in app_js
+    assert "listReserve=180" not in app_js
+    assert "pane.style.removeProperty('--torrent-detail-expanded-height')" in app_js
+    assert "flex:0 0 clamp(260px,46vh,420px)" in app_css
+    assert "flex-basis:clamp(300px,46vh,440px)" in app_css
+    assert "Content-fit desktop Torrent details" in design_language
+    assert "Desktop Torrent details content-fit sizing" in testing_md
+    assert "Stable desktop torrent workspace height" in design_language
+    assert "Desktop torrent workspace scroll stability" in testing_md
+    assert "--torrent-list-height" in app_js and "--torrent-workspace-height" not in app_js
+    assert "height:calc(100dvh - 320px);min-height:480px" not in app_css
+    assert 'id="mTotal"' in html and 'id="mTorrentSummary"' in html
+    assert 'id="mUpdated"' not in html and 'id="mHealth"' not in html
+    assert 'id="emptyTitle"' in html and 'id="emptyText"' in html
+    assert "function emptyStateCopy()" in app_js
+    assert "['No active torrents','Nothing is downloading right now.']" in app_js
+    assert "['No torrents match your search','Try a different search.']" in app_js
+    assert ".torrent-list-region>.empty{position:absolute;inset:44px 0 0;display:grid;place-content:center" in app_css
     assert "/api/v2/torrents/webseeds" in dashboard_py
     assert "renderWebSeeds" in app_js
     assert "Automatic torrent management" not in app_js
@@ -92,7 +194,7 @@ def main():
     assert 'id="addCategory"' in html and 'id="addTags"' in html
     assert 'id="addStartTorrent"' in html and 'id="addSequential"' in html and 'id="addFirstLast"' in html
     assert 'id="addTorrentBtn"' in html
-    assert "function openAddTorrent(){" in app_js and "torrentFile').click()" not in app_js
+    assert "function openAddTorrent(){" in app_js
     for control in ('addAutoTmm','addUseDownloadPath','addDownloadPath','addRename','addStartTorrent','addStopCondition','addToTop','addSeedMode','addContentLayout','addDlLimit','addUlLimit'):
         assert f'id="{control}"' in html
     assert 'function addTorrentOptions()' in app_js and 'function appendAddTorrentFields' in app_js
@@ -124,12 +226,11 @@ def main():
     assert 'function fetchAddMetadataPreview' in app_js
     assert 'function cancelAddMetadata' in app_js
     assert 'function closeAddTorrent()' in app_js
-    assert 'Metadata retrieval complete' in app_js
     assert 'setTimeout(()=>fetchAddMetadataPreview(source,generation),ADD_METADATA_POLL_MS)' in app_js
     assert 'setInterval(fetchAddMetadataPreview' not in app_js
     assert '0.5.51 Add Torrent magnet metadata preview' in app_css
 
-    # 0.5.52 adds read-only .torrent parsing without changing either stable add path.
+    # 0.5.52 introduced .torrent metadata parsing; v0.5.78 now uses parsed metadata for selectable cached adds.
     assert '/api/torrent-metadata/parse' in app_js
     assert '/api/torrent-metadata/save' in app_js
     assert 'function parseAddTorrentFileMetadata' in app_js
@@ -137,10 +238,9 @@ def main():
     assert "form.append('torrents',file,file.name)" in app_js
     assert "api('/api/torrent-metadata/parse',{method:'POST',body:form})" in app_js
     assert "Array.isArray(raw)" in app_js
-    assert "action:'add_magnet'" in app_js and "api('/api/upload'" in app_js
-    assert "urls:$('#addUrls').value.trim()" in app_js
-    assert 'Preview only · Add torrent still submits the original source.' in app_js
-    assert 'Preview only · Add torrent still uploads the original .torrent file.' in app_js
+    assert "action:'add_torrent'" in app_js and "api('/api/upload'" in app_js
+    assert 'function addMetadataSources()' in app_js and "sources.length!==1" in app_js
+    assert 'Choose the files and folders to download' in app_js
     assert '.torrent metadata preview will be enabled in the next controlled phase.' not in app_js
     # 0.5.53 keeps completed/stopped torrents classified as complete while
     # exposing qBitTorrent download-location defaults in Client Settings and Add Torrent.
@@ -163,18 +263,42 @@ def main():
     assert 'Use another path for incomplete torrents' in html
     assert '.client-path-grid{grid-template-columns:1fr}' in settings_css
 
-    # 0.5.54 enables export only after metadata is complete. It must use
-    # qBitTorrent's native saveMetadata cache without changing torrent addition.
+    # 0.5.54 introduced metadata export; v0.5.78 adds canonical-hash and existing-torrent fallback.
     assert 'id="addSaveTorrent"' in html
-    assert 'Save as .torrent' in html
+    assert 'Save .torrent file' in html
     assert 'async function saveAddTorrentMetadata()' in app_js
-    assert "fetch(url,{method:'GET',cache:'no-store'})" in app_js
-    assert "renderAddMetadataComplete(result.metadata||{},source)" in app_js
-    assert "renderAddMetadataComplete(metadata,metadata?.hash||'')" in app_js
-    assert "link.download=addMetadataState.exportName||'torrent.torrent'" in app_js
-    assert "self._request(\"GET\", route, expect_json=False)" in dashboard_py
-    assert "fd.append('filePriorities'" not in app_js
-    assert 'add_cached_metadata' not in app_js
+    assert "params.set('hash',hash)" in app_js
+    assert 'triggerTorrentFileDownload(localFile' in app_js
+    assert '"/api/v2/torrents/export?"' in dashboard_py
+    assert 'form["filePriorities"] = ",".join(clean_priorities)' in dashboard_py
+
+    # 0.5.78 separates Add Torrent sources, adds folder/file selection, and
+    # makes .torrent export resilient across metadata-cache and existing-transfer cases.
+    for control in ("addSourceMagnetTab","addSourceFileTab","addTorrentDrop","addTorrentFileName","addSelectAllFiles"):
+        assert f'id="{control}"' in html
+    assert 'Drop a .torrent file here' in html and 'or click to browse' in html
+    assert 'data-add-source="magnet"' in html and 'data-add-source="file"' in html
+    assert "drop.addEventListener('drop'" in app_js and "$('#torrentFile').click()" in app_js
+    assert 'function buildAddFileTree(files)' in app_js
+    assert 'data-add-folder-files' in app_js and 'data-add-file-check' in app_js
+    assert 'input.indeterminate=selected>0&&selected<files.length' in app_js
+    assert 'function addFilePriorities()' in app_js
+    assert "payload.file_priorities=priorities" in app_js
+    assert "action:'add_torrent'" in app_js
+    assert 'if action in ("add_magnet", "add_torrent"):' in dashboard_py
+    assert '"filePriorities"' in dashboard_py
+    assert 'def save_torrent_metadata(self, source, torrent_id=""):' in dashboard_py
+    assert '"/api/v2/torrents/export?"' in dashboard_py
+    assert 'qs.get("hash",[""])[0]' in dashboard_py
+    assert '0.5.78 Add Torrent source separation and content selection' in app_css
+    assert '## Add Torrent source and content workflow' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')
+    assert '### Add Torrent source modes and file selection' in (ROOT / 'TESTING.md').read_text(encoding='utf-8')
+
+
+    # 0.5.79 fixes a startup-blocking EventTarget arity error in Add Torrent drag/drop binding.
+    assert "for(const eventName of ['dragenter','dragover'])drop.addEventListener(eventName,event=>" in app_js
+    assert "for(const eventName of ['dragleave','drop'])drop.addEventListener(eventName,event=>" in app_js
+    assert "drop.addEventListener(event=>" not in app_js
 
     # 0.5.47 frontend generation contract. Navigation HTML is never cached,
     # stale versioned scripts trigger recovery, and optional Add Torrent bindings
@@ -199,7 +323,7 @@ def main():
 
     # Updates owns the public GitHub repository directly. GitHub must not be a
     # modular integration and update installation remains a reactive button.
-    assert 'DEFAULT_UPDATE_REPOSITORY = "CynicaGaming/TorrentDashboard"' in dashboard_py
+    assert 'DEFAULT_UPDATE_REPOSITORY = "CynicaGaming/TorrentDashboard"' in config_py
     assert 'def update_repository(cfg):' in dashboard_py
     assert 'def save_update_source(cfg, repository):' in dashboard_py
     assert 'github_update_integration' not in dashboard_py
@@ -297,7 +421,7 @@ def main():
     assert 'async function loadHistory' not in app_js
     assert 'id="removeModal"' in html
     assert 'id="removeFiles"' in html
-    assert 'Also delete the downloaded files' in html
+    assert 'Delete downloaded files too' in html
     assert 'async function removeTorrentTargets' in app_js
     assert "confirm('Also delete downloaded files?" not in app_js
     assert "confirm('Delete downloaded files too?')" not in app_js
@@ -329,10 +453,10 @@ def main():
     assert "await post('/api/account/password'" in app_js
     assert "await api('/api/account/avatar',{method:'POST'" in app_js
     assert '0.5.24 self-service account menu' in app_css
-    assert 'MAX_AVATAR_BYTES = 4 * 1024 * 1024' in dashboard_py
-    assert 'def save_current_user_profile' in dashboard_py
-    assert 'def change_current_user_password' in dashboard_py
-    assert 'def store_user_avatar' in dashboard_py
+    assert 'MAX_AVATAR_BYTES = 4 * 1024 * 1024' in users_py
+    assert 'def save_current_user_profile' in users_py
+    assert 'def change_current_user_password' in users_py
+    assert 'def store_user_avatar' in users_py
     assert 'def remove_user_except(self, user_id, keep_token)' in dashboard_py
     assert 'if path=="/api/account/avatar":' in dashboard_py
     post_section = dashboard_py.split('    def do_POST(self):', 1)[1]
@@ -360,12 +484,12 @@ def main():
     assert 'id="accountGroup"' not in html and 'accountGroup' not in app_js
     profile_update_js = app_js.split('async function saveOwnProfile(e){', 1)[1].split('async function changeOwnPassword(e){', 1)[0]
     assert 'accountGroup' not in profile_update_js
-    assert '"group": existing.get("group"),' in dashboard_py
+    assert '"group": existing.get("group"),' in users_py
     password_update_js = app_js.split('async function changeOwnPassword(e){', 1)[1].split('async function uploadOwnAvatar(){', 1)[0]
     assert 'requestPasswordConfirmation' in password_update_js and 'current_password:current' in password_update_js
     assert 'id="accountProfilePassword"' not in html and 'accountProfilePassword' not in app_js
     assert 'id="passwordConfirmModal"' in html and 'requestPasswordConfirmation' in app_js
-    assert 'password_configured' in dashboard_py
+    assert 'password_configured' in users_py
     assert 'Default Torrent Dashboard Sound' not in html and '<option value="default">Default</option>' in html
     assert '<option value="custom">Custom</option>' in html and '<option value="custom">Custom Sound</option>' not in html
     assert '<div class="account-form-grid"><label class="account-full-field">Username<input autocomplete="username" id="accountUsername"' in html
@@ -381,6 +505,386 @@ def main():
     assert 'preferences = client.preferences()' in dashboard_py and 'disk_free = disk_free_for(preferences)' in dashboard_py
     assert '0.5.26 qBitTorrent-style torrent toolbar' in app_css
     assert '0.5.28 advanced per-client qBitTorrent settings' in settings_css
+
+    # 0.5.56 serializes all configuration read/modify/write mutations; 0.5.64
+    # moves schema/migration/persistence ownership behind ConfigRepository.
+    assert 'from torrent_dashboard.config import (' in dashboard_py
+    assert 'from torrent_dashboard.integrations import (' in dashboard_py
+    assert 'from torrent_dashboard.config_store import ConfigStore' in dashboard_py
+    assert 'CONFIG_STORE = ConfigStore(CONFIG_REPOSITORY.load, CONFIG_REPOSITORY.save)' in dashboard_py
+    assert 'def mutate_config(transform):' in dashboard_py
+    assert 'class ConfigRepository:' in config_py and 'def normalize_config(' in config_py
+    assert 'INTEGRATION_TYPES = {' in integrations_py and 'def normalize_integration(' in integrations_py
+    assert 'def _load_config_unlocked' not in dashboard_py and 'INTEGRATION_TYPES = {' not in dashboard_py
+    assert 'class ConfigStore:' in config_store_py and 'with self._lock:' in config_store_py
+    mutation_section = dashboard_py.split('class Handler(BaseHTTPRequestHandler):', 1)[1]
+    assert 'save_config(' not in mutation_section
+    assert mutation_section.count('mutate_config(') >= 12
+
+    # 0.5.66 desktop readability contract. Desktop uses available space instead
+    # of falling back to the historical 8-11px interface baseline.
+    assert '0.5.66 desktop legibility baseline' in app_css
+    assert '0.5.66 desktop settings legibility' in settings_css
+    assert '@media(min-width:1024px)' in app_css and '@media(min-width:1024px)' in settings_css
+    assert ':root{--muted:#a7b3bf;--row:70px}' in app_css
+    assert ':root[data-density="compact"]{--row:56px}' in app_css
+    assert '.torrent-name{max-width:620px;font-size:15px}' in app_css
+    assert '.update-release-body{padding:16px 17px 18px;font-size:12.5px' in app_css
+    assert '.settings-subnav button{min-height:40px;padding:10px 11px;font-size:13px' in settings_css
+    assert '.accordion-summary b{font-size:14px}' in settings_css
+    assert '.client-setting-copy>span{font-size:11.5px' in settings_css
+    assert '## Desktop legibility' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')
+
+    # 0.5.75 retains bottom anchoring, restores Dashboard hierarchy, quiets the empty disclosure, and makes update checks explicit.
+    assert 'id="topbar"' in html and 'class="topbar" id="topbar"' in html and 'class="topbar-heading"' in html
+    assert "classList.toggle('dashboard-mode'" not in app_js
+    assert "if(dashboardView)requestAnimationFrame(()=>{syncTorrentWorkspaceLayout();syncDesktopDetailPaneHeight()})" in app_js
+    assert "--torrent-list-height" in app_js and "--torrent-workspace-height" not in app_js and "--torrent-workspace-open-height" not in app_js
+    assert '.topbar.dashboard-mode' not in app_css
+    assert '.topbar.dashboard-mode .topbar-heading{display:none}' not in app_css
+    assert '## Client-style dashboard workspace' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')
+    assert '### Bottom-anchored torrent dock' in (ROOT / 'TESTING.md').read_text(encoding='utf-8')
+    assert 'class="topbar dashboard-mode"' not in html
+    assert 'id="detailHandleSelection"></span>' in html
+    assert 'No torrent selected' not in html and 'No torrent selected' not in app_js
+    assert '.torrent-detail-handle-selection:empty{display:none}' in app_css
+    assert 'updateIntegrityRefreshAt' not in settings_js and 'updateIntegrityRefreshPromise' not in settings_js
+    assert 'checkForUpdates(true)' not in settings_js
+    assert '## Explicit update checks' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')
+    assert '### Update-check intent and empty detail disclosure' in (ROOT / 'TESTING.md').read_text(encoding='utf-8')
+
+    # 0.5.76 treats All servers as aggregation rather than the default pseudo-client.
+    assert "server:localStorage.tdServer||'all'" in app_js
+    assert 'function preferredServer(enabled=[])' in app_js
+    assert 'if(enabled.length===1)return String(enabled[0].id)' in app_js
+    assert "const includeAll=enabled.length!==1" in app_js
+    assert "localStorage.tdServer=state.server" in app_js
+    assert "if(state.server!=='all')await loadMeta()" in app_js
+    assert '## Server-selection defaults' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')
+    assert '### Server-selection defaults' in (ROOT / 'TESTING.md').read_text(encoding='utf-8')
+
+
+    # 0.5.77 preserves intentionally authored display copy and confines runtime
+    # normalization to legacy generated tokens.
+    assert 'function isLegacyUiToken' in app_js and 'function displayUiText' in app_js
+    assert 'if(trim&&isLegacyUiToken(trim))' in app_js
+    assert 'el.textContent=displayUiText(msg)' in app_js
+    assert 'trim.length<80&&/[A-Za-z]/.test(trim)' not in app_js
+    for copy in (
+        'First-run setup','Step 1 of 4','Set up your dashboard','Dashboard name',
+        'Local dashboard address','Authentication mode','Allowed IP addresses',
+        'Username and password','Test connection','Not tested yet','Review and finish',
+        'Sign in to Torrent Dashboard','Live torrent activity','Free disk space',
+        'HTTP sources','Accent color',
+        'Copy address','Add client','GitHub repository',
+        'Current version','Not checked','Check for updates','Patch notes',
+        'Browser notifications','Completion sound','Add integration','Add user',
+        'Save .torrent file','Delete downloaded files too','Client settings',
+    ):
+        assert copy in html, f'missing polished interface copy: {copy}'
+    for legacy in (
+        'First Run Setup','Step 1 Of 4','Set Up Your Dashboard','Authentication Mode',
+        'IP Address Whitelist','Username And Password','Not Tested Yet','Review And Finish',
+        'Sign In To Dashboard','Live Torrent Activity','Disk Free','All Categories',
+        'Download Speed','HTTP Sources','Dashboard Title','Accent Color',
+        'Visible Desktop Columns','Copy Address','＋ Add Server','GitHub Repository',
+        'Current Version','Latest Version','Not Checked','Update State','Check For Updates',
+        'Patch Notes','Browser Notifications','Completion Sound','Custom Sound File',
+        'No Custom Sound Uploaded','Test Notification','Choose Integration…',
+        '＋ Add Integration','Standard Users','＋ Add User','Remove torrent(s)',
+    ):
+        assert legacy not in html, f'legacy capitalization remains: {legacy}'
+    assert 'No Network Interfaces Detected' not in app_js
+    assert 'Testing And Saving…' not in app_js and 'Setup Could Not Be Completed' not in app_js
+    assert 'Standard User' not in settings_js
+    assert '"standard": "Standard user"' in users_py
+    assert '"API key"' in integrations_py and '"Access token"' in integrations_py
+    assert '## Capitalization and product voice' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')
+    assert '### Product language and capitalization' in (ROOT / 'TESTING.md').read_text(encoding='utf-8')
+    assert 'whitelist' not in html.lower()
+    assert '<b id="selectedCount">0</b> selected' in html
+
+    # 0.5.73 supersedes v0.5.72's open/close-only inspector. The dock is
+    # persistent, selection and disclosure are independent, and the full bar is
+    # the accessible collapse/expand target on desktop and mobile.
+    assert 'class="torrent-workspace"' in html
+    assert 'class="torrent-panel torrent-list-panel"' in html
+    assert 'class="torrent-list-region"' in html
+    assert 'class="torrent-detail-pane collapsed"' in html
+    assert 'id="detailHandle"' in html and 'id="detailHandleSelection"' in html
+    assert 'id="detailClose"' not in html and 'Close torrent details' not in html
+    assert "detailExpanded:window.matchMedia('(min-width:701px)').matches" in app_js and 'detailCollapsed' not in app_js
+    assert 'function syncDetailDock()' in app_js and 'async function toggleDetailPane()' in app_js
+    assert 'function resetDetailPane(' in app_js and 'closeDetailPane' not in app_js
+    assert '0.5.74 bottom-anchored client workspace' in app_css
+    assert '.torrent-list-region .table-wrap{flex:1 1 auto;min-height:0;overflow:auto' in app_css
+    assert '.torrent-detail-pane{position:static;inset:auto' in app_css
+    assert '.torrent-detail-pane.collapsed{min-height:48px!important' in app_css
+    assert '.torrent-detail-handle[aria-expanded="true"] svg{transform:rotate(180deg)}' in app_css
+    assert '@media(max-width:700px)' in app_css and 'bottom:58px;top:auto;height:min(68dvh,640px)' in app_css
+
+    # 0.5.81 keeps Add Torrent checkboxes aligned while hierarchy is expressed
+    # by the content label, and clears stale detail context when a torrent disappears.
+    assert app_js.count('data-add-depth="${depth}" style="--add-depth:${depth}"') == 2
+    assert '0.5.81 aligned Add Torrent selection column and indented hierarchy labels' in app_css
+    assert '.add-content-row{grid-template-columns:34px minmax(0,1fr) 90px 112px}' in app_css
+    assert '.add-content-select{place-items:center!important;padding-right:0}' in app_css
+    assert '.add-content-name{padding-left:calc(var(--add-depth,0) * 16px)}' in app_css
+    assert 'grid-template-columns:calc(34px + var(--add-depth,0) * 16px)' not in app_css
+    assert "if(state.detail?.server===server&&state.detail?.hash===hash){resetDetailPane();return}" in app_js
+    assert 'function reconcileDetailSelection()' in app_js
+    assert "const exists=state.torrents.some(t=>(t._server_id||state.server)===state.detail.server&&t.hash===state.detail.hash)" in app_js
+    assert 'if(!exists)resetDetailPane(false)' in app_js
+    assert 'reconcileDetailSelection();renderMetrics(d)' in app_js
+    assert 'function resetDetailPane(renderList=true)' in app_js
+    assert '## Hierarchical torrent content selection' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')
+    assert '### Add Torrent hierarchy and detail-selection reconciliation' in (ROOT / 'TESTING.md').read_text(encoding='utf-8')
+
+    # 0.5.82 reserves the same disclosure slot for folders and files so
+    # hierarchy is expressed after the expander column, and removes the
+    # redundant selected-torrent identity block from the expanded inspector.
+    assert 'class="add-tree-spacer" aria-hidden="true"' in app_js
+    assert '.add-tree-spacer{display:block;width:22px;min-width:22px;height:22px;flex:0 0 22px}' in app_css
+    assert '0.5.82 tree disclosure alignment and streamlined Torrent details' in app_css
+    assert 'class="torrent-detail-context"' not in html
+    assert 'id="detailName"' not in html and 'id="detailMeta"' not in html
+    assert 'torrent-detail-context' not in app_css
+    assert "$('#detailName')" not in app_js and "$('#detailMeta')" not in app_js
+    assert "selected?(detailCurrentTorrent()?.name||'Selected torrent'):''" in app_js
+    assert 'The disclosure bar is the single selection-identity surface' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')
+
+    # 0.5.83 replaces text-glyph disclosure/file affordances with locally
+    # embedded Material SVGs and simplifies the Add Torrent content table.
+    assert 'const UI_MATERIAL_ICON_PATHS={' in app_js and 'function materialIconSvg(name)' in app_js
+    assert "materialIconSvg(collapsed?'chevron_right':'expand_more')" in app_js
+    assert "chevron.innerHTML=materialIconSvg('expand_more')" in app_js
+    assert "${collapsed?'›':'⌄'}" not in app_js and "chevron.textContent='⌄'" not in app_js
+    assert 'class="material-symbol-icon detail-disclosure-icon"' in html
+    assert 'class="material-symbol-icon add-drop-icon"' in html and '>⇧<' not in html
+    assert '.material-symbol-icon{display:block;width:18px;height:18px;fill:currentColor' in app_css
+    assert '0.5.83 locally embedded Material disclosure icons and Add Torrent table polish' in app_css
+    assert '<strong>Content</strong><span id="addContentSummary"' not in html
+    assert 'class="add-preview-heading add-content-summary-heading"' in html
+    assert '.add-content-columns>span:nth-child(2){text-align:left}' in app_css
+    assert 'class="add-folder-items"' not in app_js
+    assert '## Iconography' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')
+    assert 'folder rows do not show descendant file counts' in (ROOT / 'TESTING.md').read_text(encoding='utf-8')
+
+    # 0.5.102 keeps the v0.5.101 fixed column set but removes the redundant
+    # Actions rail. Torrent commands are contextual: right-click on pointer
+    # interfaces and a movement-cancellable long press on touch interfaces.
+    fixed_header = '<thead><tr><th class="check"><input id="selectAll" type="checkbox"/></th><th data-col="name">Name</th><th data-col="size">Size</th><th data-col="state">Status</th><th data-col="progress">Progress</th><th data-col="seeds">Seeds</th><th data-col="peers">Peers</th><th data-col="down">Down</th><th data-col="up">Up</th><th data-col="eta">ETA</th><th data-col="ratio">Ratio</th><th data-col="category">Category</th><th data-col="tags">Tags</th></tr></thead>'
+    assert fixed_header in html
+    assert 'id="columnMenu"' not in html and 'row-spacer-head' not in html and 'row-actions-head' not in html
+    assert "const FIXED_TORRENT_COLUMN_ORDER=['name','size','state','progress','seeds','peers','down','up','eta','ratio','category','tags'];" in app_js
+    assert "const FIXED_TORRENT_COLUMN_RATIOS={name:.29,size:.05,state:.07,progress:.20,seeds:.045,peers:.045,down:.045,up:.045,eta:.035,ratio:.045,category:.065,tags:.065};" in app_js
+    assert 'const TORRENT_FIXED_COLUMN_WIDTH=40;' in app_js
+    assert "for(const key of ['tdCategory','tdTag','tdTracker','tdColumns'])localStorage.removeItem(key)" in app_js
+    assert 'function applyFixedTorrentColumnLayout()' in app_js
+    assert "wrap.clientWidth-TORRENT_FIXED_COLUMN_WIDTH" in app_js and "table.style.tableLayout='fixed'" in app_js
+    assert "window.matchMedia?.('(max-width:820px)').matches" in app_js and "table.style.tableLayout=''" in app_js
+    assert "function bindTorrentColumnHeaderUI()" in app_js and "th.title='Click to sort.'" in app_js
+    assert "heading.className='torrent-sort-heading'" in app_js and "heading.draggable" not in app_js
+    assert "head.addEventListener('click'" in app_js and "head.addEventListener('keydown'" in app_js
+    for obsolete in ('torrentColumnPreferences','torrentColumnResize','column-resize-handle','reorderTorrentColumns','renderTorrentColumnMenu','showTorrentColumnMenu','row-spacer','applyTorrentColumnWidths','syncTorrentTableWidth','torrentRightmostColumnResizeMaxWidth','draggedTorrentColumn'):
+        assert obsolete not in app_js
+    assert 'function normalizedTorrentSort' in app_js and 'function torrentSortValue' in app_js and 'function setTorrentSort' in app_js
+    assert "if(!FIXED_TORRENT_COLUMN_ORDER.includes(key))return" in app_js
+    assert "sortIcon.innerHTML=materialIconSvg('expand_more')" in app_js and "th.setAttribute('aria-sort'" in app_js
+    assert "${t.name||''} ${t.category||''} ${t.tags||''} ${t.tracker||''}" in app_js
+    assert 'const TORRENT_LONG_PRESS_MS=550,TORRENT_LONG_PRESS_MOVE_PX=12;' in app_js
+    assert "e.pointerType!=='touch'" in app_js and 'Math.hypot(e.clientX-press.startX,e.clientY-press.startY)' in app_js
+    assert 'torrentLongPressSuppressClickUntil=Date.now()+800' in app_js
+    assert "addEventListener('contextmenu',rowContext)" in app_js
+    assert "addEventListener('pointerdown',rowPointerDown)" in app_js and "addEventListener('pointermove',rowPointerMove)" in app_js
+    assert "addEventListener('pointerup',rowPointerEnd)" in app_js and "addEventListener('pointercancel',rowPointerEnd)" in app_js
+    assert 'row-actions' not in html and 'more-row' not in html and 'row-actions' not in app_js and 'more-row' not in app_js
+    assert '0.5.101 fixed torrent table layout' in app_css and '0.5.102 contextual torrent row actions' in app_css
+    assert '.column-resize-handle' not in app_css and '.column-menu' not in app_css and '.column-dragging' not in app_css
+    assert '#torrentTable{width:100%;min-width:0;table-layout:fixed}' in app_css
+    assert '#torrentTable td[data-col="name"] .torrent-name{max-width:100%;min-width:0;width:100%' in app_css
+    assert 'width:40px!important;min-width:40px!important;max-width:40px!important;inline-size:40px!important' in app_css
+    assert 'width:48px!important;min-width:48px!important;max-width:48px!important;inline-size:48px!important' not in app_css
+    assert 'row-actions' not in app_css and 'more-row' not in app_css
+    assert '-webkit-touch-callout:none' in app_css
+    assert '@media(min-width:821px){.torrent-list-region .table-wrap{width:100%;max-inline-size:100%;overflow-x:hidden' in app_css
+    design = (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')
+    testing = (ROOT / 'TESTING.md').read_text(encoding='utf-8')
+    assert '## Fixed torrent columns' in design
+    assert 'Name 29%, Size 5%, Status 7%, Progress 20%' in design
+    assert 'must not introduce a horizontal scrollbar' in design
+    assert 'torrent commands are contextual rather than occupying a permanent Actions column' in design
+    assert 'a deliberate long press opens it on touch' in design
+    assert '### Fixed torrent columns' in testing
+    assert 'there are no resize cursors/handles' in testing
+    assert 'without a horizontal scrollbar' in testing
+    assert 'there must be no dedicated Actions column' in testing
+    assert 'Long-press a non-control area of a torrent card' in testing
+
+    # 0.5.103 keeps the mobile bulk-selection overlay above the persistent
+    # Torrent details surface instead of letting equal-z-index bottom overlays collide.
+    assert 'function syncMobileBulkbarOffset()' in app_js
+    assert "bulk.style.setProperty('--torrent-bulk-bottom'" in app_js
+    assert "window.visualViewport?.addEventListener('resize'" in app_js
+    assert 'setTimeout(()=>{syncDesktopDetailPaneHeight();syncMobileBulkbarOffset()},180)' in app_js
+    assert '0.5.103 mobile bulk action layering' in app_css
+    assert 'bottom:var(--torrent-bulk-bottom,116px)!important;z-index:74' in app_css
+    assert 'bulk-selection overlay must clear the current Torrent details pane' in design
+    assert 'bulk action bar is fully visible above the disclosure bar' in testing
+
+    # 0.5.104 keeps desktop numeric alignment out of the mobile card grid and
+    # gives every mobile metadata row a stable left-label/right-value contract.
+    desktop_numeric = '@media(min-width:821px){#torrentTable [data-col="size"],#torrentTable [data-col="seeds"],#torrentTable [data-col="peers"],#torrentTable [data-col="down"],#torrentTable [data-col="up"],#torrentTable [data-col="eta"],#torrentTable [data-col="ratio"]{text-align:right;white-space:nowrap}}'
+    assert desktop_numeric in app_css
+    assert '0.5.104 mobile torrent metadata alignment' in app_css
+    assert '#torrentTable td.mobile-grid{text-align:left!important}' in app_css
+    assert '#torrentTable td.mobile-grid:before{justify-self:start;text-align:left}' in app_css
+    assert '#torrentTable td.mobile-grid>span{justify-self:end;text-align:right;max-width:100%}' in app_css
+    assert 'consistent left-label/right-value grid' in design
+    assert 'desktop right-alignment rules must not move numeric labels toward the center divider' in testing
+    # 0.5.105 compacts mobile torrent cards without changing the desktop table.
+    assert '0.5.105 compact mobile torrent cards' in app_css
+    assert '#torrentTable tbody tr{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr)' in app_css
+    assert '#torrentTable td[data-col="name"],#torrentTable td[data-col="progress"]{grid-column:1/-1}' in app_css
+    assert '#torrentTable td.check{position:absolute;right:12px;left:auto;top:10px' in app_css
+    assert '-webkit-line-clamp:2' in app_css
+    assert 'two-column metadata matrix' in design
+    assert 'Size/Status, Seeds/Peers, Download/Upload, ETA/Ratio, and Category/Tags' in testing
+
+    # 0.5.109 keeps the list fixed while finite General details flow naturally.
+    assert "workspace.style.removeProperty('--torrent-list-height')" in app_js
+    assert "workspace.style.setProperty('--torrent-list-height',value)" in app_js
+    assert "pane.classList.toggle('detail-general-fit',fitGeneral)" in app_js
+    assert 'listReserve=180' not in app_js and 'Math.min(maxHeight,Math.max(300,desired))' not in app_js
+    assert '0.5.109 fixed desktop torrent list with natural-height General details' in app_css
+    assert '.torrent-detail-pane:not(.collapsed).detail-general-fit{min-height:0;flex:0 0 auto}' in app_css
+    assert '.torrent-detail-pane.detail-general-fit .torrent-detail-body{flex:0 0 auto;min-height:0;overflow:visible}' in app_css
+    assert 'Fixed torrent list and natural-height desktop details' in design
+    assert 'Fixed desktop torrent list with natural General details' in testing
+    assert '<link href="/static/favicon.svg" rel="icon" type="image/svg+xml"/>' in html and 'src="/static/favicon.svg"' in html
+    assert (ROOT / 'static' / 'favicon.svg').exists()
+    manifest=(ROOT/'static'/'manifest.webmanifest').read_text(encoding='utf-8'); assert '"src": "/static/favicon.svg"' in manifest
+    sw=(ROOT/'static'/'sw.js').read_text(encoding='utf-8'); assert "'/static/favicon.svg'" in sw
+
+    # 0.5.106 gives Trackers and Peers dedicated responsive detail records.
+    assert 'function peerAddress(p)' in app_js
+    assert "function trackerDisplayName(value='')" in app_js
+    assert 'function trackerStatusInfo(value)' in app_js
+    for label in ('Disabled','Not contacted','Working','Updating','Not working'):
+        assert f"'{label}'" in app_js
+    assert 'detail-mobile-only detail-record-list' in app_js
+    assert 'detail-peer-card' in app_js and 'detail-tracker-card' in app_js
+    assert 'No peers are currently connected.' in app_js
+    assert 'This torrent does not report any trackers.' in app_js
+    assert '0.5.106 responsive tracker and peer details' in app_css
+    assert '.torrent-detail-body .detail-desktop-only{display:none!important}' in app_css
+    assert '.torrent-detail-body .detail-mobile-only{display:grid}' in app_css
+    assert '### Responsive torrent detail records' in design
+    assert '### Responsive tracker and peer details' in testing
+
+    # 0.5.113 preserves the accepted desktop list/detail balance with a viewport-proportional preference.
+    assert 'const TORRENT_DESKTOP_LIST_VIEWPORT_RATIO=.44;' in app_js
+    assert 'const TORRENT_DESKTOP_MIN_ROWS=3;' in app_js
+    assert 'const TORRENT_DESKTOP_BOTTOM_GAP=12;' in app_js
+    assert 'TORRENT_DESKTOP_PREFERRED_ROWS' not in app_js
+    assert "const table=$('#torrentTable'),firstRow=$('#torrentRows tr'),pane=$('#torrentDetailPane');" in app_js
+    assert "workspace.getBoundingClientRect().top+(window.scrollY||window.pageYOffset||0)" in app_js
+    assert 'window.innerHeight-documentTop-TORRENT_DESKTOP_BOTTOM_GAP' in app_js
+    assert "pane?.getBoundingClientRect().height||0" in app_js
+    assert 'viewportBudget*TORRENT_DESKTOP_LIST_VIEWPORT_RATIO' in app_js
+    assert 'viewportBudget-paneHeight-gap' in app_js
+    assert 'Math.min(preferredListBudget,fitListBudget)' in app_js
+    assert 'Math.floor((targetListBudget-headerHeight-borderAllowance)/rowHeight)' in app_js
+    assert 'Math.max(TORRENT_DESKTOP_MIN_ROWS' in app_js
+    assert "pane.style.removeProperty('--torrent-detail-expanded-height');\n  syncTorrentWorkspaceLayout();" in app_js
+    assert app_js.count("window.addEventListener('resize',()=>requestAnimationFrame(()=>{applyFixedTorrentColumnLayout();syncDesktopDetailPaneHeight();syncMobileBulkbarOffset()}))") == 1
+    assert '.torrent-list-panel{display:flex;flex:0 0 var(--torrent-list-height,456px);height:var(--torrent-list-height,456px);min-height:0;overflow:hidden}' in app_css
+    assert 'Viewport-proportional desktop torrent workspace' in design
+    assert 'Viewport-proportional desktop torrent workspace' in testing
+
+    # 0.5.115 keeps each chevron inline with its owning label while preserving body-aligned header groups.
+    numeric_heading = '#torrentTable thead th[data-col=\"size\"] .torrent-sort-heading,#torrentTable thead th[data-col=\"seeds\"] .torrent-sort-heading,#torrentTable thead th[data-col=\"peers\"] .torrent-sort-heading,#torrentTable thead th[data-col=\"down\"] .torrent-sort-heading,#torrentTable thead th[data-col=\"up\"] .torrent-sort-heading,#torrentTable thead th[data-col=\"eta\"] .torrent-sort-heading,#torrentTable thead th[data-col=\"ratio\"] .torrent-sort-heading{justify-content:flex-end}'
+    assert numeric_heading in app_css
+    assert '.torrent-sort-heading{position:relative;display:flex;width:100%;min-width:0;align-items:center;justify-content:flex-start;gap:5px' in app_css
+    assert '.torrent-sort-icon{position:static;flex:0 0 14px;' in app_css
+    assert '.torrent-sort-icon{position:absolute' not in app_css
+    assert '.torrent-sort-icon{left:0' not in app_css
+    assert '.torrent-sort-icon{left:' not in app_css
+    assert 'left:0;right:auto' not in app_css
+    assert '0.5.114 consistent trailing-edge torrent sort chevrons' in app_css
+    assert '0.5.115 inline torrent sort chevrons' in app_css
+    assert '### Torrent sort indicator grouping' in design_language
+    assert 'Inline torrent sort indicator grouping' in testing_md
+    assert '### Torrent sort chevrons' in design
+    assert '### Torrent sort chevrons' in testing
+
+    # 0.5.117 adds a browser-local completion inbox over durable event history.
+    for control in ('notificationBellBtn','notificationBellBadge','notificationBellPanel','notificationBellList','notificationBellClear','notificationBellHistory'):
+        assert f'id="{control}"' in html
+    assert 'aria-label="Open notifications"' in html and 'View all notifications' in html
+    assert "notifications:'M12 22" in app_js
+    assert 'const NOTIFICATION_BELL_LIMIT=8;' in app_js
+    assert 'const NOTIFICATION_REFRESH_MS=10000;' in app_js
+    assert "const NOTIFICATION_SEEN_KEY='tdNotificationBellSeen';" in app_js
+    assert "const NOTIFICATION_CLEARED_KEY='tdNotificationBellCleared';" in app_js
+    assert 'function initializeNotificationBellState()' in app_js
+    assert "String(item?.event||'').toLowerCase()!=='completed'" in app_js
+    assert 'localStorage.setItem(key,JSON.stringify' in app_js
+    assert 'function clearNotificationBell()' in app_js and 'function markNotificationBellSeen()' in app_js
+    assert "setView('notifications')" in app_js and 'scheduleNotificationRefresh()' in app_js
+    assert 'await loadNotifications(true);scheduleRefresh();scheduleNotificationRefresh();registerPwa();' in app_js
+    assert "if(completedNow)setTimeout(()=>loadNotifications(true),1200)" in app_js
+    assert '/api/events/clear' not in dashboard_py and '/api/events/clear' not in app_js
+    assert '0.5.117 header completion notification inbox' in app_css
+    assert '.topbar.notification-open{z-index:85}' in app_css
+    assert '### Header completion notification inbox' in design_language
+    assert '### Header completion notification inbox' in testing_md
+
+    # 0.5.118 adds bulk disclosure controls to the Add Torrent metadata tree.
+    assert 'id="addExpandAllFolders"' in html and 'id="addCollapseAllFolders"' in html
+    assert 'class="add-content-folder-actions"' in html
+    assert 'function addTreeFolderPaths(node)' in app_js
+    assert 'function syncAddFolderActions()' in app_js
+    assert 'function expandAllAddFolders()' in app_js and 'function collapseAllAddFolders()' in app_js
+    assert "$('#addExpandAllFolders').addEventListener('click',expandAllAddFolders)" in app_js
+    assert "$('#addCollapseAllFolders').addEventListener('click',collapseAllAddFolders)" in app_js
+    assert 'for(const path of addTreeFolderPaths(buildAddFileTree(addMetadataState.files||[])))addMetadataState.collapsedFolders.add(path)' in app_js
+    assert '0.5.119 Material Add Torrent folder disclosure actions' in app_css
+    assert '## Add Torrent folder disclosure actions' in design_language
+    assert '### Add Torrent folder disclosure actions' in testing_md
+
+    # 0.5.119 presents bulk disclosure as a compact Material icon pair.
+    assert 'aria-label="Expand all folders"' in html and 'aria-label="Collapse all folders"' in html
+    assert 'data-material-symbol="unfold_more"' in html and 'data-material-symbol="unfold_less"' in html
+    assert '>Expand all</button>' not in html and '>Collapse all</button>' not in html
+    assert '0.5.119 Material Add Torrent folder disclosure actions' in app_css
+    assert '.add-content-folder-actions{display:flex;align-items:center;gap:5px;flex:0 0 auto;flex-wrap:nowrap}' in app_css
+    assert '.add-folder-action-button{width:32px;height:32px;min-width:32px;min-height:32px' in app_css
+    assert '.add-content-folder-actions{width:100%}' not in app_css
+    assert '.add-content-folder-actions button{flex:1}' not in app_css
+    assert '## Material Add Torrent folder controls' in design_language
+    assert '### Material Add Torrent folder controls' in testing_md
+
+    # 0.5.120 fixes cascade precedence so the Material folder controls render as one row.
+    assert '.add-preview-heading div{display:grid;gap:2px}' not in app_css
+    assert '.add-preview-heading>div:not(.add-content-folder-actions){display:grid;gap:2px}' in app_css
+    assert '.add-content-folder-actions{display:flex;align-items:center;gap:5px;flex:0 0 auto;flex-wrap:nowrap}' in app_css
+    assert '0.5.120 Add Torrent folder action cascade fix' in app_css
+    assert '## Add Torrent folder control row' in design_language
+    assert '### Add Torrent folder control row' in testing_md
+
+    # 0.5.121 keeps the mobile Add Torrent action footer inside the actual visual viewport.
+    assert 'function syncVisualViewportMetrics()' in app_js
+    assert "window.visualViewport?.addEventListener('resize',syncVisualViewportMetrics)" in app_js
+    assert "window.visualViewport?.addEventListener('scroll',syncVisualViewportMetrics)" in app_js
+    assert "syncVisualViewportMetrics();\n  $('#addModal').classList.remove('hidden');" in app_js
+    assert '--td-visual-viewport-height' in app_css and '--td-visual-viewport-top' in app_css
+    assert '#addModal{place-items:start center' in app_css
+    assert '.add-torrent-footer{position:relative;bottom:auto;z-index:4' in app_css
+    assert 'height:96vh;max-height:96vh' not in app_css
+    assert 'min-height:44px' in app_css
+    assert '## Mobile Add Torrent action dock' in design_language
+    assert '### Mobile Add Torrent action dock' in testing_md
 
     print("UI string audit passed")
 

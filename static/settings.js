@@ -34,7 +34,7 @@ window.TDSettings = (() => {
     document.querySelectorAll('[data-settings-page]').forEach(btn => btn.addEventListener('click', () => activate(btn.dataset.settingsPage)));
     document.querySelector('#settingsMobilePage')?.addEventListener('change', e => activate(e.target.value));
     document.querySelector('#settingsForm')?.addEventListener('submit', saveCore);
-    document.querySelector('#copyLocalAddress')?.addEventListener('click', () => navigator.clipboard.writeText(document.querySelector('#localDashboardUrl')?.textContent || '').then(() => toast('addressCopied')));
+    document.querySelector('#copyLocalAddress')?.addEventListener('click', () => navigator.clipboard.writeText(document.querySelector('#localDashboardUrl')?.textContent || '').then(() => toast('Address copied')));
     document.querySelector('#sPort')?.addEventListener('input', updateLocalAddress);
     document.querySelector('#sRefreshInterfaces')?.addEventListener('click', () => refreshSettingsInterfaces(true).catch(e => toast(e.message,'error')));
     document.querySelector('#addServerSetting')?.addEventListener('click', () => addServerRow());
@@ -113,7 +113,7 @@ window.TDSettings = (() => {
 
   async function openClientSettings(serverId) {
     serverId = String(serverId || '').trim();
-    if (!serverId) return toast('Save The Client Before Opening Client Settings','error');
+    if (!serverId) return toast('Save this client before opening its settings','error');
     const server = (state.settings?.servers || []).find(item => String(item.id || '') === serverId);
     clientSettingsServerId = serverId;
     const modal = document.querySelector('#clientSettingsModal');
@@ -125,7 +125,7 @@ window.TDSettings = (() => {
     try {
       const data = await api(`/api/client-settings?server=${encodeURIComponent(serverId)}`);
       fillClientSettings(data.settings || {});
-      setClientSettingsStatus('Live settings loaded from qBitTorrent.');
+      setClientSettingsStatus('Settings loaded from qBitTorrent.');
     } catch (e) {
       setClientSettingsStatus(e.message || 'Could not load client settings.', 'bad');
     }
@@ -154,7 +154,7 @@ window.TDSettings = (() => {
     const numeric=[payload.speed.download_limit_kb,payload.speed.upload_limit_kb,payload.speed.alternative_download_limit_kb,payload.speed.alternative_upload_limit_kb,payload.connection.max_connections,payload.connection.max_connections_per_torrent,payload.connection.max_upload_slots,payload.connection.max_upload_slots_per_torrent];
     if (!payload.connection.random_port) numeric.push(payload.connection.listen_port);
     if (payload.proxy.type !== 'none') numeric.push(payload.proxy.port);
-    if (numeric.some(x => Number.isNaN(x))) return setClientSettingsStatus('Enter valid whole numbers for the client limits and ports.', 'bad');
+    if (numeric.some(x => Number.isNaN(x))) return setClientSettingsStatus('Enter whole numbers for client limits and ports.', 'bad');
     const button = document.querySelector('#saveClientSettings');
     if (button) button.disabled = true;
     setClientSettingsStatus('Saving client settings…');
@@ -162,7 +162,6 @@ window.TDSettings = (() => {
       const data=await post('/api/client-settings',payload);
       fillClientSettings(data.settings || {});
       setClientSettingsStatus('Client settings saved.', 'ok');
-      toast('clientSettingsSaved');
       if (state.server === clientSettingsServerId) await loadMeta();
     } catch (err) {
       setClientSettingsStatus(err.message || 'Could not save client settings.', 'bad');
@@ -195,12 +194,10 @@ window.TDSettings = (() => {
     setValue('sTheme', localStorage.tdTheme || 'dark');
     setValue('sDensity', localStorage.tdDensity || 'comfortable');
     setValue('sAccent', localStorage.tdAccent || '#72a9ff');
-    let cols = JSON.parse(localStorage.tdColumns || '{}');
-    document.querySelectorAll('[data-column]').forEach(x => x.checked = cols[x.dataset.column] !== false);
 
     const updateRepository = s.updates?.repository || '';
     setValue('uRepository', updateRepository);
-    renderUpdateInfo({configured:!!updateRepository,repository:updateRepository,currentVersion:state.me?.version,state:s.runtime?.updateState||{}});
+    renderUpdateInfo({configured:!!updateRepository,repository:updateRepository,currentVersion:state.me?.version,state:s.runtime?.updateState||{},releaseHistory:s.runtime?.releaseHistory||[]});
 
     renderServerSettings(s.servers || []);
     [...document.querySelectorAll('.server-setting')].forEach((row, index) => {
@@ -215,7 +212,7 @@ window.TDSettings = (() => {
     const soundFile = document.querySelector('#nSoundFile');
     if (soundFile) soundFile.value = '';
     const soundName = document.querySelector('#nCustomSoundName');
-    if (soundName) soundName.textContent = n.custom_sound_name || 'No Custom Sound Uploaded';
+    if (soundName) soundName.textContent = n.custom_sound_name || 'No custom sound uploaded';
     updateNotificationSoundUi();
     activate(localStorage.tdSettingsPage || 'general');
   }
@@ -249,12 +246,9 @@ window.TDSettings = (() => {
       localStorage.tdTheme = document.querySelector('#sTheme')?.value || 'dark';
       localStorage.tdDensity = document.querySelector('#sDensity')?.value || 'comfortable';
       localStorage.tdAccent = document.querySelector('#sAccent')?.value || '#72a9ff';
-      const cols = {};
-      document.querySelectorAll('[data-column]').forEach(x => cols[x.dataset.column] = x.checked);
-      localStorage.tdColumns = JSON.stringify(cols);
       applyPrefs();
       fill(state.settings);
-      toast('settingsSaved');
+      toast('Settings saved');
       await loadServers();
       await refreshStatus();
     } catch (err) {
@@ -327,14 +321,14 @@ window.TDSettings = (() => {
 
   async function saveUpdateSource() {
     const repository = updateSourceRepository();
-    if (!repository) return toast('Enter A GitHub Repository','error');
+    if (!repository) return toast('Enter a GitHub repository','error');
     try {
       const d = await post('/api/update-source', {repository});
       state.settings = d.settings;
       const input = document.querySelector('#uRepository');
       if (input) input.value = d.repository || repository;
       renderUpdateInfo({configured:true,repository:d.repository || repository,currentVersion:state.me?.version,state:d.settings?.runtime?.updateState||{}});
-      toast('updateSourceSaved');
+      toast('Settings saved');
       return d;
     } catch (e) {
       toast(e.message,'error');
@@ -372,7 +366,7 @@ window.TDSettings = (() => {
     const list = document.querySelector('#integrationList');
     if (!list) return;
     if (!integrations.length) {
-      list.innerHTML = '<div class="settings-empty"><b>No Integrations Added</b><span>Choose an integration type above to add the first connection.</span></div>';
+      list.innerHTML = '<div class="settings-empty"><b>No integrations added</b><span>Choose an integration type above to add the first connection.</span></div>';
       return;
     }
     list.innerHTML = '';
@@ -385,7 +379,7 @@ window.TDSettings = (() => {
       card.dataset.type = item.type;
       const fields = (type.fields || []).map(f => fieldHtml(f, item[f.key], item.configured_secrets?.includes(f.key))).join('');
       const subtitle = integrationSubtitle(item, type);
-      card.innerHTML = `<button class="accordion-summary" type="button" aria-expanded="${index===0?'true':'false'}"><span><b>${esc(integrationLabel(item))}</b>${subtitle?`<small>${esc(subtitle)}</small>`:''}</span><span class="accordion-chevron">⌄</span></button><div class="accordion-body ${index===0?'':'hidden'}"><div class="settings-form-grid"><label>Display Name<input data-field="name" value="${esc(item.name||type.label)}" maxlength="128"></label>${fields}<label class="toggle"><input data-field="enabled" type="checkbox" ${item.enabled!==false?'checked':''}><span>Enabled</span></label></div><div class="settings-inline-actions"><button class="secondary integration-test" type="button">Test Connection</button><button class="primary integration-save" type="button">Save</button><button class="danger integration-delete" type="button">Delete</button></div><div class="test-result muted integration-result">Not Tested Yet</div></div>`;
+      card.innerHTML = `<button class="accordion-summary" type="button" aria-expanded="${index===0?'true':'false'}"><span><b>${esc(integrationLabel(item))}</b>${subtitle?`<small>${esc(subtitle)}</small>`:''}</span><span class="accordion-chevron">⌄</span></button><div class="accordion-body ${index===0?'':'hidden'}"><div class="settings-form-grid"><label>Display name<input data-field="name" value="${esc(item.name||type.label)}" maxlength="128"></label>${fields}<label class="toggle"><input data-field="enabled" type="checkbox" ${item.enabled!==false?'checked':''}><span>Enabled</span></label></div><div class="settings-inline-actions"><button class="secondary integration-test" type="button">Test connection</button><button class="primary integration-save" type="button">Save</button><button class="danger integration-delete" type="button">Delete</button></div><div class="test-result muted integration-result">Not tested yet</div></div>`;
       const summary = card.querySelector('.accordion-summary');
       summary.addEventListener('click', () => {
         const body = card.querySelector('.accordion-body');
@@ -416,7 +410,7 @@ window.TDSettings = (() => {
       catalog = d.types || [];
       integrations = d.integrations || [];
       const select = document.querySelector('#integrationTypeSelect');
-      if (select) select.innerHTML = '<option value="">Choose Integration…</option>' + catalog.map(x => `<option value="${esc(x.type)}">${esc(x.label)}</option>`).join('');
+      if (select) select.innerHTML = '<option value="">Choose integration…</option>' + catalog.map(x => `<option value="${esc(x.type)}">${esc(x.label)}</option>`).join('');
       renderIntegrations();
     } catch (e) {
       toast(e.message,'error');
@@ -426,7 +420,7 @@ window.TDSettings = (() => {
   function addIntegration() {
     const select = document.querySelector('#integrationTypeSelect');
     const type = catalog.find(x => x.type === select?.value);
-    if (!type) return toast('Choose An Integration Type','error');
+    if (!type) return toast('Choose an integration type','error');
     integrations.unshift({id:'',type:type.type,name:type.label,enabled:true,_new:true,configured_secrets:[]});
     renderIntegrations();
     if (select) select.value='';
@@ -435,7 +429,7 @@ window.TDSettings = (() => {
   async function testIntegration(card) {
     const out = card.querySelector('.integration-result');
     out.className='test-result muted integration-result';
-    out.textContent='Testing Connection…';
+    out.textContent='Testing connection…';
     try {
       const d = await post('/api/integration-test', integrationData(card));
       out.className='test-result ok integration-result';
@@ -449,7 +443,7 @@ window.TDSettings = (() => {
   async function saveIntegration(card) {
     try {
       const d = await post('/api/integrations', integrationData(card));
-      toast('integrationSaved');
+      toast('Integration saved');
       await loadIntegrations();
       return d;
     } catch (e) {
@@ -466,7 +460,7 @@ window.TDSettings = (() => {
     }
     try {
       await post('/api/integrations/delete',{id:card.dataset.id});
-      toast('integrationDeleted');
+      toast('Integration deleted');
       await loadIntegrations();
     } catch (e) {
       toast(e.message,'error');
@@ -482,7 +476,7 @@ window.TDSettings = (() => {
     const list = document.querySelector('#userList');
     if (!list) return;
     if (!users.length) {
-      list.innerHTML='<div class="settings-empty"><b>No Users Found</b><span>Add an administrator account to manage Torrent Dashboard.</span></div>';
+      list.innerHTML='<div class="settings-empty"><b>No users found</b><span>Add an administrator account to manage Torrent Dashboard.</span></div>';
       return;
     }
     list.innerHTML='';
@@ -490,12 +484,12 @@ window.TDSettings = (() => {
       const card=document.createElement('article');
       card.className='settings-accordion user-item';
       card.dataset.id=user.id||'';
-      const group=user.group==='administrator'?'Administrator':'Standard User';
+      const group=user.group==='administrator'?'Administrator':'Standard user';
       const current=user.id && user.id===currentUserId;
       const display=userName(user);
-      const username=user.username||'New User';
+      const username=user.username||'New user';
       const showUsername=!!user.username && display!==user.username;
-      card.innerHTML=`<button class="accordion-summary" type="button" aria-expanded="${index===0?'true':'false'}"><span><span class="user-name-line"><b>${esc(display)}</b>${current?'<span class="current-user-badge">Current user</span>':''}</span>${showUsername?`<small>${esc(username)}</small>`:''}</span><span class="user-group-badge ${user.group==='administrator'?'admin':'standard'}">${esc(group)}</span><span class="accordion-chevron">⌄</span></button><div class="accordion-body ${index===0?'':'hidden'}"><div class="settings-form-grid two-col"><label><span class="field-label">Username <span class="required-mark" aria-hidden="true">*</span></span><input data-user-field="username" value="${esc(user.username||'')}" maxlength="128" autocomplete="off" required></label><label><span class="field-label">User Group <span class="required-mark" aria-hidden="true">*</span></span><select class="user-group-select" data-user-field="group" required><option value="administrator" ${user.group==='administrator'?'selected':''}>Administrator</option><option value="standard" ${user.group==='standard'?'selected':''}>Standard User</option></select></label><label>First Name<input data-user-field="first_name" value="${esc(user.first_name||'')}" maxlength="128"></label><label>Last Name<input data-user-field="last_name" value="${esc(user.last_name||'')}" maxlength="128"></label><label class="full-field">Email<input data-user-field="email" type="email" value="${esc(user.email||'')}" maxlength="254"></label><label><span class="field-label">Password <span class="required-mark" aria-hidden="true">*</span></span><input data-user-field="password" type="password" autocomplete="new-password" required ${user._new?'placeholder="Create Password"':'class="secret-configured" data-configured-secret="1" value="'+SECRET_MASK+'"'}></label><label><span class="field-label">Confirm Password <span class="required-mark" aria-hidden="true">*</span></span><input data-user-field="password2" type="password" autocomplete="new-password" required ${user._new?'placeholder="Confirm Password"':'class="secret-configured" data-configured-secret="1" value="'+SECRET_MASK+'"'}></label></div><div class="settings-inline-actions"><button class="primary user-save" type="button">Save</button><button class="danger user-delete" type="button" ${current?'disabled':''}>Delete</button></div></div>`;
+      card.innerHTML=`<button class="accordion-summary" type="button" aria-expanded="${index===0?'true':'false'}"><span><span class="user-name-line"><b>${esc(display)}</b>${current?'<span class="current-user-badge">Current user</span>':''}</span>${showUsername?`<small>${esc(username)}</small>`:''}</span><span class="user-group-badge ${user.group==='administrator'?'admin':'standard'}">${esc(group)}</span><span class="accordion-chevron">⌄</span></button><div class="accordion-body ${index===0?'':'hidden'}"><div class="settings-form-grid two-col"><label><span class="field-label">Username <span class="required-mark" aria-hidden="true">*</span></span><input data-user-field="username" value="${esc(user.username||'')}" maxlength="128" autocomplete="off" required></label><label><span class="field-label">User group <span class="required-mark" aria-hidden="true">*</span></span><select class="user-group-select" data-user-field="group" required><option value="administrator" ${user.group==='administrator'?'selected':''}>Administrator</option><option value="standard" ${user.group==='standard'?'selected':''}>Standard user</option></select></label><label>First name<input data-user-field="first_name" value="${esc(user.first_name||'')}" maxlength="128"></label><label>Last name<input data-user-field="last_name" value="${esc(user.last_name||'')}" maxlength="128"></label><label class="full-field">Email<input data-user-field="email" type="email" value="${esc(user.email||'')}" maxlength="254"></label><label><span class="field-label">Password <span class="required-mark" aria-hidden="true">*</span></span><input data-user-field="password" type="password" autocomplete="new-password" required ${user._new?'placeholder="Create password"':'class="secret-configured" data-configured-secret="1" value="'+SECRET_MASK+'"'}></label><label><span class="field-label">Confirm password <span class="required-mark" aria-hidden="true">*</span></span><input data-user-field="password2" type="password" autocomplete="new-password" required ${user._new?'placeholder="Confirm password"':'class="secret-configured" data-configured-secret="1" value="'+SECRET_MASK+'"'}></label></div><div class="settings-inline-actions"><button class="primary user-save" type="button">Save</button><button class="danger user-delete" type="button" ${current?'disabled':''}>Delete</button></div></div>`;
       const summary=card.querySelector('.accordion-summary');
       summary.addEventListener('click',()=>{const body=card.querySelector('.accordion-body');const open=body.classList.contains('hidden');body.classList.toggle('hidden',!open);summary.setAttribute('aria-expanded',String(open))});
       card.querySelector('.user-save').addEventListener('click',()=>saveUser(card));
@@ -530,12 +524,12 @@ window.TDSettings = (() => {
 
   async function saveUser(card) {
     const data=userData(card);
-    if (!data.username) return toast('Enter A Username','error');
-    if (data.password !== data.password2) return toast('Passwords Do Not Match','error');
+    if (!data.username) return toast('Enter a username','error');
+    if (data.password !== data.password2) return toast('Passwords do not match','error');
     delete data.password2;
     try {
       await post('/api/users',data);
-      toast('userSaved');
+      toast('User saved');
       await loadUsers();
     } catch(e) {
       toast(e.message,'error');
@@ -549,7 +543,7 @@ window.TDSettings = (() => {
     if (!confirm(`Delete user ${user.username}?`)) return;
     try {
       await post('/api/users/delete',{id:card.dataset.id});
-      toast('userDeleted');
+      toast('User deleted');
       await loadUsers();
     } catch(e) {
       toast(e.message,'error');
@@ -559,4 +553,4 @@ window.TDSettings = (() => {
   return {bind,activate,fill,saveCore,loadExtras,loadIntegrations,loadUsers,openClientSettings,closeClientSettings};
 })();
 
-// Standard Users have read-only dashboard access for management actions; self-service profile and password changes live in the account menu.
+// Standard users have read-only dashboard access for management actions; self-service profile and password changes live in the account menu.

@@ -265,6 +265,25 @@ def extract_release(archive: Path, destination: Path) -> Path:
     return roots[0]
 
 
+def write_staged_release_info(source: Path, version: str, asset: dict, sha256: str, repository: str, release: dict):
+    digest=str(sha256 or "").strip().lower()
+    if not re.fullmatch(r"[0-9a-f]{64}",digest):
+        raise RuntimeError("Release package SHA-256 is invalid")
+    payload={
+        "schema":1,
+        "version":str(version),
+        "package":str(asset.get("name") or f"Torrent-Dashboard-{version}.zip"),
+        "sha256":digest,
+        "repository":str(repository or ""),
+        "releaseUrl":str(release.get("html_url") or ""),
+        "publishedAt":str(release.get("published_at") or release.get("created_at") or ""),
+        "channel":"prerelease" if release.get("prerelease") else "stable",
+        "commit":str(release.get("target_commitish") or ""),
+    }
+    (source/"release-info.json").write_text(json.dumps(payload,indent=2)+"\n",encoding="utf-8")
+    return payload
+
+
 def validate_staged_source(source: Path, expected_version: str):
     for name in ("dashboard.py", "updater.py"):
         path = source / name
@@ -315,6 +334,7 @@ def recovery_update(target: Path, repository: str | None = None, force: bool = F
             )
         source = extract_release(archive, tmp / "release")
         validate_staged_source(source, version)
+        write_staged_release_info(source,version,asset,actual_digest,repository,release)
 
         backup_root = data_dir / "update-backups" / f"pre-{version}-{int(time.time())}"
         status_path.write_text(json.dumps({"state": "installingRecovery", "version": version}), encoding="utf-8")

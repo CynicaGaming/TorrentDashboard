@@ -46,15 +46,21 @@ Torrent Dashboard provides a modern browser interface for monitoring and managin
 3. Run `Start Dashboard.bat`.
 4. Complete the First Run Setup wizard.
 
+### Linux
+
+1. Download and extract the latest release ZIP.
+2. Run `python3 dashboard.py` from the extracted directory.
+3. Complete the First Run Setup wizard.
+
 Torrent Dashboard listens on `0.0.0.0` so permitted devices on your network can reach it. The wizard detects the local address and lets you choose the dashboard port and trusted interfaces.
 
 ## Configuration
 
 Configuration is handled through the First Run Setup wizard and **Settings**. A hand-edited example configuration is intentionally not shipped.
 
-Runtime configuration is stored in `config.json`; databases, uploaded sounds, update state, and backups are stored under `data/`. Both are ignored by Git and excluded from release packages.
+Runtime configuration is stored in `config.json`; databases, uploaded sounds, update state, integrity cache, and backups are stored under `data/`. Both are ignored by Git and excluded from release packages.
 
-Stored passwords, qBitTorrent API keys, integration secrets, and webhook URLs are redacted before settings data is returned to the browser.
+Stored passwords, qBitTorrent API keys, integration secrets, and webhook URLs are redacted before settings data is returned to the browser. They are still local application secrets at rest, so access to the Torrent Dashboard installation directory should be restricted to trusted operating-system users.
 
 ## Updates
 
@@ -62,9 +68,9 @@ Stored passwords, qBitTorrent API keys, integration secrets, and webhook URLs ar
 2. Enter the public GitHub repository as `owner/repository`, then select **Save**.
 3. Select **Check for updates**. Torrent Dashboard validates that the repository is publicly reachable before comparing releases.
 
-No GitHub access token is required or supported by the default updater. Torrent Dashboard reads public GitHub Release metadata, verifies GitHub's SHA-256 digest for the release asset, stages the update, restarts, and rolls back if the new version fails its health check.
+No GitHub access token is required or supported by the default updater. Torrent Dashboard reads public GitHub Release metadata, verifies GitHub's SHA-256 digest for the release ZIP, stages the update, restarts, and rolls back if the new version fails its health check.
 
-A release only needs `Torrent-Dashboard-X.Y.Z.zip`; separate checksum and update-manifest assets are not required.
+Release automation publishes `Torrent-Dashboard-X.Y.Z.zip` plus a generated `Torrent-Dashboard-X.Y.Z.release.json` provenance sidecar. The updater trusts the GitHub asset digest; the sidecar exists for release provenance and external inspection rather than as a second independently authored checksum source.
 
 ## Security and Privacy
 
@@ -76,6 +82,22 @@ If you discover a security issue, do not post credentials or sensitive exploit d
 
 ## Development
 
-Development releases use semantic versions in the `0.x.x` range. GitHub prereleases are titled **Torrent Dashboard Pre-Release**; the version remains in the Git tag and ZIP name so the updater can order releases safely.
+Start with [`DEVELOPMENT.md`](DEVELOPMENT.md) for the contributor/fork workflow and [`HANDOFF.md`](HANDOFF.md) for the current portable development handoff. Architecture and module ownership are documented in [`ARCHITECTURE.md`](ARCHITECTURE.md), interface/content conventions in [`DESIGN_LANGUAGE.md`](DESIGN_LANGUAGE.md), and the automated/manual verification contract in [`TESTING.md`](TESTING.md).
 
-Pull requests and forks are welcome. Fork maintainers can point **Settings → Updates** at their own public release repository or change `DEFAULT_UPDATE_REPOSITORY` for their build.
+Important architectural choices and their rationale are kept under [`docs/decisions/`](docs/decisions/). Current unfinished engineering intent lives in [`development/current.json`](development/current.json); generated released-state context remains in [`PROJECT_STATE.md`](PROJECT_STATE.md).
+
+Torrent Dashboard is a public project and these continuity files are intentionally fork-safe. Canonical upstream branch and PR references are labeled as upstream context rather than assumptions about a fork. Fork maintainers should update `development/current.json` when their roadmap diverges and should never place credentials, private infrastructure details, or conversation transcripts in public handoff material.
+
+Backend tests and reusable source validation can be run with:
+
+```bash
+python release_tools/validate_source.py
+```
+
+UI contract validation can be run with:
+
+```bash
+python release_tools/validate_ui_strings.py
+```
+
+Structured release metadata in `release_notes/releases.json` generates the changelog, project state, portable handoff, and GitHub release body. Pull requests and forks are welcome. Fork maintainers can point **Settings → Updates** at their own public release repository or change `DEFAULT_UPDATE_REPOSITORY` for their build.

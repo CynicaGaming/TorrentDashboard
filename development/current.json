@@ -1,0 +1,32 @@
+{
+  "schema": 1,
+  "status": "ready",
+  "objective": "Extract qBitTorrent transport and server normalization from dashboard.py",
+  "why": "QBitClient, Web API transport details, server normalization, and preference/proxy translation form the next cohesive backend boundary still mixed into the HTTP composition root.",
+  "acceptance_criteria": [
+    "qBitTorrent Web API transport and QBitClient behavior live under torrent_dashboard rather than dashboard.py.",
+    "Server normalization and qBitTorrent preference/proxy translation move behind a small tested interface without changing configured client behavior.",
+    "dashboard.py composes the qBitTorrent client/service boundary and retains HTTP routing and request orchestration.",
+    "Existing Add Torrent, torrent actions, live polling, client settings, and server-selection behavior remain unchanged.",
+    "Behavioral tests cover transport URL/auth handling, server normalization, and preference/proxy translation edge cases."
+  ],
+  "decisions": [
+    "Keep the extraction behavior-preserving; do not redesign qBitTorrent-facing UI or server-selection semantics in the same increment.",
+    "Keep qBitTorrent transport dependency-light and standard-library based.",
+    "Preserve the current configuration schema and browser-local server-selection behavior."
+  ],
+  "files": [
+    "dashboard.py",
+    "torrent_dashboard/",
+    "tests/",
+    "ARCHITECTURE.md"
+  ],
+  "blockers": [],
+  "out_of_scope": [
+    "Secret-at-rest changes.",
+    "Authorization-role changes.",
+    "Frontend redesign unrelated to the qBitTorrent boundary.",
+    "Changing the public update protocol."
+  ],
+  "next_action": "Inventory QBitClient, server normalization, and qBitTorrent preference/proxy helpers still defined in dashboard.py, then add characterization tests before moving implementations."
+}

@@ -33,6 +33,55 @@ from http import cookies
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
+from torrent_dashboard.config import (
+    ConfigRepository,
+    DEFAULT_CONFIG,
+    DEFAULT_UPDATE_REPOSITORY,
+    normalize_github_repository,
+    public_config,
+)
+from torrent_dashboard.config_store import ConfigStore
+from torrent_dashboard.release_provenance import (
+    ReleaseProvenance,
+    asset_sha256 as _asset_sha256,
+    find_dashboard_asset as _find_dashboard_asset,
+    github_release_integrity as _github_release_integrity,
+    release_info_payload as _release_info_payload,
+    version_key as _version_key,
+)
+from torrent_dashboard.integrations import (
+    INTEGRATION_TYPES,
+    delete_integration,
+    integration_catalog,
+    normalize_integration,
+    redacted_integrations,
+    save_integration,
+    test_integration_connection,
+)
+from torrent_dashboard.users import (
+    AVATAR_DIR,
+    MAX_AVATAR_BYTES,
+    PROFILE_AVATAR_TYPES,
+    USER_GROUPS,
+    change_current_user_password,
+    configured_user_avatar,
+    delete_user,
+    delete_user_avatar_files,
+    hash_password,
+    normalize_user,
+    public_user,
+    remove_user_avatar,
+    save_current_user_profile,
+    save_user,
+    session_is_admin,
+    store_user_avatar,
+    sync_legacy_auth,
+    user_by_id,
+    user_by_username,
+    user_display_name,
+    verify_password,
+)
+
 APP_DIR = Path(__file__).resolve().parent
 STATIC_DIR = APP_DIR / "static"
 DATA_DIR = APP_DIR / "data"
@@ -40,14 +89,26 @@ CONFIG_PATH = APP_DIR / "config.json"
 DB_PATH = DATA_DIR / "torrent_desk.sqlite3"
 UPDATE_DIR = DATA_DIR / "updates"
 UPDATE_STATE_PATH = DATA_DIR / "update-status.json"
+RELEASE_INFO_PATH = APP_DIR / "release-info.json"
+RELEASE_INTEGRITY_CACHE_PATH = DATA_DIR / "release-integrity.json"
 CUSTOM_SOUND_BASENAME = "custom-notification-sound"
 MAX_CUSTOM_SOUND_BYTES = 2 * 1024 * 1024
-AVATAR_DIR = DATA_DIR / "avatars"
-MAX_AVATAR_BYTES = 4 * 1024 * 1024
-PROFILE_AVATAR_TYPES = {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp"}
-VERSION = "0.5.54"
+VERSION = "0.5.121"
 STATUS_REFRESH_SECONDS = 1.0
-DEFAULT_UPDATE_REPOSITORY = "CynicaGaming/TorrentDashboard"
+
+RELEASE_PROVENANCE = ReleaseProvenance(
+    release_info_path=RELEASE_INFO_PATH,
+    integrity_cache_path=RELEASE_INTEGRITY_CACHE_PATH,
+    updates_dir=UPDATE_DIR,
+    release_notes_path=APP_DIR / "release_notes" / "releases.json",
+    version=VERSION,
+    default_repository=DEFAULT_UPDATE_REPOSITORY,
+)
+cached_release_integrity = RELEASE_PROVENANCE.cached_release_integrity
+write_release_integrity_cache = RELEASE_PROVENANCE.write_release_integrity_cache
+write_release_info = RELEASE_PROVENANCE.write_release_info
+installed_release_info = RELEASE_PROVENANCE.installed_release_info
+local_release_history = RELEASE_PROVENANCE.local_release_history
 
 
 class SingleInstanceLock:
@@ -106,212 +167,19 @@ class SingleInstanceLock:
             self._file = None
 
 
-DEFAULT_CONFIG = {
-    "setup": {"complete": False},
-    "dashboard": {
-        "title": "Torrent Dashboard",
-        "bind_host": "0.0.0.0",
-        "port": 8765,
-        "open_browser": True,
-        "history_retention_days": 30,
-        "history_sample_seconds": 10,
-        "low_disk_gb": 20,
-        "https_enabled": False,
-        "https_cert": "",
-        "https_key": ""
-    },
-    "updates": {"repository": DEFAULT_UPDATE_REPOSITORY},
-    "auth": {
-        "mode": "lan_bypass",
-        "trusted_interfaces": [],
-        "trusted_ips": [],
-        "session_hours": 24,
-        "max_login_attempts_per_10m": 20
-    },
-    "users": [],
-    "servers": [],
-    "notifications": {
-        "browser": True,
-        "sound": False,
-        "sound_mode": "default",
-        "custom_sound_file": "",
-        "custom_sound_name": "",
-        "custom_sound_mime": ""
-    },
-    "integrations": []
-}
-
-
-def deep_merge(base, override):
-    out = dict(base)
-    for key, value in (override or {}).items():
-        if isinstance(value, dict) and isinstance(out.get(key), dict):
-            out[key] = deep_merge(out[key], value)
-        else:
-            out[key] = value
-    return out
+CONFIG_REPOSITORY = ConfigRepository(
+    CONFIG_PATH,
+    detect_lan_network=lambda: detect_lan_network(),
+)
+CONFIG_STORE = ConfigStore(CONFIG_REPOSITORY.load, CONFIG_REPOSITORY.save)
 
 
 def load_config():
-    if not CONFIG_PATH.exists():
-        CONFIG_PATH.write_text(json.dumps(DEFAULT_CONFIG, indent=2) + "\n", encoding="utf-8")
-    raw = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
-    # Existing Torrent Dashboard installs predate the setup wizard. Treat an
-    # existing config as already configured so upgrades do not interrupt them.
-    if "setup" not in raw:
-        raw["setup"] = {"complete": True}
-
-    # 3.2.1 replaces the single automatic LAN choice with explicit trusted
-    # network-interface selection plus a general IP/CIDR whitelist. Existing
-    # installations are migrated in memory without discarding custom entries.
-    auth_raw = raw.setdefault("auth", {})
-    legacy_cidrs = list(auth_raw.get("trusted_cidrs", []) or [])
-    if "trusted_ips" not in auth_raw:
-        auth_raw["trusted_ips"] = [c for c in legacy_cidrs if c not in ("127.0.0.0/8", "::1/128")]
-    if "trusted_interfaces" not in auth_raw:
-        auth_raw["trusted_interfaces"] = []
-        if auth_raw.get("auto_trust_lan", False):
-            try:
-                default = detect_lan_network()
-                if default.get("interface_id") or default.get("interface"):
-                    auth_raw["trusted_interfaces"] = [default.get("interface_id") or default.get("interface")]
-            except Exception:
-                pass
-
-    merged = deep_merge(DEFAULT_CONFIG, raw)
-    # 0.5.16 makes status collection a fixed one-second application behavior.
-    # Ignore and retire any refresh_seconds value left by an older install.
-    merged.setdefault("dashboard", {}).pop("refresh_seconds", None)
-    # Read-only mode is replaced by per-user roles in 0.5.0. Standard Users
-    # are read-only; Administrators retain management access.
-    merged.setdefault("dashboard", {}).pop("read_only", None)
-
-    raw_users = raw.get("users")
-    if isinstance(raw_users, list) and raw_users:
-        merged["users"] = [normalize_user(item, item) for item in raw_users if isinstance(item, dict)]
-    else:
-        legacy_auth = raw.get("auth", {}) if isinstance(raw.get("auth"), dict) else {}
-        legacy_hash = str(legacy_auth.get("password_hash") or "")
-        if legacy_hash:
-            username = str(legacy_auth.get("username") or "admin")[:128]
-            merged["users"] = [normalize_user({
-                "id": stable_record_id("user", username),
-                "username": username,
-                "password_hash": legacy_hash,
-                "group": "administrator",
-            }, require_password=True)]
-        else:
-            merged["users"] = []
-
-    raw_integrations = raw.get("integrations")
-    legacy_github_repo = ""
-    if isinstance(raw_integrations, list):
-        migrated = []
-        for item in raw_integrations:
-            if not isinstance(item, dict):
-                continue
-            if str(item.get("type") or "").strip().lower() == "github":
-                if not legacy_github_repo:
-                    legacy_github_repo = str(item.get("repository") or "").strip()
-                continue
-            try:
-                migrated.append(normalize_integration(item, item))
-            except Exception:
-                continue
-        merged["integrations"] = migrated
-    elif isinstance(raw_integrations, dict):
-        migrated = []
-        for provider in ("sonarr", "radarr", "lidarr", "prowlarr", "jellyfin", "plex"):
-            value = raw_integrations.get(provider) or {}
-            if not isinstance(value, dict) or not value.get("url"):
-                continue
-            payload = {"id": stable_record_id("integration", provider, value.get("url")), "type": provider, "name": INTEGRATION_TYPES[provider]["label"], **value}
-            try:
-                migrated.append(normalize_integration(payload, payload))
-            except Exception:
-                continue
-        webhook = str(raw_integrations.get("home_assistant_webhook") or "").strip()
-        if webhook:
-            payload = {"id": stable_record_id("integration", "home_assistant", webhook), "type": "home_assistant", "name": "Home Assistant", "webhook_url": webhook}
-            try:
-                migrated.append(normalize_integration(payload, payload))
-            except Exception:
-                pass
-        merged["integrations"] = migrated
-    else:
-        merged["integrations"] = []
-
-    # Notification delivery endpoints moved into Integrations in 0.5.5.
-    # Preserve existing configured destinations without exposing legacy fields
-    # on the Notifications page.
-    legacy_notifications = raw.get("notifications", {}) if isinstance(raw.get("notifications"), dict) else {}
-    legacy_destinations = [
-        ("generic_webhook", "webhook_url", str(legacy_notifications.get("webhook_url") or "").strip()),
-        ("discord", "webhook_url", str(legacy_notifications.get("discord_webhook") or "").strip()),
-        ("ntfy", "topic_url", str(legacy_notifications.get("ntfy_url") or "").strip()),
-    ]
-    for provider, field, value in legacy_destinations:
-        if not value:
-            continue
-        if any(item.get("type") == provider and item.get(field) == value for item in merged.get("integrations", [])):
-            continue
-        payload = {"id": stable_record_id("integration", provider, value), "type": provider, "name": INTEGRATION_TYPES[provider]["label"], field: value, "enabled": True}
-        try:
-            merged.setdefault("integrations", []).append(normalize_integration(payload, payload))
-        except Exception:
-            pass
-    for legacy_key in ("webhook_url", "discord_webhook", "ntfy_url"):
-        merged.setdefault("notifications", {}).pop(legacy_key, None)
-
-    # Updates owns its public GitHub repository directly. Preserve the saved
-    # repository from either the previous Updates object or the retired GitHub
-    # integration, then remove GitHub from the integration collection.
-    legacy_updates = raw.get("updates", {}) if isinstance(raw.get("updates"), dict) else {}
-    update_repo = str(legacy_updates.get("repository") or legacy_github_repo or DEFAULT_UPDATE_REPOSITORY).strip()
-    try:
-        update_repo = normalize_github_repository(update_repo)
-    except Exception:
-        update_repo = DEFAULT_UPDATE_REPOSITORY
-    merged["updates"] = {"repository": update_repo}
-    merged["integrations"] = [x for x in merged.get("integrations", []) if x.get("type") != "github"]
-
-    sync_legacy_auth(merged)
-    return merged
+    return CONFIG_STORE.load()
 
 
-def save_config(cfg):
-    cfg = json.loads(json.dumps(cfg))
-    cfg["integrations"] = [x for x in cfg.get("integrations", []) if x.get("type") != "github"]
-    updates = cfg.setdefault("updates", {})
-    updates["repository"] = normalize_github_repository(updates.get("repository") or DEFAULT_UPDATE_REPOSITORY)
-    updates.pop("github_token", None)
-    tmp = CONFIG_PATH.with_suffix(".tmp")
-    tmp.write_text(json.dumps(cfg, indent=2) + "\n", encoding="utf-8")
-    tmp.replace(CONFIG_PATH)
-
-
-def hash_password(password: str, iterations: int = 260_000) -> str:
-    salt = secrets.token_bytes(16)
-    digest = hashlib.pbkdf2_hmac("sha256", password.encode(), salt, iterations)
-    return "pbkdf2_sha256${}${}${}".format(
-        iterations,
-        base64.urlsafe_b64encode(salt).decode().rstrip("="),
-        base64.urlsafe_b64encode(digest).decode().rstrip("=")
-    )
-
-
-def verify_password(password: str, encoded: str) -> bool:
-    try:
-        scheme, iterations, salt_b64, digest_b64 = encoded.split("$", 3)
-        if scheme != "pbkdf2_sha256":
-            return False
-        pad = lambda s: s + "=" * (-len(s) % 4)
-        salt = base64.urlsafe_b64decode(pad(salt_b64))
-        expected = base64.urlsafe_b64decode(pad(digest_b64))
-        got = hashlib.pbkdf2_hmac("sha256", password.encode(), salt, int(iterations))
-        return hmac.compare_digest(expected, got)
-    except Exception:
-        return False
+def mutate_config(transform):
+    return CONFIG_STORE.mutate(transform)
 
 
 class SessionStore:
@@ -638,469 +506,6 @@ def is_loopback_ip(ip):
 SETUP_CODE = secrets.token_urlsafe(6).replace("-", "").replace("_", "")[:8].upper()
 
 
-USER_GROUPS = {
-    "administrator": "Administrator",
-    "standard": "Standard User",
-}
-
-INTEGRATION_TYPES = {
-    "sonarr": {
-        "label": "Sonarr",
-        "fields": [
-            {"key": "url", "label": "URL", "placeholder": "http://host:8989", "required": True},
-            {"key": "api_key", "label": "API Key", "secret": True, "required": True},
-        ],
-    },
-    "radarr": {
-        "label": "Radarr",
-        "fields": [
-            {"key": "url", "label": "URL", "placeholder": "http://host:7878", "required": True},
-            {"key": "api_key", "label": "API Key", "secret": True, "required": True},
-        ],
-    },
-    "lidarr": {
-        "label": "Lidarr",
-        "fields": [
-            {"key": "url", "label": "URL", "placeholder": "http://host:8686", "required": True},
-            {"key": "api_key", "label": "API Key", "secret": True, "required": True},
-        ],
-    },
-    "prowlarr": {
-        "label": "Prowlarr",
-        "fields": [
-            {"key": "url", "label": "URL", "placeholder": "http://host:9696", "required": True},
-            {"key": "api_key", "label": "API Key", "secret": True, "required": True},
-        ],
-    },
-    "jellyfin": {
-        "label": "Jellyfin",
-        "fields": [
-            {"key": "url", "label": "URL", "placeholder": "http://host:8096", "required": True},
-            {"key": "api_key", "label": "API Key", "secret": True, "required": True},
-        ],
-    },
-    "plex": {
-        "label": "Plex",
-        "fields": [
-            {"key": "url", "label": "URL", "placeholder": "http://host:32400", "required": True},
-            {"key": "token", "label": "Token", "secret": True, "required": True},
-        ],
-    },
-    "discord": {
-        "label": "Discord",
-        "fields": [
-            {"key": "webhook_url", "label": "Webhook URL", "placeholder": "https://discord.com/api/webhooks/...", "secret": True, "required": True},
-        ],
-    },
-    "ntfy": {
-        "label": "ntfy",
-        "fields": [
-            {"key": "topic_url", "label": "Topic URL", "placeholder": "https://ntfy.sh/topic", "required": True},
-            {"key": "access_token", "label": "Access Token", "secret": True, "required": False},
-        ],
-    },
-    "generic_webhook": {
-        "label": "Generic Webhook",
-        "fields": [
-            {"key": "webhook_url", "label": "Webhook URL", "placeholder": "https://example.com/webhook", "secret": True, "required": True},
-        ],
-    },
-    "home_assistant": {
-        "label": "Home Assistant",
-        "fields": [
-            {"key": "webhook_url", "label": "Webhook URL", "placeholder": "https://home-assistant.example/api/webhook/...", "required": True},
-        ],
-    },
-}
-
-
-def stable_record_id(kind, *parts):
-    raw = kind + ":" + ":".join(str(x or "") for x in parts)
-    return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:12]
-
-
-def user_display_name(user):
-    full = " ".join(x for x in (str(user.get("first_name") or "").strip(), str(user.get("last_name") or "").strip()) if x).strip()
-    return full or str(user.get("username") or "User")
-
-
-def normalize_user(data, existing=None, require_password=False):
-    existing = existing or {}
-    uid = str(data.get("id") or existing.get("id") or uuid.uuid4().hex[:12])[:64]
-    username = str(data.get("username") if data.get("username") is not None else existing.get("username") or "").strip()[:128]
-    if not username:
-        raise RuntimeError("Username is required")
-    if not re.fullmatch(r"[A-Za-z0-9_.@-]+", username):
-        raise RuntimeError("Username may contain letters, numbers, dots, underscores, hyphens, and @")
-    group_raw = str(data.get("group") or existing.get("group") or "standard").strip().lower().replace(" ", "_")
-    if group_raw in ("admin", "administrator"):
-        group = "administrator"
-    elif group_raw in ("standard", "standard_user", "user"):
-        group = "standard"
-    else:
-        raise RuntimeError("User group must be Administrator or Standard User")
-    email = str(data.get("email") if data.get("email") is not None else existing.get("email") or "").strip()[:254]
-    if email and ("@" not in email or email.startswith("@") or email.endswith("@")):
-        raise RuntimeError("Enter a valid email address or leave it blank")
-    password_hash = str(data.get("password_hash") or existing.get("password_hash") or "")
-    password = str(data.get("password") or "")
-    if password:
-        password_hash = hash_password(password)
-    if require_password and not password_hash:
-        raise RuntimeError("Password is required for a new user")
-    return {
-        "id": uid,
-        "username": username,
-        "password_hash": password_hash,
-        "first_name": str(data.get("first_name") if data.get("first_name") is not None else existing.get("first_name") or "").strip()[:128],
-        "last_name": str(data.get("last_name") if data.get("last_name") is not None else existing.get("last_name") or "").strip()[:128],
-        "email": email,
-        "avatar_file": Path(str(data.get("avatar_file") if data.get("avatar_file") is not None else existing.get("avatar_file") or "")).name[:255],
-        "avatar_version": str(data.get("avatar_version") if data.get("avatar_version") is not None else existing.get("avatar_version") or "")[:64],
-        "group": group,
-    }
-
-
-def public_user(user):
-    avatar_path, _ = configured_user_avatar(user)
-    return {
-        "id": str(user.get("id") or ""),
-        "username": str(user.get("username") or ""),
-        "first_name": str(user.get("first_name") or ""),
-        "last_name": str(user.get("last_name") or ""),
-        "email": str(user.get("email") or ""),
-        "group": "administrator" if user.get("group") == "administrator" else "standard",
-        "group_label": USER_GROUPS.get(user.get("group"), "Standard User"),
-        "display_name": user_display_name(user),
-        "avatar_configured": bool(avatar_path),
-        "avatar_version": str(user.get("avatar_version") or ""),
-        "password_configured": bool(user.get("password_hash")),
-    }
-
-
-def _profile_avatar_stem(user_id):
-    return "profile-" + hashlib.sha256(str(user_id or "").encode("utf-8")).hexdigest()[:24]
-
-
-def configured_user_avatar(user):
-    user_id = str((user or {}).get("id") or "")
-    filename = Path(str((user or {}).get("avatar_file") or "")).name
-    if not user_id or not filename:
-        return None, None
-    ext = Path(filename).suffix.lower()
-    mime = PROFILE_AVATAR_TYPES.get(ext)
-    if not mime or filename != _profile_avatar_stem(user_id) + ext:
-        return None, None
-    path = AVATAR_DIR / filename
-    if not path.exists() or not path.is_file():
-        return None, None
-    return path, mime
-
-
-def _validate_profile_avatar(filename, content):
-    filename = Path(str(filename or "profile")).name
-    ext = Path(filename).suffix.lower()
-    mime = PROFILE_AVATAR_TYPES.get(ext)
-    if not mime:
-        raise RuntimeError("Profile picture must be a PNG, JPG, or WebP image")
-    if not content or len(content) > MAX_AVATAR_BYTES:
-        raise RuntimeError("Profile picture must be between 1 byte and 4 MB")
-    if ext == ".png" and not content.startswith(b"\x89PNG\r\n\x1a\n"):
-        raise RuntimeError("The selected PNG file is not valid")
-    if ext in (".jpg", ".jpeg") and not content.startswith(b"\xff\xd8\xff"):
-        raise RuntimeError("The selected JPG file is not valid")
-    if ext == ".webp" and not (len(content) >= 12 and content[:4] == b"RIFF" and content[8:12] == b"WEBP"):
-        raise RuntimeError("The selected WebP file is not valid")
-    return ext, mime
-
-
-def delete_user_avatar_files(user_id):
-    if not user_id:
-        return
-    stem = _profile_avatar_stem(user_id)
-    for ext in PROFILE_AVATAR_TYPES:
-        try:
-            (AVATAR_DIR / f"{stem}{ext}").unlink(missing_ok=True)
-        except Exception:
-            pass
-
-
-def store_user_avatar(cfg, user_id, filename, content):
-    out = json.loads(json.dumps(cfg))
-    user = user_by_id(out, user_id)
-    if not user:
-        raise RuntimeError("This session is not linked to a user account")
-    ext, _ = _validate_profile_avatar(filename, content)
-    AVATAR_DIR.mkdir(parents=True, exist_ok=True)
-    delete_user_avatar_files(user_id)
-    dest = AVATAR_DIR / f"{_profile_avatar_stem(user_id)}{ext}"
-    dest.write_bytes(content)
-    user["avatar_file"] = dest.name
-    user["avatar_version"] = secrets.token_hex(8)
-    sync_legacy_auth(out)
-    return out, user
-
-
-def remove_user_avatar(cfg, user_id):
-    out = json.loads(json.dumps(cfg))
-    user = user_by_id(out, user_id)
-    if not user:
-        raise RuntimeError("This session is not linked to a user account")
-    delete_user_avatar_files(user_id)
-    user["avatar_file"] = ""
-    user["avatar_version"] = secrets.token_hex(8)
-    sync_legacy_auth(out)
-    return out, user
-
-
-def save_current_user_profile(cfg, user_id, data):
-    out = json.loads(json.dumps(cfg))
-    users = out.setdefault("users", [])
-    existing = user_by_id(out, user_id)
-    if not existing:
-        raise RuntimeError("This session is not linked to a user account")
-    requested_username = str(data.get("username") if data.get("username") is not None else existing.get("username") or "").strip()
-    requested_email = str(data.get("email") if data.get("email") is not None else existing.get("email") or "").strip()
-    secure_change = (
-        requested_username != str(existing.get("username") or "")
-        or requested_email != str(existing.get("email") or "")
-    )
-    encoded = str(existing.get("password_hash") or "")
-    if secure_change and encoded and not verify_password(str(data.get("current_password") or ""), encoded):
-        raise RuntimeError("Current password is required to change your username or email")
-    item = normalize_user({
-        "id": existing.get("id"),
-        "username": requested_username,
-        "first_name": data.get("first_name"),
-        "last_name": data.get("last_name"),
-        "email": requested_email,
-        "group": existing.get("group"),
-    }, existing)
-    duplicate = next((u for u in users if str(u.get("id") or "") != item["id"] and str(u.get("username") or "").casefold() == item["username"].casefold()), None)
-    if duplicate:
-        raise RuntimeError("That username is already in use")
-    users[users.index(existing)] = item
-    sync_legacy_auth(out)
-    return out, item
-
-
-def change_current_user_password(cfg, user_id, current_password, new_password):
-    out = json.loads(json.dumps(cfg))
-    user = user_by_id(out, user_id)
-    if not user:
-        raise RuntimeError("This session is not linked to a user account")
-    encoded = str(user.get("password_hash") or "")
-    if encoded and not verify_password(str(current_password or ""), encoded):
-        raise RuntimeError("Current password is incorrect")
-    new_password = str(new_password or "")
-    if len(new_password) < 8:
-        raise RuntimeError("New password must be at least 8 characters")
-    user["password_hash"] = hash_password(new_password)
-    sync_legacy_auth(out)
-    return out, user
-
-
-def user_by_username(cfg, username):
-    wanted = str(username or "").casefold()
-    return next((u for u in cfg.get("users", []) if str(u.get("username") or "").casefold() == wanted), None)
-
-
-def user_by_id(cfg, user_id):
-    wanted = str(user_id or "")
-    return next((u for u in cfg.get("users", []) if str(u.get("id") or "") == wanted), None)
-
-
-def session_is_admin(sess):
-    return bool(sess and sess.get("group") == "administrator")
-
-
-def sync_legacy_auth(cfg):
-    auth = cfg.setdefault("auth", {})
-    admins = [u for u in cfg.get("users", []) if u.get("group") == "administrator"]
-    chosen = admins[0] if admins else (cfg.get("users") or [None])[0]
-    if chosen:
-        auth["username"] = chosen.get("username", "admin")
-        auth["password_hash"] = chosen.get("password_hash", "")
-    else:
-        auth["username"] = "admin"
-        auth["password_hash"] = ""
-    return cfg
-
-
-def save_user(cfg, data):
-    out = json.loads(json.dumps(cfg))
-    users = out.setdefault("users", [])
-    user_id = str(data.get("id") or "")
-    existing = next((u for u in users if str(u.get("id") or "") == user_id), None) if user_id else None
-    item = normalize_user(data, existing, require_password=existing is None)
-    duplicate = next((u for u in users if str(u.get("id") or "") != item["id"] and str(u.get("username") or "").casefold() == item["username"].casefold()), None)
-    if duplicate:
-        raise RuntimeError("That username is already in use")
-    if existing:
-        users[users.index(existing)] = item
-    else:
-        users.append(item)
-    if not any(u.get("group") == "administrator" for u in users):
-        raise RuntimeError("At least one Administrator account is required")
-    sync_legacy_auth(out)
-    return out, item
-
-
-def delete_user(cfg, user_id, current_user_id=""):
-    user_id = str(user_id or "")
-    if not user_id:
-        raise RuntimeError("User ID is required")
-    if current_user_id and user_id == str(current_user_id):
-        raise RuntimeError("You cannot delete the account you are currently using")
-    out = json.loads(json.dumps(cfg))
-    before = len(out.get("users", []))
-    out["users"] = [u for u in out.get("users", []) if str(u.get("id") or "") != user_id]
-    if len(out["users"]) == before:
-        raise RuntimeError("User was not found")
-    if not any(u.get("group") == "administrator" for u in out["users"]):
-        raise RuntimeError("At least one Administrator account is required")
-    sync_legacy_auth(out)
-    return out
-
-
-def integration_catalog():
-    out = []
-    for provider, spec in INTEGRATION_TYPES.items():
-        fields = []
-        for field in spec.get("fields", []):
-            fields.append({k: v for k, v in field.items() if k in ("key", "label", "placeholder", "secret", "required", "input_type")})
-        out.append({"type": provider, "label": spec["label"], "fields": fields})
-    return out
-
-
-def normalize_integration(data, existing=None):
-    existing = existing or {}
-    provider = str(data.get("type") or existing.get("type") or "").strip().lower()
-    spec = INTEGRATION_TYPES.get(provider)
-    if not spec:
-        raise RuntimeError("Unsupported integration type")
-    item = {
-        "id": str(data.get("id") or existing.get("id") or uuid.uuid4().hex[:12])[:64],
-        "type": provider,
-        "name": str(data.get("name") or existing.get("name") or spec["label"]).strip()[:128],
-        "enabled": bool(data.get("enabled", existing.get("enabled", True))),
-    }
-    for field in spec.get("fields", []):
-        key = field["key"]
-        supplied = data.get(key)
-        if field.get("secret") and supplied in (None, "", "<configured>"):
-            value = existing.get(key, "")
-        elif supplied is None:
-            value = existing.get(key, "")
-        else:
-            value = str(supplied).strip()
-        if field.get("required") and not value:
-            raise RuntimeError(f"{field['label']} is required")
-        if key.endswith("url") or key == "url":
-            if value and not str(value).startswith(("http://", "https://")):
-                raise RuntimeError(f"{field['label']} must start with http:// or https://")
-            value = str(value).rstrip("/") if key == "url" else str(value)
-        item[key] = value
-    return item
-
-
-def redacted_integrations(cfg):
-    result = []
-    for source in cfg.get("integrations", []):
-        item = json.loads(json.dumps(source))
-        configured = []
-        spec = INTEGRATION_TYPES.get(item.get("type"), {})
-        for field in spec.get("fields", []):
-            if field.get("secret") and item.get(field["key"]):
-                configured.append(field["key"])
-                item[field["key"]] = "<configured>"
-        item["configured_secrets"] = configured
-        result.append(item)
-    return result
-
-
-def test_integration_connection(item):
-    item = normalize_integration(item, item)
-    provider = item["type"]
-    spec = INTEGRATION_TYPES[provider]
-    label = spec["label"]
-    try:
-        if provider in ("sonarr", "radarr", "lidarr", "prowlarr"):
-            req = urllib.request.Request(item["url"].rstrip("/") + "/api/v3/system/status", headers={"X-Api-Key": item["api_key"], "Accept": "application/json"})
-            with urllib.request.urlopen(req, timeout=7) as resp:
-                data = json.loads(resp.read(200000).decode("utf-8"))
-            version = str(data.get("version") or "").strip()
-        elif provider == "jellyfin":
-            req = urllib.request.Request(item["url"].rstrip("/") + "/System/Info", headers={"X-Emby-Token": item["api_key"], "Accept": "application/json"})
-            with urllib.request.urlopen(req, timeout=7) as resp:
-                data = json.loads(resp.read(200000).decode("utf-8"))
-            version = str(data.get("Version") or data.get("ProductVersion") or "").strip()
-        elif provider == "plex":
-            req = urllib.request.Request(item["url"].rstrip("/") + "/identity", headers={"X-Plex-Token": item["token"]})
-            with urllib.request.urlopen(req, timeout=7) as resp:
-                resp.read(200000)
-            version = ""
-        elif provider == "discord":
-            body = json.dumps({"content": "Torrent Dashboard integration connection test"}).encode("utf-8")
-            req = urllib.request.Request(item["webhook_url"], data=body, headers={"Content-Type": "application/json"}, method="POST")
-            with urllib.request.urlopen(req, timeout=7) as resp:
-                resp.read(200000)
-            version = ""
-        elif provider == "ntfy":
-            headers = {"Title": "Torrent Dashboard Test"}
-            if item.get("access_token"):
-                headers["Authorization"] = f"Bearer {item['access_token']}"
-            req = urllib.request.Request(item["topic_url"], data=b"Integration connection test", headers=headers, method="POST")
-            with urllib.request.urlopen(req, timeout=7) as resp:
-                resp.read(200000)
-            version = ""
-        elif provider == "generic_webhook":
-            body = json.dumps({"title": "Torrent Dashboard Test", "message": "Integration connection test"}).encode("utf-8")
-            req = urllib.request.Request(item["webhook_url"], data=body, headers={"Content-Type": "application/json"}, method="POST")
-            with urllib.request.urlopen(req, timeout=7) as resp:
-                resp.read(200000)
-            version = ""
-        elif provider == "home_assistant":
-            body = json.dumps({"title": "Torrent Dashboard Test", "message": "Integration connection test"}).encode("utf-8")
-            req = urllib.request.Request(item["webhook_url"], data=body, headers={"Content-Type": "application/json"}, method="POST")
-            with urllib.request.urlopen(req, timeout=7) as resp:
-                resp.read(200000)
-            version = ""
-        else:
-            raise RuntimeError("Unsupported integration type")
-        return {"ok": True, "message": f"Connected · {label}{(' ' + version) if version else ''}"}
-    except urllib.error.HTTPError as exc:
-        raise RuntimeError(f"{label} returned HTTP {exc.code}") from exc
-    except urllib.error.URLError as exc:
-        raise RuntimeError(f"Could not connect to {label}: {exc.reason}") from exc
-    except json.JSONDecodeError as exc:
-        raise RuntimeError(f"{label} returned an invalid response") from exc
-
-
-def save_integration(cfg, data):
-    out = json.loads(json.dumps(cfg))
-    integrations = out.setdefault("integrations", [])
-    item_id = str(data.get("id") or "")
-    existing = next((x for x in integrations if str(x.get("id") or "") == item_id), None) if item_id else None
-    item = normalize_integration(data, existing)
-    if existing:
-        integrations[integrations.index(existing)] = item
-    else:
-        integrations.append(item)
-    return out, item
-
-
-def delete_integration(cfg, integration_id):
-    integration_id = str(integration_id or "")
-    if not integration_id:
-        raise RuntimeError("Integration ID is required")
-    out = json.loads(json.dumps(cfg))
-    before = len(out.get("integrations", []))
-    out["integrations"] = [x for x in out.get("integrations", []) if str(x.get("id") or "") != integration_id]
-    if len(out["integrations"]) == before:
-        raise RuntimeError("Integration was not found")
-    return out
-
 
 def normalize_qbittorrent_server(data, existing=None):
     existing = existing or {}
@@ -1391,18 +796,44 @@ class QBitClient:
             "metadata": self._torrent_metadata_json(body),
         }
 
-    def save_torrent_metadata(self, source):
+    def save_torrent_metadata(self, source, torrent_id=""):
         source = str(source or "").strip()[:16000]
-        if not source:
+        torrent_id = str(torrent_id or "").strip()[:256]
+        candidates = []
+        for value in (source, torrent_id):
+            if value and value not in candidates:
+                candidates.append(value)
+        if not candidates:
             raise RuntimeError("Torrent metadata source is required")
-        route = "/api/v2/torrents/saveMetadata?" + urllib.parse.urlencode({"source": source})
-        try:
-            status, body = self._request("GET", route, expect_json=False)
-        except RuntimeError as exc:
-            raise self._metadata_api_error(exc) from exc
-        if not body:
-            raise RuntimeError("qBittorrent returned an empty torrent metadata file")
-        return int(status), body
+
+        errors = []
+        for candidate in candidates:
+            route = "/api/v2/torrents/saveMetadata?" + urllib.parse.urlencode({"source": candidate})
+            try:
+                status, body = self._request("GET", route, expect_json=False)
+                if body:
+                    return int(status), body
+                errors.append(RuntimeError("qBittorrent returned an empty torrent metadata file"))
+            except RuntimeError as exc:
+                errors.append(exc)
+
+        export_hash = torrent_id
+        if not export_hash and re.fullmatch(r"[0-9A-Fa-f]{40}|[0-9A-Fa-f]{64}", source):
+            export_hash = source
+        if export_hash:
+            route = "/api/v2/torrents/export?" + urllib.parse.urlencode({"hash": export_hash})
+            try:
+                status, body = self._request("GET", route, expect_json=False)
+                if body:
+                    return int(status), body
+                errors.append(RuntimeError("qBittorrent returned an empty torrent file"))
+            except RuntimeError as exc:
+                errors.append(exc)
+
+        if errors and all("qBittorrent HTTP 404" in str(error) for error in errors):
+            raise self._metadata_api_error(errors[0]) from errors[0]
+        detail = str(errors[-1]) if errors else "metadata is unavailable"
+        raise RuntimeError(f"Torrent metadata is not available to save yet: {detail}")
 
     def info(self):
         torrents = self.get_json("/api/v2/torrents/info") or []
@@ -1628,15 +1059,18 @@ class QBitClient:
             return self.post("/api/v2/torrents/createCategory", {"category": str(payload.get("category", ""))[:256], "savePath": str(payload.get("save_path", ""))[:2048]})
         if action == "create_tags":
             return self.post("/api/v2/torrents/createTags", {"tags": str(payload.get("tags", ""))[:1024]})
-        if action == "add_magnet":
+        if action in ("add_magnet", "add_torrent"):
             stop_condition = str(payload.get("stop_condition") or "None")
             if stop_condition not in ("None", "MetadataReceived", "FilesChecked"):
                 raise RuntimeError("Unsupported torrent stop condition")
             content_layout = str(payload.get("content_layout") or "Original")
             if content_layout not in ("Original", "Subfolder", "NoSubfolder"):
                 raise RuntimeError("Unsupported torrent content layout")
+            source = str(payload.get("source") if action == "add_torrent" else payload.get("urls", ""))[:16000]
+            if not source.strip():
+                raise RuntimeError("Torrent source is required")
             form = {
-                "urls": str(payload.get("urls", ""))[:16000],
+                "urls": source,
                 "autoTMM": str(bool(payload.get("auto_tmm", False))).lower(),
                 "savepath": str(payload.get("savepath", ""))[:2048],
                 "useDownloadPath": str(bool(payload.get("use_download_path", False))).lower(),
@@ -1654,6 +1088,21 @@ class QBitClient:
                 "dlLimit": max(0, int(payload.get("dl_limit", 0) or 0)),
                 "upLimit": max(0, int(payload.get("ul_limit", 0) or 0)),
             }
+            priorities = payload.get("file_priorities")
+            if priorities is not None:
+                if not isinstance(priorities, list) or len(priorities) > 200000:
+                    raise RuntimeError("Torrent file priorities must be an array")
+                clean_priorities = []
+                for value in priorities:
+                    try:
+                        priority = int(value)
+                    except (TypeError, ValueError) as exc:
+                        raise RuntimeError("Torrent file priorities must be whole numbers") from exc
+                    if priority not in (0, 1, 6, 7):
+                        raise RuntimeError("Unsupported torrent file priority")
+                    clean_priorities.append(str(priority))
+                if clean_priorities:
+                    form["filePriorities"] = ",".join(clean_priorities)
             return self.post("/api/v2/torrents/add", form)
         raise RuntimeError(f"Unsupported action: {action}")
 
@@ -1997,18 +1446,6 @@ def configured_notification_sound(cfg):
     return path, mime
 
 
-def normalize_github_repository(value: str) -> str:
-    value = str(value or "").strip().removesuffix(".git").strip("/")
-    for prefix in ("https://github.com/", "http://github.com/", "github.com/"):
-        if value.lower().startswith(prefix):
-            value = value[len(prefix):].strip("/")
-            break
-    parts = value.split("/")
-    if len(parts) != 2 or not all(re.fullmatch(r"[A-Za-z0-9_.-]+", x or "") for x in parts):
-        raise RuntimeError("GitHub repository must be owner/repo or a github.com repository URL")
-    return "/".join(parts)
-
-
 def github_headers(accept="application/vnd.github+json"):
     return {
         "User-Agent": f"TorrentDashboard/{VERSION}",
@@ -2054,16 +1491,6 @@ def _urlopen_bytes(url: str, timeout=15, headers=None, max_bytes=8*1024*1024):
         return data
 
 
-def _version_key(value: str):
-    raw = str(value or "0").strip().lstrip("vV")
-    main, sep, pre = raw.partition("-")
-    nums=[]
-    for part in main.split("."):
-        m=re.match(r"^(\d+)",part)
-        nums.append(int(m.group(1)) if m else 0)
-    nums=(nums+[0,0,0,0])[:4]
-    pre_key=(1,"") if not sep else (0,pre.lower())
-    return (*nums, *pre_key)
 
 
 def is_newer_version(candidate: str, current: str = VERSION) -> bool:
@@ -2093,21 +1520,16 @@ def _latest_github_release(cfg, repo: str):
     return releases[0]
 
 
-def _find_dashboard_asset(release):
-    assets=release.get("assets") or []
-    candidates=[a for a in assets if re.fullmatch(r"Torrent-Dashboard-[0-9A-Za-z.+-]+\.zip", str(a.get("name") or ""))]
-    if not candidates:
-        candidates=[a for a in assets if str(a.get("name") or "").lower().endswith(".zip")]
-    return candidates[0] if candidates else None
 
 
-def _asset_sha256(asset):
-    digest=str((asset or {}).get("digest") or "").strip().lower()
-    if digest.startswith("sha256:"):
-        digest=digest.split(":",1)[1]
-    if not re.fullmatch(r"[0-9a-f]{64}",digest):
-        raise RuntimeError("GitHub did not provide a SHA-256 digest for the release ZIP")
-    return digest
+
+
+
+
+
+
+
+
 
 
 def validate_update_repository(repository: str):
@@ -2127,9 +1549,18 @@ def validate_update_repository(repository: str):
     return str(info.get("full_name") or repo)
 
 
+
+
+
+
+
+
 def fetch_update_release(cfg):
     repo = validate_update_repository(update_repository(cfg))
-    release=_latest_github_release(cfg,repo)
+    releases=_github_releases(cfg,repo)
+    if not releases:
+        raise RuntimeError("No GitHub release was found for the configured repository")
+    release=releases[0]
     tag=str(release.get("tag_name") or "").strip()
     version=tag.lstrip("vV")
     if not re.fullmatch(r"\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?",version):
@@ -2140,12 +1571,14 @@ def fetch_update_release(cfg):
     api_url=str(asset.get("url") or "")
     if not api_url.startswith("https://api.github.com/"):
         raise RuntimeError("GitHub release asset URL is invalid")
+    integrity_history=_github_release_integrity(releases,20)
     data={
         "version":version,
         "channel":"prerelease" if release.get("prerelease") else "stable",
         "publishedAt":str(release.get("published_at") or release.get("created_at") or ""),
         "releaseUrl":str(release.get("html_url") or ""),
         "notes":str(release.get("body") or ""),
+        "title":str(release.get("name") or f"Torrent Dashboard v{version}"),
         "asset":{
             "name":str(asset.get("name") or f"Torrent-Dashboard-{version}.zip"),
             "githubApiUrl":api_url,
@@ -2154,8 +1587,21 @@ def fetch_update_release(cfg):
             "size":int(asset.get("size") or 0),
         },
         "currentVersion":VERSION,
+        "releaseHistory":integrity_history[:2],
     }
+    try:
+        write_release_integrity_cache(integrity_history)
+    except Exception:
+        pass
     data["updateAvailable"]=is_newer_version(version)
+    if version == VERSION and not installed_release_info():
+        try:
+            write_release_info(RELEASE_INFO_PATH,_release_info_payload(
+                version,data["asset"]["name"],data["asset"]["sha256"],repo,data.get("releaseUrl",""),
+                data.get("publishedAt",""),data.get("channel",""),str(release.get("target_commitish") or ""),
+            ))
+        except Exception:
+            pass
     return data
 
 # Compatibility alias for older front-end/update-state code. The update
@@ -2163,6 +1609,10 @@ def fetch_update_release(cfg):
 # no external update-manifest.json asset.
 def fetch_update_manifest(cfg):
     return fetch_update_release(cfg)
+
+
+
+
 
 def update_state():
     if not UPDATE_STATE_PATH.exists(): return {"state":"idle","currentVersion":VERSION}
@@ -2184,11 +1634,6 @@ def write_update_state(data):
     return payload
 
 
-def sha256_file(path: Path):
-    h=hashlib.sha256()
-    with path.open("rb") as f:
-        for chunk in iter(lambda:f.read(1024*1024),b""): h.update(chunk)
-    return h.hexdigest()
 
 
 def safe_extract_zip(zip_path: Path, dest: Path):
@@ -2243,6 +1688,10 @@ def stage_update(cfg):
             package.unlink(missing_ok=True)
             raise RuntimeError("Downloaded update size does not match the GitHub release asset")
         source=safe_extract_zip(package,stage/"extracted")
+        write_release_info(source/"release-info.json",_release_info_payload(
+            version,manifest["asset"]["name"],got,update_repository(cfg),manifest.get("releaseUrl",""),
+            manifest.get("publishedAt",""),manifest.get("channel",""),
+        ))
         payload={"state":"readyToInstall","version":version,"package":str(package),"source":str(source),"manifest":manifest,"sha256":got,"bytes":total}
         write_update_state(payload)
         return payload
@@ -2420,9 +1869,9 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json(403,{"error":"Administrator access is required"},new_cookie)
 
         if path=="/api/torrent-metadata/save":
-            sid=qs.get("server",["local"])[0]; source=qs.get("source",[""])[0]
+            sid=qs.get("server",["local"])[0]; source=qs.get("source",[""])[0]; torrent_id=qs.get("hash",[""])[0]
             try:
-                _,body=get_client(cfg,sid).save_torrent_metadata(source)
+                _,body=get_client(cfg,sid).save_torrent_metadata(source,torrent_id)
                 return self.send_bytes(200,body,"application/x-bittorrent",new_cookie,{"Content-Disposition":'attachment; filename="torrent.torrent"'})
             except Exception as e:
                 return self.send_json(502,{"error":str(e)},new_cookie)
@@ -2500,14 +1949,14 @@ class Handler(BaseHTTPRequestHandler):
         try:
             if path=="/api/account":
                 data=parse_json_body(self,20000)
-                updated,user=save_current_user_profile(cfg,sess.get("user_id",""),data)
-                save_config(updated); SESSIONS.update_user(user)
+                updated,user=mutate_config(lambda current: save_current_user_profile(current,sess.get("user_id",""),data))
+                SESSIONS.update_user(user)
                 HISTORY.event("dashboard","account_profile_changed",user.get("username",""),"",{"client_ip":self.client_ip()})
                 return self.send_json(200,{"ok":True,"user":public_user(user)},new_cookie)
             if path=="/api/account/password":
                 data=parse_json_body(self,20000)
-                updated,user=change_current_user_password(cfg,sess.get("user_id",""),data.get("current_password"),data.get("new_password"))
-                save_config(updated); SESSIONS.remove_user_except(user.get("id",""),token)
+                updated,user=mutate_config(lambda current: change_current_user_password(current,sess.get("user_id",""),data.get("current_password"),data.get("new_password")))
+                SESSIONS.remove_user_except(user.get("id",""),token)
                 HISTORY.event("dashboard","account_password_changed",user.get("username",""),"",{"client_ip":self.client_ip()})
                 return self.send_json(200,{"ok":True},new_cookie)
             if path=="/api/account/avatar":
@@ -2515,13 +1964,11 @@ class Handler(BaseHTTPRequestHandler):
                 if not files:
                     raise RuntimeError("Choose a profile picture")
                 _,filename,content=files[0]
-                updated,user=store_user_avatar(cfg,sess.get("user_id",""),filename,content)
-                save_config(updated)
+                updated,user=mutate_config(lambda current: store_user_avatar(current,sess.get("user_id",""),filename,content))
                 HISTORY.event("dashboard","account_avatar_changed",user.get("username",""),"",{"client_ip":self.client_ip()})
                 return self.send_json(200,{"ok":True,"user":public_user(user)},new_cookie)
             if path=="/api/account/avatar/delete":
-                updated,user=remove_user_avatar(cfg,sess.get("user_id",""))
-                save_config(updated)
+                updated,user=mutate_config(lambda current: remove_user_avatar(current,sess.get("user_id","")))
                 HISTORY.event("dashboard","account_avatar_removed",user.get("username",""),"",{"client_ip":self.client_ip()})
                 return self.send_json(200,{"ok":True,"user":public_user(user)},new_cookie)
             if not session_is_admin(sess):
@@ -2564,27 +2011,32 @@ class Handler(BaseHTTPRequestHandler):
                 item=normalize_integration(data,existing)
                 return self.send_json(200,test_integration_connection(item),new_cookie)
             if path=="/api/integrations":
-                data=parse_json_body(self,20000); updated,item=save_integration(cfg,data); save_config(updated)
+                data=parse_json_body(self,20000); updated,item=mutate_config(lambda current: save_integration(current,data))
                 HISTORY.event("dashboard","integration_saved",item.get("name",item.get("type","")),"",{"client_ip":self.client_ip(),"type":item.get("type")})
                 return self.send_json(200,{"ok":True,"integration":redacted_integrations({"integrations":[item]})[0]},new_cookie)
             if path=="/api/integrations/delete":
-                data=parse_json_body(self,10000); iid=str(data.get("id") or ""); updated=delete_integration(cfg,iid); save_config(updated)
+                data=parse_json_body(self,10000); iid=str(data.get("id") or ""); updated,_=mutate_config(lambda current: (delete_integration(current,iid),None))
                 HISTORY.event("dashboard","integration_deleted",iid,"",{"client_ip":self.client_ip()})
                 return self.send_json(200,{"ok":True},new_cookie)
             if path=="/api/users":
-                data=parse_json_body(self,20000); updated,user=save_user(cfg,data); save_config(updated); SESSIONS.update_user(user)
+                data=parse_json_body(self,20000); updated,user=mutate_config(lambda current: save_user(current,data)); SESSIONS.update_user(user)
                 HISTORY.event("dashboard","user_saved",user.get("username",""),"",{"client_ip":self.client_ip(),"group":user.get("group")})
                 return self.send_json(200,{"ok":True,"user":public_user(user)},new_cookie)
             if path=="/api/users/delete":
-                data=parse_json_body(self,10000); uid=str(data.get("id") or ""); updated=delete_user(cfg,uid,sess.get("user_id","")); save_config(updated); delete_user_avatar_files(uid); SESSIONS.remove_user(uid)
+                data=parse_json_body(self,10000); uid=str(data.get("id") or ""); updated,_=mutate_config(lambda current: (delete_user(current,uid,sess.get("user_id","")),None)); delete_user_avatar_files(uid); SESSIONS.remove_user(uid)
                 HISTORY.event("dashboard","user_deleted",uid,"",{"client_ip":self.client_ip()})
                 return self.send_json(200,{"ok":True},new_cookie)
             if path=="/api/settings":
-                data=parse_json_body(self); updated=apply_settings_update(cfg,data); save_config(updated)
+                data=parse_json_body(self); updated,_=mutate_config(lambda current: (apply_settings_update(current,data),None))
                 HISTORY.event("dashboard", "settings_changed", sess.get("username",""), "", {"client_ip": self.client_ip()})
                 return self.send_json(200,{"ok":True,"settings":redacted_config(updated)},new_cookie)
             if path=="/api/update-source":
-                data=parse_json_body(self,10000); previous_repo=update_repository(cfg); updated,repo=save_update_source(cfg,data.get("repository") or ""); save_config(updated)
+                data=parse_json_body(self,10000)
+                def update_source_mutation(current):
+                    previous_repo=update_repository(current)
+                    updated,repo=save_update_source(current,data.get("repository") or "")
+                    return updated,(previous_repo,repo)
+                updated,(previous_repo,repo)=mutate_config(update_source_mutation)
                 if repo != previous_repo:
                     UPDATE_STATE_PATH.unlink(missing_ok=True)
                     if UPDATE_DIR.exists(): shutil.rmtree(UPDATE_DIR, ignore_errors=True)
@@ -2604,8 +2056,7 @@ class Handler(BaseHTTPRequestHandler):
                 if not files:
                     raise RuntimeError("Choose a custom sound file")
                 _, filename, content = files[0]
-                updated, info = store_custom_notification_sound(cfg, filename, content)
-                save_config(updated)
+                updated, info = mutate_config(lambda current: store_custom_notification_sound(current, filename, content))
                 HISTORY.event("dashboard","notification_sound_changed",info.get("name", ""),"",{"client_ip":self.client_ip()})
                 return self.send_json(200,{"ok":True,**info},new_cookie)
             if path=="/api/notification-test":
@@ -2675,7 +2126,11 @@ class Handler(BaseHTTPRequestHandler):
             out["integrations"]=[]
             sync_legacy_auth(out)
             out["servers"]=normalized
-            save_config(out)
+            def commit_setup(current):
+                if current.get("setup",{}).get("complete"):
+                    raise RuntimeError("Setup has already been completed")
+                return out,None
+            out,_=mutate_config(commit_setup)
             with CACHE_LOCK:
                 CLIENTS.clear()
             with CACHE_LOCK:
@@ -2719,33 +2174,24 @@ class Handler(BaseHTTPRequestHandler):
         try:
             repo = update_repository(cfg)
         except Exception as e:
-            return self.send_json(200,{"configured":False,"currentVersion":VERSION,"error":str(e),"state":update_state()},new_cookie)
+            return self.send_json(200,{"configured":False,"currentVersion":VERSION,"error":str(e),"state":update_state(),"releaseHistory":local_release_history()},new_cookie)
         try:
             manifest=fetch_update_manifest(cfg)
-            return self.send_json(200,{"configured":True,"repository":repo,"currentVersion":VERSION,"manifest":manifest,"updateAvailable":manifest.get("updateAvailable",False),"state":update_state()},new_cookie)
+            return self.send_json(200,{"configured":True,"repository":repo,"currentVersion":VERSION,"manifest":manifest,"updateAvailable":manifest.get("updateAvailable",False),"state":update_state(),"releaseHistory":local_release_history(manifest)},new_cookie)
         except Exception as e:
-            return self.send_json(502,{"configured":True,"repository":repo,"currentVersion":VERSION,"error":str(e),"state":update_state()},new_cookie)
+            return self.send_json(502,{"configured":True,"repository":repo,"currentVersion":VERSION,"error":str(e),"state":update_state(),"releaseHistory":local_release_history()},new_cookie)
 
 
 def redacted_config(cfg):
-    out=json.loads(json.dumps(cfg))
-    out.setdefault("auth",{}).pop("password_hash",None)
-    out.setdefault("auth",{}).pop("username",None)
-    for s in out.get("servers",[]):
-        if s.get("password"): s["password"]="<configured>"
-        if s.get("api_key"): s["api_key"]="<configured>"
-    out["users"]=[public_user(u) for u in cfg.get("users",[])]
-    out["integrations"]=redacted_integrations(cfg)
-    n=out.get("notifications",{})
-    for secret in ("gotify_token","telegram_bot_token"):
-        if n.get(secret): n[secret]="<configured>"
-    out["runtime"]={
+    out = public_config(cfg)
+    out["runtime"] = {
         "detected_lan": detect_lan_network(),
         "local_ip": local_lan_ip(),
         "network_interfaces": detect_network_interfaces(),
-        "trusted_interface_networks": interface_networks(cfg.get("auth",{}).get("trusted_interfaces",[])),
-        "effective_trusted_cidrs": effective_trusted_cidrs(cfg.get("auth",{})),
+        "trusted_interface_networks": interface_networks(cfg.get("auth", {}).get("trusted_interfaces", [])),
+        "effective_trusted_cidrs": effective_trusted_cidrs(cfg.get("auth", {})),
         "updateState": update_state(),
+        "releaseHistory": local_release_history(),
     }
     return out
 
@@ -2794,13 +2240,15 @@ def apply_settings_update(cfg,data):
 
 
 def set_password_cli(password):
-    cfg=load_config()
-    admin=next((u for u in cfg.get("users",[]) if u.get("group")=="administrator"),None)
-    if admin:
-        admin["password_hash"]=hash_password(password)
-    else:
-        cfg.setdefault("users",[]).append(normalize_user({"username":cfg.get("auth",{}).get("username") or "admin","password":password,"group":"administrator"},require_password=True))
-    sync_legacy_auth(cfg); save_config(cfg)
+    def update_password(cfg):
+        admin=next((u for u in cfg.get("users",[]) if u.get("group")=="administrator"),None)
+        if admin:
+            admin["password_hash"]=hash_password(password)
+        else:
+            cfg.setdefault("users",[]).append(normalize_user({"username":cfg.get("auth",{}).get("username") or "admin","password":password,"group":"administrator"},require_password=True))
+        sync_legacy_auth(cfg)
+        return cfg,None
+    mutate_config(update_password)
     print("Dashboard password updated.")
 
 

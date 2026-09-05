@@ -1,16 +1,15 @@
-name: Torrent Dashboard Pre-Release
+name: Publish Refactor Pre-Release
 
 on:
   push:
     branches:
-      - main
-  workflow_dispatch:
+      - prerelease/backend-modularization
 
 permissions:
   contents: write
 
 concurrency:
-  group: torrent-dashboard-prerelease
+  group: torrent-dashboard-refactor-prerelease
   cancel-in-progress: true
 
 jobs:
@@ -27,15 +26,7 @@ jobs:
         with:
           python-version: '3.13'
 
-      - name: Apply Pending Feature Update
-        shell: bash
-        run: |
-          if [ -f release_tools/apply_feature_update.py ]; then
-            python release_tools/apply_feature_update.py
-            rm -f release_tools/apply_feature_update.py
-          fi
-
-      - name: Validate Source
+      - name: Validate Refactored Source
         shell: bash
         run: |
           python release_tools/validate_source.py
@@ -50,19 +41,6 @@ jobs:
             throw new Error('settings.js did not initialize window.TDSettings');
           }
           JS
-
-      - name: Commit Applied Feature Update
-        id: source
-        shell: bash
-        run: |
-          if [ -n "$(git status --porcelain)" ]; then
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add -A
-            git commit -m "Apply pending feature update"
-            git push origin HEAD:main
-          fi
-          echo "release_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Determine Version
         id: version
@@ -117,24 +95,21 @@ jobs:
               names=[n for n in z.namelist() if not n.endswith('/')]
           required=(
               '/dashboard.py',
-              '/updater.py',
               '/torrent_dashboard/__init__.py',
               '/torrent_dashboard/users.py',
               '/torrent_dashboard/config_store.py',
               '/torrent_dashboard/config.py',
               '/torrent_dashboard/integrations.py',
+              '/torrent_dashboard/release_provenance.py',
               '/ARCHITECTURE.md',
               '/PROJECT_STATE.md',
               '/CHANGELOG.md',
               '/release_notes/releases.json',
-              '/static/index.html',
-              '/static/app.js',
-              '/static/settings.js',
+              '/updater.py',
           )
           for suffix in required:
               assert any(n.endswith(suffix) for n in names), suffix
           assert not any(n.endswith('apply_feature_update.py') for n in names)
-          assert not any('cleanup.part' in n for n in names)
           info=json.loads(info_path.read_text(encoding='utf-8'))
           digest=hashlib.sha256(path.read_bytes()).hexdigest()
           assert info['version'] == version
@@ -146,14 +121,13 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.version.outputs.tag }}
-          RELEASE_SHA: ${{ steps.source.outputs.release_sha }}
         shell: bash
         run: |
           ZIP="dist/Torrent-Dashboard-${{ steps.version.outputs.version }}.zip"
           INFO="dist/Torrent-Dashboard-${{ steps.version.outputs.version }}.release.json"
           gh release create "$TAG" \
             "$ZIP" "$INFO" \
-            --target "$RELEASE_SHA" \
+            --target "$GITHUB_SHA" \
             --title "Torrent Dashboard $TAG Pre-Release" \
             --notes-file dist/release-notes.md \
             --prerelease
