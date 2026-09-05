@@ -259,3 +259,11 @@ On narrow layouts the summary stays above the two disclosure actions and the act
 - The Add Torrent Expand all folders and Collapse all folders Material controls are one horizontal action pair.
 - Generic Add Torrent preview-heading copy layout must not apply `display:grid` to `.add-content-folder-actions`; keep the action wrapper as the explicit non-wrapping flex row.
 - The pair may move as a unit when space is constrained, but the two icon buttons must remain side-by-side.
+
+
+## Mobile Add Torrent action dock
+
+- At mobile widths, Add Torrent is sized to the browser's visual viewport rather than the larger layout viewport so browser chrome and the on-screen keyboard cannot hide the final action row.
+- The Add Torrent header and footer are fixed structural regions of the modal; only the options/preview body scrolls.
+- The footer respects bottom safe-area insets and keeps **Save .torrent file**, **Cancel**, and **Add torrent** continuously reachable after metadata expands the content preview.
+- Mobile viewport handling is presentation-only. Metadata generation, file selection/priorities, and the qBitTorrent add request remain unchanged.

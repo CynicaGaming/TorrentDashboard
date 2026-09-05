@@ -1,5 +1,5 @@
 'use strict';
-const FRONTEND_BUILD='0.5.120';
+const FRONTEND_BUILD='0.5.121';
 const HTML_BUILD=document.querySelector('meta[name="torrent-dashboard-build"]')?.content||'';
 const RECOVERY_KEY=`td-frontend-recovery-${FRONTEND_BUILD}`;
 async function recoverFrontendBuild(reason){
@@ -18,6 +18,17 @@ sessionStorage.removeItem(RECOVERY_KEY);
 window.addEventListener('error',event=>console.error('[Torrent Dashboard] Uncaught error',event.error||event.message));
 window.addEventListener('unhandledrejection',event=>console.error('[Torrent Dashboard] Unhandled promise rejection',event.reason));
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+function syncVisualViewportMetrics(){
+  const viewport=window.visualViewport;
+  const height=Math.max(1,Math.round(viewport?.height||window.innerHeight||1));
+  const offsetTop=Math.max(0,Math.round(viewport?.offsetTop||0));
+  document.documentElement.style.setProperty('--td-visual-viewport-height',`${height}px`);
+  document.documentElement.style.setProperty('--td-visual-viewport-top',`${offsetTop}px`);
+}
+syncVisualViewportMetrics();
+window.addEventListener('resize',syncVisualViewportMetrics);
+window.visualViewport?.addEventListener('resize',syncVisualViewportMetrics);
+window.visualViewport?.addEventListener('scroll',syncVisualViewportMetrics);
 
 const UI_SPECIAL={torrentdashboard:'Torrent Dashboard',homeassistant:'Home Assistant',qbittorrent:'qBitTorrent',github:'GitHub',api:'API',ip:'IP',cidr:'CIDR',url:'URL',lan:'LAN',nic:'NIC',https:'HTTPS',http:'HTTP',ui:'UI',pwa:'PWA',exe:'EXE',eta:'ETA',id:'ID',pc:'PC',nas:'NAS',ntfy:'ntfy',sonarr:'Sonarr',radarr:'Radarr',lidarr:'Lidarr',prowlarr:'Prowlarr',jellyfin:'Jellyfin',plex:'Plex',discord:'Discord',windows:'Windows'};
 function uiText(value=''){
@@ -627,6 +638,7 @@ async function loadAddTorrentClientDefaults(){
 }
 function openAddTorrent(){
   if(state.server==='all')return toast('Select a specific client first','error');
+  syncVisualViewportMetrics();
   $('#addModal').classList.remove('hidden');syncAddTorrentOptions();syncAddSourceModeUi();loadAddTorrentClientDefaults();scheduleAddMetadataPreview(0);
   setTimeout(()=>addMetadataState.mode==='file'?$('#addTorrentDrop')?.focus():$('#addUrls')?.focus(),0);
 }

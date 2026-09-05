@@ -6,7 +6,7 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.120** (prerelease)
+- Latest documented build: **v0.5.121** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 - Upstream development branch: `refactor/backend-modularization-users`
 - Upstream prerelease branch: `prerelease/backend-modularization`
@@ -14,7 +14,7 @@
 
 ### Latest release summary
 
-Fixes CSS cascade precedence so the Add Torrent Material Expand all and Collapse all folder controls actually render beside each other instead of stacking vertically.
+Keeps the Add Torrent action footer continuously reachable on phones by sizing the modal to the actual visual viewport while metadata/options scroll independently.
 
 ## Current engineering decisions
 
@@ -80,6 +80,14 @@ Fixes CSS cascade precedence so the Add Torrent Material Expand all and Collapse
 
 ## Recent work
 
+### v0.5.121 — Mobile Add Torrent action dock
+
+Keeps the Add Torrent action footer continuously reachable on phones by sizing the modal to the actual visual viewport while metadata/options scroll independently.
+
+- Add Torrent now follows the mobile browser visual viewport instead of relying on static vh sizing.
+- Save .torrent file, Cancel, and Add torrent remain docked outside the scrolling metadata/options body.
+- The mobile action footer reserves safe-area clearance and retains full touch targets when browser chrome or the software keyboard reduces usable space.
+
 ### v0.5.120 — Side-by-side Add Torrent folder controls
 
 Fixes CSS cascade precedence so the Add Torrent Material Expand all and Collapse all folder controls actually render beside each other instead of stacking vertically.
@@ -112,15 +120,6 @@ Adds a compact Material-style notification bell for recent completed torrents wh
 - Opening the bell marks the currently scoped completion entries seen; Clear dismisses those bell entries only in the current browser.
 - View all notifications opens the existing Notifications destination for complete torrent, security, account, update, integration, and system history.
 - The bell follows the selected client scope and is responsive on both desktop and mobile without replacing existing browser/sound completion notifications.
-
-### v0.5.116 — Persistent Torrent Details shell
-
-Keeps Torrent Details structurally populated when no torrent is selected, without instructional empty-state copy.
-
-- Desktop now opens the no-selection Torrent Details shell by default with all existing detail tabs available.
-- General preserves its normal progress, Transfer, Swarm, and Information structure with em-dash placeholders instead of an empty message.
-- Trackers, Peers, HTTP sources, and Content retain their structural headers/templates without inventing torrent data.
-- Animated skeleton placeholders are used only while a selected torrent's detail request is loading; mobile remains collapsed by default.
 
 ## What to do next
 

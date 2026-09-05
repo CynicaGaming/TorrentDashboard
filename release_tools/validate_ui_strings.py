@@ -873,6 +873,19 @@ def main():
     assert '## Add Torrent folder control row' in design_language
     assert '### Add Torrent folder control row' in testing_md
 
+    # 0.5.121 keeps the mobile Add Torrent action footer inside the actual visual viewport.
+    assert 'function syncVisualViewportMetrics()' in app_js
+    assert "window.visualViewport?.addEventListener('resize',syncVisualViewportMetrics)" in app_js
+    assert "window.visualViewport?.addEventListener('scroll',syncVisualViewportMetrics)" in app_js
+    assert "syncVisualViewportMetrics();\n  $('#addModal').classList.remove('hidden');" in app_js
+    assert '--td-visual-viewport-height' in app_css and '--td-visual-viewport-top' in app_css
+    assert '#addModal{place-items:start center' in app_css
+    assert '.add-torrent-footer{position:relative;bottom:auto;z-index:4' in app_css
+    assert 'height:96vh;max-height:96vh' not in app_css
+    assert 'min-height:44px' in app_css
+    assert '## Mobile Add Torrent action dock' in design_language
+    assert '### Mobile Add Torrent action dock' in testing_md
+
     print("UI string audit passed")
 
 

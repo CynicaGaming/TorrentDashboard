@@ -360,3 +360,13 @@ Manual regression coverage:
 - Verify this at desktop and narrow/mobile modal widths. The pair may move below the file summary, but the buttons must never stack vertically.
 - Confirm individual folder disclosure, Expand all, Collapse all, disabled-state transitions, file selections, and file priorities are unchanged.
 - The source audit rejects the old generic `.add-preview-heading div` grid selector so it cannot override the folder-action flex wrapper again.
+
+
+### Mobile Add Torrent action dock
+
+- At 820 px and below, open Add Torrent and verify the header and bottom action row stay visible while the options/metadata body scrolls independently.
+- Generate metadata for a torrent with enough files/folders to make the preview substantially taller than the phone viewport; **Add torrent**, **Cancel**, and **Save .torrent file** must remain reachable without scrolling the footer into view.
+- Repeat with the browser's address/navigation chrome visible and verify the action row is not clipped behind it.
+- Focus a text field so the on-screen keyboard opens, then scroll the modal body and verify the action footer remains inside the visible viewport; dismiss the keyboard and verify the modal expands back to the available viewport height.
+- On a device with a bottom safe area/home indicator, verify the footer has usable clearance and the primary **Add torrent** control remains a full touch target.
+- Submit both a magnet-metadata add and a parsed `.torrent` add from mobile and verify the existing qBitTorrent request behavior and selected file priorities are unchanged.

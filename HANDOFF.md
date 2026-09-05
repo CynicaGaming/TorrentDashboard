@@ -7,14 +7,14 @@
 This handoff is intentionally portable across public forks. Verify the current checkout's Git remote, branch, and open work before using upstream references as instructions.
 
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
-- Last documented upstream build: **v0.5.120** (prerelease)
+- Last documented upstream build: **v0.5.121** (prerelease)
 - Upstream development branch: `refactor/backend-modularization-users`
 - Upstream prerelease branch: `prerelease/backend-modularization`
 - Upstream active PR: **#25**
 
 ## Last known-good state
 
-Fixes CSS cascade precedence so the Add Torrent Material Expand all and Collapse all folder controls actually render beside each other instead of stacking vertically.
+Keeps the Add Torrent action footer continuously reachable on phones by sizing the modal to the actual visual viewport while metadata/options scroll independently.
 
 The released-state details and recent history are in `PROJECT_STATE.md`; architectural constraints are in `ARCHITECTURE.md`.
 
