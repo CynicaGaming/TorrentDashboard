@@ -4882,6 +4882,30 @@
           "detail": "Extend another integration using the same provider module boundary instead of adding provider transport logic directly to dashboard.py."
         }
       ]
+    },
+    {
+      "version": "0.5.125",
+      "date": "2026-09-06",
+      "status": "prerelease",
+      "title": "Integration accordion chevron fix",
+      "summary": "Fixes the Integrations accordion disclosure indicator so its Material-style chevron visibly follows the expanded and collapsed state.",
+      "highlights": [
+        "Replaces the static integration dropdown glyph with the same locally embedded Material-style chevron used by Jellyfin scheduled tasks.",
+        "Rotates the integration chevron from right when collapsed to down when expanded, including the initially open integration."
+      ],
+      "fixes": [
+        "The Jellyfin integration header no longer appears to have a non-working chevron while its accordion body opens and closes."
+      ],
+      "technical": [
+        "Chevron orientation is driven directly by the parent summary button's aria-expanded state, keeping visual and accessibility state synchronized."
+      ],
+      "validation": [
+        "Full source validation, unit tests, UI-string validation, and JavaScript syntax checks are required before publication."
+      ],
+      "known_issues": [],
+      "architecture": [],
+      "decisions": [],
+      "next_steps": []
     }
   ]
 }

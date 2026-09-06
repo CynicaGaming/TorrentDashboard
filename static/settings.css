@@ -180,3 +180,10 @@
 .jellyfin-task-clock{display:grid;place-items:center;width:26px;height:26px;border-radius:999px;color:var(--accent);background:color-mix(in srgb,var(--accent) 14%,transparent)}.jellyfin-task-clock .material-symbol-icon{width:17px;height:17px;fill:currentColor}.jellyfin-task-copy{display:grid;gap:2px;min-width:0}.jellyfin-task-copy strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10.5px;color:var(--text)}.jellyfin-task-copy span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:8.5px;color:var(--muted)}.jellyfin-task-row.running .jellyfin-task-copy span{color:var(--accent)}.jellyfin-task-row.failed .jellyfin-task-copy span{color:var(--bad)}
 .jellyfin-task-action{display:grid;place-items:center;width:30px;height:30px;min-width:30px;padding:0;border:0;border-radius:8px;background:transparent;color:var(--text)}.jellyfin-task-action:hover{background:var(--panel3);color:var(--accent)}.jellyfin-task-action:disabled{opacity:.45}.jellyfin-task-action .material-symbol-icon{width:20px;height:20px;fill:currentColor}
 @media(max-width:700px){.jellyfin-task-row{grid-template-columns:26px minmax(0,1fr) 30px;gap:7px}.jellyfin-task-copy strong{font-size:10px}.jellyfin-task-copy span{white-space:normal;line-height:1.35}}
+
+
+/* 0.5.125 integration accordion chevron state */
+.integration-item>.accordion-summary>.accordion-chevron{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;transition:transform .16s ease;transform:rotate(0deg);transform-origin:center}
+.integration-item>.accordion-summary>.accordion-chevron .material-symbol-icon{width:18px;height:18px;fill:currentColor}
+.integration-item>.accordion-summary[aria-expanded="true"]>.accordion-chevron{transform:rotate(90deg)}
+@media(prefers-reduced-motion:reduce){.integration-item>.accordion-summary>.accordion-chevron{transition:none}}

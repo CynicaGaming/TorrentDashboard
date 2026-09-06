@@ -6,25 +6,12 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.124** (prerelease)
+- Latest documented build: **v0.5.125** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 
 ### Latest release summary
 
-Adds a compact Scheduled tasks panel to saved Jellyfin integrations, dynamically showing Jellyfin and plugin tasks with last-run timing plus explicit run and stop controls.
-
-## Architecture state
-
-- Jellyfin transport and response normalization remain in torrent_dashboard/jellyfin.py; dashboard.py only exposes authenticated composition routes.
-- Jellyfin credentials remain server-side and scheduled-task responses are reduced to browser-safe operational metadata.
-- The Integrations Settings accordion remains the single Jellyfin operational surface.
-
-## Current engineering decisions
-
-- Discover scheduled tasks dynamically instead of hard-coding Jellyfin defaults so plugin-provided tasks are supported automatically.
-- Keep scheduled tasks collapsed beneath the Jellyfin integration by default to preserve the compact Settings hierarchy.
-- Only poll task state while work is actively running and the integration remains open.
-- Do not add trigger/schedule editing in the first scheduled-task increment.
+Fixes the Integrations accordion disclosure indicator so its Material-style chevron visibly follows the expanded and collapsed state.
 
 ## Development principles
 
@@ -36,6 +23,13 @@ Adds a compact Scheduled tasks panel to saved Jellyfin integrations, dynamically
 - Keep public development continuity portable across forks; label canonical repository/branch/PR references as upstream context rather than local identity.
 
 ## Recent work
+
+### v0.5.125 — Integration accordion chevron fix
+
+Fixes the Integrations accordion disclosure indicator so its Material-style chevron visibly follows the expanded and collapsed state.
+
+- Replaces the static integration dropdown glyph with the same locally embedded Material-style chevron used by Jellyfin scheduled tasks.
+- Rotates the integration chevron from right when collapsed to down when expanded, including the initially open integration.
 
 ### v0.5.124 — Jellyfin scheduled task controls
 
@@ -70,22 +64,9 @@ Keeps the Add Torrent action footer continuously reachable on phones by sizing t
 - Save .torrent file, Cancel, and Add torrent remain docked outside the scrolling metadata/options body.
 - The mobile action footer reserves safe-area clearance and retains full touch targets when browser chrome or the software keyboard reduces usable space.
 
-### v0.5.120 — Side-by-side Add Torrent folder controls
-
-Fixes CSS cascade precedence so the Add Torrent Material Expand all and Collapse all folder controls actually render beside each other instead of stacking vertically.
-
-- Keeps the two Add Torrent bulk folder disclosure icons in one horizontal row on desktop and mobile.
-- Narrows the older preview-heading grid rule so it applies only to heading-copy containers and no longer overrides the folder-action flex wrapper.
-
 ## What to do next
 
-1. **Smoke-test Jellyfin task controls** — Verify task discovery, last-run timing, play/stop behavior, and plugin task categories against the maintainer's Jellyfin server.
-2. **Decide whether trigger editing is useful** — After the run/stop surface is validated, decide whether Torrent Dashboard should expose Jellyfin task trigger schedules or keep scheduling in Jellyfin.
-3. **Continue service integration runtime work** — Extend another integration using the same provider module boundary instead of adding provider transport logic directly to dashboard.py.
-
-## Known issues
-
-- This increment runs and stops scheduled tasks but does not edit Jellyfin task trigger schedules.
+No next steps are recorded in the latest release metadata.
 
 ## Handoff instructions for a new development session
 

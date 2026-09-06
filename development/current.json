@@ -1,12 +1,12 @@
 {
   "schema": 1,
   "status": "ready",
-  "objective": "Validate Jellyfin scheduled task controls and continue service-integration runtime work",
-  "why": "v0.5.124 extends the recovered Jellyfin runtime with dynamic scheduled-task discovery and explicit run/stop controls while keeping credentials and transport server-side.",
+  "objective": "Validate Jellyfin scheduled tasks and integration disclosure behavior",
+  "why": "v0.5.125 corrects the parent integration chevron while preserving the v0.5.124 dynamic Jellyfin scheduled-task controls.",
   "acceptance_criteria": [
-    "Jellyfin default and plugin-provided scheduled tasks appear under the saved Jellyfin integration with accurate category, last-run, duration, and running state.",
-    "Run starts the selected task and a running task exposes a stop control without exposing the Jellyfin API key to the browser.",
-    "Task polling stops when no tasks are running or the parent integration is collapsed."
+    "Integration chevrons point right when collapsed and down when expanded.",
+    "Jellyfin Scheduled tasks continues to enumerate dynamic categories and tasks and can start/stop tasks.",
+    "No accordion interaction regresses on desktop or mobile."
   ],
   "decisions": [
     "Discover scheduled tasks dynamically from Jellyfin instead of hard-coding a task catalog.",
@@ -29,5 +29,5 @@
     "Jellyfin media-item browsing or playback management.",
     "Secret-at-rest changes."
   ],
-  "next_action": "Smoke-test v0.5.124 against the maintainer's Jellyfin server, especially plugin-provided tasks and long-running task progress/stop behavior."
+  "next_action": "Smoke-test the Jellyfin integration accordion and Scheduled tasks controls against the maintainer's live Jellyfin server."
 }

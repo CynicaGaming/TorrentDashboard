@@ -7,25 +7,25 @@
 This handoff is intentionally portable across public forks. Verify the current checkout's Git remote, branch, and open work before using upstream references as instructions.
 
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
-- Last documented upstream build: **v0.5.124** (prerelease)
+- Last documented upstream build: **v0.5.125** (prerelease)
 
 ## Last known-good state
 
-Adds a compact Scheduled tasks panel to saved Jellyfin integrations, dynamically showing Jellyfin and plugin tasks with last-run timing plus explicit run and stop controls.
+Fixes the Integrations accordion disclosure indicator so its Material-style chevron visibly follows the expanded and collapsed state.
 
 The released-state details and recent history are in `PROJECT_STATE.md`; architectural constraints are in `ARCHITECTURE.md`.
 
 ## Active development intent
 
 - Status: **ready**
-- Objective: **Validate Jellyfin scheduled task controls and continue service-integration runtime work**
-- Why: v0.5.124 extends the recovered Jellyfin runtime with dynamic scheduled-task discovery and explicit run/stop controls while keeping credentials and transport server-side.
+- Objective: **Validate Jellyfin scheduled tasks and integration disclosure behavior**
+- Why: v0.5.125 corrects the parent integration chevron while preserving the v0.5.124 dynamic Jellyfin scheduled-task controls.
 
 ### Acceptance criteria
 
-- Jellyfin default and plugin-provided scheduled tasks appear under the saved Jellyfin integration with accurate category, last-run, duration, and running state.
-- Run starts the selected task and a running task exposes a stop control without exposing the Jellyfin API key to the browser.
-- Task polling stops when no tasks are running or the parent integration is collapsed.
+- Integration chevrons point right when collapsed and down when expanded.
+- Jellyfin Scheduled tasks continues to enumerate dynamic categories and tasks and can start/stop tasks.
+- No accordion interaction regresses on desktop or mobile.
 
 ### Decisions already made
 
@@ -56,7 +56,7 @@ None currently recorded.
 
 ## Exact next action
 
-Smoke-test v0.5.124 against the maintainer's Jellyfin server, especially plugin-provided tasks and long-running task progress/stop behavior.
+Smoke-test the Jellyfin integration accordion and Scheduled tasks controls against the maintainer's live Jellyfin server.
 
 ## Resume checklist
 
