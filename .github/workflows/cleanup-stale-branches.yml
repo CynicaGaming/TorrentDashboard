@@ -1,0 +1,78 @@
+name: Cleanup stale branches
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/cleanup-stale-branches.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Delete stale remote branches
+        shell: bash
+        run: |
+          set -u
+          stale_branches=(
+            "checkpoint/stabilization-audit"
+            "feature/account-client-settings-polish-0528"
+            "feature/account-profile-menu"
+            "feature/add-torrent-file-metadata-0552"
+            "feature/add-torrent-metadata-0545"
+            "feature/add-torrent-metadata-backend-0550"
+            "feature/add-torrent-metadata-ui-0551"
+            "feature/add-torrent-options-0549"
+            "feature/add-torrent-shell-0548"
+            "feature/client-download-defaults-0553"
+            "feature/integration-health-mobile-notifications"
+            "feature/modular-settings-users"
+            "feature/notifications-settings-055"
+            "feature/persistent-secret-mask"
+            "feature/qbittorrent-toolbar-client-settings"
+            "feature/remove-sidebar-account-summary"
+            "feature/settings-facelift-material-visibility"
+            "feature/settings-navigation-updater-053"
+            "feature/settings-polish-secrets"
+            "feature/torrent-detail-pane-0544"
+            "feature/torrent-export-0554"
+            "feature/usability-health-notifications-0534"
+            "fix/recovery-diagnostics-0.5.40"
+            "fix/restore-true-v0538-baseline-0543"
+            "fix/rollback-stable-ecc367-0.5.42"
+            "fix/rollback-v0545-to-stable-v0546-clean"
+            "fix/rollback-v0545-to-stable-v0546-final"
+            "fix/rollback-v0545-to-stable-v0546"
+            "fix/stable-runtime-cache-boundary-0.5.41"
+            "fix/v0527-ui-validator"
+            "fix/v0528-release-contract"
+            "fix/v0528-staging-root"
+            "prerelease-0.4.0"
+            "stabilize-0.4.0"
+            "tmp-noop"
+            "tmp-noop2"
+          )
+
+          failed=0
+          for branch in "${stale_branches[@]}"; do
+            if git ls-remote --exit-code --heads origin "refs/heads/${branch}" >/dev/null 2>&1; then
+              echo "Deleting ${branch}"
+              if ! git push origin --delete "${branch}"; then
+                echo "Failed to delete ${branch}" >&2
+                failed=1
+              fi
+            else
+              echo "Already absent: ${branch}"
+            fi
+          done
+
+          exit "${failed}"
