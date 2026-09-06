@@ -1,6 +1,6 @@
 'use strict';
 
-const CACHE='torrent-dashboard-v0554-mobile-notifications';
+const CACHE='torrent-dashboard-v0554-stabilization1';
 const FEATURE_STYLE='/static/integration-notifications.css?v=0.5.54';
 const FEATURE_SCRIPT='/static/integration-notifications.js?v=0.5.54';
 const SOUND_PATCH='/static/default-notification-sound.js?v=0.5.54';
@@ -18,33 +18,47 @@ const ASSETS=[
   '/manifest.webmanifest'
 ];
 
+async function soundPartText(cache,part){
+  let response=await cache.match(part);
+  if(!response){
+    response=await fetch(part,{cache:'no-store'});
+    if(response.ok)await cache.put(part,response.clone());
+  }
+  if(!response||!response.ok)throw new Error('Notification sound asset is unavailable');
+  return (await response.text()).trim();
+}
+
+async function notificationSoundResponse(){
+  const cache=await caches.open(CACHE);
+  const cached=await cache.match(SOUND_PATH);
+  if(cached)return cached;
+
+  const texts=await Promise.all(SOUND_PARTS.map(part=>soundPartText(cache,part)));
+  const binary=atob(texts.join(''));
+  const bytes=new Uint8Array(binary.length);
+  for(let i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);
+
+  const response=new Response(bytes,{status:200,headers:{
+    'Content-Type':'audio/mpeg',
+    'Cache-Control':'public, max-age=31536000, immutable'
+  }});
+  await cache.put(SOUND_PATH,response.clone());
+  return response;
+}
+
 self.addEventListener('install',event=>{
   self.skipWaiting();
-  event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS)));
+  event.waitUntil((async()=>{
+    const cache=await caches.open(CACHE);
+    await cache.addAll(ASSETS);
+    await notificationSoundResponse();
+  })());
 });
 
 self.addEventListener('activate',event=>event.waitUntil(Promise.all([
   caches.keys().then(keys=>Promise.all(keys.filter(key=>key!==CACHE).map(key=>caches.delete(key)))),
   self.clients.claim()
 ])));
-
-async function notificationSoundResponse(){
-  const cache=await caches.open(CACHE);
-  const texts=[];
-  for(const part of SOUND_PARTS){
-    let response=await cache.match(part);
-    if(!response){
-      response=await fetch(part,{cache:'no-store'});
-      if(response.ok) await cache.put(part,response.clone());
-    }
-    if(!response||!response.ok) throw new Error('Notification sound asset is unavailable');
-    texts.push((await response.text()).trim());
-  }
-  const binary=atob(texts.join(''));
-  const bytes=new Uint8Array(binary.length);
-  for(let i=0;i<binary.length;i++) bytes[i]=binary.charCodeAt(i);
-  return new Response(bytes,{status:200,headers:{'Content-Type':'audio/mpeg','Content-Length':String(bytes.length),'Cache-Control':'public, max-age=31536000, immutable','Accept-Ranges':'bytes'}});
-}
 
 async function injectFeatureAssets(response){
   if(!response||!response.ok)return response;
@@ -90,21 +104,30 @@ self.addEventListener('fetch',event=>{
   );
 });
 
+function safeNotificationUrl(value='/'){
+  try{
+    const url=new URL(value||'/',self.location.origin);
+    if(url.origin===self.location.origin)return url.href;
+  }catch{}
+  return new URL('/',self.location.origin).href;
+}
+
 self.addEventListener('push',event=>{
   let payload={};
   try{payload=event.data?.json()||{}}
   catch{payload={body:event.data?.text()||''}}
-  const title=payload.title||'Torrent Dashboard';
+  const title=String(payload.title||'Torrent Dashboard').slice(0,160);
+  const body=String(payload.body||'Torrent Dashboard has a new notification.').slice(0,1000);
   event.waitUntil(self.registration.showNotification(title,{
-    body:payload.body||'Torrent Dashboard has a new notification.',
-    tag:payload.tag||'torrent-dashboard-push',
-    data:{url:payload.url||'/'}
+    body,
+    tag:String(payload.tag||'torrent-dashboard-push').slice(0,160),
+    data:{url:safeNotificationUrl(payload.url||'/')}
   }));
 });
 
 self.addEventListener('notificationclick',event=>{
   event.notification.close();
-  const target=new URL(event.notification.data?.url||'/',self.location.origin).href;
+  const target=safeNotificationUrl(event.notification.data?.url||'/');
   event.waitUntil(clients.matchAll({type:'window',includeUncontrolled:true}).then(items=>{
     for(const client of items){
       if(client.url.startsWith(self.location.origin)&&'focus'in client){
