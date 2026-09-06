@@ -1,14 +1,12 @@
 {
   "schema": 1,
   "status": "ready",
-  "objective": "Validate and extend the Jellyfin service-integration runtime",
-  "why": "Jellyfin is the first configured service integration to become operational rather than connection-test-only, providing a concrete provider pattern for future Sonarr, Radarr, Lidarr, and Prowlarr runtime features.",
+  "objective": "Validate integration health and continue service-integration runtime work",
+  "why": "v0.5.123 restores the v0.5.122 modular baseline and adds passive integration health indicators; the next work should validate those states against real services before extending another provider runtime.",
   "acceptance_criteria": [
-    "A saved Jellyfin integration can report server identity/health and configured libraries without exposing its API key to the browser.",
-    "Administrators can explicitly request a normal Jellyfin library refresh from Settings and receive a clear success/failure result.",
-    "Jellyfin network/API behavior lives under torrent_dashboard rather than growing dashboard.py with provider-specific transport logic.",
-    "Automated tests characterize Jellyfin authentication, server/library normalization, and refresh request behavior.",
-    "The next integration increment reuses the service-provider boundary instead of adding unrelated one-off HTTP logic."
+    "Green, yellow, and red integration states match live provider behavior without sending passive-test notifications.",
+    "Jellyfin operational status and library refresh continue to work after the release-line recovery.",
+    "The next provider runtime increment reuses torrent_dashboard provider boundaries rather than growing dashboard.py transport logic."
   ],
   "decisions": [
     "Keep the first Jellyfin runtime read-mostly: server status and library inventory are read operations; library refresh is the only mutation.",
@@ -34,5 +32,5 @@
     "Sonarr, Radarr, Lidarr, and Prowlarr runtime behavior in the same increment.",
     "Secret-at-rest changes."
   ],
-  "next_action": "Validate v0.5.122 against a real Jellyfin server, then use the resulting service-integration pattern for the next selected provider rather than adding provider transport to dashboard.py."
+  "next_action": "Smoke-test v0.5.123 against the maintainer's configured integrations, then select the next service provider for an operational runtime increment."
 }

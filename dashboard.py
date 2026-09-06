@@ -53,6 +53,7 @@ from torrent_dashboard.integrations import (
     INTEGRATION_TYPES,
     delete_integration,
     integration_catalog,
+    integration_health_statuses,
     normalize_integration,
     redacted_integrations,
     save_integration,
@@ -98,7 +99,7 @@ RELEASE_INFO_PATH = APP_DIR / "release-info.json"
 RELEASE_INTEGRITY_CACHE_PATH = DATA_DIR / "release-integrity.json"
 CUSTOM_SOUND_BASENAME = "custom-notification-sound"
 MAX_CUSTOM_SOUND_BYTES = 2 * 1024 * 1024
-VERSION = "0.5.122"
+VERSION = "0.5.123"
 STATUS_REFRESH_SECONDS = 1.0
 
 RELEASE_PROVENANCE = ReleaseProvenance(
@@ -1870,7 +1871,7 @@ class Handler(BaseHTTPRequestHandler):
             if not avatar_path:
                 return self.send_json(404,{"error":"No profile picture is configured"},new_cookie)
             return self.send_bytes(200,avatar_path.read_bytes(),avatar_mime,new_cookie)
-        if path in ("/api/settings","/api/integrations","/api/integrations/jellyfin/status","/api/users","/api/network/interfaces","/api/client-settings","/api/torrent-metadata/save") and not session_is_admin(sess):
+        if path in ("/api/settings","/api/integrations","/api/integration-health","/api/integrations/jellyfin/status","/api/users","/api/network/interfaces","/api/client-settings","/api/torrent-metadata/save") and not session_is_admin(sess):
             return self.send_json(403,{"error":"Administrator access is required"},new_cookie)
 
         if path=="/api/torrent-metadata/save":
@@ -1927,6 +1928,7 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json(200,{"points":HISTORY.history(qs.get("server",["all"])[0],qs.get("minutes",["60"])[0])},new_cookie)
         if path=="/api/events": return self.send_json(200,{"events":HISTORY.events(qs.get("limit",["100"])[0])},new_cookie)
         if path=="/api/analytics": return self.send_json(200,HISTORY.analytics(qs.get("server",["all"])[0]),new_cookie)
+        if path=="/api/integration-health": return self.send_json(200,{"integrations":integration_health_statuses(cfg)},new_cookie)
         if path=="/api/integrations": return self.send_json(200,{"types":integration_catalog(),"integrations":redacted_integrations(cfg)},new_cookie)
         if path=="/api/integrations/jellyfin/status":
             try:

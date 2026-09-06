@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 import json
+import socket
+import time
+from concurrent.futures import ThreadPoolExecutor
 import urllib.error
 import urllib.request
 import uuid
@@ -144,6 +147,139 @@ def redacted_integrations(cfg):
     return result
 
 
+
+def _integration_health(state, message):
+    return {"state": state, "message": str(message or ""), "checked_at": int(time.time())}
+
+
+def _integration_health_http_error(label, code, passive=False):
+    code = int(code or 0)
+    if passive and code in (405, 501):
+        return _integration_health("healthy", f"{label} endpoint is reachable")
+    if code == 404:
+        return _integration_health("disconnected", f"{label} endpoint was not found")
+    if code in (401, 403):
+        return _integration_health("issue", f"{label} is reachable but authentication was rejected (HTTP {code})")
+    return _integration_health("issue", f"{label} is reachable but returned HTTP {code}")
+
+
+def _integration_json(url, headers=None):
+    request_headers = {"Accept": "application/json", "User-Agent": "TorrentDashboard integration health"}
+    request_headers.update(headers or {})
+    request = urllib.request.Request(url, headers=request_headers)
+    with urllib.request.urlopen(request, timeout=4) as response:
+        return json.loads(response.read(200000).decode("utf-8"))
+
+
+def _integration_passive_endpoint(url, label, headers=None):
+    request_headers = {"User-Agent": "TorrentDashboard integration health"}
+    request_headers.update(headers or {})
+    request = urllib.request.Request(url, headers=request_headers, method="HEAD")
+    try:
+        with urllib.request.urlopen(request, timeout=4) as response:
+            response.read(1)
+        return _integration_health("healthy", f"{label} endpoint is reachable")
+    except urllib.error.HTTPError as exc:
+        return _integration_health_http_error(label, exc.code, passive=True)
+    except (urllib.error.URLError, TimeoutError, socket.timeout) as exc:
+        reason = getattr(exc, "reason", exc)
+        return _integration_health("disconnected", f"Could not reach {label}: {reason}")
+
+
+def probe_integration_health(item):
+    item = normalize_integration(item, item)
+    provider = item["type"]
+    label = INTEGRATION_TYPES[provider]["label"]
+    if not item.get("enabled", True):
+        return _integration_health("disconnected", f"{label} integration is disabled")
+    try:
+        if provider in ("sonarr", "radarr", "lidarr", "prowlarr"):
+            headers = {"X-Api-Key": item["api_key"]}
+            status = _integration_json(item["url"].rstrip("/") + "/api/v3/system/status", headers)
+            version = str(status.get("version") or "").strip()
+            try:
+                health = _integration_json(item["url"].rstrip("/") + "/api/v3/health", headers)
+            except urllib.error.HTTPError as exc:
+                return _integration_health("issue", f"{label}{(' ' + version) if version else ''} is connected, but its health endpoint returned HTTP {exc.code}")
+            except (urllib.error.URLError, TimeoutError, socket.timeout) as exc:
+                reason = getattr(exc, "reason", exc)
+                return _integration_health("issue", f"{label}{(' ' + version) if version else ''} is connected, but its health check failed: {reason}")
+            if isinstance(health, list) and health:
+                messages = [
+                    str(entry.get("message") or entry.get("source") or entry.get("type") or "Health warning").strip()
+                    for entry in health if isinstance(entry, dict)
+                ]
+                detail = next((message for message in messages if message), "Health warning reported")
+                extra = f" (+{len(health) - 1} more)" if len(health) > 1 else ""
+                return _integration_health("issue", f"{label} connected · {detail}{extra}")
+            return _integration_health("healthy", f"{label}{(' ' + version) if version else ''} connected")
+
+        if provider == "jellyfin":
+            server = jellyfin_server_info(item)
+            version = str(server.get("version") or "").strip()
+            if server.get("pending_restart"):
+                return _integration_health("issue", f"Jellyfin{(' ' + version) if version else ''} connected · restart pending")
+            return _integration_health("healthy", f"Jellyfin{(' ' + version) if version else ''} connected")
+
+        if provider == "plex":
+            request = urllib.request.Request(
+                item["url"].rstrip("/") + "/identity",
+                headers={"X-Plex-Token": item["token"], "User-Agent": "TorrentDashboard integration health"},
+            )
+            with urllib.request.urlopen(request, timeout=4) as response:
+                response.read(200000)
+            return _integration_health("healthy", "Plex connected")
+
+        if provider == "discord":
+            request = urllib.request.Request(
+                item["webhook_url"],
+                headers={"Accept": "application/json", "User-Agent": "TorrentDashboard integration health"},
+            )
+            with urllib.request.urlopen(request, timeout=4) as response:
+                response.read(200000)
+            return _integration_health("healthy", "Discord webhook connected")
+
+        if provider == "ntfy":
+            headers = {}
+            if item.get("access_token"):
+                headers["Authorization"] = f"Bearer {item['access_token']}"
+            return _integration_passive_endpoint(item["topic_url"], "ntfy", headers)
+
+        if provider == "generic_webhook":
+            return _integration_passive_endpoint(item["webhook_url"], "Webhook")
+
+        if provider == "home_assistant":
+            return _integration_passive_endpoint(item["webhook_url"], "Home Assistant webhook")
+
+        return _integration_health("issue", f"{label} health checking is not supported")
+    except urllib.error.HTTPError as exc:
+        return _integration_health_http_error(label, exc.code)
+    except (urllib.error.URLError, TimeoutError, socket.timeout) as exc:
+        reason = getattr(exc, "reason", exc)
+        return _integration_health("disconnected", f"Could not reach {label}: {reason}")
+    except json.JSONDecodeError:
+        return _integration_health("issue", f"{label} is connected but returned an invalid health response")
+    except Exception as exc:
+        return _integration_health("issue", f"{label} health check failed: {exc}")
+
+
+def integration_health_statuses(cfg):
+    integrations = list(cfg.get("integrations", []) or [])
+    if not integrations:
+        return []
+    workers = max(1, min(6, len(integrations)))
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        futures = [pool.submit(probe_integration_health, item) for item in integrations]
+        output = []
+        for item, future in zip(integrations, futures):
+            try:
+                health = future.result()
+            except Exception as exc:
+                health = _integration_health("issue", f"Health check failed: {exc}")
+            output.append({"id": str(item.get("id") or ""), "health": health})
+        return output
+
+
 def test_integration_connection(item):
     """Perform the provider-specific connection test for one normalized integration."""
     item = normalize_integration(item, item)
@@ -253,7 +389,9 @@ __all__ = [
     "INTEGRATION_TYPES",
     "delete_integration",
     "integration_catalog",
+    "integration_health_statuses",
     "normalize_integration",
+    "probe_integration_health",
     "redacted_integrations",
     "save_integration",
     "test_integration_connection",

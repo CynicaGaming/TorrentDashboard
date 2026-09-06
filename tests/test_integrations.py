@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 import unittest
+from unittest import mock
+import urllib.error
 
 from torrent_dashboard.integrations import (
     delete_integration,
     integration_catalog,
     normalize_integration,
+    probe_integration_health,
     save_integration,
 )
 
@@ -48,6 +51,29 @@ class IntegrationModuleTests(unittest.TestCase):
         api_key = next(field for field in catalog["sonarr"]["fields"] if field["key"] == "api_key")
         self.assertTrue(api_key["secret"])
         self.assertTrue(api_key["required"])
+
+
+    def test_health_marks_disabled_integration_disconnected(self):
+        health = probe_integration_health({
+            "type": "sonarr",
+            "name": "Sonarr",
+            "enabled": False,
+            "url": "http://sonarr:8989",
+            "api_key": "abc",
+        })
+        self.assertEqual(health["state"], "disconnected")
+
+    def test_health_marks_reachable_auth_failure_as_issue(self):
+        error = urllib.error.HTTPError("http://sonarr:8989", 401, "Unauthorized", {}, None)
+        with mock.patch("torrent_dashboard.integrations.urllib.request.urlopen", side_effect=error):
+            health = probe_integration_health({
+                "type": "sonarr",
+                "name": "Sonarr",
+                "enabled": True,
+                "url": "http://sonarr:8989",
+                "api_key": "bad",
+            })
+        self.assertEqual(health["state"], "issue")
 
 
 if __name__ == "__main__":

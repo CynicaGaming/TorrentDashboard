@@ -7,6 +7,7 @@ window.TDSettings = (() => {
   let users = [];
   let currentUserId = '';
   let clientSettingsServerId = '';
+  let integrationHealthRefreshing = false;
 
   const corePages = new Set(['general','access','clients','updates','notifications']);
   const SECRET_MASK = '••••••••••';
@@ -51,6 +52,10 @@ window.TDSettings = (() => {
     document.querySelector('#testNotification')?.addEventListener('click', testNotification);
     document.querySelector('#addIntegrationSetting')?.addEventListener('click', addIntegration);
     document.querySelector('#addUserSetting')?.addEventListener('click', addUser);
+    setInterval(() => {
+      const page = document.querySelector('[data-settings-section="integrations"]');
+      if (page?.classList.contains('active')) refreshIntegrationHealth();
+    }, 30000);
     activate(localStorage.tdSettingsPage || 'general');
   }
 
@@ -362,6 +367,51 @@ window.TDSettings = (() => {
     return parts.join(' · ');
   }
 
+  function integrationHealthView(item) {
+    if (item?._new) return {state:'disconnected',label:'Disconnected',message:'Save this integration before checking its connection.'};
+    if (item?.enabled === false) return {state:'disconnected',label:'Disconnected',message:'Integration is disabled.'};
+    const health = item?.health || {};
+    const stateName = ['healthy','issue','disconnected'].includes(health.state) ? health.state : 'checking';
+    const label = stateName === 'healthy' ? 'Connected and healthy' : stateName === 'issue' ? 'Connected with an issue' : stateName === 'disconnected' ? 'Disconnected' : 'Checking connection';
+    return {state:stateName,label,message:health.message || label};
+  }
+
+  function applyIntegrationHealth() {
+    document.querySelectorAll('.integration-item').forEach(card => {
+      const item = integrations.find(entry => String(entry.id || '') === String(card.dataset.id || ''));
+      const dot = card.querySelector('.integration-status');
+      if (!item || !dot) return;
+      const health = integrationHealthView(item);
+      dot.className = `integration-status ${health.state}`;
+      dot.setAttribute('aria-label', health.label);
+      dot.title = health.message;
+    });
+  }
+
+  async function refreshIntegrationHealth() {
+    if (integrationHealthRefreshing || !state.me?.can_manage) return;
+    const saved = integrations.filter(item => item.id && !item._new);
+    if (!saved.length) return;
+    integrationHealthRefreshing = true;
+    try {
+      const data = await api('/api/integration-health');
+      const healthById = new Map((data.integrations || []).map(entry => [String(entry.id || ''), entry.health || {}]));
+      integrations.forEach(item => {
+        const health = healthById.get(String(item.id || ''));
+        if (health) item.health = health;
+      });
+      applyIntegrationHealth();
+    } catch (error) {
+      integrations.forEach(item => {
+        if (item.id && !item._new) item.health = {state:'disconnected',message:error.message || 'Could not refresh integration health.'};
+      });
+      applyIntegrationHealth();
+    } finally {
+      integrationHealthRefreshing = false;
+    }
+  }
+
+
   function jellyfinServiceMarkup(item) {
     if (item.type !== 'jellyfin' || !item.id || item._new) return '';
     return `<section class="integration-service jellyfin-service" data-jellyfin-service><div class="integration-service-head"><div class="integration-service-heading"><span class="eyebrow">Jellyfin server</span><div class="jellyfin-server-line"><span class="service-status-badge checking" data-jellyfin-status>Checking…</span><strong data-jellyfin-name>Jellyfin</strong></div><small data-jellyfin-meta>Loading server status…</small></div><button class="secondary jellyfin-reload" type="button">Reload status</button></div><div class="jellyfin-library-head"><div><strong>Libraries</strong><small data-jellyfin-library-count>Loading…</small></div><button class="secondary jellyfin-refresh-libraries" type="button">Refresh libraries</button></div><div class="jellyfin-library-list" data-jellyfin-libraries><div class="integration-service-empty">Loading libraries…</div></div></section>`;
@@ -437,7 +487,8 @@ window.TDSettings = (() => {
       card.dataset.type = item.type;
       const fields = (type.fields || []).map(f => fieldHtml(f, item[f.key], item.configured_secrets?.includes(f.key))).join('');
       const subtitle = integrationSubtitle(item, type);
-      card.innerHTML = `<button class="accordion-summary" type="button" aria-expanded="${index===0?'true':'false'}"><span><b>${esc(integrationLabel(item))}</b>${subtitle?`<small>${esc(subtitle)}</small>`:''}</span><span class="accordion-chevron">⌄</span></button><div class="accordion-body ${index===0?'':'hidden'}"><div class="settings-form-grid"><label>Display name<input data-field="name" value="${esc(item.name||type.label)}" maxlength="128"></label>${fields}<label class="toggle"><input data-field="enabled" type="checkbox" ${item.enabled!==false?'checked':''}><span>Enabled</span></label></div><div class="settings-inline-actions"><button class="secondary integration-test" type="button">Test connection</button><button class="primary integration-save" type="button">Save</button><button class="danger integration-delete" type="button">Delete</button></div><div class="test-result muted integration-result">Not tested yet</div>${jellyfinServiceMarkup(item)}</div>`;
+      const health = integrationHealthView(item);
+      card.innerHTML = `<button class="accordion-summary" type="button" aria-expanded="${index===0?'true':'false'}"><span class="integration-summary-main"><span class="integration-status ${health.state}" role="img" aria-label="${esc(health.label)}" title="${esc(health.message)}"></span><span class="integration-summary-copy"><b>${esc(integrationLabel(item))}</b>${subtitle?`<small>${esc(subtitle)}</small>`:''}</span></span><span class="accordion-chevron">⌄</span></button><div class="accordion-body ${index===0?'':'hidden'}"><div class="settings-form-grid"><label>Display name<input data-field="name" value="${esc(item.name||type.label)}" maxlength="128"></label>${fields}<label class="toggle"><input data-field="enabled" type="checkbox" ${item.enabled!==false?'checked':''}><span>Enabled</span></label></div><div class="settings-inline-actions"><button class="secondary integration-test" type="button">Test connection</button><button class="primary integration-save" type="button">Save</button><button class="danger integration-delete" type="button">Delete</button></div><div class="test-result muted integration-result">Not tested yet</div>${jellyfinServiceMarkup(item)}</div>`;
       const summary = card.querySelector('.accordion-summary');
       summary.addEventListener('click', () => {
         const body = card.querySelector('.accordion-body');
@@ -474,6 +525,7 @@ window.TDSettings = (() => {
       const select = document.querySelector('#integrationTypeSelect');
       if (select) select.innerHTML = '<option value="">Choose integration…</option>' + catalog.map(x => `<option value="${esc(x.type)}">${esc(x.label)}</option>`).join('');
       renderIntegrations();
+      refreshIntegrationHealth();
     } catch (e) {
       toast(e.message,'error');
     }
@@ -499,6 +551,8 @@ window.TDSettings = (() => {
     } catch (e) {
       out.className='test-result bad integration-result';
       out.textContent=e.message;
+    } finally {
+      if (card.dataset.id) refreshIntegrationHealth();
     }
   }
 

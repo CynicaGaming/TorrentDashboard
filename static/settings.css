@@ -156,3 +156,15 @@
 .jellyfin-library-copy{display:grid;gap:3px;min-width:0}.jellyfin-library-copy strong{font-size:10.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.jellyfin-library-copy span,.jellyfin-library-paths span{font-size:8.5px;color:var(--muted)}.jellyfin-library-paths{display:grid;gap:3px;min-width:0}.jellyfin-library-paths code{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);font-size:8.5px;background:transparent;padding:0}.jellyfin-library-scan{display:grid;gap:3px;text-align:right}.jellyfin-library-scan span{font-size:8px;color:var(--muted)}.jellyfin-library-scan strong{font-size:9.5px;color:var(--text)}
 .integration-service-empty{padding:14px;border:1px dashed var(--border);border-radius:10px;color:var(--muted);font-size:9px;text-align:center}
 @media(max-width:700px){.integration-service-head,.jellyfin-library-head{align-items:flex-start;flex-wrap:wrap}.integration-service-head>button,.jellyfin-library-head>button{min-width:0}.jellyfin-library-row{grid-template-columns:1fr;gap:8px}.jellyfin-library-scan{text-align:left;grid-template-columns:auto 1fr;align-items:baseline;gap:6px}.jellyfin-library-paths code{white-space:normal;overflow-wrap:anywhere}}
+
+/* 0.5.123 integration health indicators. */
+.integration-summary-main{display:flex!important;align-items:center;gap:10px;min-width:0;flex:1}
+.integration-summary-copy{display:block;min-width:0;flex:1}
+.integration-status{display:inline-block;flex:0 0 10px;width:10px;height:10px;border-radius:999px;background:var(--muted);box-shadow:0 0 0 3px color-mix(in srgb,currentColor 16%,transparent)}
+.integration-status.healthy{color:var(--good);background:var(--good)}
+.integration-status.issue{color:var(--warn);background:var(--warn)}
+.integration-status.disconnected{color:var(--bad);background:var(--bad)}
+.integration-status.checking{color:var(--muted);background:var(--muted);animation:integration-status-pulse 1.15s ease-in-out infinite alternate}
+@keyframes integration-status-pulse{from{opacity:.42}to{opacity:1}}
+@media(prefers-reduced-motion:reduce){.integration-status.checking{animation:none}}
+

@@ -6,75 +6,23 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.122** (prerelease)
+- Latest documented build: **v0.5.123** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
-- Upstream development branch: `refactor/backend-modularization-users`
-- Upstream prerelease branch: `prerelease/backend-modularization`
-- Upstream active refactor PR: **#25**
 
 ### Latest release summary
 
-Turns the Jellyfin integration into an operational service surface with live server status, configured library inventory, scan state, and an explicit library refresh action.
+Restores the validated v0.5.122 development baseline as the canonical release line and adds at-a-glance integration health indicators without downgrading existing installations.
 
 ## Architecture state
 
-- `torrent_dashboard/jellyfin.py` owns Jellyfin HTTP/authentication, server/library normalization, and library refresh behavior; `dashboard.py` remains the HTTP composition adapter.
+- Integration configuration/normalization and passive provider health probing remain in torrent_dashboard/integrations.py; dashboard.py only exposes the authenticated HTTP route.
+- Jellyfin operational status and library behavior remain owned by torrent_dashboard/jellyfin.py.
 
 ## Current engineering decisions
 
-- Prefer two visually distinct surfaces for list/detail hierarchy rather than joining them with only an internal divider.
-- Keep viewport-derived docking and independent list/detail scrolling.
-- Keep active backend modularization work separate from this presentation correction.
-- Treat torrent-detail selection and inspector disclosure as independent state: collapse changes presentation, not selection.
-- Keep the torrent-detail dock persistently discoverable and use the full disclosure bar as the primary keyboard/touch interaction target.
-- Treat All servers as an aggregation mode: omit it when only one enabled client exists, and prefer the actual client so client-specific actions remain available.
-- Author user-facing copy in its final display form; runtime token normalization is compatibility behavior for legacy generated tokens, not a presentation system.
-- Use deliberate mixed capitalization: stable named destinations may read as product labels, while headings, field labels, actions, statuses, errors, and explanatory text generally use sentence case.
-- Prefer user-facing product concepts over legacy implementation terminology, including allowed IP addresses for access controls and client for client-management actions.
-- Use qBitTorrent's parsed/cached metadata path when preselecting files from a local .torrent; raw multipart upload remains only as a compatibility fallback because qBitTorrent rejects filePriorities on raw uploaded torrents.
-- A repeated click on the torrent currently shown in Torrent details clears the detail context; choosing a different torrent replaces it directly.
-- Keep Add Torrent checkboxes in one aligned selection column; communicate hierarchy by indenting folder/file labels while preserving aligned Size and Priority columns.
-- Reconcile Torrent details against every refreshed torrent list and clear the detail context when its selected server/hash no longer exists.
-- Reserve a fixed disclosure/expander slot for every Add Torrent content row; files use a spacer while folders use the chevron, and hierarchy indentation begins after that slot.
-- Use the persistent Torrent details disclosure bar as the sole selection identity surface; expanded details begin directly with tabs/content rather than repeating title/hash metadata.
-- Use locally embedded Material-style SVGs for common disclosure and file-source affordances rather than platform-dependent text glyphs or remote icon-font dependencies.
-- Keep the Add Torrent content preview visually minimal: left-align Name, omit redundant folder descendant counts, and let the live file/size summary replace a separate Content heading.
-- Treat torrent-table column layout as a browser-local presentation preference rather than shared application configuration.
-- Expose Seeds, Peers, and Tags in the default torrent table while keeping less frequently needed Size, Category, Tracker, and Added available but hidden by default.
-- Treat Category as core torrent-list context and include it in the default visible column set.
-- Treat torrent column width as part of the browser-local table layout: resize from the header edge, preserve widths across refresh/reorder/visibility changes, and clear them with Reset columns.
-- Treat Name as a normal torrent data column: keep it visible by default but allow users to hide, reorder, and resize it; only the selection checkbox and row-actions columns remain fixed.
-- Treat torrent-column resizing as an exclusive pointer gesture: use a forgiving edge target, suppress native header drag until release, and preserve the live width through polling before committing it to browser-local preferences.
-- Keep torrent resize hit targets inside their owning data header, allow Name to consume its actual assigned width before ellipsizing, and hard-lock the row-actions column as a fixed right-edge control surface.
-- Use the torrent header as the single sorting surface and the unified text search as the single metadata filter: preserve status tabs, retire Category/Tags/Tracker and sort selects, clear obsolete facet preferences, and keep sort direction browser-local.
-- Keep torrent header labels centered, isolate native reordering to the header-label drag surface, reserve a separate inward-only resize gutter, and begin resizing from the exact rendered width so pointer movement maps immediately to column movement.
-- Keep GitHub network/update orchestration in dashboard.py while the torrent_dashboard release-provenance module owns parsing and filesystem provenance behavior behind injected runtime paths.
-- Align torrent data headers with their body content rather than centering every label.
-- When resizing, snapshot visible data-column widths and change table width with the active column so only the grabbed right boundary moves; keep selection and actions outside that model.
-- Keep the 48 px row-actions surface pinned to the torrent viewport edge with a non-interactive flexible spacer; customized data widths may scroll internally but must not move Actions offscreen or create page-level horizontal overflow.
-- Treat the pinned Actions edge as the maximum width boundary for new torrent-column resize gestures; consume spacer slack first, then stop rather than creating new horizontal overflow or shrinking unrelated columns.
-- Prefer native single-column resizing over a viewport-derived resize ceiling: fixed selection/actions rails remain pinned while user-chosen data widths may create horizontal scrolling only inside the torrent viewport.
-- Use a hybrid resize boundary: interior data columns retain scroll-native independent resizing, while the rightmost visible data column cannot create additional horizontal overflow past the fixed Actions rail.
-- Temporarily prefer one fixed torrent-table column set and deterministic proportional sizing over resize/reorder/visibility customization while the interaction model is simplified.
-- Keep torrent row commands contextual instead of reserving a permanent Actions column: use right-click on pointer interfaces and a movement-cancellable long press on touch while retaining the shared menu implementation.
-- Treat the mobile bulk-selection overlay and Torrent details as stacked bottom surfaces: bulk actions must remain fully visible above the current detail pane instead of competing for the same layer and screen region.
-- Keep desktop torrent-column alignment breakpoint-scoped: mobile cards use a consistent left-label/right-value metadata grid regardless of desktop numeric alignment.
-- Calculate desktop torrent workspace height from its stable document position rather than its scroll-relative viewport position; document scrolling must not resize the workspace.
-- Keep the desktop torrent list as the stable bounded scroll surface; finite General details may extend document height instead of competing with the list for one shared height.
-- Keep potentially unbounded Torrent details tabs bounded and internally scrollable while General uses natural content height on desktop.
-- Keep browser/PWA branding self-contained with a local favicon/logo asset and no external icon dependency.
-- Reveal the desktop torrent workspace when Torrent details is explicitly opened from a collapsed state instead of resizing the list/detail surfaces around the header and metrics stack.
-- Size the desktop torrent list from one rendered row and the table header so exactly six rows are visible, independent of surrounding Dashboard panels or viewport remainder.
-- Treat six desktop torrent rows as a preferred maximum and size the list from the stable viewport budget remaining after the actual rendered Torrent details pane.
-- Prefer a viewport-proportional desktop torrent list at roughly 44% of the usable workspace, but let rendered Torrent details content override that preference and always snap the list to complete rows.
-- Keep torrent header text aligned with its body content while placing every sort chevron on the same trailing/right edge regardless of column type.
-- Treat the header notification bell as a browser-local transient completion inbox; clearing it must not delete durable Notifications history.
-- Keep detailed security, account, system, integration, and update activity in the full Notifications view while the header bell initially surfaces completed torrents only.
-- Keep Add Torrent bulk folder disclosure as presentation state over the existing metadata tree; expand/collapse actions must never alter file selection or priority state.
-- Use compact locally embedded Material icon buttons for Add Torrent bulk folder disclosure; keep Expand all and Collapse all adjacent and presentation-only.
-- Treat Jellyfin as a service integration rather than connection-test-only scaffolding: expose server/library state and explicit administrator refresh actions in Settings.
-- Keep Jellyfin API keys server-side; browser-visible service snapshots contain only normalized status and library metadata.
-- Do not automatically refresh Jellyfin on torrent completion; explicit refresh remains the only Jellyfin mutation in the baseline runtime.
+- Keep prerelease versions monotonically increasing; rollback behavior must still advance the version rather than publishing an older semantic version.
+- Keep main as the canonical active branch after recovery and avoid persistent development/prerelease branch clutter.
+- Use passive health checks for notification/webhook providers so opening Settings never generates external test traffic.
 
 ## Development principles
 
@@ -86,6 +34,14 @@ Turns the Jellyfin integration into an operational service surface with live ser
 - Keep public development continuity portable across forks; label canonical repository/branch/PR references as upstream context rather than local identity.
 
 ## Recent work
+
+### v0.5.123 — Recovered release line and integration health indicators
+
+Restores the validated v0.5.122 development baseline as the canonical release line and adds at-a-glance integration health indicators without downgrading existing installations.
+
+- Restores the complete modular v0.5.122 application baseline, including the operational Jellyfin service integration, as the source for subsequent releases.
+- Adds a status indicator to the left of every saved integration name: green for healthy, yellow for reachable but degraded, and red for disconnected or disabled.
+- Integration health refreshes automatically while the Integrations settings page is open and after manual connection tests.
 
 ### v0.5.122 — Jellyfin service integration
 
@@ -118,23 +74,14 @@ Refines Add Torrent's bulk folder disclosure into a compact side-by-side Materia
 - Keeps both folder disclosure actions adjacent in one non-wrapping pair on desktop and mobile.
 - Retains explicit accessible labels and tooltips for the icon-only controls.
 
-### v0.5.118 — Add Torrent folder disclosure controls
-
-Adds Expand all and Collapse all controls to the Add Torrent content tree so nested torrent metadata can be opened or compacted in one action without changing download selections.
-
-- Adds compact Expand all and Collapse all actions beside the Add Torrent content summary.
-- Bulk disclosure operates across every known nested folder path while preserving the existing per-folder chevrons.
-- The controls automatically disable when the requested state is already satisfied or when the torrent contains no folders.
-- Responsive layout keeps the controls usable on narrow/mobile Add Torrent sheets without widening the content preview.
-
 ## What to do next
 
-1. **Validate live Jellyfin behavior** — Confirm status, library inventory, responsive rendering, and explicit library refresh against a real Jellyfin server before expanding service integrations further.
-2. **Select the next service provider** — Reuse the Jellyfin provider boundary for the next Sonarr, Radarr, Lidarr, or Prowlarr runtime increment rather than growing provider transport in dashboard.py.
+1. **Validate integration health against live services** — Confirm green/yellow/red classification against the maintainer's configured Arr, Jellyfin, Plex, and notification integrations.
+2. **Continue service integration work** — Reuse the modular provider boundary for the next selected Sonarr, Radarr, Lidarr, or Prowlarr operational integration.
 
 ## Known issues
 
-- CI uses a mocked Jellyfin transport; live server/version/library compatibility still requires smoke testing against the maintainer's Jellyfin installation.
+- Webhook-style integrations can prove endpoint reachability passively, but some providers cannot expose deeper service health without sending a real event.
 
 ## Handoff instructions for a new development session
 

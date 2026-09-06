@@ -7,30 +7,25 @@
 This handoff is intentionally portable across public forks. Verify the current checkout's Git remote, branch, and open work before using upstream references as instructions.
 
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
-- Last documented upstream build: **v0.5.122** (prerelease)
-- Upstream development branch: `refactor/backend-modularization-users`
-- Upstream prerelease branch: `prerelease/backend-modularization`
-- Upstream active PR: **#25**
+- Last documented upstream build: **v0.5.123** (prerelease)
 
 ## Last known-good state
 
-Turns the Jellyfin integration into an operational service surface with live server status, configured library inventory, scan state, and an explicit library refresh action.
+Restores the validated v0.5.122 development baseline as the canonical release line and adds at-a-glance integration health indicators without downgrading existing installations.
 
 The released-state details and recent history are in `PROJECT_STATE.md`; architectural constraints are in `ARCHITECTURE.md`.
 
 ## Active development intent
 
 - Status: **ready**
-- Objective: **Validate and extend the Jellyfin service-integration runtime**
-- Why: Jellyfin is the first configured service integration to become operational rather than connection-test-only, providing a concrete provider pattern for future Sonarr, Radarr, Lidarr, and Prowlarr runtime features.
+- Objective: **Validate integration health and continue service-integration runtime work**
+- Why: v0.5.123 restores the v0.5.122 modular baseline and adds passive integration health indicators; the next work should validate those states against real services before extending another provider runtime.
 
 ### Acceptance criteria
 
-- A saved Jellyfin integration can report server identity/health and configured libraries without exposing its API key to the browser.
-- Administrators can explicitly request a normal Jellyfin library refresh from Settings and receive a clear success/failure result.
-- Jellyfin network/API behavior lives under torrent_dashboard rather than growing dashboard.py with provider-specific transport logic.
-- Automated tests characterize Jellyfin authentication, server/library normalization, and refresh request behavior.
-- The next integration increment reuses the service-provider boundary instead of adding unrelated one-off HTTP logic.
+- Green, yellow, and red integration states match live provider behavior without sending passive-test notifications.
+- Jellyfin operational status and library refresh continue to work after the release-line recovery.
+- The next provider runtime increment reuses torrent_dashboard provider boundaries rather than growing dashboard.py transport logic.
 
 ### Decisions already made
 
@@ -64,7 +59,7 @@ None currently recorded.
 
 ## Exact next action
 
-Validate v0.5.122 against a real Jellyfin server, then use the resulting service-integration pattern for the next selected provider rather than adding provider transport to dashboard.py.
+Smoke-test v0.5.123 against the maintainer's configured integrations, then select the next service provider for an operational runtime increment.
 
 ## Resume checklist
 

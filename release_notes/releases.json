@@ -8,10 +8,7 @@
       "Use the same user-facing language for the same action and outcome across every surface.",
       "Keep public development continuity portable across forks; label canonical repository/branch/PR references as upstream context rather than local identity."
     ],
-    "canonical_repository": "CynicaGaming/TorrentDashboard",
-    "upstream_development_branch": "refactor/backend-modularization-users",
-    "upstream_prerelease_branch": "prerelease/backend-modularization",
-    "upstream_pull_request": 25
+    "canonical_repository": "CynicaGaming/TorrentDashboard"
   },
   "releases": [
     {
@@ -116,9 +113,9 @@
       "date": "2026-09-02",
       "status": "prerelease",
       "title": "Collapsible revision patch notes",
-      "summary": "Expanded Settings \u2192 Updates from a single latest-release note block into a collapsible patch-note history for every documented Torrent Dashboard revision.",
+      "summary": "Expanded Settings → Updates from a single latest-release note block into a collapsible patch-note history for every documented Torrent Dashboard revision.",
       "highlights": [
-        "Settings \u2192 Updates now shows one collapsible patch-note entry per documented revision, ordered newest first.",
+        "Settings → Updates now shows one collapsible patch-note entry per documented revision, ordered newest first.",
         "Bundled release metadata is available immediately when the Updates page opens; a newly discovered GitHub release is merged into the history before it is installed.",
         "The newest revision opens by default and each older revision can be expanded independently.",
         "Future prerelease publication preserves older prereleases instead of deleting the complete prerelease history."
@@ -175,9 +172,9 @@
       "date": "2026-09-02",
       "status": "prerelease",
       "title": "Patch notes presentation cleanup",
-      "summary": "Simplified Settings \u2192 Updates to focus on the latest two releases while retaining the complete release history for changelog and project handoff purposes, with a cleaner release-card presentation.",
+      "summary": "Simplified Settings → Updates to focus on the latest two releases while retaining the complete release history for changelog and project handoff purposes, with a cleaner release-card presentation.",
       "highlights": [
-        "Settings \u2192 Updates now shows only the latest release and the immediately previous release instead of the complete historical list.",
+        "Settings → Updates now shows only the latest release and the immediately previous release instead of the complete historical list.",
         "Release cards now use a dedicated version badge, release-status badges, publication date, clearer typography, and improved spacing.",
         "The expanded release no longer repeats the version/title heading inside the patch-note body.",
         "The full structured release history remains preserved in release_notes/releases.json, CHANGELOG.md, and PROJECT_STATE.md."
@@ -235,7 +232,7 @@
       "title": "Installed package integrity metadata",
       "summary": "Persists the verified release-package SHA-256 with installed builds and surfaces the exact package digest alongside patch notes.",
       "highlights": [
-        "Settings \u2192 Updates shows Package SHA-256 for a release whenever authoritative package metadata is available, with a one-click Copy control.",
+        "Settings → Updates shows Package SHA-256 for a release whenever authoritative package metadata is available, with a one-click Copy control.",
         "The normal updater writes release-info.json into the staged application only after the downloaded ZIP matches GitHub's published SHA-256.",
         "Recovery updates persist the same release metadata after independently verifying the GitHub asset digest.",
         "The release build emits a Torrent-Dashboard-<version>.release.json sidecar containing the final ZIP digest, version, repository, tag, and commit."
@@ -360,7 +357,7 @@
       "highlights": [
         "Successful GitHub release lookups persist authoritative package digests to data/release-integrity.json.",
         "Normal Settings loads merge the persisted integrity cache into the two displayed patch-note revisions.",
-        "Opening Settings \u2192 Updates silently refreshes release metadata at most once per minute, so historical SHA-256 values self-populate without requiring a manual Check for updates click."
+        "Opening Settings → Updates silently refreshes release metadata at most once per minute, so historical SHA-256 values self-populate without requiring a manual Check for updates click."
       ],
       "fixes": [
         "The previous patch-note card no longer loses its SHA-256 when Settings is reloaded or opened in a new browser session after the remote metadata was fetched."
@@ -1200,7 +1197,7 @@
       "highlights": [
         "Dashboard / Live torrent activity is visible again because removing it did not materially improve usable workspace height and weakened page hierarchy.",
         "The collapsed Torrent details disclosure shows only Torrent details when no torrent is selected; selection-specific copy appears only for an actual selection.",
-        "Opening Settings \u2192 Updates no longer contacts GitHub automatically; Check for updates is the explicit freshness/network action.",
+        "Opening Settings → Updates no longer contacts GitHub automatically; Check for updates is the explicit freshness/network action.",
         "The bottom-anchored desktop/tablet torrent workspace and mobile disclosure behavior remain unchanged."
       ],
       "fixes": [
@@ -1809,7 +1806,7 @@
       "title": "Configurable torrent table columns",
       "summary": "Adds a persistent torrent-column organizer with visibility and ordering controls, expands the available table data, and makes Seeds, Peers, and Tags part of the default dashboard layout.",
       "highlights": [
-        "Settings \u2192 General now provides a Torrent columns organizer where optional columns can be shown, hidden, and moved up or down.",
+        "Settings → General now provides a Torrent columns organizer where optional columns can be shown, hidden, and moved up or down.",
         "Seeds, Peers, and Tags are visible by default, with Size, Category, Tracker, and Added available as optional columns.",
         "Name remains the required first data column while the selection checkbox and row-actions control remain fixed.",
         "Column visibility and order persist as a browser-local preference and survive live refreshes and reloads.",
@@ -1966,7 +1963,7 @@
         "Visible torrent data columns can be dragged horizontally to reorder them directly in the table header.",
         "Right-clicking the torrent header bar opens a Columns menu for showing or hiding optional columns and restoring defaults.",
         "Category remains visible by default alongside Seeds, Peers, and Tags.",
-        "The Settings \u2192 General torrent-column organizer has been removed so column management has one clear interaction surface."
+        "The Settings → General torrent-column organizer has been removed so column management has one clear interaction surface."
       ],
       "fixes": [
         "Removes the extra navigation round trip required to adjust a table layout while looking at the Dashboard.",
@@ -3524,7 +3521,7 @@
       "date": "2026-09-03",
       "status": "prerelease",
       "title": "Responsive tracker and peer details",
-      "summary": "Makes Torrent details \u2192 Trackers and Peers readable on mobile with purpose-built labeled records while preserving desktop tables and the existing General tab.",
+      "summary": "Makes Torrent details → Trackers and Peers readable on mobile with purpose-built labeled records while preserving desktop tables and the existing General tab.",
       "highlights": [
         "Peers on mobile now shows each address and client with labeled Progress, Download, and Upload metrics instead of an anonymous vertical value stack.",
         "Trackers on mobile now shows cleaned tracker names, human-readable status badges, Seeds and Peers counts, and an optional tracker message.",
@@ -3735,7 +3732,7 @@
       ],
       "fixes": [
         "Removes the v0.5.108 shared-workspace cap that still left General too shallow on shorter desktop viewports.",
-        "Preserves a stable 360\u2013560 px torrent-list region across page scrolling and detail expansion while long detail datasets retain their own scrolling."
+        "Preserves a stable 360–560 px torrent-list region across page scrolling and detail expansion while long detail datasets retain their own scrolling."
       ],
       "technical": [
         "syncTorrentWorkspaceLayout now writes a bounded --torrent-list-height derived from the workspace stable document position; the workspace itself uses natural document height.",
@@ -4779,6 +4776,56 @@
           "priority": 2,
           "title": "Select the next service provider",
           "detail": "Reuse the Jellyfin provider boundary for the next Sonarr, Radarr, Lidarr, or Prowlarr runtime increment rather than growing provider transport in dashboard.py."
+        }
+      ]
+    },
+    {
+      "version": "0.5.123",
+      "date": "2026-09-06",
+      "status": "prerelease",
+      "title": "Recovered release line and integration health indicators",
+      "summary": "Restores the validated v0.5.122 development baseline as the canonical release line and adds at-a-glance integration health indicators without downgrading existing installations.",
+      "highlights": [
+        "Restores the complete modular v0.5.122 application baseline, including the operational Jellyfin service integration, as the source for subsequent releases.",
+        "Adds a status indicator to the left of every saved integration name: green for healthy, yellow for reachable but degraded, and red for disconnected or disabled.",
+        "Integration health refreshes automatically while the Integrations settings page is open and after manual connection tests."
+      ],
+      "fixes": [
+        "Restores monotonic prerelease versioning so v0.5.122 installations correctly discover v0.5.123 instead of treating an older published build as current.",
+        "Passive health checks do not send Discord, ntfy, Home Assistant, or generic webhook test notifications merely to determine status."
+      ],
+      "technical": [
+        "Adds a browser-safe administrator-only /api/integration-health endpoint backed by concurrent provider probes in torrent_dashboard/integrations.py.",
+        "Arr providers use their system and health endpoints; Jellyfin surfaces pending restart as degraded; reachable HTTP/auth/service errors are degraded while network failures and missing endpoints are disconnected.",
+        "Removes stale refactor branch metadata from generated public handoff documents and keeps main as the canonical active branch."
+      ],
+      "validation": [
+        "Existing source, UI-string, backend unit, JavaScript syntax, generated-state, and release package validation remain required.",
+        "Integration tests cover disabled/disconnected classification and reachable authentication failures as degraded status.",
+        "The updater-visible prerelease is verified after publication with the expected ZIP asset and GitHub SHA-256 digest."
+      ],
+      "known_issues": [
+        "Webhook-style integrations can prove endpoint reachability passively, but some providers cannot expose deeper service health without sending a real event."
+      ],
+      "architecture": [
+        "Integration configuration/normalization and passive provider health probing remain in torrent_dashboard/integrations.py; dashboard.py only exposes the authenticated HTTP route.",
+        "Jellyfin operational status and library behavior remain owned by torrent_dashboard/jellyfin.py."
+      ],
+      "decisions": [
+        "Keep prerelease versions monotonically increasing; rollback behavior must still advance the version rather than publishing an older semantic version.",
+        "Keep main as the canonical active branch after recovery and avoid persistent development/prerelease branch clutter.",
+        "Use passive health checks for notification/webhook providers so opening Settings never generates external test traffic."
+      ],
+      "next_steps": [
+        {
+          "priority": 1,
+          "title": "Validate integration health against live services",
+          "detail": "Confirm green/yellow/red classification against the maintainer's configured Arr, Jellyfin, Plex, and notification integrations."
+        },
+        {
+          "priority": 2,
+          "title": "Continue service integration work",
+          "detail": "Reuse the modular provider boundary for the next selected Sonarr, Radarr, Lidarr, or Prowlarr operational integration."
         }
       ]
     }
