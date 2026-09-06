@@ -1,0 +1,41 @@
+name: Validate
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set Up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+
+      - name: Validate Python
+        run: |
+          python -m py_compile dashboard.py updater.py \
+            release_tools/build_release.py \
+            release_tools/validate_checkpoint.py \
+            release_tools/validate_public_repo.py \
+            release_tools/validate_ui_strings.py
+
+      - name: Validate JavaScript
+        run: |
+          set -e
+          for file in static/*.js; do
+            node --check "$file"
+          done
+
+      - name: Validate Repository
+        run: |
+          python release_tools/validate_public_repo.py
+          python release_tools/validate_ui_strings.py
+          python release_tools/validate_checkpoint.py
