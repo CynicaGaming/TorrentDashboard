@@ -1,12 +1,12 @@
-/* Integration health and mobile notification controls */
+/* Integration health and browser/PWA notification controls. */
 .integration-summary-with-status{display:grid!important;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;column-gap:10px}
 .integration-summary-with-status>.integration-status-dot{grid-column:1}
-.integration-summary-with-status>span:not(.integration-status-dot):first-of-type{grid-column:2;min-width:0}
+.integration-summary-with-status>span:not(.integration-status-dot):not(.accordion-chevron){grid-column:2;min-width:0}
 .integration-summary-with-status>.accordion-chevron{grid-column:3}
-.integration-status-dot{display:inline-block;width:10px;height:10px;min-width:10px;border-radius:999px;box-shadow:0 0 0 3px color-mix(in srgb,currentColor 18%,transparent)}
-.integration-status-dot.connected{color:#22c55e;background:#22c55e}
-.integration-status-dot.warning{color:#eab308;background:#eab308}
-.integration-status-dot.disconnected{color:#ef4444;background:#ef4444}
+.integration-status-dot{display:inline-block;width:10px;height:10px;min-width:10px;border-radius:999px}
+.integration-status-dot.connected{background:#22c55e;box-shadow:0 0 0 3px rgba(34,197,94,.16)}
+.integration-status-dot.warning{background:#eab308;box-shadow:0 0 0 3px rgba(234,179,8,.16)}
+.integration-status-dot.disconnected{background:#ef4444;box-shadow:0 0 0 3px rgba(239,68,68,.16)}
 .integration-health-legend{display:flex;flex-wrap:wrap;gap:10px 18px;margin:12px 0 18px;color:var(--muted);font-size:.86rem}
 .integration-health-legend span{display:inline-flex;align-items:center;gap:8px}
 .integration-health-legend .integration-status-dot{width:8px;height:8px;min-width:8px;box-shadow:none}
