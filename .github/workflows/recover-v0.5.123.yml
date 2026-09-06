@@ -28,7 +28,7 @@ jobs:
           python-version: '3.13'
 
       - name: Apply recovery and v0.5.123 feature
-        run: python release_tools/recover_v0_5_123.py
+        run: python release_tools/run_recovery_safe.py
 
       - name: Validate recovered source
         shell: bash
