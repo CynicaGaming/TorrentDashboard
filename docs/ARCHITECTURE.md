@@ -65,7 +65,7 @@ There are two notification paths:
 
 The service worker supports notification display/click behavior and contains a `push` event handler, but the application does not currently implement the subscription storage and server-side Web Push sender required for independent background delivery to a closed browser/PWA.
 
-The requested default MP3 is stored as seven Base64 text parts in `static/`. During service-worker installation the parts are decoded once, verified indirectly by release validation, and cached as `/static/notification-default.mp3`. A small compatibility shim redirects the previous default WAV path to this MP3 without changing custom-sound behavior.
+The requested default MP3 is stored as ordered Base64 source fragments in `static/`. During service-worker installation the fragments are decoded once, verified independently by release validation, and cached as `/static/notification-default.mp3`. A small compatibility shim redirects the previous default WAV path to this MP3 without changing custom-sound behavior.
 
 Custom WAV, MP3, and OGG files are uploaded to `data/` and served through the authenticated notification-sound API.
 
