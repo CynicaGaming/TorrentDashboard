@@ -1,4 +1,4 @@
-name: Cleanup stale branches
+name: Final repository cleanup
 
 on:
   push:
@@ -9,6 +9,8 @@ on:
 
 permissions:
   contents: write
+  pull-requests: write
+  actions: read
 
 jobs:
   cleanup:
@@ -19,60 +21,67 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Delete stale remote branches
+      - name: Delete every non-main branch
         shell: bash
         run: |
-          set -u
-          stale_branches=(
-            "checkpoint/stabilization-audit"
-            "feature/account-client-settings-polish-0528"
-            "feature/account-profile-menu"
-            "feature/add-torrent-file-metadata-0552"
-            "feature/add-torrent-metadata-0545"
-            "feature/add-torrent-metadata-backend-0550"
-            "feature/add-torrent-metadata-ui-0551"
-            "feature/add-torrent-options-0549"
-            "feature/add-torrent-shell-0548"
-            "feature/client-download-defaults-0553"
-            "feature/integration-health-mobile-notifications"
-            "feature/modular-settings-users"
-            "feature/notifications-settings-055"
-            "feature/persistent-secret-mask"
-            "feature/qbittorrent-toolbar-client-settings"
-            "feature/remove-sidebar-account-summary"
-            "feature/settings-facelift-material-visibility"
-            "feature/settings-navigation-updater-053"
-            "feature/settings-polish-secrets"
-            "feature/torrent-detail-pane-0544"
-            "feature/torrent-export-0554"
-            "feature/usability-health-notifications-0534"
-            "fix/recovery-diagnostics-0.5.40"
-            "fix/restore-true-v0538-baseline-0543"
-            "fix/rollback-stable-ecc367-0.5.42"
-            "fix/rollback-v0545-to-stable-v0546-clean"
-            "fix/rollback-v0545-to-stable-v0546-final"
-            "fix/rollback-v0545-to-stable-v0546"
-            "fix/stable-runtime-cache-boundary-0.5.41"
-            "fix/v0527-ui-validator"
-            "fix/v0528-release-contract"
-            "fix/v0528-staging-root"
-            "prerelease-0.4.0"
-            "stabilize-0.4.0"
-            "tmp-noop"
-            "tmp-noop2"
-          )
-
-          failed=0
-          for branch in "${stale_branches[@]}"; do
+          set -euo pipefail
+          for branch in \
+            "prerelease/backend-modularization" \
+            "refactor/backend-modularization-users"
+          do
             if git ls-remote --exit-code --heads origin "refs/heads/${branch}" >/dev/null 2>&1; then
               echo "Deleting ${branch}"
-              if ! git push origin --delete "${branch}"; then
-                echo "Failed to delete ${branch}" >&2
-                failed=1
-              fi
-            else
-              echo "Already absent: ${branch}"
+              git push origin --delete "${branch}"
             fi
           done
 
-          exit "${failed}"
+      - name: Close any remaining open pull requests
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for number in $(gh api "repos/${GITHUB_REPOSITORY}/pulls?state=open&per_page=100" --jq '.[].number'); do
+            echo "Closing PR #${number}"
+            gh api --method PATCH "repos/${GITHUB_REPOSITORY}/pulls/${number}" -f state=closed >/dev/null
+          done
+
+      - name: Wait for maintenance-triggered prerelease run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 40); do
+            status=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs?head_sha=${GITHUB_SHA}&event=push&per_page=20" \
+              --jq '.workflow_runs[] | select(.path == ".github/workflows/release.yml") | .status' | head -n 1 || true)
+            if [ "${status}" = "completed" ]; then
+              echo "Prerelease workflow completed"
+              exit 0
+            fi
+            sleep 3
+          done
+          echo "No completed prerelease run observed; continuing cleanup"
+
+      - name: Remove prerelease releases and their tags
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for tag in $(gh api "repos/${GITHUB_REPOSITORY}/releases?per_page=100" --jq '.[] | select(.prerelease == true) | .tag_name'); do
+            echo "Deleting prerelease ${tag}"
+            gh release delete "${tag}" --cleanup-tag --yes
+          done
+
+      - name: Remove this temporary cleanup workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          git reset --hard origin/main
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/cleanup-stale-branches.yml
+          git commit -m "Remove temporary repository cleanup workflow"
+          git push origin HEAD:main
