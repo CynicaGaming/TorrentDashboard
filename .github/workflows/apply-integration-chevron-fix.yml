@@ -1,0 +1,43 @@
+name: Apply integration chevron fix
+
+on:
+  push:
+    branches:
+      - feature/integration-chevron-fix
+
+permissions:
+  contents: write
+
+jobs:
+  apply-and-validate:
+    if: ${{ github.actor != 'github-actions[bot]' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+      - name: Apply fix
+        run: |
+          python release_tools/apply_integration_chevron_fix.py
+          python release_tools/generate_release_notes.py --version 0.5.125
+      - name: Validate
+        run: |
+          python release_tools/validate_source.py
+          python release_tools/validate_ui_strings.py
+          node --check static/app.js
+          node --check static/settings.js
+      - name: Commit validated source
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          rm release_tools/apply_integration_chevron_fix.py
+          rm .github/workflows/apply-integration-chevron-fix.yml
+          git add -A
+          git commit -m 'Fix integration accordion chevron [skip ci]'
+          git push origin HEAD:${GITHUB_REF_NAME}
