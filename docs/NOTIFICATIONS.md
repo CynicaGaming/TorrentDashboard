@@ -23,7 +23,7 @@ The current default sound is the requested `notification-default.mp3`. Its expec
 - decoded size: 40,704 bytes;
 - SHA-256: `5be19a030c39e9fef9084d247e1bda23cb947e9e430abfc2e97376e04ff868b3`.
 
-The source repository stores the MP3 as seven Base64 text parts. The service worker decodes and caches the MP3 once during installation. `release_tools/validate_checkpoint.py` reconstructs those parts independently and rejects a release if the size, MP3 signature, or digest changes unexpectedly.
+The source repository stores the MP3 as ordered Base64 source fragments. The service worker decodes and caches the MP3 once during installation. `release_tools/validate_checkpoint.py` reconstructs those fragments independently and rejects a release if the size, MP3 signature, or digest changes unexpectedly.
 
 The previous `default-completion.wav` remains in the repository as a compatibility asset. A small browser shim maps the old default path to the MP3. Custom sounds are not redirected.
 
