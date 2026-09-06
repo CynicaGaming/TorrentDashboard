@@ -1,16 +1,16 @@
 'use strict';
 
 const CACHE='torrent-dashboard-v0554-mobile-notifications';
-const FEATURE_STYLE='/static/integration-notifications.css?v=0.5.54';
-const FEATURE_SCRIPT='/static/integration-notifications.js?v=0.5.54';
-const SOUND_PATCH='/static/default-notification-sound.js?v=0.5.54';
+const FEATURE_STYLE='/static/integration-notifications.css?v=0.5.55';
+const FEATURE_SCRIPT='/static/integration-notifications.js?v=0.5.55';
+const SOUND_PATCH='/static/default-notification-sound.js?v=0.5.55';
 const SOUND_PATH='/static/notification-default.mp3';
-const SOUND_PARTS=[1,2,3,4,5,6,7].map(n=>`/static/notification-default.b64.${String(n).padStart(2,'0')}?v=0.5.54`);
+const SOUND_PARTS=[1,2,3,4,5,6,7].map(n=>`/static/notification-default.b64.${String(n).padStart(2,'0')}?v=0.5.55`);
 const ASSETS=[
-  '/static/app.css?v=0.5.54',
-  '/static/settings.css?v=0.5.54',
-  '/static/settings.js?v=0.5.54',
-  '/static/app.js?v=0.5.54',
+  '/static/app.css?v=0.5.55',
+  '/static/settings.css?v=0.5.55',
+  '/static/settings.js?v=0.5.55',
+  '/static/app.js?v=0.5.55',
   FEATURE_STYLE,
   FEATURE_SCRIPT,
   SOUND_PATCH,

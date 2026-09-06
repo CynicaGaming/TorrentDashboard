@@ -113,3 +113,15 @@
 
 /* 0.5.53 client download-location settings */
 .client-path-grid{grid-template-columns:1fr}.client-path-grid input{font-family:ui-monospace,SFMono-Regular,Consolas,"Liberation Mono",monospace}
+
+
+/* 0.5.55 integration connection health indicators. */
+.integration-summary-main{display:flex!important;align-items:center;gap:10px;min-width:0;flex:1}
+.integration-summary-copy{display:block;min-width:0;flex:1}
+.integration-status{display:block;flex:0 0 auto;width:10px;height:10px;border-radius:999px;background:var(--muted);box-shadow:0 0 0 4px color-mix(in srgb,var(--muted) 12%,transparent);transition:background .16s ease,box-shadow .16s ease,opacity .16s ease}
+.integration-status.healthy{background:var(--good);box-shadow:0 0 0 4px color-mix(in srgb,var(--good) 14%,transparent)}
+.integration-status.issue{background:var(--warn);box-shadow:0 0 0 4px color-mix(in srgb,var(--warn) 15%,transparent)}
+.integration-status.disconnected{background:var(--bad);box-shadow:0 0 0 4px color-mix(in srgb,var(--bad) 14%,transparent)}
+.integration-status.checking{background:var(--muted);animation:integration-status-pulse 1.2s ease-in-out infinite}
+@keyframes integration-status-pulse{50%{opacity:.42}}
+@media(max-width:560px){.integration-summary-main{gap:9px}.integration-status{width:9px;height:9px}}
