@@ -27,19 +27,12 @@ jobs:
         with:
           python-version: '3.13'
 
-      - name: Apply Pending Feature Update
-        shell: bash
-        run: |
-          if [ -f release_tools/apply_feature_update.py ]; then
-            python release_tools/apply_feature_update.py
-            rm -f release_tools/apply_feature_update.py
-          fi
-
       - name: Validate Source
         shell: bash
         run: |
           python release_tools/validate_source.py
           python release_tools/validate_ui_strings.py
+          python -m unittest discover -s tests -p 'test_*.py'
           node --check static/app.js
           node --check static/settings.js
           node - <<'JS'
@@ -50,19 +43,6 @@ jobs:
             throw new Error('settings.js did not initialize window.TDSettings');
           }
           JS
-
-      - name: Commit Applied Feature Update
-        id: source
-        shell: bash
-        run: |
-          if [ -n "$(git status --porcelain)" ]; then
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add -A
-            git commit -m "Apply pending feature update"
-            git push origin HEAD:main
-          fi
-          echo "release_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Determine Version
         id: version
@@ -85,14 +65,6 @@ jobs:
             --release-body dist/release-notes.md \
             --check
 
-      - name: Replace Existing Pre-Release
-        env:
-          GH_TOKEN: ${{ github.token }}
-          TAG: ${{ steps.version.outputs.tag }}
-        shell: bash
-        run: |
-          gh release delete "$TAG" --cleanup-tag --yes >/dev/null 2>&1 || true
-
       - name: Build Release Package
         env:
           REPO: ${{ github.repository }}
@@ -109,32 +81,21 @@ jobs:
           import json
           import zipfile
           from pathlib import Path
-
           version='${{ steps.version.outputs.version }}'
           path=Path('dist') / f'Torrent-Dashboard-{version}.zip'
           info_path=Path('dist') / f'Torrent-Dashboard-{version}.release.json'
           with zipfile.ZipFile(path) as z:
               names=[n for n in z.namelist() if not n.endswith('/')]
           required=(
-              '/dashboard.py',
-              '/updater.py',
-              '/torrent_dashboard/__init__.py',
-              '/torrent_dashboard/users.py',
-              '/torrent_dashboard/config_store.py',
-              '/torrent_dashboard/config.py',
-              '/torrent_dashboard/integrations.py',
-              '/ARCHITECTURE.md',
-              '/PROJECT_STATE.md',
-              '/CHANGELOG.md',
-              '/release_notes/releases.json',
-              '/static/index.html',
-              '/static/app.js',
-              '/static/settings.js',
+              '/dashboard.py','/updater.py','/torrent_dashboard/__init__.py','/torrent_dashboard/users.py',
+              '/torrent_dashboard/config_store.py','/torrent_dashboard/config.py','/torrent_dashboard/integrations.py',
+              '/torrent_dashboard/jellyfin.py','/torrent_dashboard/release_provenance.py','/ARCHITECTURE.md',
+              '/PROJECT_STATE.md','/CHANGELOG.md','/release_notes/releases.json','/static/index.html',
+              '/static/app.js','/static/settings.js','/static/settings.css',
           )
           for suffix in required:
               assert any(n.endswith(suffix) for n in names), suffix
-          assert not any(n.endswith('apply_feature_update.py') for n in names)
-          assert not any('cleanup.part' in n for n in names)
+          assert not any(n.endswith('recover_v0_5_123.py') or n.endswith('run_recovery_safe.py') for n in names)
           info=json.loads(info_path.read_text(encoding='utf-8'))
           digest=hashlib.sha256(path.read_bytes()).hexdigest()
           assert info['version'] == version
@@ -142,18 +103,56 @@ jobs:
           assert info['sha256'] == digest
           PY
 
-      - name: Publish GitHub Pre-Release
+      - name: Publish Or Refresh GitHub Pre-Release
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.version.outputs.tag }}
-          RELEASE_SHA: ${{ steps.source.outputs.release_sha }}
         shell: bash
         run: |
+          set -euo pipefail
           ZIP="dist/Torrent-Dashboard-${{ steps.version.outputs.version }}.zip"
           INFO="dist/Torrent-Dashboard-${{ steps.version.outputs.version }}.release.json"
-          gh release create "$TAG" \
-            "$ZIP" "$INFO" \
-            --target "$RELEASE_SHA" \
-            --title "Torrent Dashboard $TAG Pre-Release" \
-            --notes-file dist/release-notes.md \
-            --prerelease
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$ZIP" "$INFO" --clobber
+            gh release edit "$TAG" \
+              --title "Torrent Dashboard $TAG Pre-Release" \
+              --notes-file dist/release-notes.md \
+              --prerelease
+          else
+            gh release create "$TAG" \
+              "$ZIP" "$INFO" \
+              --target "$GITHUB_SHA" \
+              --title "Torrent Dashboard $TAG Pre-Release" \
+              --notes-file dist/release-notes.md \
+              --prerelease
+          fi
+
+      - name: Remove Superseded Pre-Releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for old_tag in $(gh api "repos/${{ github.repository }}/releases?per_page=100" --jq '.[] | select(.prerelease == true) | .tag_name'); do
+            if [ "$old_tag" != "$TAG" ]; then
+              gh release delete "$old_tag" --cleanup-tag --yes
+            fi
+          done
+
+      - name: Verify Updater-Visible Pre-Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh api "repos/${{ github.repository }}/releases/tags/$TAG" --jq '
+            select(.draft == false)
+            | select(.prerelease == true)
+            | select(.tag_name == env.TAG)
+            | .assets[]
+            | select(.name == "Torrent-Dashboard-${{ steps.version.outputs.version }}.zip")
+            | select(.digest | startswith("sha256:"))
+            | .id
+          ' | grep -Eq '^[0-9]+$'
