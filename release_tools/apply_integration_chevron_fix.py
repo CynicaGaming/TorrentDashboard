@@ -13,11 +13,14 @@ def once(text, old, new, label):
     count=text.count(old)
     if count != 1: raise RuntimeError(f"{label}: expected one match, found {count}")
     return text.replace(old,new,1)
+def first(text, old, new, label):
+    if old not in text: raise RuntimeError(f"{label}: target not found")
+    return text.replace(old,new,1)
 
 path="static/settings.js"; text=read(path)
 old='<span class="accordion-chevron">⌄</span></button><div class="accordion-body ${index===0?\'\':\'hidden\'}">'
 new='<span class="accordion-chevron">${jellyfinTaskIcon(\'chevron\')}</span></button><div class="accordion-body ${index===0?\'\':\'hidden\'}">'
-text=once(text,old,new,"integration accordion chevron")
+text=first(text,old,new,"integration accordion chevron")
 write(path,text)
 
 path="static/settings.css"; text=read(path)
