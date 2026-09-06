@@ -5,7 +5,18 @@ const FEATURE_STYLE='/static/integration-notifications.css?v=0.5.54';
 const FEATURE_SCRIPT='/static/integration-notifications.js?v=0.5.54';
 const SOUND_PATCH='/static/default-notification-sound.js?v=0.5.54';
 const SOUND_PATH='/static/notification-default.mp3';
-const SOUND_PARTS=[1,2,3,4,5,6,7].map(n=>`/static/notification-default.b64.${String(n).padStart(2,'0')}?v=0.5.54`);
+const SOUND_PARTS=[
+  '/static/notification-default.b64.01?v=0.5.54',
+  '/static/notification-default.b64.01.tail?v=0.5.54',
+  '/static/notification-default.b64.02?v=0.5.54',
+  '/static/notification-default.b64.02.tail?v=0.5.54',
+  '/static/notification-default.b64.03?v=0.5.54',
+  '/static/notification-default.b64.04?v=0.5.54',
+  '/static/notification-default.b64.05?v=0.5.54',
+  '/static/notification-default.b64.06?v=0.5.54',
+  '/static/notification-default.b64.07?v=0.5.54',
+  '/static/notification-default.b64.08?v=0.5.54'
+];
 const ASSETS=[
   '/static/app.css?v=0.5.54',
   '/static/settings.css?v=0.5.54',
