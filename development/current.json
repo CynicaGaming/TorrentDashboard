@@ -1,32 +1,38 @@
 {
   "schema": 1,
   "status": "ready",
-  "objective": "Extract qBitTorrent transport and server normalization from dashboard.py",
-  "why": "QBitClient, Web API transport details, server normalization, and preference/proxy translation form the next cohesive backend boundary still mixed into the HTTP composition root.",
+  "objective": "Validate and extend the Jellyfin service-integration runtime",
+  "why": "Jellyfin is the first configured service integration to become operational rather than connection-test-only, providing a concrete provider pattern for future Sonarr, Radarr, Lidarr, and Prowlarr runtime features.",
   "acceptance_criteria": [
-    "qBitTorrent Web API transport and QBitClient behavior live under torrent_dashboard rather than dashboard.py.",
-    "Server normalization and qBitTorrent preference/proxy translation move behind a small tested interface without changing configured client behavior.",
-    "dashboard.py composes the qBitTorrent client/service boundary and retains HTTP routing and request orchestration.",
-    "Existing Add Torrent, torrent actions, live polling, client settings, and server-selection behavior remain unchanged.",
-    "Behavioral tests cover transport URL/auth handling, server normalization, and preference/proxy translation edge cases."
+    "A saved Jellyfin integration can report server identity/health and configured libraries without exposing its API key to the browser.",
+    "Administrators can explicitly request a normal Jellyfin library refresh from Settings and receive a clear success/failure result.",
+    "Jellyfin network/API behavior lives under torrent_dashboard rather than growing dashboard.py with provider-specific transport logic.",
+    "Automated tests characterize Jellyfin authentication, server/library normalization, and refresh request behavior.",
+    "The next integration increment reuses the service-provider boundary instead of adding unrelated one-off HTTP logic."
   ],
   "decisions": [
-    "Keep the extraction behavior-preserving; do not redesign qBitTorrent-facing UI or server-selection semantics in the same increment.",
-    "Keep qBitTorrent transport dependency-light and standard-library based.",
-    "Preserve the current configuration schema and browser-local server-selection behavior."
+    "Keep the first Jellyfin runtime read-mostly: server status and library inventory are read operations; library refresh is the only mutation.",
+    "Do not trigger Jellyfin refresh automatically when a torrent completes because media managers may still need to import or move completed downloads.",
+    "Keep Jellyfin credentials server-side and return only normalized, browser-safe service metadata.",
+    "Use the existing Integrations Settings accordion as the operational surface rather than creating a second Jellyfin management destination."
   ],
   "files": [
+    "torrent_dashboard/jellyfin.py",
+    "torrent_dashboard/integrations.py",
     "dashboard.py",
-    "torrent_dashboard/",
+    "static/settings.js",
+    "static/settings.css",
     "tests/",
-    "ARCHITECTURE.md"
+    "ARCHITECTURE.md",
+    "TESTING.md"
   ],
   "blockers": [],
   "out_of_scope": [
-    "Secret-at-rest changes.",
-    "Authorization-role changes.",
-    "Frontend redesign unrelated to the qBitTorrent boundary.",
-    "Changing the public update protocol."
+    "Jellyfin library creation, deletion, path editing, or metadata-provider configuration.",
+    "Automatic refresh on torrent completion.",
+    "Jellyfin media-item browsing/playback management.",
+    "Sonarr, Radarr, Lidarr, and Prowlarr runtime behavior in the same increment.",
+    "Secret-at-rest changes."
   ],
-  "next_action": "Inventory QBitClient, server normalization, and qBitTorrent preference/proxy helpers still defined in dashboard.py, then add characterization tests before moving implementations."
+  "next_action": "Validate v0.5.122 against a real Jellyfin server, then use the resulting service-integration pattern for the next selected provider rather than adding provider transport to dashboard.py."
 }

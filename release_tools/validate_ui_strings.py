@@ -99,6 +99,7 @@ def main():
     config_py = (ROOT / "torrent_dashboard" / "config.py").read_text(encoding="utf-8")
     config_store_py = (ROOT / "torrent_dashboard" / "config_store.py").read_text(encoding="utf-8")
     integrations_py = (ROOT / "torrent_dashboard" / "integrations.py").read_text(encoding="utf-8")
+    jellyfin_py = (ROOT / "torrent_dashboard" / "jellyfin.py").read_text(encoding="utf-8")
     users_py = (ROOT / "torrent_dashboard" / "users.py").read_text(encoding="utf-8")
     design_language = (ROOT / "DESIGN_LANGUAGE.md").read_text(encoding="utf-8")
     testing_md = (ROOT / "TESTING.md").read_text(encoding="utf-8")
@@ -885,6 +886,19 @@ def main():
     assert 'min-height:44px' in app_css
     assert '## Mobile Add Torrent action dock' in design_language
     assert '### Mobile Add Torrent action dock' in testing_md
+
+    # 0.5.122 turns Jellyfin from connection-test scaffolding into a service integration.
+    assert '/api/integrations/jellyfin/status' in dashboard_py
+    assert '/api/integrations/jellyfin/refresh' in dashboard_py
+    assert 'find_jellyfin_integration' in dashboard_py and 'jellyfin_overview' in dashboard_py
+    assert 'def jellyfin_overview' in jellyfin_py and 'def refresh_jellyfin_libraries' in jellyfin_py
+    assert '/System/Info' in jellyfin_py and '/Library/VirtualFolders' in jellyfin_py and '/Library/Refresh' in jellyfin_py
+    assert 'function jellyfinServiceMarkup' in settings_js
+    assert 'function renderJellyfinOverview' in settings_js and 'function loadJellyfinOverview' in settings_js
+    assert 'function refreshJellyfinLibraries' in settings_js and 'Refresh libraries' in settings_js
+    assert '0.5.122 Jellyfin service integration runtime' in settings_css
+    assert '## Jellyfin service integrations' in design_language
+    assert '### Jellyfin service integration' in testing_md
 
     print("UI string audit passed")
 

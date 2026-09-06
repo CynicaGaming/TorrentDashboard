@@ -143,3 +143,16 @@
   .sidebar-user strong{font-size:13px}.sidebar-user small{font-size:11px}
 }
 
+
+/* 0.5.122 Jellyfin service integration runtime */
+.integration-service{display:grid;gap:12px;margin-top:16px;padding-top:16px;border-top:1px solid var(--border)}
+.integration-service-head,.jellyfin-library-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.integration-service-heading,.jellyfin-library-head>div{display:grid;gap:4px;min-width:0}
+.integration-service-heading .eyebrow{font-size:9px;color:var(--muted);text-transform:none;letter-spacing:.02em}
+.jellyfin-server-line{display:flex;align-items:center;gap:8px;min-width:0}.jellyfin-server-line strong{font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.integration-service-heading small,.jellyfin-library-head small{font-size:9px;color:var(--muted)}
+.service-status-badge{display:inline-flex;align-items:center;min-height:22px;padding:3px 7px;border:1px solid var(--border);border-radius:999px;font-size:8.5px;white-space:nowrap}.service-status-badge.online{color:#72d6ad;border-color:color-mix(in srgb,#72d6ad 38%,var(--border));background:color-mix(in srgb,#72d6ad 8%,transparent)}.service-status-badge.offline{color:#ff7887;border-color:color-mix(in srgb,#ff7887 38%,var(--border));background:color-mix(in srgb,#ff7887 8%,transparent)}.service-status-badge.checking{color:var(--muted)}
+.integration-service-head>button,.jellyfin-library-head>button{flex:0 0 auto;min-width:120px}.jellyfin-library-head{padding-top:2px}.jellyfin-library-head strong{font-size:12px}
+.jellyfin-library-list{display:grid;gap:7px}.jellyfin-library-row{display:grid;grid-template-columns:minmax(150px,.8fr) minmax(220px,1.7fr) minmax(90px,.45fr);gap:12px;align-items:center;padding:10px 11px;border:1px solid var(--border);border-radius:11px;background:color-mix(in srgb,var(--panel2) 48%,transparent)}
+.jellyfin-library-copy{display:grid;gap:3px;min-width:0}.jellyfin-library-copy strong{font-size:10.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.jellyfin-library-copy span,.jellyfin-library-paths span{font-size:8.5px;color:var(--muted)}.jellyfin-library-paths{display:grid;gap:3px;min-width:0}.jellyfin-library-paths code{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);font-size:8.5px;background:transparent;padding:0}.jellyfin-library-scan{display:grid;gap:3px;text-align:right}.jellyfin-library-scan span{font-size:8px;color:var(--muted)}.jellyfin-library-scan strong{font-size:9.5px;color:var(--text)}
+.integration-service-empty{padding:14px;border:1px dashed var(--border);border-radius:10px;color:var(--muted);font-size:9px;text-align:center}
+@media(max-width:700px){.integration-service-head,.jellyfin-library-head{align-items:flex-start;flex-wrap:wrap}.integration-service-head>button,.jellyfin-library-head>button{min-width:0}.jellyfin-library-row{grid-template-columns:1fr;gap:8px}.jellyfin-library-scan{text-align:left;grid-template-columns:auto 1fr;align-items:baseline;gap:6px}.jellyfin-library-paths code{white-space:normal;overflow-wrap:anywhere}}

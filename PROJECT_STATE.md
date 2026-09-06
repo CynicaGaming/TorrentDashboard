@@ -6,7 +6,7 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.121** (prerelease)
+- Latest documented build: **v0.5.122** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 - Upstream development branch: `refactor/backend-modularization-users`
 - Upstream prerelease branch: `prerelease/backend-modularization`
@@ -14,7 +14,11 @@
 
 ### Latest release summary
 
-Keeps the Add Torrent action footer continuously reachable on phones by sizing the modal to the actual visual viewport while metadata/options scroll independently.
+Turns the Jellyfin integration into an operational service surface with live server status, configured library inventory, scan state, and an explicit library refresh action.
+
+## Architecture state
+
+- `torrent_dashboard/jellyfin.py` owns Jellyfin HTTP/authentication, server/library normalization, and library refresh behavior; `dashboard.py` remains the HTTP composition adapter.
 
 ## Current engineering decisions
 
@@ -68,6 +72,9 @@ Keeps the Add Torrent action footer continuously reachable on phones by sizing t
 - Keep detailed security, account, system, integration, and update activity in the full Notifications view while the header bell initially surfaces completed torrents only.
 - Keep Add Torrent bulk folder disclosure as presentation state over the existing metadata tree; expand/collapse actions must never alter file selection or priority state.
 - Use compact locally embedded Material icon buttons for Add Torrent bulk folder disclosure; keep Expand all and Collapse all adjacent and presentation-only.
+- Treat Jellyfin as a service integration rather than connection-test-only scaffolding: expose server/library state and explicit administrator refresh actions in Settings.
+- Keep Jellyfin API keys server-side; browser-visible service snapshots contain only normalized status and library metadata.
+- Do not automatically refresh Jellyfin on torrent completion; explicit refresh remains the only Jellyfin mutation in the baseline runtime.
 
 ## Development principles
 
@@ -79,6 +86,14 @@ Keeps the Add Torrent action footer continuously reachable on phones by sizing t
 - Keep public development continuity portable across forks; label canonical repository/branch/PR references as upstream context rather than local identity.
 
 ## Recent work
+
+### v0.5.122 — Jellyfin service integration
+
+Turns the Jellyfin integration into an operational service surface with live server status, configured library inventory, scan state, and an explicit library refresh action.
+
+- Saved Jellyfin integrations now show whether the server is reachable plus its reported server name, version, operating system, and restart-pending state.
+- The Integrations page lists Jellyfin virtual-folder libraries with collection type, media locations, and refresh status/progress when Jellyfin reports them.
+- Administrators can request Jellyfin's normal global library scan with Refresh libraries without leaving Torrent Dashboard.
 
 ### v0.5.121 — Mobile Add Torrent action dock
 
@@ -112,18 +127,14 @@ Adds Expand all and Collapse all controls to the Add Torrent content tree so nes
 - The controls automatically disable when the requested state is already satisfied or when the torrent contains no folders.
 - Responsive layout keeps the controls usable on narrow/mobile Add Torrent sheets without widening the content preview.
 
-### v0.5.117 — Header completion notification inbox
-
-Adds a compact Material-style notification bell for recent completed torrents while preserving the full Notifications view as durable activity history.
-
-- Adds a locally embedded Material-style bell to the application header with an unread completion count and a compact recent-completions popover.
-- Opening the bell marks the currently scoped completion entries seen; Clear dismisses those bell entries only in the current browser.
-- View all notifications opens the existing Notifications destination for complete torrent, security, account, update, integration, and system history.
-- The bell follows the selected client scope and is responsive on both desktop and mobile without replacing existing browser/sound completion notifications.
-
 ## What to do next
 
-No next steps are recorded in the latest release metadata.
+1. **Validate live Jellyfin behavior** — Confirm status, library inventory, responsive rendering, and explicit library refresh against a real Jellyfin server before expanding service integrations further.
+2. **Select the next service provider** — Reuse the Jellyfin provider boundary for the next Sonarr, Radarr, Lidarr, or Prowlarr runtime increment rather than growing provider transport in dashboard.py.
+
+## Known issues
+
+- CI uses a mocked Jellyfin transport; live server/version/library compatibility still requires smoke testing against the maintainer's Jellyfin installation.
 
 ## Handoff instructions for a new development session
 

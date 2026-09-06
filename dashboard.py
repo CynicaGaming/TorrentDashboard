@@ -58,6 +58,11 @@ from torrent_dashboard.integrations import (
     save_integration,
     test_integration_connection,
 )
+from torrent_dashboard.jellyfin import (
+    find_jellyfin_integration,
+    jellyfin_overview,
+    refresh_jellyfin_libraries,
+)
 from torrent_dashboard.users import (
     AVATAR_DIR,
     MAX_AVATAR_BYTES,
@@ -93,7 +98,7 @@ RELEASE_INFO_PATH = APP_DIR / "release-info.json"
 RELEASE_INTEGRITY_CACHE_PATH = DATA_DIR / "release-integrity.json"
 CUSTOM_SOUND_BASENAME = "custom-notification-sound"
 MAX_CUSTOM_SOUND_BYTES = 2 * 1024 * 1024
-VERSION = "0.5.121"
+VERSION = "0.5.122"
 STATUS_REFRESH_SECONDS = 1.0
 
 RELEASE_PROVENANCE = ReleaseProvenance(
@@ -1865,7 +1870,7 @@ class Handler(BaseHTTPRequestHandler):
             if not avatar_path:
                 return self.send_json(404,{"error":"No profile picture is configured"},new_cookie)
             return self.send_bytes(200,avatar_path.read_bytes(),avatar_mime,new_cookie)
-        if path in ("/api/settings","/api/integrations","/api/users","/api/network/interfaces","/api/client-settings","/api/torrent-metadata/save") and not session_is_admin(sess):
+        if path in ("/api/settings","/api/integrations","/api/integrations/jellyfin/status","/api/users","/api/network/interfaces","/api/client-settings","/api/torrent-metadata/save") and not session_is_admin(sess):
             return self.send_json(403,{"error":"Administrator access is required"},new_cookie)
 
         if path=="/api/torrent-metadata/save":
@@ -1923,6 +1928,12 @@ class Handler(BaseHTTPRequestHandler):
         if path=="/api/events": return self.send_json(200,{"events":HISTORY.events(qs.get("limit",["100"])[0])},new_cookie)
         if path=="/api/analytics": return self.send_json(200,HISTORY.analytics(qs.get("server",["all"])[0]),new_cookie)
         if path=="/api/integrations": return self.send_json(200,{"types":integration_catalog(),"integrations":redacted_integrations(cfg)},new_cookie)
+        if path=="/api/integrations/jellyfin/status":
+            try:
+                item=find_jellyfin_integration(cfg,qs.get("id",[""])[0])
+                return self.send_json(200,jellyfin_overview(item),new_cookie)
+            except Exception as e:
+                return self.send_json(502,{"error":str(e)},new_cookie)
         if path=="/api/users": return self.send_json(200,{"users":[public_user(u) for u in cfg.get("users",[])],"current_user_id":sess.get("user_id","")},new_cookie)
         if path=="/api/settings": return self.send_json(200,redacted_config(cfg),new_cookie)
         if path=="/api/network/interfaces": return self.send_json(200,{"interfaces":detect_network_interfaces(qs.get("refresh",["0"])[0]=="1")},new_cookie)
@@ -2018,6 +2029,15 @@ class Handler(BaseHTTPRequestHandler):
                 data=parse_json_body(self,10000); iid=str(data.get("id") or ""); updated,_=mutate_config(lambda current: (delete_integration(current,iid),None))
                 HISTORY.event("dashboard","integration_deleted",iid,"",{"client_ip":self.client_ip()})
                 return self.send_json(200,{"ok":True},new_cookie)
+            if path=="/api/integrations/jellyfin/refresh":
+                data=parse_json_body(self,10000); item=find_jellyfin_integration(cfg,data.get("id"))
+                try:
+                    result=refresh_jellyfin_libraries(item)
+                except Exception as exc:
+                    HISTORY.event("dashboard","jellyfin_library_refresh_failed",item.get("name","Jellyfin"),"",{"client_ip":self.client_ip(),"integration_id":item.get("id","")})
+                    return self.send_json(502,{"error":str(exc)},new_cookie)
+                HISTORY.event("dashboard","jellyfin_library_refresh_requested",item.get("name","Jellyfin"),"",{"client_ip":self.client_ip(),"integration_id":item.get("id","")})
+                return self.send_json(200,result,new_cookie)
             if path=="/api/users":
                 data=parse_json_body(self,20000); updated,user=mutate_config(lambda current: save_user(current,data)); SESSIONS.update_user(user)
                 HISTORY.event("dashboard","user_saved",user.get("username",""),"",{"client_ip":self.client_ip(),"group":user.get("group")})

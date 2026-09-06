@@ -7,6 +7,8 @@ import urllib.error
 import urllib.request
 import uuid
 
+from .jellyfin import jellyfin_server_info
+
 
 INTEGRATION_TYPES = {
     "sonarr": {
@@ -158,13 +160,8 @@ def test_integration_connection(item):
                 data = json.loads(resp.read(200000).decode("utf-8"))
             version = str(data.get("version") or "").strip()
         elif provider == "jellyfin":
-            req = urllib.request.Request(
-                item["url"].rstrip("/") + "/System/Info",
-                headers={"X-Emby-Token": item["api_key"], "Accept": "application/json"},
-            )
-            with urllib.request.urlopen(req, timeout=7) as resp:
-                data = json.loads(resp.read(200000).decode("utf-8"))
-            version = str(data.get("Version") or data.get("ProductVersion") or "").strip()
+            data = jellyfin_server_info(item)
+            version = str(data.get("version") or "").strip()
         elif provider == "plex":
             req = urllib.request.Request(
                 item["url"].rstrip("/") + "/identity",

@@ -47,6 +47,10 @@ Owns in-process configuration transaction coordination. `mutate()` acquires the 
 
 Owns the integration provider catalog, field validation and normalization, configured-secret redaction, connection tests, and integration CRUD transforms. Provider definitions no longer live in the HTTP adapter.
 
+### `torrent_dashboard/jellyfin.py`
+
+Owns the Jellyfin service-integration runtime: authenticated server status, virtual-folder/library inventory normalization, and explicit global library refresh requests. Jellyfin API keys remain server-side; browser responses contain only normalized server/library metadata. `dashboard.py` only resolves authenticated HTTP routes and composes these operations.
+
 ### `torrent_dashboard/release_provenance.py`
 
 Owns release/update provenance behavior:

@@ -267,3 +267,9 @@ On narrow layouts the summary stays above the two disclosure actions and the act
 - The Add Torrent header and footer are fixed structural regions of the modal; only the options/preview body scrolls.
 - The footer respects bottom safe-area insets and keeps **Save .torrent file**, **Cancel**, and **Add torrent** continuously reachable after metadata expands the content preview.
 - Mobile viewport handling is presentation-only. Metadata generation, file selection/priorities, and the qBitTorrent add request remain unchanged.
+
+## Jellyfin service integrations
+
+A configured service integration should expose useful operational state in the same Settings accordion where it is configured instead of requiring a separate management destination. Jellyfin shows a compact server-health summary followed by its reported libraries. Library paths may wrap on narrow layouts, while server state, library names, collection types, and scan state remain visually distinct.
+
+Connection testing and runtime service state are separate concepts: **Test connection** validates credentials/configuration, while the Jellyfin runtime panel shows current server/library state. Destructive or metadata-editing Jellyfin actions are outside this baseline; **Refresh libraries** is an explicit administrator action and must never be triggered merely by opening Settings or by torrent completion.

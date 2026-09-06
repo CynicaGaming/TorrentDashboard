@@ -362,6 +362,64 @@ window.TDSettings = (() => {
     return parts.join(' · ');
   }
 
+  function jellyfinServiceMarkup(item) {
+    if (item.type !== 'jellyfin' || !item.id || item._new) return '';
+    return `<section class="integration-service jellyfin-service" data-jellyfin-service><div class="integration-service-head"><div class="integration-service-heading"><span class="eyebrow">Jellyfin server</span><div class="jellyfin-server-line"><span class="service-status-badge checking" data-jellyfin-status>Checking…</span><strong data-jellyfin-name>Jellyfin</strong></div><small data-jellyfin-meta>Loading server status…</small></div><button class="secondary jellyfin-reload" type="button">Reload status</button></div><div class="jellyfin-library-head"><div><strong>Libraries</strong><small data-jellyfin-library-count>Loading…</small></div><button class="secondary jellyfin-refresh-libraries" type="button">Refresh libraries</button></div><div class="jellyfin-library-list" data-jellyfin-libraries><div class="integration-service-empty">Loading libraries…</div></div></section>`;
+  }
+
+  function jellyfinLibraryType(value='') {
+    const raw=String(value||'').toLowerCase();
+    const labels={movies:'Movies',tvshows:'TV shows',music:'Music',books:'Books',photos:'Photos',musicvideos:'Music videos',homevideos:'Home videos',boxsets:'Collections',mixed:'Mixed content'};
+    return labels[raw] || (raw ? uiText(raw) : 'Library');
+  }
+
+  function renderJellyfinOverview(card, data) {
+    const server=data?.server||{}, libraries=Array.isArray(data?.libraries)?data.libraries:[];
+    const status=card.querySelector('[data-jellyfin-status]');
+    if(status){status.className='service-status-badge online';status.textContent=server.pending_restart?'Online · Restart pending':'Online'}
+    const name=card.querySelector('[data-jellyfin-name]');if(name)name.textContent=server.name||'Jellyfin';
+    const meta=card.querySelector('[data-jellyfin-meta]');
+    if(meta){const parts=[];if(server.version)parts.push(`Jellyfin ${server.version}`);if(server.operating_system)parts.push(server.operating_system);meta.textContent=parts.join(' · ')||'Connected'}
+    const count=card.querySelector('[data-jellyfin-library-count]');if(count)count.textContent=`${libraries.length} ${libraries.length===1?'library':'libraries'}`;
+    const list=card.querySelector('[data-jellyfin-libraries]');if(!list)return;
+    if(!libraries.length){list.innerHTML='<div class="integration-service-empty">No libraries reported</div>';return}
+    list.innerHTML=libraries.map(library=>{
+      const locations=(library.locations||[]).map(value=>String(value||'').trim()).filter(Boolean);
+      const statusText=String(library.refresh_status||'').trim();
+      const progress=Number(library.refresh_progress);
+      const scan=Number.isFinite(progress)?`${Math.max(0,Math.min(100,progress)).toFixed(progress%1?1:0)}%${statusText?` · ${esc(uiText(statusText))}`:''}`:(statusText?esc(uiText(statusText)):'Idle');
+      return `<article class="jellyfin-library-row"><div class="jellyfin-library-copy"><strong>${esc(library.name||'Library')}</strong><span>${esc(jellyfinLibraryType(library.collection_type))}</span></div><div class="jellyfin-library-paths">${locations.length?locations.map(value=>`<code>${esc(value)}</code>`).join(''):'<span>Location not reported</span>'}</div><div class="jellyfin-library-scan"><span>Scan</span><strong>${scan}</strong></div></article>`;
+    }).join('');
+  }
+
+  async function loadJellyfinOverview(card) {
+    if(!card?.dataset.id||card.dataset.type!=='jellyfin')return;
+    const runtime=card.querySelector('[data-jellyfin-service]');if(!runtime||runtime.dataset.loading==='1')return;
+    runtime.dataset.loading='1';
+    const status=card.querySelector('[data-jellyfin-status]');if(status){status.className='service-status-badge checking';status.textContent='Checking…'}
+    try{
+      const data=await api(`/api/integrations/jellyfin/status?id=${encodeURIComponent(card.dataset.id)}`);
+      runtime.dataset.loaded='1';renderJellyfinOverview(card,data);
+    }catch(error){
+      if(status){status.className='service-status-badge offline';status.textContent='Offline'}
+      const meta=card.querySelector('[data-jellyfin-meta]');if(meta)meta.textContent=error.message||'Could not load Jellyfin status';
+      const count=card.querySelector('[data-jellyfin-library-count]');if(count)count.textContent='Unavailable';
+      const list=card.querySelector('[data-jellyfin-libraries]');if(list)list.innerHTML='<div class="integration-service-empty">Libraries unavailable</div>';
+    }finally{delete runtime.dataset.loading}
+  }
+
+  async function refreshJellyfinLibraries(card) {
+    if(!card?.dataset.id)return;
+    const button=card.querySelector('.jellyfin-refresh-libraries');if(button)button.disabled=true;
+    try{
+      const result=await post('/api/integrations/jellyfin/refresh',{id:card.dataset.id});
+      toast(result.message||'Jellyfin library refresh requested');
+      await new Promise(resolve=>setTimeout(resolve,700));
+      await loadJellyfinOverview(card);
+    }catch(error){toast(error.message||'Could not refresh Jellyfin libraries','error')}
+    finally{if(button)button.disabled=false}
+  }
+
   function renderIntegrations() {
     const list = document.querySelector('#integrationList');
     if (!list) return;
@@ -379,20 +437,24 @@ window.TDSettings = (() => {
       card.dataset.type = item.type;
       const fields = (type.fields || []).map(f => fieldHtml(f, item[f.key], item.configured_secrets?.includes(f.key))).join('');
       const subtitle = integrationSubtitle(item, type);
-      card.innerHTML = `<button class="accordion-summary" type="button" aria-expanded="${index===0?'true':'false'}"><span><b>${esc(integrationLabel(item))}</b>${subtitle?`<small>${esc(subtitle)}</small>`:''}</span><span class="accordion-chevron">⌄</span></button><div class="accordion-body ${index===0?'':'hidden'}"><div class="settings-form-grid"><label>Display name<input data-field="name" value="${esc(item.name||type.label)}" maxlength="128"></label>${fields}<label class="toggle"><input data-field="enabled" type="checkbox" ${item.enabled!==false?'checked':''}><span>Enabled</span></label></div><div class="settings-inline-actions"><button class="secondary integration-test" type="button">Test connection</button><button class="primary integration-save" type="button">Save</button><button class="danger integration-delete" type="button">Delete</button></div><div class="test-result muted integration-result">Not tested yet</div></div>`;
+      card.innerHTML = `<button class="accordion-summary" type="button" aria-expanded="${index===0?'true':'false'}"><span><b>${esc(integrationLabel(item))}</b>${subtitle?`<small>${esc(subtitle)}</small>`:''}</span><span class="accordion-chevron">⌄</span></button><div class="accordion-body ${index===0?'':'hidden'}"><div class="settings-form-grid"><label>Display name<input data-field="name" value="${esc(item.name||type.label)}" maxlength="128"></label>${fields}<label class="toggle"><input data-field="enabled" type="checkbox" ${item.enabled!==false?'checked':''}><span>Enabled</span></label></div><div class="settings-inline-actions"><button class="secondary integration-test" type="button">Test connection</button><button class="primary integration-save" type="button">Save</button><button class="danger integration-delete" type="button">Delete</button></div><div class="test-result muted integration-result">Not tested yet</div>${jellyfinServiceMarkup(item)}</div>`;
       const summary = card.querySelector('.accordion-summary');
       summary.addEventListener('click', () => {
         const body = card.querySelector('.accordion-body');
         const open = body.classList.contains('hidden');
         body.classList.toggle('hidden', !open);
         summary.setAttribute('aria-expanded', String(open));
+        if(open&&card.dataset.type==='jellyfin'&&card.dataset.id)loadJellyfinOverview(card);
       });
       card.querySelector('.integration-test').addEventListener('click', () => testIntegration(card));
       card.querySelector('.integration-save').addEventListener('click', () => saveIntegration(card));
       card.querySelector('.integration-delete').addEventListener('click', () => deleteIntegration(card, item));
+      card.querySelector('.jellyfin-reload')?.addEventListener('click', () => loadJellyfinOverview(card));
+      card.querySelector('.jellyfin-refresh-libraries')?.addEventListener('click', () => refreshJellyfinLibraries(card));
       list.appendChild(card);
       decorateSecretFields(card);
       applySentenceCaseUi(card);
+      if(index===0&&card.dataset.type==='jellyfin'&&card.dataset.id)setTimeout(()=>loadJellyfinOverview(card),0);
     });
   }
 

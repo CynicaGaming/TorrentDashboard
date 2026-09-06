@@ -370,3 +370,13 @@ Manual regression coverage:
 - Focus a text field so the on-screen keyboard opens, then scroll the modal body and verify the action footer remains inside the visible viewport; dismiss the keyboard and verify the modal expands back to the available viewport height.
 - On a device with a bottom safe area/home indicator, verify the footer has usable clearance and the primary **Add torrent** control remains a full touch target.
 - Submit both a magnet-metadata add and a parsed `.torrent` add from mobile and verify the existing qBitTorrent request behavior and selected file priorities are unchanged.
+
+### Jellyfin service integration
+
+- Configure a Jellyfin integration with a valid URL/API key and verify Test connection reports the server version.
+- Expand the saved Jellyfin integration and verify the runtime panel reports Online, the server name/version/operating system, and every configured library returned by Jellyfin.
+- Verify each library shows its collection type, configured locations, and refresh status/progress when Jellyfin reports those fields. Long paths must wrap or ellipsize without horizontal overflow.
+- Stop Jellyfin or use an unreachable URL and verify the runtime panel reports Offline/Libraries unavailable without exposing the API key or breaking the rest of Settings.
+- Press Refresh libraries and verify Jellyfin starts a normal library scan; Torrent Dashboard must not alter library configuration or metadata options.
+- Verify a successful refresh records a `jellyfin_library_refresh_requested` history event and a failed refresh records `jellyfin_library_refresh_failed`.
+- Repeat at mobile width and verify the library records collapse to a single-column layout without obscuring Save/Delete/Test connection controls.
