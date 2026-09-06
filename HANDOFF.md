@@ -7,43 +7,41 @@
 This handoff is intentionally portable across public forks. Verify the current checkout's Git remote, branch, and open work before using upstream references as instructions.
 
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
-- Last documented upstream build: **v0.5.123** (prerelease)
+- Last documented upstream build: **v0.5.124** (prerelease)
 
 ## Last known-good state
 
-Restores the validated v0.5.122 development baseline as the canonical release line and adds at-a-glance integration health indicators without downgrading existing installations.
+Adds a compact Scheduled tasks panel to saved Jellyfin integrations, dynamically showing Jellyfin and plugin tasks with last-run timing plus explicit run and stop controls.
 
 The released-state details and recent history are in `PROJECT_STATE.md`; architectural constraints are in `ARCHITECTURE.md`.
 
 ## Active development intent
 
 - Status: **ready**
-- Objective: **Validate integration health and continue service-integration runtime work**
-- Why: v0.5.123 restores the v0.5.122 modular baseline and adds passive integration health indicators; the next work should validate those states against real services before extending another provider runtime.
+- Objective: **Validate Jellyfin scheduled task controls and continue service-integration runtime work**
+- Why: v0.5.124 extends the recovered Jellyfin runtime with dynamic scheduled-task discovery and explicit run/stop controls while keeping credentials and transport server-side.
 
 ### Acceptance criteria
 
-- Green, yellow, and red integration states match live provider behavior without sending passive-test notifications.
-- Jellyfin operational status and library refresh continue to work after the release-line recovery.
-- The next provider runtime increment reuses torrent_dashboard provider boundaries rather than growing dashboard.py transport logic.
+- Jellyfin default and plugin-provided scheduled tasks appear under the saved Jellyfin integration with accurate category, last-run, duration, and running state.
+- Run starts the selected task and a running task exposes a stop control without exposing the Jellyfin API key to the browser.
+- Task polling stops when no tasks are running or the parent integration is collapsed.
 
 ### Decisions already made
 
-- Keep the first Jellyfin runtime read-mostly: server status and library inventory are read operations; library refresh is the only mutation.
-- Do not trigger Jellyfin refresh automatically when a torrent completes because media managers may still need to import or move completed downloads.
-- Keep Jellyfin credentials server-side and return only normalized, browser-safe service metadata.
-- Use the existing Integrations Settings accordion as the operational surface rather than creating a second Jellyfin management destination.
+- Discover scheduled tasks dynamically from Jellyfin instead of hard-coding a task catalog.
+- Keep scheduled-task controls nested under the existing Jellyfin integration rather than creating a separate page.
+- Keep task trigger/schedule editing out of the first increment.
+- Use compact locally embedded Material-style SVG controls for disclosure, task state, play, and stop actions.
 
 ### Expected areas of change
 
 - `torrent_dashboard/jellyfin.py`
-- `torrent_dashboard/integrations.py`
 - `dashboard.py`
 - `static/settings.js`
 - `static/settings.css`
-- `tests/`
-- `ARCHITECTURE.md`
-- `TESTING.md`
+- `tests/test_jellyfin.py`
+- `release_notes/releases.json`
 
 ### Blockers
 
@@ -51,15 +49,14 @@ None currently recorded.
 
 ### Explicitly out of scope
 
-- Jellyfin library creation, deletion, path editing, or metadata-provider configuration.
-- Automatic refresh on torrent completion.
-- Jellyfin media-item browsing/playback management.
-- Sonarr, Radarr, Lidarr, and Prowlarr runtime behavior in the same increment.
+- Editing Jellyfin scheduled-task trigger schedules.
+- Automatically running Jellyfin tasks on torrent completion.
+- Jellyfin media-item browsing or playback management.
 - Secret-at-rest changes.
 
 ## Exact next action
 
-Smoke-test v0.5.123 against the maintainer's configured integrations, then select the next service provider for an operational runtime increment.
+Smoke-test v0.5.124 against the maintainer's Jellyfin server, especially plugin-provided tasks and long-running task progress/stop behavior.
 
 ## Resume checklist
 

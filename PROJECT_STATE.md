@@ -6,23 +6,25 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.123** (prerelease)
+- Latest documented build: **v0.5.124** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 
 ### Latest release summary
 
-Restores the validated v0.5.122 development baseline as the canonical release line and adds at-a-glance integration health indicators without downgrading existing installations.
+Adds a compact Scheduled tasks panel to saved Jellyfin integrations, dynamically showing Jellyfin and plugin tasks with last-run timing plus explicit run and stop controls.
 
 ## Architecture state
 
-- Integration configuration/normalization and passive provider health probing remain in torrent_dashboard/integrations.py; dashboard.py only exposes the authenticated HTTP route.
-- Jellyfin operational status and library behavior remain owned by torrent_dashboard/jellyfin.py.
+- Jellyfin transport and response normalization remain in torrent_dashboard/jellyfin.py; dashboard.py only exposes authenticated composition routes.
+- Jellyfin credentials remain server-side and scheduled-task responses are reduced to browser-safe operational metadata.
+- The Integrations Settings accordion remains the single Jellyfin operational surface.
 
 ## Current engineering decisions
 
-- Keep prerelease versions monotonically increasing; rollback behavior must still advance the version rather than publishing an older semantic version.
-- Keep main as the canonical active branch after recovery and avoid persistent development/prerelease branch clutter.
-- Use passive health checks for notification/webhook providers so opening Settings never generates external test traffic.
+- Discover scheduled tasks dynamically instead of hard-coding Jellyfin defaults so plugin-provided tasks are supported automatically.
+- Keep scheduled tasks collapsed beneath the Jellyfin integration by default to preserve the compact Settings hierarchy.
+- Only poll task state while work is actively running and the integration remains open.
+- Do not add trigger/schedule editing in the first scheduled-task increment.
 
 ## Development principles
 
@@ -34,6 +36,15 @@ Restores the validated v0.5.122 development baseline as the canonical release li
 - Keep public development continuity portable across forks; label canonical repository/branch/PR references as upstream context rather than local identity.
 
 ## Recent work
+
+### v0.5.124 — Jellyfin scheduled task controls
+
+Adds a compact Scheduled tasks panel to saved Jellyfin integrations, dynamically showing Jellyfin and plugin tasks with last-run timing plus explicit run and stop controls.
+
+- Adds a nested Scheduled tasks disclosure inside each saved Jellyfin integration, grouped by Jellyfin task category and styled as a compact version of Jellyfin's native task list.
+- Shows each task name, last run time, execution duration, running progress, and previous failure state when Jellyfin reports one.
+- Adds a right-aligned Material-style play control for idle tasks and a stop control while a task is running.
+- Discovers tasks dynamically through Jellyfin so scheduled tasks registered by plugins such as Intro Skipper or Jellyfin Enhanced appear without Torrent Dashboard changes.
 
 ### v0.5.123 — Recovered release line and integration health indicators
 
@@ -66,22 +77,15 @@ Fixes CSS cascade precedence so the Add Torrent Material Expand all and Collapse
 - Keeps the two Add Torrent bulk folder disclosure icons in one horizontal row on desktop and mobile.
 - Narrows the older preview-heading grid rule so it applies only to heading-copy containers and no longer overrides the folder-action flex wrapper.
 
-### v0.5.119 — Material Add Torrent folder controls
-
-Refines Add Torrent's bulk folder disclosure into a compact side-by-side Material icon pair while preserving the existing recursive expand/collapse behavior.
-
-- Replaces the Expand all and Collapse all text buttons with locally embedded Material-style unfold-more and unfold-less icons.
-- Keeps both folder disclosure actions adjacent in one non-wrapping pair on desktop and mobile.
-- Retains explicit accessible labels and tooltips for the icon-only controls.
-
 ## What to do next
 
-1. **Validate integration health against live services** — Confirm green/yellow/red classification against the maintainer's configured Arr, Jellyfin, Plex, and notification integrations.
-2. **Continue service integration work** — Reuse the modular provider boundary for the next selected Sonarr, Radarr, Lidarr, or Prowlarr operational integration.
+1. **Smoke-test Jellyfin task controls** — Verify task discovery, last-run timing, play/stop behavior, and plugin task categories against the maintainer's Jellyfin server.
+2. **Decide whether trigger editing is useful** — After the run/stop surface is validated, decide whether Torrent Dashboard should expose Jellyfin task trigger schedules or keep scheduling in Jellyfin.
+3. **Continue service integration runtime work** — Extend another integration using the same provider module boundary instead of adding provider transport logic directly to dashboard.py.
 
 ## Known issues
 
-- Webhook-style integrations can prove endpoint reachability passively, but some providers cannot expose deeper service health without sending a real event.
+- This increment runs and stops scheduled tasks but does not edit Jellyfin task trigger schedules.
 
 ## Handoff instructions for a new development session
 

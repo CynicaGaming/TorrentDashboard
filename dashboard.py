@@ -62,7 +62,10 @@ from torrent_dashboard.integrations import (
 from torrent_dashboard.jellyfin import (
     find_jellyfin_integration,
     jellyfin_overview,
+    jellyfin_scheduled_tasks,
     refresh_jellyfin_libraries,
+    start_jellyfin_scheduled_task,
+    stop_jellyfin_scheduled_task,
 )
 from torrent_dashboard.users import (
     AVATAR_DIR,
@@ -99,7 +102,7 @@ RELEASE_INFO_PATH = APP_DIR / "release-info.json"
 RELEASE_INTEGRITY_CACHE_PATH = DATA_DIR / "release-integrity.json"
 CUSTOM_SOUND_BASENAME = "custom-notification-sound"
 MAX_CUSTOM_SOUND_BYTES = 2 * 1024 * 1024
-VERSION = "0.5.123"
+VERSION = "0.5.124"
 STATUS_REFRESH_SECONDS = 1.0
 
 RELEASE_PROVENANCE = ReleaseProvenance(
@@ -1871,7 +1874,7 @@ class Handler(BaseHTTPRequestHandler):
             if not avatar_path:
                 return self.send_json(404,{"error":"No profile picture is configured"},new_cookie)
             return self.send_bytes(200,avatar_path.read_bytes(),avatar_mime,new_cookie)
-        if path in ("/api/settings","/api/integrations","/api/integration-health","/api/integrations/jellyfin/status","/api/users","/api/network/interfaces","/api/client-settings","/api/torrent-metadata/save") and not session_is_admin(sess):
+        if path in ("/api/settings","/api/integrations","/api/integration-health","/api/integrations/jellyfin/status","/api/integrations/jellyfin/tasks","/api/users","/api/network/interfaces","/api/client-settings","/api/torrent-metadata/save") and not session_is_admin(sess):
             return self.send_json(403,{"error":"Administrator access is required"},new_cookie)
 
         if path=="/api/torrent-metadata/save":
@@ -1934,6 +1937,12 @@ class Handler(BaseHTTPRequestHandler):
             try:
                 item=find_jellyfin_integration(cfg,qs.get("id",[""])[0])
                 return self.send_json(200,jellyfin_overview(item),new_cookie)
+            except Exception as e:
+                return self.send_json(502,{"error":str(e)},new_cookie)
+        if path=="/api/integrations/jellyfin/tasks":
+            try:
+                item=find_jellyfin_integration(cfg,qs.get("id",[""])[0])
+                return self.send_json(200,{"tasks":jellyfin_scheduled_tasks(item)},new_cookie)
             except Exception as e:
                 return self.send_json(502,{"error":str(e)},new_cookie)
         if path=="/api/users": return self.send_json(200,{"users":[public_user(u) for u in cfg.get("users",[])],"current_user_id":sess.get("user_id","")},new_cookie)
@@ -2039,6 +2048,18 @@ class Handler(BaseHTTPRequestHandler):
                     HISTORY.event("dashboard","jellyfin_library_refresh_failed",item.get("name","Jellyfin"),"",{"client_ip":self.client_ip(),"integration_id":item.get("id","")})
                     return self.send_json(502,{"error":str(exc)},new_cookie)
                 HISTORY.event("dashboard","jellyfin_library_refresh_requested",item.get("name","Jellyfin"),"",{"client_ip":self.client_ip(),"integration_id":item.get("id","")})
+                return self.send_json(200,result,new_cookie)
+            if path=="/api/integrations/jellyfin/task":
+                data=parse_json_body(self,10000); item=find_jellyfin_integration(cfg,data.get("id")); task_id=str(data.get("task_id") or "").strip(); action=str(data.get("action") or "start").strip().lower()
+                if not task_id:
+                    raise RuntimeError("Jellyfin scheduled task ID is required")
+                if action=="start":
+                    result=start_jellyfin_scheduled_task(item,task_id)
+                elif action=="stop":
+                    result=stop_jellyfin_scheduled_task(item,task_id)
+                else:
+                    raise RuntimeError("Jellyfin scheduled task action must be start or stop")
+                HISTORY.event("dashboard",f"jellyfin_scheduled_task_{action}",task_id,"",{"client_ip":self.client_ip(),"integration_id":item.get("id","")})
                 return self.send_json(200,result,new_cookie)
             if path=="/api/users":
                 data=parse_json_body(self,20000); updated,user=mutate_config(lambda current: save_user(current,data)); SESSIONS.update_user(user)

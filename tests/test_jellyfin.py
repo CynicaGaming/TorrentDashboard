@@ -6,7 +6,10 @@ import unittest
 from torrent_dashboard.jellyfin import (
     find_jellyfin_integration,
     jellyfin_overview,
+    jellyfin_scheduled_tasks,
     refresh_jellyfin_libraries,
+    start_jellyfin_scheduled_task,
+    stop_jellyfin_scheduled_task,
 )
 
 
@@ -102,6 +105,63 @@ class JellyfinIntegrationTests(unittest.TestCase):
         found = find_jellyfin_integration({"integrations": [item]}, item["id"])
         self.assertIs(found, item)
         self.assertEqual(found["api_key"], "secret-key")
+
+
+    def test_scheduled_tasks_include_plugin_categories_and_last_run_details(self):
+        calls = []
+
+        def opener(request, timeout=0):
+            calls.append((request.full_url, request.get_method(), request.headers.get("X-emby-token"), timeout))
+            return FakeResponse([
+                {
+                    "Id": "task-plugin",
+                    "Key": "Plugin.Task",
+                    "Name": "Detect And Analyze Media Segments",
+                    "Category": "Intro Skipper",
+                    "State": "Idle",
+                    "CurrentProgressPercentage": None,
+                    "LastExecutionResult": {
+                        "Status": "Completed",
+                        "StartTimeUtc": "2026-09-06T14:00:00Z",
+                        "EndTimeUtc": "2026-09-06T14:20:00Z",
+                    },
+                },
+                {
+                    "Id": "task-app",
+                    "Name": "Update Plugins",
+                    "Category": "Application",
+                    "State": "Running",
+                    "CurrentProgressPercentage": 42.5,
+                },
+            ])
+
+        tasks = jellyfin_scheduled_tasks(self.item(), opener=opener)
+        self.assertEqual([task["category"] for task in tasks], ["Application", "Intro Skipper"])
+        self.assertTrue(tasks[0]["running"])
+        self.assertEqual(tasks[0]["progress"], 42.5)
+        self.assertEqual(tasks[1]["last_status"], "Completed")
+        self.assertEqual(tasks[1]["last_start"], "2026-09-06T14:00:00Z")
+        self.assertEqual(tasks[1]["last_end"], "2026-09-06T14:20:00Z")
+        self.assertEqual(calls[0][0], "http://jellyfin:8096/ScheduledTasks?isHidden=false")
+        self.assertEqual(calls[0][1], "GET")
+        self.assertEqual(calls[0][2], "secret-key")
+
+    def test_scheduled_task_start_and_stop_use_jellyfin_running_task_endpoint(self):
+        calls = []
+
+        def opener(request, timeout=0):
+            calls.append((request.full_url, request.get_method(), request.headers.get("X-emby-token"), timeout))
+            return FakeResponse()
+
+        started = start_jellyfin_scheduled_task(self.item(), "plugin task/1", opener=opener)
+        stopped = stop_jellyfin_scheduled_task(self.item(), "plugin task/1", opener=opener)
+        self.assertTrue(started["ok"])
+        self.assertTrue(stopped["ok"])
+        self.assertEqual(calls[0][0], "http://jellyfin:8096/ScheduledTasks/Running/plugin%20task%2F1")
+        self.assertEqual(calls[0][1], "POST")
+        self.assertEqual(calls[1][0], calls[0][0])
+        self.assertEqual(calls[1][1], "DELETE")
+        self.assertTrue(all(call[2] == "secret-key" for call in calls))
 
 
 if __name__ == "__main__":

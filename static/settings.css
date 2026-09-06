@@ -168,3 +168,15 @@
 @keyframes integration-status-pulse{from{opacity:.42}to{opacity:1}}
 @media(prefers-reduced-motion:reduce){.integration-status.checking{animation:none}}
 
+
+
+/* 0.5.124 Jellyfin scheduled task controls. */
+.jellyfin-task-section{overflow:hidden;border:1px solid var(--border);border-radius:11px;background:color-mix(in srgb,var(--panel2) 35%,transparent)}
+.jellyfin-task-summary{width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 11px;border:0;border-radius:0;background:transparent;color:var(--text);text-align:left}.jellyfin-task-summary:hover{background:color-mix(in srgb,var(--panel2) 68%,transparent)}
+.jellyfin-task-summary-main{display:flex;align-items:center;gap:8px;min-width:0}.jellyfin-task-summary-main>span:last-child{display:grid;gap:2px;min-width:0}.jellyfin-task-summary strong{font-size:11px}.jellyfin-task-summary small{font-size:8.5px;color:var(--muted)}
+.jellyfin-task-chevron{display:grid;place-items:center;flex:0 0 20px;width:20px;height:20px;color:var(--muted);transition:transform .16s ease}.jellyfin-task-chevron .material-symbol-icon{width:18px;height:18px;fill:currentColor}.jellyfin-task-summary[aria-expanded="true"] .jellyfin-task-chevron{transform:rotate(90deg)}
+.jellyfin-task-body{padding:0 9px 9px;border-top:1px solid var(--border)}.jellyfin-task-list{display:grid;gap:9px;padding-top:9px}.jellyfin-task-group{display:grid;gap:5px}.jellyfin-task-category{padding:0 3px;color:var(--muted);font-size:8.5px;font-weight:650;letter-spacing:.015em}.jellyfin-task-group-list{display:grid;gap:4px}
+.jellyfin-task-row{display:grid;grid-template-columns:28px minmax(0,1fr) 30px;gap:8px;align-items:center;min-height:48px;padding:7px 7px 7px 8px;border-radius:9px;background:color-mix(in srgb,var(--panel2) 52%,transparent)}.jellyfin-task-row:hover{background:color-mix(in srgb,var(--panel2) 76%,transparent)}
+.jellyfin-task-clock{display:grid;place-items:center;width:26px;height:26px;border-radius:999px;color:var(--accent);background:color-mix(in srgb,var(--accent) 14%,transparent)}.jellyfin-task-clock .material-symbol-icon{width:17px;height:17px;fill:currentColor}.jellyfin-task-copy{display:grid;gap:2px;min-width:0}.jellyfin-task-copy strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10.5px;color:var(--text)}.jellyfin-task-copy span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:8.5px;color:var(--muted)}.jellyfin-task-row.running .jellyfin-task-copy span{color:var(--accent)}.jellyfin-task-row.failed .jellyfin-task-copy span{color:var(--bad)}
+.jellyfin-task-action{display:grid;place-items:center;width:30px;height:30px;min-width:30px;padding:0;border:0;border-radius:8px;background:transparent;color:var(--text)}.jellyfin-task-action:hover{background:var(--panel3);color:var(--accent)}.jellyfin-task-action:disabled{opacity:.45}.jellyfin-task-action .material-symbol-icon{width:20px;height:20px;fill:currentColor}
+@media(max-width:700px){.jellyfin-task-row{grid-template-columns:26px minmax(0,1fr) 30px;gap:7px}.jellyfin-task-copy strong{font-size:10px}.jellyfin-task-copy span{white-space:normal;line-height:1.35}}

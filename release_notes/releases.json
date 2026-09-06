@@ -113,9 +113,9 @@
       "date": "2026-09-02",
       "status": "prerelease",
       "title": "Collapsible revision patch notes",
-      "summary": "Expanded Settings → Updates from a single latest-release note block into a collapsible patch-note history for every documented Torrent Dashboard revision.",
+      "summary": "Expanded Settings \u2192 Updates from a single latest-release note block into a collapsible patch-note history for every documented Torrent Dashboard revision.",
       "highlights": [
-        "Settings → Updates now shows one collapsible patch-note entry per documented revision, ordered newest first.",
+        "Settings \u2192 Updates now shows one collapsible patch-note entry per documented revision, ordered newest first.",
         "Bundled release metadata is available immediately when the Updates page opens; a newly discovered GitHub release is merged into the history before it is installed.",
         "The newest revision opens by default and each older revision can be expanded independently.",
         "Future prerelease publication preserves older prereleases instead of deleting the complete prerelease history."
@@ -172,9 +172,9 @@
       "date": "2026-09-02",
       "status": "prerelease",
       "title": "Patch notes presentation cleanup",
-      "summary": "Simplified Settings → Updates to focus on the latest two releases while retaining the complete release history for changelog and project handoff purposes, with a cleaner release-card presentation.",
+      "summary": "Simplified Settings \u2192 Updates to focus on the latest two releases while retaining the complete release history for changelog and project handoff purposes, with a cleaner release-card presentation.",
       "highlights": [
-        "Settings → Updates now shows only the latest release and the immediately previous release instead of the complete historical list.",
+        "Settings \u2192 Updates now shows only the latest release and the immediately previous release instead of the complete historical list.",
         "Release cards now use a dedicated version badge, release-status badges, publication date, clearer typography, and improved spacing.",
         "The expanded release no longer repeats the version/title heading inside the patch-note body.",
         "The full structured release history remains preserved in release_notes/releases.json, CHANGELOG.md, and PROJECT_STATE.md."
@@ -232,7 +232,7 @@
       "title": "Installed package integrity metadata",
       "summary": "Persists the verified release-package SHA-256 with installed builds and surfaces the exact package digest alongside patch notes.",
       "highlights": [
-        "Settings → Updates shows Package SHA-256 for a release whenever authoritative package metadata is available, with a one-click Copy control.",
+        "Settings \u2192 Updates shows Package SHA-256 for a release whenever authoritative package metadata is available, with a one-click Copy control.",
         "The normal updater writes release-info.json into the staged application only after the downloaded ZIP matches GitHub's published SHA-256.",
         "Recovery updates persist the same release metadata after independently verifying the GitHub asset digest.",
         "The release build emits a Torrent-Dashboard-<version>.release.json sidecar containing the final ZIP digest, version, repository, tag, and commit."
@@ -357,7 +357,7 @@
       "highlights": [
         "Successful GitHub release lookups persist authoritative package digests to data/release-integrity.json.",
         "Normal Settings loads merge the persisted integrity cache into the two displayed patch-note revisions.",
-        "Opening Settings → Updates silently refreshes release metadata at most once per minute, so historical SHA-256 values self-populate without requiring a manual Check for updates click."
+        "Opening Settings \u2192 Updates silently refreshes release metadata at most once per minute, so historical SHA-256 values self-populate without requiring a manual Check for updates click."
       ],
       "fixes": [
         "The previous patch-note card no longer loses its SHA-256 when Settings is reloaded or opened in a new browser session after the remote metadata was fetched."
@@ -1197,7 +1197,7 @@
       "highlights": [
         "Dashboard / Live torrent activity is visible again because removing it did not materially improve usable workspace height and weakened page hierarchy.",
         "The collapsed Torrent details disclosure shows only Torrent details when no torrent is selected; selection-specific copy appears only for an actual selection.",
-        "Opening Settings → Updates no longer contacts GitHub automatically; Check for updates is the explicit freshness/network action.",
+        "Opening Settings \u2192 Updates no longer contacts GitHub automatically; Check for updates is the explicit freshness/network action.",
         "The bottom-anchored desktop/tablet torrent workspace and mobile disclosure behavior remain unchanged."
       ],
       "fixes": [
@@ -1806,7 +1806,7 @@
       "title": "Configurable torrent table columns",
       "summary": "Adds a persistent torrent-column organizer with visibility and ordering controls, expands the available table data, and makes Seeds, Peers, and Tags part of the default dashboard layout.",
       "highlights": [
-        "Settings → General now provides a Torrent columns organizer where optional columns can be shown, hidden, and moved up or down.",
+        "Settings \u2192 General now provides a Torrent columns organizer where optional columns can be shown, hidden, and moved up or down.",
         "Seeds, Peers, and Tags are visible by default, with Size, Category, Tracker, and Added available as optional columns.",
         "Name remains the required first data column while the selection checkbox and row-actions control remain fixed.",
         "Column visibility and order persist as a browser-local preference and survive live refreshes and reloads.",
@@ -1963,7 +1963,7 @@
         "Visible torrent data columns can be dragged horizontally to reorder them directly in the table header.",
         "Right-clicking the torrent header bar opens a Columns menu for showing or hiding optional columns and restoring defaults.",
         "Category remains visible by default alongside Seeds, Peers, and Tags.",
-        "The Settings → General torrent-column organizer has been removed so column management has one clear interaction surface."
+        "The Settings \u2192 General torrent-column organizer has been removed so column management has one clear interaction surface."
       ],
       "fixes": [
         "Removes the extra navigation round trip required to adjust a table layout while looking at the Dashboard.",
@@ -3521,7 +3521,7 @@
       "date": "2026-09-03",
       "status": "prerelease",
       "title": "Responsive tracker and peer details",
-      "summary": "Makes Torrent details → Trackers and Peers readable on mobile with purpose-built labeled records while preserving desktop tables and the existing General tab.",
+      "summary": "Makes Torrent details \u2192 Trackers and Peers readable on mobile with purpose-built labeled records while preserving desktop tables and the existing General tab.",
       "highlights": [
         "Peers on mobile now shows each address and client with labeled Progress, Download, and Upload metrics instead of an anonymous vertical value stack.",
         "Trackers on mobile now shows cleaned tracker names, human-readable status badges, Seeds and Peers counts, and an optional tracker message.",
@@ -3732,7 +3732,7 @@
       ],
       "fixes": [
         "Removes the v0.5.108 shared-workspace cap that still left General too shallow on shorter desktop viewports.",
-        "Preserves a stable 360–560 px torrent-list region across page scrolling and detail expansion while long detail datasets retain their own scrolling."
+        "Preserves a stable 360\u2013560 px torrent-list region across page scrolling and detail expansion while long detail datasets retain their own scrolling."
       ],
       "technical": [
         "syncTorrentWorkspaceLayout now writes a bounded --torrent-list-height derived from the workspace stable document position; the workspace itself uses natural document height.",
@@ -4826,6 +4826,60 @@
           "priority": 2,
           "title": "Continue service integration work",
           "detail": "Reuse the modular provider boundary for the next selected Sonarr, Radarr, Lidarr, or Prowlarr operational integration."
+        }
+      ]
+    },
+    {
+      "version": "0.5.124",
+      "date": "2026-09-06",
+      "status": "prerelease",
+      "title": "Jellyfin scheduled task controls",
+      "summary": "Adds a compact Scheduled tasks panel to saved Jellyfin integrations, dynamically showing Jellyfin and plugin tasks with last-run timing plus explicit run and stop controls.",
+      "highlights": [
+        "Adds a nested Scheduled tasks disclosure inside each saved Jellyfin integration, grouped by Jellyfin task category and styled as a compact version of Jellyfin's native task list.",
+        "Shows each task name, last run time, execution duration, running progress, and previous failure state when Jellyfin reports one.",
+        "Adds a right-aligned Material-style play control for idle tasks and a stop control while a task is running.",
+        "Discovers tasks dynamically through Jellyfin so scheduled tasks registered by plugins such as Intro Skipper or Jellyfin Enhanced appear without Torrent Dashboard changes."
+      ],
+      "fixes": [],
+      "technical": [
+        "Adds normalized scheduled-task discovery to torrent_dashboard/jellyfin.py using Jellyfin's ScheduledTasks API while keeping the API key server-side.",
+        "Adds administrator-only GET and POST routes for task listing and explicit start/stop actions.",
+        "Polls task state only while a reported task is running and the parent Jellyfin integration remains open."
+      ],
+      "validation": [
+        "Adds unit coverage for plugin task categories, running progress, last execution metadata, URL-safe task IDs, and start/stop HTTP methods.",
+        "Release validation requires Python compilation, the full unit suite, JavaScript syntax checks, UI-string validation, and synchronized frontend/service-worker version identifiers."
+      ],
+      "known_issues": [
+        "This increment runs and stops scheduled tasks but does not edit Jellyfin task trigger schedules."
+      ],
+      "architecture": [
+        "Jellyfin transport and response normalization remain in torrent_dashboard/jellyfin.py; dashboard.py only exposes authenticated composition routes.",
+        "Jellyfin credentials remain server-side and scheduled-task responses are reduced to browser-safe operational metadata.",
+        "The Integrations Settings accordion remains the single Jellyfin operational surface."
+      ],
+      "decisions": [
+        "Discover scheduled tasks dynamically instead of hard-coding Jellyfin defaults so plugin-provided tasks are supported automatically.",
+        "Keep scheduled tasks collapsed beneath the Jellyfin integration by default to preserve the compact Settings hierarchy.",
+        "Only poll task state while work is actively running and the integration remains open.",
+        "Do not add trigger/schedule editing in the first scheduled-task increment."
+      ],
+      "next_steps": [
+        {
+          "priority": 1,
+          "title": "Smoke-test Jellyfin task controls",
+          "detail": "Verify task discovery, last-run timing, play/stop behavior, and plugin task categories against the maintainer's Jellyfin server."
+        },
+        {
+          "priority": 2,
+          "title": "Decide whether trigger editing is useful",
+          "detail": "After the run/stop surface is validated, decide whether Torrent Dashboard should expose Jellyfin task trigger schedules or keep scheduling in Jellyfin."
+        },
+        {
+          "priority": 3,
+          "title": "Continue service integration runtime work",
+          "detail": "Extend another integration using the same provider module boundary instead of adding provider transport logic directly to dashboard.py."
         }
       ]
     }

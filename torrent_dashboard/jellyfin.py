@@ -1,9 +1,10 @@
-"""Jellyfin service-integration runtime for status, libraries, and explicit refresh actions."""
+"""Jellyfin service-integration runtime for status, libraries, scheduled tasks, and explicit actions."""
 
 from __future__ import annotations
 
 import json
 import urllib.error
+import urllib.parse
 import urllib.request
 
 MAX_JELLYFIN_RESPONSE_BYTES = 2_000_000
@@ -118,6 +119,85 @@ def jellyfin_libraries(item, *, opener=None):
     return libraries
 
 
+
+def _normalized_task_progress(value):
+    try:
+        progress = float(value) if value is not None else None
+    except (TypeError, ValueError):
+        return None
+    if progress is None:
+        return None
+    return max(0.0, min(100.0, progress))
+
+
+def _normalized_scheduled_task(source):
+    if not isinstance(source, dict):
+        return None
+    task_id = str(source.get("Id") or "").strip()
+    if not task_id:
+        return None
+    result = source.get("LastExecutionResult") if isinstance(source.get("LastExecutionResult"), dict) else {}
+    state = str(source.get("State") or "Idle").strip() or "Idle"
+    return {
+        "id": task_id,
+        "key": str(source.get("Key") or "").strip(),
+        "name": str(source.get("Name") or "Scheduled task").strip(),
+        "description": str(source.get("Description") or "").strip(),
+        "category": str(source.get("Category") or "Other").strip() or "Other",
+        "state": state,
+        "running": state.lower() in ("running", "cancelling"),
+        "progress": _normalized_task_progress(source.get("CurrentProgressPercentage")),
+        "last_status": str(result.get("Status") or "").strip(),
+        "last_start": str(result.get("StartTimeUtc") or "").strip(),
+        "last_end": str(result.get("EndTimeUtc") or "").strip(),
+        "last_error": str(result.get("ErrorMessage") or "").strip(),
+    }
+
+
+def jellyfin_scheduled_tasks(item, *, opener=None):
+    """Return all non-hidden Jellyfin scheduled tasks, including plugin tasks."""
+    data = _jellyfin_request(item, "/ScheduledTasks?isHidden=false", opener=opener)
+    if not isinstance(data, list):
+        raise RuntimeError("Jellyfin returned an invalid scheduled-task response")
+    tasks = []
+    for source in data:
+        task = _normalized_scheduled_task(source)
+        if task:
+            tasks.append(task)
+    tasks.sort(key=lambda task: (task["category"].lower(), task["name"].lower()))
+    return tasks
+
+
+def _scheduled_task_endpoint(task_id):
+    task_id = str(task_id or "").strip()
+    if not task_id:
+        raise RuntimeError("Jellyfin scheduled task ID is required")
+    return "/ScheduledTasks/Running/" + urllib.parse.quote(task_id, safe="")
+
+
+def start_jellyfin_scheduled_task(item, task_id, *, opener=None):
+    """Start one Jellyfin scheduled task by ID."""
+    _jellyfin_request(
+        item,
+        _scheduled_task_endpoint(task_id),
+        method="POST",
+        expect_json=False,
+        opener=opener,
+    )
+    return {"ok": True, "message": "Jellyfin scheduled task started"}
+
+
+def stop_jellyfin_scheduled_task(item, task_id, *, opener=None):
+    """Stop one running Jellyfin scheduled task by ID."""
+    _jellyfin_request(
+        item,
+        _scheduled_task_endpoint(task_id),
+        method="DELETE",
+        expect_json=False,
+        opener=opener,
+    )
+    return {"ok": True, "message": "Jellyfin scheduled task stop requested"}
+
 def jellyfin_overview(item, *, opener=None):
     """Return server health metadata and configured libraries for Settings."""
     return {
@@ -137,6 +217,9 @@ __all__ = [
     "find_jellyfin_integration",
     "jellyfin_libraries",
     "jellyfin_overview",
+    "jellyfin_scheduled_tasks",
     "jellyfin_server_info",
     "refresh_jellyfin_libraries",
+    "start_jellyfin_scheduled_task",
+    "stop_jellyfin_scheduled_task",
 ]
