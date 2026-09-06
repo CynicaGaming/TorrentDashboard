@@ -1,0 +1,17 @@
+/* Integration health and mobile notification controls */
+.integration-summary-with-status{display:grid!important;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;column-gap:10px}
+.integration-summary-with-status>.integration-status-dot{grid-column:1}
+.integration-summary-with-status>span:not(.integration-status-dot):first-of-type{grid-column:2;min-width:0}
+.integration-summary-with-status>.accordion-chevron{grid-column:3}
+.integration-status-dot{display:inline-block;width:10px;height:10px;min-width:10px;border-radius:999px;box-shadow:0 0 0 3px color-mix(in srgb,currentColor 18%,transparent)}
+.integration-status-dot.connected{color:#22c55e;background:#22c55e}
+.integration-status-dot.warning{color:#eab308;background:#eab308}
+.integration-status-dot.disconnected{color:#ef4444;background:#ef4444}
+.integration-health-legend{display:flex;flex-wrap:wrap;gap:10px 18px;margin:12px 0 18px;color:var(--muted);font-size:.86rem}
+.integration-health-legend span{display:inline-flex;align-items:center;gap:8px}
+.integration-health-legend .integration-status-dot{width:8px;height:8px;min-width:8px;box-shadow:none}
+.mobile-notification-platforms{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+.mobile-notification-platforms span{display:inline-flex;align-items:center;padding:5px 10px;border:1px solid var(--line);border-radius:999px;color:var(--muted);font-size:.84rem}
+.mobile-push-actions{margin-top:8px}
+.mobile-push-note{margin-top:8px}
+@media(max-width:640px){.mobile-push-actions{align-items:stretch}.mobile-push-actions button{flex:1 1 auto}}
