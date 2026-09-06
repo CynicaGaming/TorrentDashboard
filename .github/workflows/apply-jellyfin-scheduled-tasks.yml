@@ -48,3 +48,5 @@ jobs:
           git add -A
           git commit -m 'Add Jellyfin scheduled task controls [skip ci]'
           git push origin HEAD:${GITHUB_REF_NAME}
+
+# Follow-up commit intentionally triggers this workflow after registration.
