@@ -11,6 +11,18 @@ ROOT = Path(__file__).resolve().parents[1]
 STATIC = ROOT / "static"
 EXPECTED_DEFAULT_SOUND_BYTES = 40_704
 EXPECTED_DEFAULT_SOUND_SHA256 = "5be19a030c39e9fef9084d247e1bda23cb947e9e430abfc2e97376e04ff868b3"
+DEFAULT_SOUND_PARTS = (
+    "notification-default.b64.01",
+    "notification-default.b64.01.tail",
+    "notification-default.b64.02",
+    "notification-default.b64.02.tail",
+    "notification-default.b64.03",
+    "notification-default.b64.04",
+    "notification-default.b64.05",
+    "notification-default.b64.06",
+    "notification-default.b64.07",
+    "notification-default.b64.08",
+)
 
 
 def read(path: Path) -> str:
@@ -71,8 +83,10 @@ def main() -> None:
     require("/static/default-completion.wav" in sound_patch, "default sound shim no longer recognizes the legacy sound path")
     require("/static/notification-default.mp3" in sound_patch, "default sound shim no longer maps to the requested MP3")
 
-    parts = sorted(STATIC.glob("notification-default.b64.*"))
-    require(len(parts) == 7, f"expected 7 notification sound parts, found {len(parts)}")
+    parts = [STATIC / name for name in DEFAULT_SOUND_PARTS]
+    for part in parts:
+        require(part.exists(), f"missing default notification sound source fragment {part.name}")
+        require(part.name in sw, f"service worker does not reference default notification sound fragment {part.name}")
     try:
         payload = "".join(read(part).strip() for part in parts)
         sound = base64.b64decode(payload, validate=True)
