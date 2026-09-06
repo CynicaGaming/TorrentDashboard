@@ -1,4 +1,4 @@
-const CACHE='torrent-dashboard-v05122';
+const CACHE='torrent-dashboard-v05123';
 const ASSETS=['/static/app.css?v=0.5.122','/static/settings.css?v=0.5.122','/static/settings.js?v=0.5.122','/static/app.js?v=0.5.122','/manifest.webmanifest','/static/favicon.svg'];
 self.addEventListener('install',event=>{self.skipWaiting();event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS)))});
 self.addEventListener('activate',event=>event.waitUntil(Promise.all([caches.keys().then(keys=>Promise.all(keys.filter(key=>key!==CACHE).map(key=>caches.delete(key)))),self.clients.claim()])));
