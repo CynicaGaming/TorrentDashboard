@@ -41,3 +41,5 @@ jobs:
           git add -A
           git commit -m 'Fix integration accordion chevron [skip ci]'
           git push origin HEAD:${GITHUB_REF_NAME}
+
+# Triggered after workflow registration.
