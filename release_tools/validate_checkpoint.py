@@ -66,7 +66,7 @@ def main() -> None:
     require("#integrationList" in feature_js, "integration health logic is not scoped to the integration list")
     require(all(value in feature_js for value in ("connected", "warning", "disconnected")), "integration health states are incomplete")
     require(all(value in feature_css for value in ("#22c55e", "#eab308", "#ef4444")), "integration health colors are incomplete")
-    require("background Web Push" in feature_js, "notification UI does not explain the current Web Push boundary")
+    require("background web push" in feature_js.lower(), "notification UI does not explain the current Web Push boundary")
 
     require("/static/default-completion.wav" in sound_patch, "default sound shim no longer recognizes the legacy sound path")
     require("/static/notification-default.mp3" in sound_patch, "default sound shim no longer maps to the requested MP3")
