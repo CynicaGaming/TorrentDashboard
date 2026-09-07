@@ -9,6 +9,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 OLD_VERSION = "0.5.127"
 NEW_VERSION = "0.5.128"
+OLD_CACHE_VERSION = "v05127"
+NEW_CACHE_VERSION = "v05128"
 
 
 def replace_once(path: Path, old: str, new: str) -> None:
@@ -35,12 +37,17 @@ if count != 1:
     raise RuntimeError("Could not update dashboard VERSION")
 dashboard.write_text(text, encoding="utf-8")
 
-for rel in ("static/index.html", "static/sw.js"):
-    path = ROOT / rel
-    text = path.read_text(encoding="utf-8")
-    if OLD_VERSION not in text:
-        raise RuntimeError(f"Expected {OLD_VERSION} in {rel}")
-    path.write_text(text.replace(OLD_VERSION, NEW_VERSION), encoding="utf-8")
+index = ROOT / "static" / "index.html"
+text = index.read_text(encoding="utf-8")
+if OLD_VERSION not in text:
+    raise RuntimeError(f"Expected {OLD_VERSION} in static/index.html")
+index.write_text(text.replace(OLD_VERSION, NEW_VERSION), encoding="utf-8")
+
+sw = ROOT / "static" / "sw.js"
+text = sw.read_text(encoding="utf-8")
+if OLD_VERSION not in text or OLD_CACHE_VERSION not in text:
+    raise RuntimeError("Could not find expected service-worker version markers")
+sw.write_text(text.replace(OLD_VERSION, NEW_VERSION).replace(OLD_CACHE_VERSION, NEW_CACHE_VERSION), encoding="utf-8")
 
 # app.js also owns FRONTEND_BUILD.
 text = app.read_text(encoding="utf-8")
