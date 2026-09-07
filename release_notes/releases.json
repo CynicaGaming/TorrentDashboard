@@ -12,6 +12,46 @@
   },
   "releases": [
     {
+      "version": "0.5.141",
+      "date": "2026-09-07",
+      "status": "prerelease",
+      "title": "Dashboard recovery login",
+      "summary": "Replaces pre-login Console access and personal recovery keys with one dashboard-wide recovery key that signs in as the built-in Administrator.",
+      "highlights": [
+        "Replaces the Console link on the sign-in screen with a Recovery tab that asks only for the dashboard recovery key.",
+        "Generates a 256-bit opaque recovery key during first-run setup and displays the plaintext once before entering the dashboard.",
+        "Recovery signs into a system-owned Administrator principal that cannot be renamed or deleted through user management.",
+        "Keeps the authenticated Console inside the dashboard for allowlisted operational commands and future recovery expansion."
+      ],
+      "fixes": [
+        "Removes per-user recovery-key storage, account settings, unlock flows, and the separate standalone recovery session/cookie.",
+        "Existing installations without a dashboard-wide key initialize one once from an authenticated Administrator session and reveal it once."
+      ],
+      "technical": [
+        "Stores only a PBKDF2 hash, creation timestamp, and last-four hint for the dashboard-wide key; plaintext is never persisted.",
+        "Recovery authentication uses the normal td_session cookie and the fixed Administrator recovery principal instead of td_recovery.",
+        "Removes the standalone recovery HTML/CSS/JavaScript bundle and /console route while retaining /api/recovery/command for the embedded Console."
+      ],
+      "validation": [
+        "Adds dashboard-recovery key tests, legacy personal-key removal coverage, source validation, UI-contract checks, and JavaScript syntax validation."
+      ],
+      "known_issues": [
+        "Recovery-key rotation is not exposed yet; the authenticated Console is the intended future management surface."
+      ],
+      "architecture": [],
+      "decisions": [
+        "Treat dashboard recovery as a root credential rather than a per-user credential.",
+        "Keep the recovery Administrator synthetic and outside user CRUD so its identity and privilege cannot be changed."
+      ],
+      "next_steps": [
+        {
+          "priority": 1,
+          "title": "Recovery-key rotation",
+          "detail": "Add a controlled command for rotating the dashboard-wide recovery key from the authenticated Console."
+        }
+      ]
+    },
+    {
       "version": "0.5.140",
       "date": "2026-09-07",
       "status": "prerelease",

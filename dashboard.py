@@ -70,9 +70,15 @@ from torrent_dashboard.jellyfin import (
 )
 from torrent_dashboard.recovery_console import (
     SAFE_TORRENT_ACTIONS,
-    normalize_recovery_code,
     parse_recovery_command,
     recovery_help_text,
+)
+from torrent_dashboard.recovery import (
+    RECOVERY_ACCOUNT_ID,
+    RECOVERY_ACCOUNT_USERNAME,
+    generate_dashboard_recovery_key,
+    recovery_key_record,
+    verify_dashboard_recovery_key,
 )
 from torrent_dashboard.users import (
     AVATAR_DIR,
@@ -86,7 +92,6 @@ from torrent_dashboard.users import (
     hash_password,
     normalize_user,
     public_user,
-    regenerate_user_recovery_key,
     remove_user_avatar,
     save_current_user_profile,
     save_user,
@@ -97,7 +102,6 @@ from torrent_dashboard.users import (
     user_by_username,
     user_display_name,
     verify_password,
-    verify_user_recovery_key,
 )
 
 APP_DIR = Path(__file__).resolve().parent
@@ -112,7 +116,7 @@ RELEASE_INTEGRITY_CACHE_PATH = DATA_DIR / "release-integrity.json"
 CUSTOM_SOUND_BASENAME = "notification-custom"
 LEGACY_CUSTOM_SOUND_BASENAME = "custom-notification-sound"
 MAX_CUSTOM_SOUND_BYTES = 2 * 1024 * 1024
-VERSION = "0.5.140"
+VERSION = "0.5.141"
 STATUS_REFRESH_SECONDS = 1.0
 
 RELEASE_PROVENANCE = ReleaseProvenance(
@@ -269,10 +273,6 @@ LOGIN_ATTEMPTS = defaultdict(deque)
 LOGIN_LOCK = threading.Lock()
 RECOVERY_LOCK = threading.Lock()
 RECOVERY_ATTEMPTS = defaultdict(deque)
-RECOVERY_SESSIONS = SessionStore()
-RECOVERY_SESSION_MINUTES = 30
-RECOVERY_CODE_RAW = secrets.token_hex(10).upper()
-RECOVERY_CODE = "-".join(RECOVERY_CODE_RAW[index:index + 4] for index in range(0, len(RECOVERY_CODE_RAW), 4))
 
 
 def normalize_trusted_entry(value):
@@ -2044,82 +2044,47 @@ class Handler(BaseHTTPRequestHandler):
         return cfg,token,sess,new_cookie
 
 
-    def recovery_cookie_header(self, token="", clear=False):
-        secure = "; Secure" if load_config()["dashboard"].get("https_enabled") else ""
-        if clear:
-            return f"td_recovery=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0{secure}"
-        return f"td_recovery={token}; Path=/; HttpOnly; SameSite=Strict; Max-Age={RECOVERY_SESSION_MINUTES * 60}{secure}"
 
     def recovery_auth(self):
         cfg=load_config()
-        dashboard_token=self.cookie_token(); dashboard_session=SESSIONS.get(dashboard_token)
-        if dashboard_session:
-            label = "dashboard administrator" if session_is_admin(dashboard_session) else "dashboard user"
-            return cfg,label,dashboard_session
-        recovery_token=self.recovery_cookie_token(); recovery_session=RECOVERY_SESSIONS.get(recovery_token)
-        if recovery_session:
-            return cfg,"recovery session",recovery_session
-        return cfg,None,None
+        token=self.cookie_token(); sess=SESSIONS.get(token)
+        if not sess:
+            return cfg,None,None
+        return cfg,("dashboard administrator" if session_is_admin(sess) else "dashboard user"),sess
 
     def require_recovery_auth(self, mutation=False):
         cfg,kind,sess=self.recovery_auth()
         if not sess:
-            self.send_json(401,{"error":"Recovery console authentication required"})
+            self.send_json(401,{"error":"Console authentication required"})
             return None
         if mutation and not self.csrf_ok(sess):
-            self.send_json(403,{"error":"Recovery console CSRF token missing or invalid"})
+            self.send_json(403,{"error":"Console CSRF token missing or invalid"})
             return None
         return cfg,kind,sess
 
-    def recovery_session_route(self):
-        cfg,kind,sess=self.recovery_auth()
-        if not sess:
-            return self.send_json(200,{"authenticated":False,"version":VERSION})
-        return self.send_json(200,{"authenticated":True,"kind":kind,"csrf":sess.get("csrf","") ,"version":VERSION,"username":sess.get("username","") ,"display_name":sess.get("display_name") or sess.get("username","") ,"group":sess.get("group","standard"),"group_label":USER_GROUPS.get(sess.get("group"),"Standard user"),"can_manage":session_is_admin(sess)})
-
-    def recovery_unlock_route(self):
+    def recovery_login_route(self):
         ip=self.client_ip(); now=time.time(); limit=10
         with RECOVERY_LOCK:
             q=RECOVERY_ATTEMPTS[ip]
             while q and q[0] < now-600: q.popleft()
             if len(q) >= limit:
-                return self.send_json(429,{"error":"Too many recovery console unlock attempts"})
+                return self.send_json(429,{"error":"Too many recovery attempts"})
             q.append(now)
         try:
             data=parse_json_body(self,12000)
         except Exception as exc:
             return self.send_json(400,{"error":str(exc)})
-        cfg=load_config(); username=str(data.get("username") or "").strip(); password=str(data.get("password") or ""); recovery_key=str(data.get("recovery_key") or "").strip(); supplied_code=normalize_recovery_code(data.get("recovery_code"))
-        principal=""; user=None; auth_kind="recovery"
-        if username and recovery_key:
-            candidate=user_by_username(cfg,username)
-            encoded=str((candidate or {}).get("recovery_key_hash") or "")
-            if candidate and encoded and verify_user_recovery_key(recovery_key,encoded):
-                user=candidate; principal=f"recovery key for {candidate.get('username')}"; auth_kind="recovery_key"
-        elif username and password:
-            candidate=user_by_username(cfg,username)
-            encoded=str((candidate or {}).get("password_hash") or "")
-            if candidate and candidate.get("group")=="administrator" and encoded and verify_password(password,encoded):
-                user=candidate; principal=f"administrator {candidate.get('username')}"; auth_kind="password"
-        elif supplied_code and hmac.compare_digest(supplied_code,RECOVERY_CODE_RAW):
-            principal="temporary startup recovery code"; auth_kind="startup_recovery_code"
-        if not principal:
-            HISTORY.event("dashboard","recovery_console_unlock_failed",username[:128] or "recovery-key","",{"client_ip":ip})
-            return self.send_json(401,{"error":"Invalid username/recovery key, administrator credentials, or startup recovery code"})
+        cfg=load_config(); supplied=str(data.get("recovery_key") or "").strip(); encoded=str(cfg.get("recovery",{}).get("key_hash") or "")
+        if not encoded:
+            return self.send_json(503,{"error":"Dashboard recovery has not been initialized yet"})
+        if not supplied or not verify_dashboard_recovery_key(supplied,encoded):
+            HISTORY.event("dashboard","recovery_login_failed",RECOVERY_ACCOUNT_USERNAME,"",{"client_ip":ip})
+            return self.send_json(401,{"error":"Invalid recovery key"})
         with RECOVERY_LOCK:
             RECOVERY_ATTEMPTS.pop(ip,None)
-        if user:
-            token,sess=RECOVERY_SESSIONS.create(user.get("username") or "Recovery",RECOVERY_SESSION_MINUTES/60,auth_kind,group=user.get("group","standard"),user_id=user.get("id","") ,display_name=user_display_name(user))
-        else:
-            token,sess=RECOVERY_SESSIONS.create("Recovery",RECOVERY_SESSION_MINUTES/60,auth_kind,group="administrator",display_name="Recovery Console")
-        HISTORY.event("dashboard","recovery_console_unlocked",principal,"",{"client_ip":ip,"group":sess.get("group")})
-        return self.send_json(200,{"ok":True,"kind":principal,"csrf":sess["csrf"],"version":VERSION,"username":sess.get("username","") ,"display_name":sess.get("display_name") or sess.get("username","") ,"group":sess.get("group","standard"),"group_label":USER_GROUPS.get(sess.get("group"),"Standard user"),"can_manage":session_is_admin(sess)},extra={"Set-Cookie":self.recovery_cookie_header(token)})
-
-    def recovery_logout_route(self):
-        token=self.recovery_cookie_token()
-        if token: RECOVERY_SESSIONS.remove(token)
-        return self.send_json(200,{"ok":True},extra={"Set-Cookie":self.recovery_cookie_header(clear=True)})
-
+        token,sess=SESSIONS.create(RECOVERY_ACCOUNT_USERNAME,cfg["auth"].get("session_hours",24),"recovery_key",group="administrator",user_id=RECOVERY_ACCOUNT_ID,display_name=RECOVERY_ACCOUNT_USERNAME)
+        HISTORY.event("dashboard","recovery_login_success",RECOVERY_ACCOUNT_USERNAME,"",{"client_ip":ip})
+        return self.send_json(200,{"ok":True,"csrf":sess["csrf"],"group":"administrator","recovery":True},token)
     def recovery_command_route(self):
         ctx=self.require_recovery_auth(True)
         if not ctx: return
@@ -2136,10 +2101,6 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         path,_,query=self.path.partition("?"); qs=urllib.parse.parse_qs(query)
         if path=="/health": return self.send_json(200,{"ok":True,"version":VERSION,"pid":os.getpid(),"application":str(APP_DIR),"python":sys.executable})
-        if path=="/console": return self.serve_static("recovery-console.html","text/html; charset=utf-8")
-        if path=="/recovery/console.css": return self.serve_static("recovery-console.css","text/css; charset=utf-8")
-        if path=="/recovery/console.js": return self.serve_static("recovery-console.js","application/javascript; charset=utf-8")
-        if path=="/api/recovery/session": return self.recovery_session_route()
         if path=="/manifest.webmanifest": return self.serve_static("manifest.webmanifest")
         if path=="/sw.js": return self.serve_static("sw.js","application/javascript; charset=utf-8")
         if path.startswith("/static/"):
@@ -2173,12 +2134,14 @@ class Handler(BaseHTTPRequestHandler):
             cfg,token,sess,new_cookie=self.auth()
             if not sess:
                 return self.send_json(401,{"authenticated":False,"auth_mode":cfg["auth"].get("mode")})
-            safe={"authenticated":True,"username":sess["username"],"display_name":sess.get("display_name") or sess["username"],"user_id":sess.get("user_id","") ,"group":sess.get("group","standard"),"group_label":USER_GROUPS.get(sess.get("group"),"Standard User"),"can_manage":session_is_admin(sess),"auth_kind":sess["auth_kind"],"csrf":sess["csrf"],"auth_mode":cfg["auth"].get("mode"),"title":cfg["dashboard"].get("title"),"version":VERSION,"lan_ip":local_lan_ip(),"port":cfg["dashboard"].get("port",8765),"scheme":"https" if cfg["dashboard"].get("https_enabled") else "http"}
+            safe={"authenticated":True,"username":sess["username"],"display_name":sess.get("display_name") or sess["username"],"user_id":sess.get("user_id","") ,"group":sess.get("group","standard"),"group_label":USER_GROUPS.get(sess.get("group"),"Standard User"),"can_manage":session_is_admin(sess),"is_recovery_account":sess.get("user_id","")==RECOVERY_ACCOUNT_ID,"recovery_configured":bool(cfg.get("recovery",{}).get("key_hash")),"auth_kind":sess["auth_kind"],"csrf":sess["csrf"],"auth_mode":cfg["auth"].get("mode"),"title":cfg["dashboard"].get("title"),"version":VERSION,"lan_ip":local_lan_ip(),"port":cfg["dashboard"].get("port",8765),"scheme":"https" if cfg["dashboard"].get("https_enabled") else "http"}
             return self.send_json(200,safe,new_cookie)
 
         ctx=self.require_auth(False)
         if not ctx: return
         cfg,token,sess,new_cookie=ctx
+        if sess.get("user_id")==RECOVERY_ACCOUNT_ID and path.startswith("/api/account"):
+            return self.send_json(403,{"error":"The built-in Administrator recovery account cannot be edited"},new_cookie)
         if path=="/api/account":
             user=user_by_id(cfg,sess.get("user_id",""))
             if not user:
@@ -2280,8 +2243,7 @@ class Handler(BaseHTTPRequestHandler):
         if path=="/api/setup/test-client": return self.setup_test_client()
         if path=="/api/setup/complete": return self.setup_complete()
         if path=="/api/login": return self.login_route()
-        if path=="/api/recovery/unlock": return self.recovery_unlock_route()
-        if path=="/api/recovery/logout": return self.recovery_logout_route()
+        if path=="/api/recovery/login": return self.recovery_login_route()
         if path=="/api/recovery/command": return self.recovery_command_route()
         if path=="/api/logout":
             token=self.cookie_token(); SESSIONS.remove(token)
@@ -2290,10 +2252,25 @@ class Handler(BaseHTTPRequestHandler):
         if not ctx: return
         cfg,token,sess,new_cookie=ctx
         try:
+            if path=="/api/recovery/initialize":
+                if not session_is_admin(sess) or sess.get("user_id")==RECOVERY_ACCOUNT_ID:
+                    return self.send_json(403,{"error":"Administrator dashboard access is required"},new_cookie)
+                def initialize_recovery(current):
+                    if current.get("recovery",{}).get("key_hash"):
+                        return current,None
+                    key=generate_dashboard_recovery_key(); current["recovery"]=recovery_key_record(key)
+                    return current,key
+                _,recovery_key=mutate_config(initialize_recovery)
+                if not recovery_key:
+                    return self.send_json(200,{"ok":True,"configured":True},new_cookie)
+                HISTORY.event("dashboard","recovery_key_initialized",sess.get("username",RECOVERY_ACCOUNT_USERNAME),"",{"client_ip":self.client_ip()})
+                return self.send_json(200,{"ok":True,"configured":True,"recovery_key":recovery_key},new_cookie)
+            if sess.get("user_id")==RECOVERY_ACCOUNT_ID and path.startswith("/api/account"):
+                return self.send_json(403,{"error":"The built-in Administrator recovery account cannot be edited"},new_cookie)
             if path=="/api/account":
                 data=parse_json_body(self,20000)
                 updated,user=mutate_config(lambda current: save_current_user_profile(current,sess.get("user_id",""),data))
-                SESSIONS.update_user(user); RECOVERY_SESSIONS.update_user(user)
+                SESSIONS.update_user(user)
                 HISTORY.event("dashboard","account_profile_changed",user.get("username",""),"",{"client_ip":self.client_ip()})
                 return self.send_json(200,{"ok":True,"user":public_user(user)},new_cookie)
             if path=="/api/account/password":
@@ -2302,12 +2279,6 @@ class Handler(BaseHTTPRequestHandler):
                 SESSIONS.remove_user_except(user.get("id",""),token)
                 HISTORY.event("dashboard","account_password_changed",user.get("username",""),"",{"client_ip":self.client_ip()})
                 return self.send_json(200,{"ok":True},new_cookie)
-            if path=="/api/account/recovery-key":
-                data=parse_json_body(self,12000)
-                updated,user,recovery_key=mutate_config(lambda current: regenerate_user_recovery_key(current,sess.get("user_id",""),data.get("current_password")))
-                RECOVERY_SESSIONS.remove_user(user.get("id",""))
-                HISTORY.event("dashboard","account_recovery_key_regenerated",user.get("username",""),"",{"client_ip":self.client_ip(),"group":user.get("group")})
-                return self.send_json(200,{"ok":True,"user":public_user(user),"recovery_key":recovery_key},new_cookie)
             if path=="/api/account/avatar":
                 fields,files=parse_multipart(self,max_bytes=MAX_AVATAR_BYTES+256000)
                 if not files:
@@ -2395,11 +2366,11 @@ class Handler(BaseHTTPRequestHandler):
                 HISTORY.event("dashboard",f"jellyfin_scheduled_task_{action}",task_id,"",{"client_ip":self.client_ip(),"integration_id":item.get("id","")})
                 return self.send_json(200,result,new_cookie)
             if path=="/api/users":
-                data=parse_json_body(self,20000); updated,user=mutate_config(lambda current: save_user(current,data)); SESSIONS.update_user(user); RECOVERY_SESSIONS.update_user(user)
+                data=parse_json_body(self,20000); updated,user=mutate_config(lambda current: save_user(current,data)); SESSIONS.update_user(user)
                 HISTORY.event("dashboard","user_saved",user.get("username",""),"",{"client_ip":self.client_ip(),"group":user.get("group")})
                 return self.send_json(200,{"ok":True,"user":public_user(user)},new_cookie)
             if path=="/api/users/delete":
-                data=parse_json_body(self,10000); uid=str(data.get("id") or ""); updated,_=mutate_config(lambda current: (delete_user(current,uid,sess.get("user_id","")),None)); delete_user_avatar_files(uid); SESSIONS.remove_user(uid); RECOVERY_SESSIONS.remove_user(uid)
+                data=parse_json_body(self,10000); uid=str(data.get("id") or ""); updated,_=mutate_config(lambda current: (delete_user(current,uid,sess.get("user_id","")),None)); delete_user_avatar_files(uid); SESSIONS.remove_user(uid)
                 HISTORY.event("dashboard","user_deleted",uid,"",{"client_ip":self.client_ip()})
                 return self.send_json(200,{"ok":True},new_cookie)
             if path=="/api/settings":
@@ -2491,6 +2462,7 @@ class Handler(BaseHTTPRequestHandler):
                 normalized.append(server)
             out=json.loads(json.dumps(DEFAULT_CONFIG))
             out["setup"]={"complete":True}
+            recovery_key=generate_dashboard_recovery_key(); out["recovery"]=recovery_key_record(recovery_key)
             out["dashboard"]["title"]=str(dashboard.get("title") or "Torrent Dashboard")[:128]
             out["dashboard"]["bind_host"]="0.0.0.0"
             out["dashboard"]["port"]=int(dashboard.get("port") or 8765)
@@ -2516,7 +2488,7 @@ class Handler(BaseHTTPRequestHandler):
             else: auth_kind="password"
             token,sess=SESSIONS.create(username,out["auth"].get("session_hours",24),auth_kind,group="administrator",user_id=admin_user["id"],display_name=user_display_name(admin_user))
             HISTORY.event("dashboard","setup_completed",username,"",{"client_ip":self.client_ip(),"servers":len(normalized),"auth_mode":mode})
-            return self.send_json(200,{"ok":True,"csrf":sess["csrf"],"message":"Setup complete"},token)
+            return self.send_json(200,{"ok":True,"csrf":sess["csrf"],"message":"Setup complete","recovery_key":recovery_key},token)
         except Exception as e:
             return self.send_json(400,{"error":str(e)})
 
@@ -2659,9 +2631,8 @@ def main():
     print(f"Listening on {scheme}://{host}:{port}")
     print(f"Local IP Address: {local_lan_ip()}")
     print(f"Port: {port}")
-    print(f"Recovery console: {scheme}://127.0.0.1:{port}/console")
-    print(f"Recovery code: {RECOVERY_CODE}")
-    print("Recovery code is regenerated every time Torrent Dashboard starts.")
+    if cfg.get("setup",{}).get("complete"):
+        print(f"Recovery: {scheme}://127.0.0.1:{port}/ (Recovery tab)")
     if not cfg.get("setup",{}).get("complete"):
         print("First-run setup is required. The local browser can configure Torrent Dashboard directly.")
         print(f"Remote setup code: {SETUP_CODE}")

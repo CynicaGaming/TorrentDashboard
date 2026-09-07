@@ -1,15 +1,10 @@
-"""Restricted command grammar for the Torrent Dashboard recovery console."""
+"""Restricted command grammar for the authenticated Torrent Dashboard console."""
 from __future__ import annotations
 
-import re
 import shlex
 
 RECOVERY_COMMAND_MAX_CHARS = 4096
 SAFE_TORRENT_ACTIONS = frozenset({"start", "stop", "recheck", "reannounce"})
-
-
-def normalize_recovery_code(value):
-    return re.sub(r"[-\s]", "", str(value or "")).upper()
 
 
 def parse_recovery_command(value):
@@ -30,7 +25,7 @@ def parse_recovery_command(value):
 
 
 def recovery_help_text(is_admin=False):
-    common = """Torrent Dashboard Recovery Console
+    common = """Torrent Dashboard Console
 
 Available to your account:
   help
@@ -62,7 +57,7 @@ Administrator actions:
 """
     else:
         common += """
-Your recovery session is read-only. Administrator-only diagnostics and actions are hidden.
+Your session is read-only. Administrator-only diagnostics and actions are hidden.
 """
     common += """
 Browser-local recovery:

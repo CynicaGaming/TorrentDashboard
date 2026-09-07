@@ -6,17 +6,17 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.140** (prerelease)
+- Latest documented build: **v0.5.141** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 
 ### Latest release summary
 
-Adds persistent opaque recovery keys to user profiles and makes both console surfaces enforce the signed-in user's current role.
+Replaces pre-login Console access and personal recovery keys with one dashboard-wide recovery key that signs in as the built-in Administrator.
 
 ## Current engineering decisions
 
-- Recovery keys are opaque random secrets and require a username; they do not self-identify users or encode privileges.
-- Authorization is resolved from the user's current profile at session creation and command execution remains allowlisted rather than shell-based.
+- Treat dashboard recovery as a root credential rather than a per-user credential.
+- Keep the recovery Administrator synthetic and outside user CRUD so its identity and privilege cannot be changed.
 
 ## Development principles
 
@@ -28,6 +28,15 @@ Adds persistent opaque recovery keys to user profiles and makes both console sur
 - Keep public development continuity portable across forks; label canonical repository/branch/PR references as upstream context rather than local identity.
 
 ## Recent work
+
+### v0.5.141 — Dashboard recovery login
+
+Replaces pre-login Console access and personal recovery keys with one dashboard-wide recovery key that signs in as the built-in Administrator.
+
+- Replaces the Console link on the sign-in screen with a Recovery tab that asks only for the dashboard recovery key.
+- Generates a 256-bit opaque recovery key during first-run setup and displays the plaintext once before entering the dashboard.
+- Recovery signs into a system-owned Administrator principal that cannot be renamed or deleted through user management.
+- Keeps the authenticated Console inside the dashboard for allowlisted operational commands and future recovery expansion.
 
 ### v0.5.140 — Per-user recovery keys
 
@@ -64,22 +73,13 @@ Removes redundant library scan controls and scan-state text now that Jellyfin's 
 - Removes the per-library Scan / Idle status column from library cards.
 - Keeps library names, media types, locations, and server status visible while task execution stays centralized in Favorites and Scheduled tasks.
 
-### v0.5.136 — Reorderable Jellyfin task favorites
-
-Adds persistent drag-handle ordering to Jellyfin scheduled-task favorites for faster access to frequently run tasks.
-
-- Adds a Material drag indicator to the left side of every Jellyfin favorite task row.
-- Allows favorite tasks to be reordered directly from the Favorites section with pointer or touch input.
-- Supports keyboard reordering from the drag handle with Arrow Up, Arrow Down, Home, and End.
-- Persists the chosen favorite order with the Jellyfin integration so it survives reloads and application updates.
-
 ## What to do next
 
-1. **Minimal local recovery entry point** — Add a recovery CLI/minimal mode that can validate personal recovery keys and repair/update the application when the normal HTTP process cannot start.
+1. **Recovery-key rotation** — Add a controlled command for rotating the dashboard-wide recovery key from the authenticated Console.
 
 ## Known issues
 
-- The standalone web recovery console still requires the Torrent Dashboard Python HTTP process to be running; a separate minimal local recovery entry point remains the next resilience layer.
+- Recovery-key rotation is not exposed yet; the authenticated Console is the intended future management surface.
 
 ## Handoff instructions for a new development session
 

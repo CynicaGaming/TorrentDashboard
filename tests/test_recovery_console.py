@@ -5,17 +5,12 @@ import unittest
 from torrent_dashboard.recovery_console import (
     RECOVERY_COMMAND_MAX_CHARS,
     SAFE_TORRENT_ACTIONS,
-    normalize_recovery_code,
     parse_recovery_command,
     recovery_help_text,
 )
 
 
 class RecoveryConsoleTests(unittest.TestCase):
-    def test_recovery_code_normalization_only_removes_separators(self):
-        self.assertEqual(normalize_recovery_code("abcd-1234 ef56"), "ABCD1234EF56")
-        self.assertEqual(normalize_recovery_code("zzzz-1234"), "ZZZZ1234")
-
     def test_command_parser_supports_quoted_arguments(self):
         self.assertEqual(parse_recovery_command('client test "desktop one"'), ["client", "test", "desktop one"])
 

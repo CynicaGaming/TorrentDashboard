@@ -110,7 +110,6 @@ def main():
     validate_design_language(app_js, settings_js)
     assert 'id="view-console"' in html and 'id="embeddedConsoleForm"' in html
     assert 'data-view="console"' in html and 'id="accountConsoleBtn"' in html
-    assert 'id="consolePasswordToggle"' in (ROOT / "static" / "recovery-console.html").read_text(encoding="utf-8")
     assert 'const embeddedConsoleState=' in app_js and "post('/api/recovery/command',{command})" in app_js
 
 
@@ -906,18 +905,19 @@ def main():
     assert '## Jellyfin service integrations' in design_language
     assert '### Jellyfin service integration' in testing_md
 
-    # 0.5.138 adds a standalone, authenticated recovery console that does not depend on the normal app bundle.
-    recovery_html = (ROOT / "static" / "recovery-console.html").read_text(encoding="utf-8")
-    recovery_js = (ROOT / "static" / "recovery-console.js").read_text(encoding="utf-8")
-    recovery_py = (ROOT / "torrent_dashboard" / "recovery_console.py").read_text(encoding="utf-8")
-    assert 'href="/console"' in html and '/console?session=1' not in html
-    assert '/api/recovery/unlock' in dashboard_py and '/api/recovery/command' in dashboard_py
-    assert 'RECOVERY_CODE_RAW' in dashboard_py and 'SameSite=Strict' in dashboard_py
-    assert 'app.js' not in recovery_html and 'settings.js' not in recovery_html
-    assert '/recovery/console.js' in recovery_html and '/recovery/console.css' in recovery_html
-    assert 'eval(' not in recovery_js and 'Function(' not in recovery_js
-    assert 'SAFE_TORRENT_ACTIONS' in recovery_py and 'delete' not in recovery_py.split('SAFE_TORRENT_ACTIONS',1)[1].split(')',1)[0]
-
+    # 0.5.141 replaces the pre-login Console with dashboard-wide Recovery.
+    recovery_py = (ROOT / "torrent_dashboard" / "recovery.py").read_text(encoding="utf-8")
+    recovery_console_py = (ROOT / "torrent_dashboard" / "recovery_console.py").read_text(encoding="utf-8")
+    assert 'id="loginRecoveryTab"' in html and 'id="recoveryLoginForm"' in html and 'id="recoveryKey"' in html
+    assert html.count('id="recoveryKey"') == 1
+    assert 'href="/console"' not in html and not (ROOT / "static" / "recovery-console.html").exists()
+    assert '/api/recovery/login' in dashboard_py and '/api/recovery/command' in dashboard_py
+    assert '/api/recovery/unlock' not in dashboard_py and 'RECOVERY_SESSIONS' not in dashboard_py and 'RECOVERY_CODE_RAW' not in dashboard_py
+    assert 'RECOVERY_ACCOUNT_USERNAME = "Administrator"' in recovery_py and 'RECOVERY_KEY_BYTES = 32' in recovery_py
+    assert 'verify_dashboard_recovery_key' in recovery_py and 'recovery_key_record' in recovery_py
+    assert 'recovery_key_hash' not in users_py and 'regenerate_user_recovery_key' not in users_py
+    assert 'SAFE_TORRENT_ACTIONS' in recovery_console_py and 'delete' not in recovery_console_py.split('SAFE_TORRENT_ACTIONS',1)[1].split(')',1)[0]
+    assert 'id="setupRecoveryModal"' in html and 'id="setupRecoveryKeyValue"' in html
     print("UI string audit passed")
 
 

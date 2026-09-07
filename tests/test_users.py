@@ -6,14 +6,11 @@ from torrent_dashboard.users import (
     change_current_user_password,
     delete_user,
     hash_password,
-    normalize_user_recovery_key,
-    public_user,
-    regenerate_user_recovery_key,
     normalize_user,
+    public_user,
     save_current_user_profile,
     save_user,
     verify_password,
-    verify_user_recovery_key,
 )
 
 
@@ -49,10 +46,8 @@ class UserDomainTests(unittest.TestCase):
             "email": "old@example.test",
         }, require_password=True)
         cfg = {"users": [admin], "auth": {}}
-
         with self.assertRaisesRegex(RuntimeError, "Current password is required"):
             save_current_user_profile(cfg, "admin", {"email": "new@example.test"})
-
         updated_cfg, updated = save_current_user_profile(cfg, "admin", {
             "email": "new@example.test",
             "current_password": "password123",
@@ -62,28 +57,20 @@ class UserDomainTests(unittest.TestCase):
         self.assertEqual(updated["email"], "new@example.test")
         self.assertEqual(updated_cfg["users"][0]["group"], "administrator")
 
-    def test_recovery_key_regeneration_requires_password_and_stores_only_hash(self):
-        user = normalize_user({"id": "u1", "username": "user", "password": "password123", "group": "standard"}, require_password=True)
-        cfg = {"users": [user], "auth": {}}
-        with self.assertRaisesRegex(RuntimeError, "incorrect"):
-            regenerate_user_recovery_key(cfg, "u1", "wrong")
-        updated_cfg, updated, key = regenerate_user_recovery_key(cfg, "u1", "password123")
-        self.assertTrue(key.startswith("TDRK-"))
-        self.assertTrue(verify_user_recovery_key(key, updated["recovery_key_hash"]))
-        self.assertNotEqual(updated["recovery_key_hash"], normalize_user_recovery_key(key))
-        self.assertNotIn(key, str(updated_cfg))
-        exposed = public_user(updated)
-        self.assertTrue(exposed["recovery_key_configured"])
-        self.assertEqual(exposed["recovery_key_last4"], normalize_user_recovery_key(key)[-4:])
-        self.assertNotIn("recovery_key_hash", exposed)
-
-    def test_normalize_user_preserves_recovery_key_when_profile_changes(self):
-        user = normalize_user({"id": "u1", "username": "user", "password": "password123", "group": "standard"}, require_password=True)
-        cfg = {"users": [user], "auth": {}}
-        cfg, user, key = regenerate_user_recovery_key(cfg, "u1", "password123")
-        updated_cfg, updated = save_current_user_profile(cfg, "u1", {"first_name": "Recovered"})
-        self.assertEqual(updated["recovery_key_hash"], user["recovery_key_hash"])
-        self.assertTrue(verify_user_recovery_key(key, updated_cfg["users"][0]["recovery_key_hash"]))
+    def test_legacy_personal_recovery_fields_are_not_preserved(self):
+        user = normalize_user({
+            "id": "u1",
+            "username": "user",
+            "password": "password123",
+            "group": "standard",
+            "recovery_key_hash": "legacy",
+            "recovery_key_created_at": 1,
+            "recovery_key_last4": "ABCD",
+        }, require_password=True)
+        exposed = public_user(user)
+        self.assertNotIn("recovery_key_hash", user)
+        self.assertNotIn("recovery_key_configured", exposed)
+        self.assertNotIn("recovery_key_last4", exposed)
 
     def test_password_change_requires_existing_password_and_minimum_length(self):
         user = normalize_user({"id": "u1", "username": "user", "password": "password123", "group": "standard"}, require_password=True)
@@ -92,7 +79,6 @@ class UserDomainTests(unittest.TestCase):
             change_current_user_password(cfg, "u1", "wrong", "new-password")
         with self.assertRaisesRegex(RuntimeError, "at least 8"):
             change_current_user_password(cfg, "u1", "password123", "short")
-
         updated_cfg, updated = change_current_user_password(cfg, "u1", "password123", "new-password")
         self.assertTrue(verify_password("new-password", updated["password_hash"]))
         self.assertEqual(updated_cfg["users"][0]["group"], "standard")

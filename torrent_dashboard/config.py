@@ -36,6 +36,7 @@ DEFAULT_CONFIG = {
         "session_hours": 24,
         "max_login_attempts_per_10m": 20,
     },
+    "recovery": {"key_hash": "", "created_at": 0, "last4": ""},
     "users": [],
     "servers": [],
     "notifications": {
@@ -250,6 +251,14 @@ def normalize_config(raw, detect_lan_network: Callable[[], dict] | None = None):
         notification_volume = 72
     notifications["volume"] = max(0, min(100, notification_volume))
 
+    recovery = merged.setdefault("recovery", {})
+    recovery["key_hash"] = str(recovery.get("key_hash") or "")
+    try:
+        recovery["created_at"] = int(recovery.get("created_at") or 0)
+    except (TypeError, ValueError):
+        recovery["created_at"] = 0
+    recovery["last4"] = str(recovery.get("last4") or "")[-4:]
+
     sync_legacy_auth(merged)
     return merged
 
@@ -259,6 +268,8 @@ def public_config(cfg):
     out = json.loads(json.dumps(cfg))
     out.setdefault("auth", {}).pop("password_hash", None)
     out.setdefault("auth", {}).pop("username", None)
+    recovery = out.setdefault("recovery", {})
+    recovery["configured"] = bool(recovery.pop("key_hash", ""))
     for server in out.get("servers", []):
         if server.get("password"):
             server["password"] = "<configured>"
