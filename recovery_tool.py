@@ -19,7 +19,9 @@ import sys
 import time
 from pathlib import Path
 
-APP_DIR = Path(__file__).resolve().parent
+from torrent_dashboard.runtime_paths import app_dir, is_frozen
+
+APP_DIR = app_dir()
 CONFIG_PATH = APP_DIR / "config.json"
 DATA_DIR = APP_DIR / "data"
 BACKUP_DIR = DATA_DIR / "recovery-backups"
@@ -149,9 +151,18 @@ def set_repository(cfg: dict, repository: str) -> str:
 
 
 def current_version() -> str:
-    text = (APP_DIR / "dashboard.py").read_text(encoding="utf-8")
-    match = re.search(r'^VERSION\s*=\s*["\']([^"\']+)', text, re.M)
-    return match.group(1) if match else "unknown"
+    package_info = APP_DIR / "package-info.json"
+    if package_info.is_file():
+        try:
+            return str(json.loads(package_info.read_text(encoding="utf-8")).get("version") or "unknown")
+        except Exception:
+            pass
+    source = APP_DIR / "dashboard.py"
+    if source.is_file():
+        text = source.read_text(encoding="utf-8")
+        match = re.search(r'^VERSION\s*=\s*["\']([^"\']+)', text, re.M)
+        return match.group(1) if match else "unknown"
+    return "unknown"
 
 
 def updater_module():
@@ -172,13 +183,20 @@ def validation_report(cfg: dict) -> list[tuple[str, bool, str]]:
         rows.append(("update repository", True, configured_repository(cfg)))
     except Exception as exc:
         rows.append(("update repository", False, str(exc)))
-    for name in ("dashboard.py", "updater.py", "recovery_tool.py"):
-        path = APP_DIR / name
-        try:
-            compile(path.read_text(encoding="utf-8"), str(path), "exec")
-            rows.append((f"{name} syntax", True, "OK"))
-        except Exception as exc:
-            rows.append((f"{name} syntax", False, str(exc)))
+    if is_frozen():
+        for name in ("Dashboard.exe", "Recovery.exe", "Updater.exe"):
+            path = APP_DIR / name
+            rows.append((f"{name} present", path.is_file(), str(path)))
+        rows.append(("static assets", (APP_DIR / "static" / "index.html").is_file(), str(APP_DIR / "static")))
+        rows.append(("package metadata", (APP_DIR / "package-info.json").is_file(), str(APP_DIR / "package-info.json")))
+    else:
+        for name in ("dashboard.py", "updater.py", "recovery_tool.py"):
+            path = APP_DIR / name
+            try:
+                compile(path.read_text(encoding="utf-8"), str(path), "exec")
+                rows.append((f"{name} syntax", True, "OK"))
+            except Exception as exc:
+                rows.append((f"{name} syntax", False, str(exc)))
     return rows
 
 
@@ -218,6 +236,8 @@ def check_update(cfg: dict):
 
 
 def install_update(cfg: dict, force: bool = False) -> None:
+    if is_frozen():
+        raise RuntimeError("Compiled preview self-update is not enabled yet; use the source package for updates")
     upd = updater_module()
     repo = configured_repository(cfg)
     if upd.dashboard_instance_running():

@@ -6,17 +6,17 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.142** (prerelease)
+- Latest documented build: **v0.5.143** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 
 ### Latest release summary
 
-Adds a key-gated local recovery program that can repair and update Torrent Dashboard without starting the HTTP service.
+Adds the first Windows executable packaging layer for Dashboard.exe, Recovery.exe, and Updater.exe while retaining the editable source distribution.
 
 ## Current engineering decisions
 
-- Keep disaster recovery independent of the dashboard HTTP server while reusing the existing verified updater for installation semantics.
-- Require the root recovery key before exposing any local repair action, including read-only diagnostics.
+- Use the executable directory as the writable installation root while leaving browser assets and runtime state external.
+- Keep Python source as the canonical development format and treat compilation strictly as a release artifact.
 
 ## Development principles
 
@@ -28,6 +28,15 @@ Adds a key-gated local recovery program that can repair and update Torrent Dashb
 - Keep public development continuity portable across forks; label canonical repository/branch/PR references as upstream context rather than local identity.
 
 ## Recent work
+
+### v0.5.143 — Windows executable packaging foundation
+
+Adds the first Windows executable packaging layer for Dashboard.exe, Recovery.exe, and Updater.exe while retaining the editable source distribution.
+
+- Adds a shared source/frozen runtime-path layer so application data and external web assets resolve beside the installed executables.
+- Adds PyInstaller build definitions for Dashboard.exe, Recovery.exe, and Updater.exe in one Windows onedir package.
+- Keeps static HTML/CSS/JavaScript, config.json, data, logs, certificates, sounds, and release metadata external to the compiled executables.
+- Updates recovery.cmd to prefer Recovery.exe when present while preserving the Python fallback for source installations.
 
 ### v0.5.142 — Local recovery tool
 
@@ -65,22 +74,14 @@ Adds a password visibility control to standalone recovery login and a native aut
 - Adds the same allowlisted recovery command interface to the dashboard Console view, including command history, help, clear, frontend cache recovery, and verified updater commands.
 - Keeps the standalone /console route unchanged as the independent pre-login recovery surface.
 
-### v0.5.138 — Standalone recovery console
-
-Adds a restricted recovery console that remains available from the login screen when the normal dashboard frontend is unavailable.
-
-- Adds a Console tab/link to the sign-in screen plus administrator Console links in the dashboard navigation and account menu.
-- Serves the recovery console from a standalone HTML, CSS, and JavaScript bundle that does not load the normal app.js or settings.js files.
-- Provides diagnostics, redacted configuration inspection, client/integration tests, Jellyfin task control, safe torrent maintenance actions, event inspection, and updater commands.
-- Supports update check, download, repository selection, verified install, and one-command verified update application from the recovery console.
-
 ## What to do next
 
-1. **Recovery-key rotation** — Add a controlled authenticated Console command to rotate the dashboard-wide recovery key while preserving the setup-only creation invariant.
+1. **Executable-aware updater** — Teach update discovery/staging/rollback to select and install the Windows executable package so Dashboard.exe and Recovery.exe can self-update safely.
+2. **Windows package hardening** — Exercise compiled startup, recovery, update rollback, and migration on clean and existing Windows installations before making the executable package primary.
 
 ## Known issues
 
-- Local recovery requires the setup-generated recovery key and a readable config.json; there is intentionally no post-setup key-generation bypass.
+- The Windows executable package is preview-only in v0.5.143; self-update from the compiled package will be enabled in the next packaging phase.
 
 ## Handoff instructions for a new development session
 

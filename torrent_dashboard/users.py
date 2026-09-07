@@ -11,8 +11,10 @@ import secrets
 import uuid
 from pathlib import Path
 
+from torrent_dashboard.runtime_paths import app_dir
 
-APP_DIR = Path(__file__).resolve().parents[1]
+
+APP_DIR = app_dir()
 AVATAR_DIR = APP_DIR / "data" / "avatars"
 MAX_AVATAR_BYTES = 4 * 1024 * 1024
 PROFILE_AVATAR_TYPES = {

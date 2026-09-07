@@ -7,46 +7,46 @@
 This handoff is intentionally portable across public forks. Verify the current checkout's Git remote, branch, and open work before using upstream references as instructions.
 
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
-- Last documented upstream build: **v0.5.142** (prerelease)
+- Last documented upstream build: **v0.5.143** (prerelease)
 
 ## Last known-good state
 
-Adds a key-gated local recovery program that can repair and update Torrent Dashboard without starting the HTTP service.
+Adds the first Windows executable packaging layer for Dashboard.exe, Recovery.exe, and Updater.exe while retaining the editable source distribution.
 
 The released-state details and recent history are in `PROJECT_STATE.md`; architectural constraints are in `ARCHITECTURE.md`.
 
 ## Active development intent
 
 - Status: **ready**
-- Objective: **Provide recovery when Torrent Dashboard cannot start or bind its HTTP service**
-- Why: A dashboard-wide recovery key is only useful for critical failures if there is a local repair path that does not depend on the web server.
+- Objective: **Introduce compiled Windows distribution without changing the editable Python development model**
+- Why: Dashboard and disaster recovery should run on Windows without requiring a separately installed Python runtime while source remains easy to modify.
 
 ### Acceptance criteria
 
-- Local recovery starts without importing dashboard.py or binding an HTTP listener.
-- Every local recovery action requires the setup-generated dashboard recovery key.
-- Recovery can select a GitHub repository, check releases, and install or reinstall a SHA-256-verified release using the existing updater rollback path.
-- Recovery can validate and back up config, restore a recovery backup, reset bind/port/HTTPS settings, clear stuck update state, start the dashboard, and inspect restart logs.
-- The post-setup recovery-key generation failsafe is removed; first-run setup is the only key-creation path.
+- Dashboard.exe, Recovery.exe, and Updater.exe build from the existing Python source on Windows.
+- Compiled applications resolve config/data/static resources relative to the installation directory.
+- The source-mode dashboard and recovery tool continue to run unchanged.
+- The executable package leaves frontend assets and runtime state external and editable.
+- Compiled self-update is blocked until executable-aware atomic replacement and rollback are implemented.
 
 ### Decisions already made
 
-- Use recovery_tool.py as a standard-library local entry point and keep it independent of the HTTP handler.
-- Reuse updater.py for verified downloads, backup, health check, and rollback instead of creating a second installer.
-- Do not expose an OS shell from local recovery.
+- Use PyInstaller onedir packaging for the initial Windows distribution.
+- Name the executables Dashboard.exe, Recovery.exe, and Updater.exe.
+- Keep the current source ZIP as the production updater target during the preview phase.
 
 ### Expected areas of change
 
+- `torrent_dashboard/runtime_paths.py`
+- `dashboard.py`
+- `torrent_dashboard/users.py`
 - `recovery_tool.py`
 - `recovery.cmd`
 - `updater.py`
-- `dashboard.py`
-- `static/app.js`
-- `static/index.html`
-- `static/sw.js`
-- `tests/test_local_recovery.py`
-- `release_tools/validate_ui_strings.py`
-- `release_notes/releases.json`
+- `release_tools/windows.spec`
+- `release_tools/build_windows.py`
+- `tests/test_runtime_paths.py`
+- `.github/workflows/release.yml`
 
 ### Blockers
 
@@ -54,12 +54,12 @@ None currently recorded.
 
 ### Explicitly out of scope
 
-- Arbitrary operating-system shell access.
-- Recovery without config.json or without possession of the setup-generated recovery key.
+- Code signing in the initial packaging increment.
+- Switching the production updater to executable packages before rollback validation.
 
 ## Exact next action
 
-Add recovery-key rotation to the authenticated dashboard Console when desired.
+Add executable-package discovery, staging, replacement, restart health checking, and rollback to Updater.exe.
 
 ## Resume checklist
 

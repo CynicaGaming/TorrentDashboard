@@ -24,6 +24,8 @@ import urllib.request
 import zipfile
 from pathlib import Path
 
+from torrent_dashboard.runtime_paths import app_dir, dashboard_command, is_frozen
+
 PRESERVE_TOP_LEVEL = {"config.json", "data", ".git"}
 DEFAULT_REPOSITORY = "CynicaGaming/TorrentDashboard"
 GITHUB_API = "https://api.github.com"
@@ -138,7 +140,7 @@ def rollback(target: Path, backup_root: Path, state: dict):
 
 
 def start_dashboard(target: Path):
-    cmd = [sys.executable, str(target / "dashboard.py"), "--no-browser"]
+    cmd = dashboard_command(target)
     kwargs = {"cwd": str(target), "stdin": subprocess.DEVNULL}
     log_dir = target / "data"
     log_dir.mkdir(parents=True, exist_ok=True)
@@ -296,6 +298,8 @@ def validate_staged_source(source: Path, expected_version: str):
 
 def recovery_update(target: Path, repository: str | None = None, force: bool = False):
     target = target.resolve()
+    if is_frozen():
+        raise RuntimeError("Compiled preview GitHub installation is not enabled yet")
     if dashboard_instance_running():
         raise RuntimeError(
             "Torrent Dashboard is still running. Close the existing dashboard/Python process, then run the recovery update again."
@@ -433,7 +437,7 @@ def main():
 
     try:
         if args.github_update:
-            recovery_update(Path(__file__).resolve().parent, args.repository, args.force)
+            recovery_update(app_dir(), args.repository, args.force)
         else:
             normal_update(args)
     except Exception as exc:

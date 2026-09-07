@@ -12,6 +12,48 @@
   },
   "releases": [
     {
+      "version": "0.5.143",
+      "date": "2026-09-07",
+      "status": "prerelease",
+      "title": "Windows executable packaging foundation",
+      "summary": "Adds the first Windows executable packaging layer for Dashboard.exe, Recovery.exe, and Updater.exe while retaining the editable source distribution.",
+      "highlights": [
+        "Adds a shared source/frozen runtime-path layer so application data and external web assets resolve beside the installed executables.",
+        "Adds PyInstaller build definitions for Dashboard.exe, Recovery.exe, and Updater.exe in one Windows onedir package.",
+        "Keeps static HTML/CSS/JavaScript, config.json, data, logs, certificates, sounds, and release metadata external to the compiled executables.",
+        "Updates recovery.cmd to prefer Recovery.exe when present while preserving the Python fallback for source installations."
+      ],
+      "fixes": [],
+      "technical": [
+        "The compiled package is a parallel preview artifact; the existing source ZIP remains the production updater format in this increment.",
+        "Compiled Dashboard/Recovery self-update installation is intentionally blocked until the updater can atomically replace executable packages and roll them back.",
+        "Recovery.exe reads package-info.json for its version and validates companion executables/assets instead of requiring loose Python source files."
+      ],
+      "validation": [
+        "Adds runtime-path tests plus Windows CI smoke tests that build all three executables and run each with --help."
+      ],
+      "known_issues": [
+        "The Windows executable package is preview-only in v0.5.143; self-update from the compiled package will be enabled in the next packaging phase."
+      ],
+      "architecture": [],
+      "decisions": [
+        "Use the executable directory as the writable installation root while leaving browser assets and runtime state external.",
+        "Keep Python source as the canonical development format and treat compilation strictly as a release artifact."
+      ],
+      "next_steps": [
+        {
+          "priority": 1,
+          "title": "Executable-aware updater",
+          "detail": "Teach update discovery/staging/rollback to select and install the Windows executable package so Dashboard.exe and Recovery.exe can self-update safely."
+        },
+        {
+          "priority": 2,
+          "title": "Windows package hardening",
+          "detail": "Exercise compiled startup, recovery, update rollback, and migration on clean and existing Windows installations before making the executable package primary."
+        }
+      ]
+    },
+    {
       "version": "0.5.142",
       "date": "2026-09-07",
       "status": "prerelease",

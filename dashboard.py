@@ -80,6 +80,7 @@ from torrent_dashboard.recovery import (
     recovery_key_record,
     verify_dashboard_recovery_key,
 )
+from torrent_dashboard.runtime_paths import app_dir, is_frozen
 from torrent_dashboard.users import (
     AVATAR_DIR,
     MAX_AVATAR_BYTES,
@@ -104,7 +105,7 @@ from torrent_dashboard.users import (
     verify_password,
 )
 
-APP_DIR = Path(__file__).resolve().parent
+APP_DIR = app_dir()
 STATIC_DIR = APP_DIR / "static"
 DATA_DIR = APP_DIR / "data"
 CONFIG_PATH = APP_DIR / "config.json"
@@ -116,7 +117,7 @@ RELEASE_INTEGRITY_CACHE_PATH = DATA_DIR / "release-integrity.json"
 CUSTOM_SOUND_BASENAME = "notification-custom"
 LEGACY_CUSTOM_SOUND_BASENAME = "custom-notification-sound"
 MAX_CUSTOM_SOUND_BYTES = 2 * 1024 * 1024
-VERSION = "0.5.142"
+VERSION = "0.5.143"
 STATUS_REFRESH_SECONDS = 1.0
 
 RELEASE_PROVENANCE = ReleaseProvenance(
@@ -1751,6 +1752,8 @@ def launch_update_installer(handler, cfg, requested_version=None):
         raise RuntimeError("The staged update version changed; check for updates again")
     source=Path(state.get("source","")).resolve()
     if not source.exists(): raise RuntimeError("The staged update files are missing")
+    if is_frozen():
+        raise RuntimeError("Compiled preview self-update is not enabled yet; use the source package for updates")
     updater=(APP_DIR/"updater.py").resolve()
     if not updater.exists(): raise RuntimeError("updater.py is missing")
     cmd=[sys.executable,str(updater),"--pid",str(os.getpid()),"--source",str(source),"--target",str(APP_DIR),"--version",str(state.get("version"))]
