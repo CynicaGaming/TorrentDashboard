@@ -6,22 +6,23 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.147** (prerelease)
+- Latest documented build: **v0.5.148** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 
 ### Latest release summary
 
-Adds a dedicated in-app backup manager for creating, viewing, restoring, importing, and exporting portable Torrent Dashboard state backups.
+Hardens live state restoration, backup validation, request parsing, and session revocation while adding cross-platform pull-request validation.
 
 ## Architecture state
 
-- Backup archives are state-only portability artifacts. Application code/binaries remain owned by the release/updater system and qBitTorrent-owned data remains outside Torrent Dashboard backups.
+- StateGate coordinates HTTP requests and collectors with exclusive maintenance; lock order is state gate, configuration, history, cache.
+- Normal configuration changes use ConfigStore.mutate(); backup/restore uses its exclusive fresh snapshot boundary.
 
 ## Current engineering decisions
 
-- Place backup management in its own Settings category because backup lifecycle is independent from software update lifecycle.
-- Preserve the local backup library and legacy recovery config backups across restores so a failed or unwanted migration retains a local escape path.
-- Do not add backup encryption, scheduling, or remote destinations in the first portable-backup release.
+- Preserve the standard-library runtime and existing product behavior while correcting reproduced defects.
+- Rebase onto the merged source-package pruning PR #28 and preserve its changes.
+- Record the current responsive layout contract rather than treating superseded historical instructions as simultaneous requirements.
 
 ## Development principles
 
@@ -33,6 +34,14 @@ Adds a dedicated in-app backup manager for creating, viewing, restoring, importi
 - Keep public development continuity portable across forks; label canonical repository/branch/PR references as upstream context rather than local identity.
 
 ## Recent work
+
+### v0.5.148 — State restoration and input hardening
+
+Hardens live state restoration, backup validation, request parsing, and session revocation while adding cross-platform pull-request validation.
+
+- Backup restore waits for active requests and collection to finish, then replaces state before new requests authenticate.
+- Portable backups exclude temporary updater executables and SQLite sidecars, and appear in the backup library only after validation.
+- Authentication policy changes revoke outdated bypass access, including recovery-console access.
 
 ### v0.5.147 — Portable backup management
 
@@ -68,22 +77,14 @@ Fixes update staging after the Windows executable preview introduced a second ZI
 - Update discovery now selects the exact source archive Torrent-Dashboard-<version>.zip before considering fallback ZIP assets.
 - Windows preview packages use a distinct TorrentDashboard-Windows-<version>-x64.zip name so older source updaters do not mistake them for installable source releases.
 
-### v0.5.143 — Windows executable packaging foundation
-
-Adds the first Windows executable packaging layer for Dashboard.exe, Recovery.exe, and Updater.exe while retaining the editable source distribution.
-
-- Adds a shared source/frozen runtime-path layer so application data and external web assets resolve beside the installed executables.
-- Adds PyInstaller build definitions for Dashboard.exe, Recovery.exe, and Updater.exe in one Windows onedir package.
-- Keeps static HTML/CSS/JavaScript, config.json, data, logs, certificates, sounds, and release metadata external to the compiled executables.
-- Updates recovery.cmd to prefer Recovery.exe when present while preserving the Python fallback for source installations.
-
 ## What to do next
 
-1. **Exercise cross-install restore** — Create and export a backup from one compiled Windows installation, import and restore it on a second same-or-newer build, then use the generated safety backup to return the destination to its prior state.
+1. **Validate compiled migration under live activity** — Run Windows create/export/import/restore and safety-backup recovery with active browser sessions and qBitTorrent polling, then exercise compiled update/rollback.
 
 ## Known issues
 
-- Portable backup archives are not encrypted and contain saved credentials and recovery data; exported .tdbackup files must be stored securely.
+- Live compiled Windows migration and update/rollback remain operational checks; source-level tests do not establish that coverage.
+- Portable archives still contain unencrypted secrets. A process termination or power loss during multi-file restore may require manual recovery from the retained safety backup.
 
 ## Handoff instructions for a new development session
 

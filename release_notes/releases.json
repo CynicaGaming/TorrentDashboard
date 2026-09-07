@@ -12,6 +12,54 @@
   },
   "releases": [
     {
+      "version": "0.5.148",
+      "date": "2026-09-07",
+      "status": "prerelease",
+      "title": "State restoration and input hardening",
+      "summary": "Hardens live state restoration, backup validation, request parsing, and session revocation while adding cross-platform pull-request validation.",
+      "highlights": [
+        "Backup restore waits for active requests and collection to finish, then replaces state before new requests authenticate.",
+        "Portable backups exclude temporary updater executables and SQLite sidecars, and appear in the backup library only after validation.",
+        "Authentication policy changes revoke outdated bypass access, including recovery-console access."
+      ],
+      "fixes": [
+        "Closes every history database connection and serializes history reads, event writes, and cleanup with restore.",
+        "Rejects malformed HTTP lengths, ambiguous framing, non-object JSON, truncated multipart uploads, and unsafe portable archive paths.",
+        "Prevents same-name concurrent imports from overwriting one another and reports automatic rollback failures accurately.",
+        "Invalidates other sessions after an administrator password reset and refuses restore during a launched application update."
+      ],
+      "technical": [
+        "Extracts history, request parsing, state maintenance coordination, and private atomic persistence into standard-library modules.",
+        "Uses a fresh locked configuration snapshot during backup/restore and streams archive digest verification with dedicated manifest/configuration limits.",
+        "Adds read-only pull-request validation on Linux and Windows with Python 3.13 and 3.14; pins workflow actions to upstream commit SHAs.",
+        "Consolidates superseded interface/testing documentation and resolves the Windows build version dynamically."
+      ],
+      "validation": [
+        "Adds regression coverage for state isolation, connection closure, hostile framing, archive paths and limits, concurrent imports, failed rollback, and source-level cross-install safety-backup recovery.",
+        "Runs the source validator, UI contract audit, JavaScript syntax checks, generated-documentation check, and repository hygiene check."
+      ],
+      "known_issues": [
+        "Live compiled Windows migration and update/rollback remain operational checks; source-level tests do not establish that coverage.",
+        "Portable archives still contain unencrypted secrets. A process termination or power loss during multi-file restore may require manual recovery from the retained safety backup."
+      ],
+      "architecture": [
+        "StateGate coordinates HTTP requests and collectors with exclusive maintenance; lock order is state gate, configuration, history, cache.",
+        "Normal configuration changes use ConfigStore.mutate(); backup/restore uses its exclusive fresh snapshot boundary."
+      ],
+      "decisions": [
+        "Preserve the standard-library runtime and existing product behavior while correcting reproduced defects.",
+        "Rebase onto the merged source-package pruning PR #28 and preserve its changes.",
+        "Record the current responsive layout contract rather than treating superseded historical instructions as simultaneous requirements."
+      ],
+      "next_steps": [
+        {
+          "priority": 1,
+          "title": "Validate compiled migration under live activity",
+          "detail": "Run Windows create/export/import/restore and safety-backup recovery with active browser sessions and qBitTorrent polling, then exercise compiled update/rollback."
+        }
+      ]
+    },
+    {
       "version": "0.5.147",
       "date": "2026-09-07",
       "status": "prerelease",

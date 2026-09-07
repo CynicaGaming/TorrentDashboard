@@ -10,6 +10,7 @@ import hmac
 import http.cookiejar
 import ipaddress
 import json
+import logging
 import mimetypes
 import os
 import secrets
@@ -18,7 +19,6 @@ import socket
 import subprocess
 import re
 import ssl
-import sqlite3
 import sys
 import threading
 import tempfile
@@ -48,6 +48,9 @@ from torrent_dashboard.config import (
     public_config,
 )
 from torrent_dashboard.config_store import ConfigStore
+from torrent_dashboard.history import HistoryStore
+from torrent_dashboard.http_input import parse_json_body, parse_multipart
+from torrent_dashboard.state_gate import StateGate
 from torrent_dashboard.backups import (
     BACKUP_EXTENSION,
     MAX_BACKUP_BYTES,
@@ -218,6 +221,7 @@ CONFIG_REPOSITORY = ConfigRepository(
     detect_lan_network=lambda: detect_lan_network(),
 )
 CONFIG_STORE = ConfigStore(CONFIG_REPOSITORY.load, CONFIG_REPOSITORY.save)
+STATE_GATE = StateGate()
 
 
 def load_config():
@@ -247,7 +251,7 @@ class SessionStore:
                 "user_id": user_id,
                 "display_name": display_name or username,
             }
-        return token, dict(self.sessions[token])
+            return token, dict(self.sessions[token])
 
     def get(self, token):
         if not token:
@@ -1171,97 +1175,6 @@ class QBitClient:
         return self._request("POST", "/api/v2/torrents/add", raw=raw, headers={"Content-Type": f"multipart/form-data; boundary={boundary}"})
 
 
-class HistoryStore:
-    def __init__(self, path):
-        DATA_DIR.mkdir(exist_ok=True)
-        self.path = path
-        self.lock = threading.RLock()
-        self.last_sample = {}
-        self.last_seen = {}
-        with self._db() as db:
-            db.executescript("""
-            CREATE TABLE IF NOT EXISTS snapshots(
-                ts INTEGER NOT NULL, server_id TEXT NOT NULL, dl INTEGER, up INTEGER,
-                active INTEGER, total INTEGER, remaining INTEGER, disk_free INTEGER
-            );
-            CREATE INDEX IF NOT EXISTS idx_snapshots ON snapshots(server_id, ts);
-            CREATE TABLE IF NOT EXISTS torrent_history(
-                server_id TEXT NOT NULL, hash TEXT NOT NULL, name TEXT, category TEXT,
-                added_on INTEGER, completion_on INTEGER, downloaded INTEGER, uploaded INTEGER,
-                ratio REAL, last_seen INTEGER, PRIMARY KEY(server_id, hash)
-            );
-            CREATE TABLE IF NOT EXISTS events(
-                id INTEGER PRIMARY KEY AUTOINCREMENT, ts INTEGER NOT NULL, server_id TEXT,
-                hash TEXT, name TEXT, event TEXT, data TEXT
-            );
-            CREATE INDEX IF NOT EXISTS idx_events ON events(ts);
-            """)
-
-    def _db(self):
-        db = sqlite3.connect(self.path, timeout=10)
-        db.row_factory = sqlite3.Row
-        return db
-
-    def sample(self, server_id, torrents, transfer, disk_free, every):
-        now = int(time.time())
-        with self.lock:
-            if now - self.last_sample.get(server_id, 0) >= every:
-                active = sum(1 for t in torrents if float(t.get("progress", 0)) < 1 and "paused" not in str(t.get("state", "")).lower() and "stopped" not in str(t.get("state", "")).lower())
-                remaining = sum(int(t.get("amount_left", 0) or 0) for t in torrents)
-                with self._db() as db:
-                    db.execute("INSERT INTO snapshots VALUES(?,?,?,?,?,?,?,?)", (
-                        now, server_id, int(transfer.get("dl_info_speed", 0) or 0), int(transfer.get("up_info_speed", 0) or 0),
-                        active, len(torrents), remaining, disk_free
-                    ))
-                self.last_sample[server_id] = now
-            with self._db() as db:
-                for t in torrents:
-                    h = t.get("hash")
-                    if not h: continue
-                    prev = self.last_seen.get((server_id, h))
-                    completed = float(t.get("progress", 0) or 0) >= 0.999999
-                    if prev is not None and not prev and completed:
-                        db.execute("INSERT INTO events(ts,server_id,hash,name,event,data) VALUES(?,?,?,?,?,?)", (now, server_id, h, t.get("name", ""), "completed", "{}"))
-                    self.last_seen[(server_id, h)] = completed
-                    db.execute("""INSERT INTO torrent_history(server_id,hash,name,category,added_on,completion_on,downloaded,uploaded,ratio,last_seen)
-                        VALUES(?,?,?,?,?,?,?,?,?,?) ON CONFLICT(server_id,hash) DO UPDATE SET name=excluded.name,category=excluded.category,
-                        completion_on=excluded.completion_on,downloaded=excluded.downloaded,uploaded=excluded.uploaded,ratio=excluded.ratio,last_seen=excluded.last_seen""",
-                        (server_id,h,t.get("name",""),t.get("category",""),int(t.get("added_on",0) or 0),int(t.get("completion_on",0) or 0),int(t.get("downloaded",0) or 0),int(t.get("uploaded",0) or 0),float(t.get("ratio",0) or 0),now))
-
-    def event(self, server_id, event, name="", hash_="", data=None):
-        with self._db() as db:
-            db.execute("INSERT INTO events(ts,server_id,hash,name,event,data) VALUES(?,?,?,?,?,?)",
-                       (int(time.time()), server_id, hash_, name, event, json.dumps(data or {})))
-
-    def cleanup(self, days):
-        cutoff = int(time.time()) - max(1, int(days)) * 86400
-        with self._db() as db:
-            db.execute("DELETE FROM snapshots WHERE ts < ?", (cutoff,))
-            db.execute("DELETE FROM events WHERE ts < ?", (cutoff,))
-
-    def history(self, server_id, minutes):
-        cutoff = int(time.time()) - max(1, min(int(minutes), 43200)) * 60
-        with self._db() as db:
-            rows = db.execute("SELECT * FROM snapshots WHERE (?='all' OR server_id=?) AND ts>=? ORDER BY ts", (server_id, server_id, cutoff)).fetchall()
-            return [dict(r) for r in rows]
-
-    def events(self, limit=100):
-        with self._db() as db:
-            rows = db.execute("SELECT * FROM events ORDER BY id DESC LIMIT ?", (max(1,min(int(limit),500)),)).fetchall()
-            return [dict(r) for r in rows]
-
-    def analytics(self, server_id):
-        now = int(time.time())
-        with self._db() as db:
-            rows = db.execute("SELECT * FROM snapshots WHERE (?='all' OR server_id=?) AND ts>=? ORDER BY ts", (server_id,server_id,now-7*86400)).fetchall()
-            hist = db.execute("SELECT * FROM torrent_history WHERE (?='all' OR server_id=?)", (server_id,server_id)).fetchall()
-        avg_dl = int(sum(r["dl"] or 0 for r in rows)/len(rows)) if rows else 0
-        peak_dl = max((r["dl"] or 0 for r in rows), default=0)
-        completed = sum(1 for r in hist if r["completion_on"] and r["completion_on"] > 0)
-        avg_ratio = sum(float(r["ratio"] or 0) for r in hist)/len(hist) if hist else 0
-        return {"avg_dl_7d":avg_dl,"peak_dl_7d":peak_dl,"known_torrents":len(hist),"completed":completed,"avg_ratio":avg_ratio}
-
-
 HISTORY = HistoryStore(DB_PATH)
 CACHE_LOCK = threading.RLock()
 CACHE = {}
@@ -1345,39 +1258,40 @@ def send_notification(cfg, title, message):
 
 def collector_loop(stop_event):
     while not stop_event.is_set():
-        cfg = load_config()
-        sample_every = max(5, int(cfg["dashboard"].get("history_sample_seconds", 10)))
-        for server in cfg.get("servers", []):
-            if not server.get("enabled", True): continue
-            sid = server.get("id")
+        with STATE_GATE.activity():
+            cfg = load_config()
+            sample_every = max(5, int(cfg["dashboard"].get("history_sample_seconds", 10)))
+            for server in cfg.get("servers", []):
+                if not server.get("enabled", True): continue
+                sid = server.get("id")
+                try:
+                    client = get_client(cfg, sid)
+                    torrents, transfer, app_version, api_version = client.info()
+                    preferences = client.preferences()
+                    meta = client.metadata()
+                    disk_free = disk_free_for(preferences)
+                    with CACHE_LOCK:
+                        previous = CACHE.get(sid, {}).get("torrents", [])
+                        prev_completed = {t.get("hash") for t in previous if float(t.get("progress",0) or 0) >= .999999}
+                        now_completed = {t.get("hash") for t in torrents if float(t.get("progress",0) or 0) >= .999999}
+                        newly = now_completed - prev_completed if previous else set()
+                        CACHE[sid] = {
+                            "ok": True, "ts": int(time.time()), "server": {"id":sid,"name":server.get("name",sid)},
+                            "torrents": torrents, "transfer": transfer, "meta": meta,
+                            "app_version": app_version, "api_version": api_version, "disk_free": disk_free
+                        }
+                    HISTORY.sample(sid, torrents, transfer, disk_free, sample_every)
+                    for h in newly:
+                        t = next((x for x in torrents if x.get("hash") == h), None)
+                        if t:
+                            send_notification(cfg, "Torrent completed", f"{t.get('name','Torrent')} finished on {server.get('name',sid)}")
+                except Exception as e:
+                    with CACHE_LOCK:
+                        old = CACHE.get(sid, {})
+                        CACHE[sid] = {**old, "ok": False, "ts": int(time.time()), "server": {"id":sid,"name":server.get("name",sid)}, "error": str(e)}
             try:
-                client = get_client(cfg, sid)
-                torrents, transfer, app_version, api_version = client.info()
-                preferences = client.preferences()
-                meta = client.metadata()
-                disk_free = disk_free_for(preferences)
-                with CACHE_LOCK:
-                    previous = CACHE.get(sid, {}).get("torrents", [])
-                    prev_completed = {t.get("hash") for t in previous if float(t.get("progress",0) or 0) >= .999999}
-                    now_completed = {t.get("hash") for t in torrents if float(t.get("progress",0) or 0) >= .999999}
-                    newly = now_completed - prev_completed if previous else set()
-                    CACHE[sid] = {
-                        "ok": True, "ts": int(time.time()), "server": {"id":sid,"name":server.get("name",sid)},
-                        "torrents": torrents, "transfer": transfer, "meta": meta,
-                        "app_version": app_version, "api_version": api_version, "disk_free": disk_free
-                    }
-                HISTORY.sample(sid, torrents, transfer, disk_free, sample_every)
-                for h in newly:
-                    t = next((x for x in torrents if x.get("hash") == h), None)
-                    if t:
-                        send_notification(cfg, "Torrent completed", f"{t.get('name','Torrent')} finished on {server.get('name',sid)}")
-            except Exception as e:
-                with CACHE_LOCK:
-                    old = CACHE.get(sid, {})
-                    CACHE[sid] = {**old, "ok": False, "ts": int(time.time()), "server": {"id":sid,"name":server.get("name",sid)}, "error": str(e)}
-        try:
-            HISTORY.cleanup(cfg["dashboard"].get("history_retention_days",30))
-        except Exception: pass
+                HISTORY.cleanup(cfg["dashboard"].get("history_retention_days",30))
+            except Exception: pass
         stop_event.wait(STATUS_REFRESH_SECONDS)
 
 
@@ -1418,55 +1332,6 @@ def torrent_integration_matches(cfg, hash_):
         except Exception:
             pass
     return out
-
-
-def parse_json_body(handler, max_bytes=1_000_000):
-    length = int(handler.headers.get("Content-Length", "0") or 0)
-    if length > max_bytes: raise RuntimeError("Request too large")
-    raw = handler.rfile.read(length) if length else b"{}"
-    return json.loads(raw.decode() or "{}")
-
-
-def _multipart_disposition_param(disposition: str, key: str):
-    match = re.search(
-        rf'(?:^|;)\s*{re.escape(key)}\s*=\s*(?:"([^"]*)"|([^;]*))',
-        disposition,
-        re.IGNORECASE,
-    )
-    if not match:
-        return None
-    value = match.group(1) if match.group(1) is not None else match.group(2)
-    return str(value or "").strip()
-
-
-def parse_multipart(handler, max_bytes=50_000_000):
-    ctype = handler.headers.get("Content-Type", "")
-    if "multipart/form-data" not in ctype or "boundary=" not in ctype:
-        raise RuntimeError("Expected multipart/form-data")
-    boundary = ctype.split("boundary=",1)[1].strip().strip('"').encode()
-    length = int(handler.headers.get("Content-Length","0") or 0)
-    if length > max_bytes: raise RuntimeError("Upload too large")
-    body = handler.rfile.read(length)
-    parts = body.split(b"--"+boundary)
-    fields={}; files=[]
-    for part in parts:
-        if b"\r\n\r\n" not in part: continue
-        head, data = part.split(b"\r\n\r\n",1)
-        if data.endswith(b"\r\n"): data=data[:-2]
-        header=head.decode(errors="replace")
-        disposition = next(
-            (line.strip() for line in header.splitlines() if line.lower().startswith("content-disposition:")),
-            "",
-        )
-        if not disposition:
-            continue
-        name = _multipart_disposition_param(disposition, "name") or ""
-        filename = _multipart_disposition_param(disposition, "filename")
-        if filename is not None: files.append((name,filename,data))
-        else: fields[name]=data.decode(errors="replace")
-    return fields, files
-
-
 
 SOUND_MIME_TYPES = {".wav": "audio/wav", ".mp3": "audio/mpeg", ".ogg": "audio/ogg"}
 
@@ -2025,6 +1890,7 @@ def recovery_console_execute(handler, cfg, raw_command, sess=None):
 
 class Handler(BaseHTTPRequestHandler):
     server_version = "TorrentDashboard/0"
+    timeout = 30
 
     def log_message(self, fmt, *args):
         if args and str(args[1]).startswith("5"):
@@ -2049,6 +1915,15 @@ class Handler(BaseHTTPRequestHandler):
     def auth(self, create_bypass=True):
         cfg=load_config(); a=cfg["auth"]; mode=a.get("mode","lan_bypass")
         token=self.cookie_token(); sess=SESSIONS.get(token)
+        if sess and sess.get("auth_kind") in ("lan_bypass", "disabled"):
+            allowed = (
+                sess["auth_kind"] == "disabled" and mode == "disabled"
+                or sess["auth_kind"] == "lan_bypass" and mode == "lan_bypass"
+                and is_trusted_ip(self.client_ip(), effective_trusted_cidrs(a))
+            )
+            if not allowed:
+                SESSIONS.remove(token)
+                sess = None
         if sess: return cfg,token,sess,None
         bypass = mode=="disabled" or (mode=="lan_bypass" and is_trusted_ip(self.client_ip(),effective_trusted_cidrs(a)))
         if bypass and create_bypass:
@@ -2113,8 +1988,7 @@ class Handler(BaseHTTPRequestHandler):
 
 
     def recovery_auth(self):
-        cfg=load_config()
-        token=self.cookie_token(); sess=SESSIONS.get(token)
+        cfg,token,sess,_=self.auth(create_bypass=False)
         if not sess:
             return cfg,None,None
         return cfg,("dashboard administrator" if session_is_admin(sess) else "dashboard user"),sess
@@ -2166,6 +2040,10 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json(400,{"error":str(exc)})
 
     def do_GET(self):
+        with STATE_GATE.activity():
+            return self._do_GET()
+
+    def _do_GET(self):
         path,_,query=self.path.partition("?"); qs=urllib.parse.parse_qs(query)
         if path=="/health": return self.send_json(200,{"ok":True,"version":VERSION,"pid":os.getpid(),"application":str(APP_DIR),"python":sys.executable})
         if path=="/manifest.webmanifest": return self.serve_static("manifest.webmanifest")
@@ -2314,6 +2192,20 @@ class Handler(BaseHTTPRequestHandler):
         return self.send_json(404,{"error":"Not found"},new_cookie)
 
     def do_POST(self):
+        path = self.path.partition("?")[0]
+        if path == "/api/backups/restore":
+            # Reject unauthorized callers before allowing them to queue maintenance.
+            # _do_POST reauthenticates after entry in case a prior restore revoked it.
+            ctx = self.require_auth(True)
+            if not ctx:
+                return
+            if not session_is_admin(ctx[2]):
+                return self.send_json(403, {"error": "Administrator access is required"}, ctx[3])
+        gate = STATE_GATE.maintenance if path == "/api/backups/restore" else STATE_GATE.activity
+        with gate():
+            return self._do_POST()
+
+    def _do_POST(self):
         path=self.path.partition("?")[0]
         if path=="/api/setup/test-client": return self.setup_test_client()
         if path=="/api/setup/complete": return self.setup_complete()
@@ -2429,6 +2321,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send_json(200,result,new_cookie)
             if path=="/api/users":
                 data=parse_json_body(self,20000); updated,user=mutate_config(lambda current: save_user(current,data)); SESSIONS.update_user(user)
+                if data.get("password"):
+                    SESSIONS.remove_user_except(user.get("id", ""), token)
                 HISTORY.event("dashboard","user_saved",user.get("username",""),"",{"client_ip":self.client_ip(),"group":user.get("group")})
                 return self.send_json(200,{"ok":True,"user":public_user(user)},new_cookie)
             if path=="/api/users/delete":
@@ -2440,7 +2334,8 @@ class Handler(BaseHTTPRequestHandler):
                 HISTORY.event("dashboard", "settings_changed", sess.get("username",""), "", {"client_ip": self.client_ip()})
                 return self.send_json(200,{"ok":True,"settings":redacted_config(updated)},new_cookie)
             if path=="/api/backups/create":
-                item=create_backup(APP_DIR,VERSION,cfg,history_lock=HISTORY.lock)
+                with CONFIG_STORE.exclusive() as current:
+                    item=create_backup(APP_DIR,VERSION,current,history_lock=HISTORY.lock)
                 HISTORY.event("dashboard","backup_created",item.get("name", ""),"",{"client_ip":self.client_ip()})
                 return self.send_json(200,{"ok":True,"backup":item},new_cookie)
             if path=="/api/backups/import":
@@ -2452,15 +2347,25 @@ class Handler(BaseHTTPRequestHandler):
                 HISTORY.event("dashboard","backup_imported",item.get("name", ""),"",{"client_ip":self.client_ip()})
                 return self.send_json(200,{"ok":True,"backup":item},new_cookie)
             if path=="/api/backups/restore":
+                if update_state().get("state") in {"installing", "installingRecovery", "waitingForShutdown", "restarting"}:
+                    raise RuntimeError("Wait for the application update to finish before restoring a backup")
                 data=parse_json_body(self,12000)
-                result=restore_backup(
-                    APP_DIR,str(data.get("name") or ""),current_version=VERSION,current_config=cfg,
-                    history_lock=HISTORY.lock,validator=load_config,
-                )
+                def validate_restored_state():
+                    load_config()
+                    HISTORY.initialize()
+                with CONFIG_STORE.exclusive() as current:
+                    result=restore_backup(
+                        APP_DIR,str(data.get("name") or ""),current_version=VERSION,current_config=current,
+                        history_lock=HISTORY.lock,validator=validate_restored_state,
+                    )
+                HISTORY.reset_tracking()
                 with CACHE_LOCK:
                     CLIENTS.clear(); CACHE.clear()
-                HISTORY.event("dashboard","backup_restored",result.get("backup",{}).get("name", ""),"",{"client_ip":self.client_ip()})
                 SESSIONS.clear()
+                try:
+                    HISTORY.event("dashboard","backup_restored",result.get("backup",{}).get("name", ""),"",{"client_ip":self.client_ip()})
+                except Exception:
+                    logging.getLogger(__name__).exception("Backup restored, but its history event could not be recorded")
                 return self.send_json(200,{"ok":True,"backup":result.get("backup"),"safety_backup":result.get("safety_backup"),"reauthenticate":True},None)
             if path=="/api/update-source":
                 data=parse_json_body(self,10000)

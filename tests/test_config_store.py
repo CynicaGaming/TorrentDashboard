@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor
 import copy
 import threading
 import time
@@ -81,6 +82,25 @@ class ConfigStoreTests(unittest.TestCase):
 
         self.assertEqual(state, {"value": 1})
         self.assertEqual(save_count, 0)
+
+
+    def test_exclusive_snapshot_blocks_mutations_until_maintenance_finishes(self):
+        state = {"value": "before"}
+        store = ConfigStore(lambda: dict(state), lambda updated: state.update(updated))
+        entered, finished = threading.Event(), threading.Event()
+        def update():
+            entered.set()
+            store.mutate(lambda current: ({**current, "unrelated": True}, None))
+            finished.set()
+        with ThreadPoolExecutor(max_workers=1) as pool:
+            with store.exclusive() as current:
+                self.assertEqual(current, {"value": "before"})
+                future = pool.submit(update)
+                self.assertTrue(entered.wait(2))
+                self.assertFalse(finished.wait(0.03))
+                state["value"] = "restored"
+            future.result(timeout=2)
+        self.assertEqual(state, {"value": "restored", "unrelated": True})
 
 
 if __name__ == "__main__":

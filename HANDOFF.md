@@ -7,41 +7,46 @@
 This handoff is intentionally portable across public forks. Verify the current checkout's Git remote, branch, and open work before using upstream references as instructions.
 
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
-- Last documented upstream build: **v0.5.147** (prerelease)
+- Last documented upstream build: **v0.5.148** (prerelease)
 
 ## Last known-good state
 
-Adds a dedicated in-app backup manager for creating, viewing, restoring, importing, and exporting portable Torrent Dashboard state backups.
+Hardens live state restoration, backup validation, request parsing, and session revocation while adding cross-platform pull-request validation.
 
 The released-state details and recent history are in `PROJECT_STATE.md`; architectural constraints are in `ARCHITECTURE.md`.
 
 ## Active development intent
 
-- Status: **ready**
-- Objective: **Exercise portable backup migration and restore on compiled Windows installations**
-- Why: Portable backup management is implemented; the remaining risk is operational validation of a full export/import/restore round trip between real installations.
+- Status: **in_review**
+- Objective: **Review state/input hardening and validate compiled Windows migration under live activity**
+- Why: Reproducible state, archive, HTTP input, and session issues are addressed; operational Windows migration remains the principal validation gap.
 
 ### Acceptance criteria
 
-- A compiled Windows installation creates and exports a valid .tdbackup archive from Settings → Backups.
-- A second same-or-newer installation imports the archive and lists it without modifying current state.
-- Restoring the imported backup migrates users, credentials, integrations, dashboard history, profile pictures, and notification assets while leaving application binaries and qBitTorrent data untouched.
-- Restore signs out existing sessions and the automatically created pre-restore safety backup can return the destination to its previous state.
+- Source/unit, UI, syntax, generated-documentation, and hygiene checks pass on the hardening branch.
+- Pull-request validation passes on Linux/Windows with Python 3.13 and 3.14.
+- A compiled Windows installation exports a backup that a second same-or-newer installation can import and restore while browser sessions and polling are active.
+- Restored sessions are invalidated and the pre-restore safety backup returns the destination to its previous state.
+- Compiled update/rollback preserves runtime configuration and data.
 
 ### Decisions already made
 
-- Backup management is a dedicated Settings category, not part of Updates.
-- Portable backups contain dashboard state only and preserve saved secrets for migration fidelity.
-- Restores always create a safety backup before applying state and reject backups created by a newer Torrent Dashboard version.
+- Use a state maintenance gate and explicit database connection cleanup; retain the standard-library runtime.
+- Publish only validated portable archives and retain safety backups even when rollback fails.
+- Keep the existing UI contract and consolidate superseded documentation.
+- Preserve the source-package pruning changes from merged PR #28 in the current main baseline.
 
 ### Expected areas of change
 
 - `src/torrent_dashboard/backups.py`
 - `src/torrent_dashboard/dashboard.py`
-- `static/index.html`
-- `static/settings.js`
-- `static/settings.css`
-- `tests/test_backups.py`
+- `src/torrent_dashboard/history.py`
+- `src/torrent_dashboard/http_input.py`
+- `src/torrent_dashboard/state_gate.py`
+- `src/torrent_dashboard/persistence.py`
+- `tests/`
+- `.github/workflows/validate.yml`
+- `docs/HARDENING.md`
 
 ### Blockers
 
@@ -49,11 +54,11 @@ None currently recorded.
 
 ### Explicitly out of scope
 
-- Encrypted backup archives, scheduled backups, retention policies, and remote/cloud backup destinations in the initial release.
+- Framework migration, a broad UI redesign, encrypted backups, scheduling/retention, cloud destinations, code signing, and power-loss-atomic restore.
 
 ## Exact next action
 
-Run a compiled Windows create/export/import/restore round trip across two installations, then restore the generated pre-restore safety backup on the destination.
+Review the hardening pull request and its cross-platform checks, then run the compiled Windows migration and safety-backup round trip described in TESTING.md before promoting the build beyond prerelease.
 
 ## Resume checklist
 

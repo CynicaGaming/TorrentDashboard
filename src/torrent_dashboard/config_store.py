@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from contextlib import contextmanager
 import threading
 from collections.abc import Callable
 from typing import Any
@@ -21,6 +22,16 @@ class ConfigStore:
         self._loader = loader
         self._saver = saver
         self._lock = threading.RLock()
+
+    @contextmanager
+    def exclusive(self):
+        """Hold a fresh configuration snapshot throughout backup/restore maintenance.
+
+        Lock order: application state gate, configuration lock, history lock.
+        Ordinary configuration changes must continue to use mutate().
+        """
+        with self._lock:
+            yield self._loader()
 
     def load(self) -> dict:
         with self._lock:

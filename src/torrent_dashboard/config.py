@@ -10,6 +10,7 @@ from pathlib import Path
 
 from .integrations import INTEGRATION_TYPES, normalize_integration, redacted_integrations
 from .users import normalize_user, public_user, sync_legacy_auth
+from .persistence import atomic_write_json
 
 
 DEFAULT_UPDATE_REPOSITORY = "CynicaGaming/TorrentDashboard"
@@ -294,7 +295,7 @@ class ConfigRepository:
     def load(self):
         if not self.path.exists():
             self.path.parent.mkdir(parents=True, exist_ok=True)
-            self.path.write_text(json.dumps(DEFAULT_CONFIG, indent=2) + "\n", encoding="utf-8")
+            atomic_write_json(self.path, DEFAULT_CONFIG)
         raw = json.loads(self.path.read_text(encoding="utf-8"))
         return normalize_config(raw, self._detect_lan_network)
 
@@ -309,9 +310,7 @@ class ConfigRepository:
         )
         updates.pop("github_token", None)
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        tmp = self.path.with_suffix(".tmp")
-        tmp.write_text(json.dumps(clean, indent=2) + "\n", encoding="utf-8")
-        tmp.replace(self.path)
+        atomic_write_json(self.path, clean)
 
 
 __all__ = [

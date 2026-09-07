@@ -19,6 +19,8 @@ For a release candidate also verify generated documentation:
 python release_tools/generate_release_notes.py --version X.Y.Z --check
 ```
 
+`.github/workflows/validate.yml` runs these checks on pull requests and main for Linux/Windows with Python 3.13 and 3.14, using read-only repository permissions. It does not publish releases.
+
 The Python suite uses only the standard library and currently covers extracted domain behavior, configuration transactions, release/provenance parsing and persistence, and source/architecture contracts.
 
 ## Manual smoke-test matrix
@@ -56,7 +58,7 @@ Only run tests that are relevant and safe in your environment. Never commit real
 
 ### Torrent details
 
-- The docked torrent-details bar is always present on desktop/tablet and starts collapsed with no selection.
+- The docked torrent-details bar is always present on desktop/tablet and starts expanded with structural placeholders when no torrent is selected; mobile starts collapsed.
 - Clicking the disclosure bar expands/collapses the inspector without clearing the selected torrent.
 - Selecting a torrent automatically expands the inspector and updates the selected-torrent context.
 - Expanding with no torrent selected shows the empty detail state without errors.
@@ -115,25 +117,6 @@ If a regression cannot reasonably be automated yet, record the missing coverage 
 
 Do not use this file as a test-results log; it is a stable testing contract for upstream and forks.
 
-### Desktop torrent inspector
-
-- With no torrent selected, verify the compact Torrent details bar remains visible below the torrent list without consuming the expanded workspace height.
-- With a torrent selected at normal desktop zoom, verify the inspector expands automatically and the torrent list and inspector both remain visible without scrolling the overall page.
-- Collapse the inspector and verify the selected row remains selected; expand it again and verify the same torrent details return.
-- Verify the torrent inspector reaches the bottom of the visible dashboard content and is visually separated from the torrent list as its own bordered panel.
-- Verify General, Trackers, Peers, HTTP Sources, and Content have a useful vertical viewport and scroll internally when needed.
-- Resize the browser and verify the dock recalculates without overlapping the viewport; mobile continues to use the bottom-sheet presentation.
-
-
-### Bottom-anchored torrent dock
-
-- Verify Dashboard / Live torrent activity is visible on Dashboard while top-right controls remain available.
-- With details collapsed, verify the disclosure bar sits at the bottom of the visible dashboard workspace.
-- Expand details and verify the inspector grows upward from the same anchor while the torrent list scrolls above it.
-- Resize desktop/tablet and verify both states remain bottom-aligned without overlaying torrent rows.
-- Verify mobile retains the persistent collapsed bar above mobile navigation and expands into the sheet.
-
-
 ### Update-check intent and empty detail disclosure
 
 - Open Settings → Updates and verify no GitHub update request is initiated solely by entering the page; cached/local release history may render immediately.
@@ -179,9 +162,9 @@ Do not use this file as a test-results log; it is a stable testing contract for 
 - Verify folder rows use the locally embedded Material disclosure icon and file rows reserve an equal-width spacer. A child file label must begin to the right of its parent folder label; deeper descendants should continue stepping right by hierarchy depth.
 - Verify the Name header is left-aligned at the beginning of the name column, Size and Priority remain aligned, folder rows do not show descendant file counts, and the preview summary appears without a redundant Content heading.
 - Select a torrent row and verify Torrent details expands for it. The disclosure bar should identify the selected torrent, and the expanded panel should proceed directly to the detail tabs without repeating the torrent title/hash in a second header.
-- Click the same torrent row again and verify the selected-row treatment clears and Torrent details returns to the empty collapsed disclosure.
+- Click the same torrent row again and verify the selected-row treatment clears and Torrent details returns to the no-selection shell, expanded on desktop and collapsed on mobile.
 - Select one torrent and then a different torrent; verify details switch directly to the second torrent rather than clearing first.
-- With a torrent selected in Torrent details, remove that torrent (or remove it directly in qBitTorrent) and verify the next status refresh clears the stale detail context and collapses the dock. Removing another torrent must not clear the current detail selection.
+- With a torrent selected in Torrent details, remove that torrent (or remove it directly in qBitTorrent) and verify the next status refresh clears the stale detail context and returns to the same no-selection shell. Removing another torrent must not clear the current detail selection.
 
 
 ### Fixed torrent columns
@@ -219,67 +202,6 @@ Do not use this file as a test-results log; it is a stable testing contract for 
 - Above 820 px, verify Peers and Trackers remain conventional tables with visible column headers.
 - Recheck General before and after switching through Trackers and Peers; its layout and content must remain unchanged.
 
-### Desktop torrent workspace scroll stability
-
-- On a desktop-width viewport, note the rendered torrent workspace/list height, then scroll the document above and below the workspace while live one-second polling continues. Verify the torrent workspace and torrent-list panel do not grow or shrink as a consequence of document scroll position.
-- Scroll a long torrent list using the table's own vertical scrollbar and verify the list remains bounded while the page position stays independent.
-- Resize the browser vertically and verify the workspace recalculates to the new viewport height, then remains stable again during document scrolling.
-- Expand and collapse Torrent details and verify space is reallocated inside the fixed workspace rather than increasing the overall workspace height.
-- Repeat at mobile width and verify the existing mobile bottom-sheet/list behavior is unchanged.
-
-### Desktop Torrent details content-fit sizing
-
-- On a normal desktop viewport, open Torrent details → General and verify the full General content is visible without scrolling the detail body when there is sufficient workspace height.
-- Verify expanding General takes space from the torrent list inside the existing fixed workspace; the overall workspace height must remain unchanged and the torrent list must retain its own scrollbar.
-- Collapse and re-expand Torrent details and verify the content-fit height is restored without layout growth or page-scroll coupling.
-- Switch from General to Peers, Trackers, HTTP sources, and Content with long datasets and verify those tabs use the normal bounded detail height and their own internal scrolling rather than expanding to their full dataset height.
-- Resize the browser vertically and verify General recalculates its fitted height while retaining a usable torrent-list region. On unusually short desktop viewports, detail-body scrolling is acceptable once the reserved list region prevents the full General content from fitting.
-- Repeat at mobile width and verify the existing bottom-sheet behavior is unchanged.
-
-
-
-### Fixed desktop torrent list with natural General details
-
-- On desktop, record the torrent list height, scroll the page, open/collapse Torrent details, and switch tabs; the torrent list height must remain unchanged and the list must retain its own scrollbar.
-- Open Torrent details → General and verify the full General content is readable without scrolling the detail body. The page may become taller and use normal document scrolling below the fixed torrent list.
-- Switch to Trackers, Peers, HTTP sources, and Content with long datasets and verify those tabs remain bounded and use their own detail-body scrolling rather than expanding to their entire dataset height.
-- Resize the desktop viewport and verify the torrent list recalculates only within the 360–560 px bounded range; ordinary page scrolling must not alter the chosen height.
-- Verify `/static/favicon.svg` is used as the browser favicon, web-manifest icon, service-worker shell asset, and setup/login/sidebar brand mark.
-- Repeat at mobile width and verify the existing mobile torrent cards and bottom-sheet Torrent details behavior are unchanged.
-
-
-### Desktop Torrent details viewport reveal
-
-- Start at the top of Dashboard with the page heading, metrics, and filters visible. Open Torrent details from its collapsed disclosure and verify the document scrolls the torrent workspace to the top of the viewport while preserving the existing torrent-list height.
-- Repeat by opening a torrent row while Torrent details is collapsed; the same workspace reveal should occur.
-- With Torrent details already expanded, switch torrents and detail tabs and verify the page is not repeatedly forced back to the workspace top.
-- Verify General retains its natural document height and no inner scrollbar is reintroduced; Trackers, Peers, HTTP sources, and Content retain their existing bounded scrolling.
-- Enable reduced-motion preference and verify the reveal is immediate rather than animated.
-- Repeat at mobile width and verify the mobile bottom-sheet behavior does not invoke desktop document scrolling.
-
-
-### Six-row desktop torrent viewport
-
-- At desktop width with seven or more visible torrents, verify the torrent list shows exactly six complete torrent rows plus the table header and scrolls internally for the remaining rows.
-- Switch between comfortable and compact density and verify the list recomputes from the rendered row height so both densities still expose six complete rows rather than a fixed pixel count.
-- Filter the list to fewer than six torrents and verify the list height remains unchanged; blank space at the bottom is acceptable.
-- Scroll the document past the Dashboard heading, metrics, and filters, then back to the top and verify the torrent-list height never changes.
-- Expand/collapse Torrent details and switch General/Trackers/Peers/HTTP sources/Content; verify the torrent-list height remains unchanged and the existing detail scrolling contracts remain intact.
-- Repeat at mobile width and verify the six-row desktop sizing rule is not applied to mobile torrent cards.
-
-
-### Adaptive desktop torrent viewport fit
-
-- At the top of the Dashboard on a viewport around 840 px tall, expand General and verify the page keeps the Dashboard heading, metrics, filters, torrent list, and complete General pane inside the viewport when the measured geometry permits it; the list should reduce from six rows to the largest whole-row count that fits.
-- Verify the torrent list never shows a clipped partial row: its height must be the rendered table header plus an integer number of rendered torrent rows.
-- Resize the browser taller and shorter and verify the list moves between three and six whole rows as needed while General retains natural height.
-- Switch between comfortable and compact density and verify the row calculation is recomputed from the live rendered row height.
-- Scroll the document after sizing and verify the torrent-list height does not grow or shrink merely because the workspace's viewport-relative top changed.
-- Expand/collapse Torrent details and switch General/Trackers/Peers/HTTP sources/Content; verify the list recomputes against the rendered detail-pane height and long-data tabs keep their internal scrolling.
-- Opening Torrent details from the disclosure or a torrent row must not automatically scroll the document.
-- Repeat at mobile width and verify the adaptive desktop rule does not alter the mobile bottom sheet or torrent cards.
-
-
 ### Viewport-proportional desktop torrent workspace
 
 - At the reported approximately 771 px desktop viewport, expand General and verify the torrent list occupies roughly the same visual share as the accepted reference layout (about 44% of the usable workspace) while General remains fully visible.
@@ -289,15 +211,6 @@ Do not use this file as a test-results log; it is a stable testing contract for 
 - Switch comfortable/compact density and resize the browser height; verify the proportional target is recalculated from live row/header/detail measurements.
 - Scroll the document without resizing and verify one-second polling does not change the list height merely because the workspace moved within the viewport.
 - Verify Trackers, Peers, HTTP sources, and Content retain their bounded/internal-scroll behavior and mobile remains unchanged.
-
-
-### Torrent sort chevrons
-
-- On desktop, verify Name, Status, Progress, Category, and Tags keep their existing left-aligned header labels.
-- Verify Size, Seeds, Peers, Down, Up, ETA, and Ratio remain right-aligned with their body values.
-- Hover/focus each sortable header and verify its chevron appears at the right/trailing edge of that same header, including every numeric column.
-- Sort each numeric and text column in both directions and verify the active chevron remains on the right edge and changes direction without shifting the label alignment or column width.
-- Verify no header chevron appears on the left edge or visually reads as belonging to the adjacent column.
 
 
 ### Inline torrent sort indicator grouping
@@ -338,7 +251,7 @@ Manual regression coverage:
 
 ### Add Torrent folder disclosure actions
 
-- Open Add Torrent with a torrent containing multiple nested folders. Confirm **Expand all** and **Collapse all** appear beside the content summary on desktop and below it on narrow/mobile layouts.
+- Open Add Torrent with a torrent containing multiple nested folders. Confirm the Expand all folders and Collapse all folders icon controls stay side-by-side and may wrap below the summary as a unit on narrow layouts.
 - Before metadata is available, and for a flat torrent with no folders, both controls must remain disabled.
 - Collapse several folders individually, then choose **Expand all**. Every folder and nested subfolder must become visible without changing file checkboxes or priorities.
 - Choose **Collapse all**. All known folder paths must become collapsed. Expanding one parent afterward must retain the collapsed state of nested descendants until they are individually expanded or **Expand all** is used.
@@ -389,3 +302,16 @@ Manual regression coverage:
 - Confirm restore signs out the current browser session and creates a pre-restore safety backup that can be used to return to the previous state.
 - Corrupt a backup payload and confirm SHA-256 validation prevents restore.
 
+
+### State and input hardening
+
+- Keep normal polling active while restoring a backup. In-flight work must finish before replacement, and new requests must authenticate against the restored state after existing sessions are invalidated.
+- Confirm a settings write either finishes before restore (and is included in the safety backup) or is rejected after its old session expires; it must not silently overwrite restored state.
+- Verify restore is refused while an application updater is installing or restarting.
+- Run create/export/import/restore and safety-backup recovery on compiled Windows with browser sessions open. Source-level cross-install tests do not replace this operational check.
+- Verify excluded data includes detached updater executables and SQLite WAL/SHM/journal sidecars. New archives must appear only after verification completes.
+- Change authentication from Disabled/LAN bypass to Required, or remove a trusted network. Existing bypass sessions must lose access to both normal APIs and the recovery console.
+- After an administrator resets a user's password, the user's other sessions must be invalidated.
+- Test unchanged responsive detail and table behavior at widths 700, 701, 820, and 821 px: detail docking and card layout currently use separate breakpoints.
+
+Automated regression tests cover malformed HTTP framing, byte-preserving multipart uploads, unsafe/colliding portable paths, archive limits, failed rollback reporting, parallel backup imports, connection closure, and maintenance isolation. Ordinary exception rollback is covered; interruption by process termination or power loss still requires recovery using the retained safety backup.

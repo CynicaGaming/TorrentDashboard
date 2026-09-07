@@ -43,10 +43,12 @@ The application version is defined in `src/torrent_dashboard/__init__.py` as `__
 
 ## Build the Windows package
 
-For the current version, run:
+Resolve the version from the checkout so the example stays synchronized:
 
 ```powershell
-python release_tools/build_windows.py --repo "CynicaGaming/TorrentDashboard" --tag "v0.5.146" --output dist-windows
+$env:PYTHONPATH = "src"
+$version = python -c "from torrent_dashboard import __version__; print(__version__)"
+python release_tools/build_windows.py --repo "CynicaGaming/TorrentDashboard" --tag "v$version" --output dist-windows
 ```
 
 Replace the tag when `__version__` changes. For fork builds, replace the repository argument with the fork's `owner/repository` value.

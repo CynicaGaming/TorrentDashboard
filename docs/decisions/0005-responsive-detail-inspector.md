@@ -1,6 +1,6 @@
 # ADR 0005: Dock torrent details on larger screens and use a sheet on mobile
 
-**Status:** Accepted
+**Status:** Superseded by [ADR 0006](0006-current-detail-workspace.md)
 
 ## Context
 
