@@ -6,12 +6,12 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.130** (prerelease)
+- Latest documented build: **v0.5.131** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 
 ### Latest release summary
 
-Replaces the Jellyfin status and library refresh text buttons with compact Material refresh icons positioned directly beside the information they refresh.
+Uses a cycle-style Material glyph for the inline Jellyfin status and library refresh controls.
 
 ## Development principles
 
@@ -23,6 +23,14 @@ Replaces the Jellyfin status and library refresh text buttons with compact Mater
 - Keep public development continuity portable across forks; label canonical repository/branch/PR references as upstream context rather than local identity.
 
 ## Recent work
+
+### v0.5.131 — Jellyfin cycle refresh glyph
+
+Uses a cycle-style Material glyph for the inline Jellyfin status and library refresh controls.
+
+- Replaces the single-arrow refresh glyph beside Jellyfin status with a two-arrow cycle glyph.
+- Uses the same cycle glyph beside Libraries for a consistent synchronization visual.
+- Keeps the existing accessible labels, tooltips, loading animation, and refresh behavior unchanged.
 
 ### v0.5.130 — Jellyfin inline refresh controls
 
@@ -53,14 +61,6 @@ Fixes custom notification sound uploads that tested successfully but failed on s
 
 - Custom WAV, MP3, and OGG filenames are now parsed correctly from browser multipart uploads.
 - The Sound control now uses a keyboard-accessible custom dropdown whose selected row fills the full control width.
-
-### v0.5.126 — Notification sound upload and volume controls
-
-Fixes custom notification sound previews and adds a torrent-style drag-and-drop uploader plus a persisted notification volume control.
-
-- Adds a drag-and-drop custom sound target that mirrors the .torrent file picker and still supports click-to-browse.
-- Adds a 0–100 notification volume slider used by test playback and normal completion notifications.
-- Uses notification-default.wav for the bundled sound and notification-custom.<ext> for newly uploaded custom sounds.
 
 ## What to do next
 
