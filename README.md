@@ -35,20 +35,26 @@ Torrent Dashboard provides a modern browser interface for monitoring and managin
 
 ### Requirements
 
-- Python **3.13 or newer**
+- Python **3.13 or newer** for the editable/source package
 - qBitTorrent with its **Web UI enabled**
 - qBitTorrent 5.2+ is recommended for Web API key authentication
 
 ### Windows
+
+The editable source package and the compiled Windows preview are both produced from the same `src/torrent_dashboard/` source tree.
+
+For the source package:
 
 1. Download the latest `Torrent-Dashboard-X.Y.Z.zip` from GitHub Releases.
 2. Extract it to a permanent folder.
 3. Run `Start Dashboard.bat`.
 4. Complete the First Run Setup wizard.
 
+For the compiled preview, download `TorrentDashboard-Windows-X.Y.Z-x64.zip`, extract the complete folder, and run `Dashboard.exe`. `Recovery.exe` and `Updater.exe` are included beside it. The Windows executable remains a prerelease/preview distribution while repeated compiled update and rollback scenarios are being exercised.
+
 ### Linux
 
-1. Download and extract the latest release ZIP.
+1. Download and extract the latest source release ZIP.
 2. Run `python3 src/torrent_dashboard/dashboard.py` from the extracted directory.
 3. Complete the First Run Setup wizard.
 
@@ -84,6 +90,7 @@ If you discover a security issue, do not post credentials or sensitive exploit d
 
 The maintained Python application lives under `src/torrent_dashboard/`. The Windows executable package is generated from that same source tree and contains `Dashboard.exe`, `Recovery.exe`, and `Updater.exe` in one extracted folder; frontend assets and runtime state remain external.
 
+The compiled executables are rebuildable artifacts, not a separate codebase. Modify the Python/browser source normally and rebuild the Windows package from the updated checkout. See [`docs/WINDOWS_BUILD.md`](docs/WINDOWS_BUILD.md) for the local PyInstaller build command, package layout, smoke tests, and update/rollback test procedure.
 
 Start with [`DEVELOPMENT.md`](DEVELOPMENT.md) for the contributor/fork workflow and [`HANDOFF.md`](HANDOFF.md) for the current portable development handoff. Architecture and module ownership are documented in [`ARCHITECTURE.md`](ARCHITECTURE.md), interface/content conventions in [`DESIGN_LANGUAGE.md`](DESIGN_LANGUAGE.md), and the automated/manual verification contract in [`TESTING.md`](TESTING.md).
 
