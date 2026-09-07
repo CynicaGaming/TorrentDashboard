@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import io
 import unittest
+from types import SimpleNamespace
 from unittest.mock import Mock
 
-from dashboard import QBitClient
+from dashboard import QBitClient, parse_multipart
 
 
 def make_client():
@@ -19,6 +21,27 @@ def make_client():
 
 
 class TorrentAddApiTests(unittest.TestCase):
+    def test_multipart_filename_stops_at_content_disposition_line(self):
+        boundary = "----TorrentDashboardTest"
+        payload = b"ID3\x04\x00\x00audio"
+        body = (
+            f"--{boundary}\r\n"
+            'Content-Disposition: form-data; name="sound"; filename="alert.mp3"\r\n'
+            "Content-Type: audio/mpeg\r\n\r\n"
+        ).encode() + payload + f"\r\n--{boundary}--\r\n".encode()
+        handler = SimpleNamespace(
+            headers={
+                "Content-Type": f"multipart/form-data; boundary={boundary}",
+                "Content-Length": str(len(body)),
+            },
+            rfile=io.BytesIO(body),
+        )
+        fields, files = parse_multipart(handler)
+        self.assertEqual(fields, {})
+        self.assertEqual(files[0][0], "sound")
+        self.assertEqual(files[0][1], "alert.mp3")
+        self.assertEqual(files[0][2], payload)
+
     def test_cached_add_serializes_file_priorities(self):
         client = make_client()
         client.post = Mock(return_value=(200, b""))

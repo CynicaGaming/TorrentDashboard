@@ -7,11 +7,11 @@
 This handoff is intentionally portable across public forks. Verify the current checkout's Git remote, branch, and open work before using upstream references as instructions.
 
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
-- Last documented upstream build: **v0.5.126** (prerelease)
+- Last documented upstream build: **v0.5.127** (prerelease)
 
 ## Last known-good state
 
-Fixes custom notification sound previews and adds a torrent-style drag-and-drop uploader plus a persisted notification volume control.
+Fixes custom notification sound uploads that tested successfully but failed on save, and replaces the platform-native sound selector with a consistently highlighted full-width dropdown.
 
 The released-state details and recent history are in `PROJECT_STATE.md`; architectural constraints are in `ARCHITECTURE.md`.
 

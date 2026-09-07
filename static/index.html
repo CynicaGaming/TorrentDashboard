@@ -4,11 +4,11 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#0b0d10" name="theme-color"/>
-<meta content="0.5.126" name="torrent-dashboard-build"/>
+<meta content="0.5.127" name="torrent-dashboard-build"/>
 <link href="/manifest.webmanifest" rel="manifest"/>
 <link href="/static/favicon.svg" rel="icon" type="image/svg+xml"/>
-<link href="/static/app.css?v=0.5.126" rel="stylesheet"/>
-<link href="/static/settings.css?v=0.5.126" rel="stylesheet"/>
+<link href="/static/app.css?v=0.5.127" rel="stylesheet"/>
+<link href="/static/settings.css?v=0.5.127" rel="stylesheet"/>
 <title>Torrent Dashboard</title>
 </head>
 <body>
@@ -232,7 +232,17 @@
 <div class="field-help">Uses the browser and operating system notification permission for completion alerts.</div>
 <label class="toggle"><input id="nSound" type="checkbox"/><span>Completion sound</span></label>
 <div class="notification-sound-config" id="notificationSoundConfig">
-<label>Sound<select id="nSoundMode"><option value="default">Default</option><option value="custom">Custom</option></select></label>
+<div class="notification-sound-mode-field">
+<span class="notification-control-label">Sound</span>
+<div class="notification-sound-select" id="nSoundModeControl">
+<button aria-controls="nSoundModeMenu" aria-expanded="false" aria-haspopup="listbox" class="notification-sound-select-button" id="nSoundModeButton" type="button"><span id="nSoundModeLabel">Default</span><svg class="material-symbol-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M7.41 8.59 12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41Z"/></svg></button>
+<div class="notification-sound-menu hidden" id="nSoundModeMenu" role="listbox" aria-label="Sound">
+<button aria-selected="true" class="notification-sound-option" data-sound-mode="default" role="option" type="button">Default</button>
+<button aria-selected="false" class="notification-sound-option" data-sound-mode="custom" role="option" type="button">Custom</button>
+</div>
+<select aria-hidden="true" class="hidden" id="nSoundMode" tabindex="-1"><option value="default">Default</option><option value="custom">Custom</option></select>
+</div>
+</div>
 <div class="custom-sound-wrap hidden" id="nCustomSoundWrap">
 <button class="notification-sound-drop" id="nSoundDrop" type="button"><svg class="material-symbol-icon notification-sound-drop-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M5 20h14v-2H5v2Zm7-17-7 7h4v5h6v-5h4l-7-7Z"/></svg><strong>Drop an audio file here</strong><span>or click to browse</span><small class="configured-sound" id="nCustomSoundName">No custom sound uploaded</small></button>
 <input accept="audio/wav,audio/mpeg,audio/ogg,.wav,.mp3,.ogg" class="hidden" id="nSoundFile" type="file"/>
@@ -268,7 +278,7 @@
 <div class="menu account-menu hidden" id="accountMenu" role="menu"><div class="account-menu-head"><span class="profile-avatar profile-avatar-menu"><img alt="" class="hidden" data-avatar-image/><span class="avatar-default" data-avatar-default aria-hidden="true"></span></span><div><strong id="accountMenuName">Account</strong><small id="accountMenuGroup">User</small></div></div><div class="menu-separator" role="separator"></div><button id="accountSettingsBtn" type="button">Account settings</button><button class="hidden" id="installPwa" type="button">Install app</button><div class="menu-separator" role="separator"></div><button id="logoutBtn" type="button">Sign out</button></div>
 <div class="menu hidden" id="contextMenu"></div>
 <div class="toasts" id="toasts"></div>
-<script src="/static/settings.js?v=0.5.126"></script>
-<script src="/static/app.js?v=0.5.126"></script>
+<script src="/static/settings.js?v=0.5.127"></script>
+<script src="/static/app.js?v=0.5.127"></script>
 </body>
 </html>

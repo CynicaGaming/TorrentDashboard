@@ -6,12 +6,12 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.126** (prerelease)
+- Latest documented build: **v0.5.127** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 
 ### Latest release summary
 
-Fixes custom notification sound previews and adds a torrent-style drag-and-drop uploader plus a persisted notification volume control.
+Fixes custom notification sound uploads that tested successfully but failed on save, and replaces the platform-native sound selector with a consistently highlighted full-width dropdown.
 
 ## Development principles
 
@@ -23,6 +23,13 @@ Fixes custom notification sound previews and adds a torrent-style drag-and-drop 
 - Keep public development continuity portable across forks; label canonical repository/branch/PR references as upstream context rather than local identity.
 
 ## Recent work
+
+### v0.5.127 — Notification sound save and selector fixes
+
+Fixes custom notification sound uploads that tested successfully but failed on save, and replaces the platform-native sound selector with a consistently highlighted full-width dropdown.
+
+- Custom WAV, MP3, and OGG filenames are now parsed correctly from browser multipart uploads.
+- The Sound control now uses a keyboard-accessible custom dropdown whose selected row fills the full control width.
 
 ### v0.5.126 — Notification sound upload and volume controls
 
@@ -55,14 +62,6 @@ Restores the validated v0.5.122 development baseline as the canonical release li
 - Restores the complete modular v0.5.122 application baseline, including the operational Jellyfin service integration, as the source for subsequent releases.
 - Adds a status indicator to the left of every saved integration name: green for healthy, yellow for reachable but degraded, and red for disconnected or disabled.
 - Integration health refreshes automatically while the Integrations settings page is open and after manual connection tests.
-
-### v0.5.122 — Jellyfin service integration
-
-Turns the Jellyfin integration into an operational service surface with live server status, configured library inventory, scan state, and an explicit library refresh action.
-
-- Saved Jellyfin integrations now show whether the server is reachable plus its reported server name, version, operating system, and restart-pending state.
-- The Integrations page lists Jellyfin virtual-folder libraries with collection type, media locations, and refresh status/progress when Jellyfin reports them.
-- Administrators can request Jellyfin's normal global library scan with Refresh libraries without leaving Torrent Dashboard.
 
 ## What to do next
 

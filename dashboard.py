@@ -103,7 +103,7 @@ RELEASE_INTEGRITY_CACHE_PATH = DATA_DIR / "release-integrity.json"
 CUSTOM_SOUND_BASENAME = "notification-custom"
 LEGACY_CUSTOM_SOUND_BASENAME = "custom-notification-sound"
 MAX_CUSTOM_SOUND_BYTES = 2 * 1024 * 1024
-VERSION = "0.5.126"
+VERSION = "0.5.127"
 STATUS_REFRESH_SECONDS = 1.0
 
 RELEASE_PROVENANCE = ReleaseProvenance(
@@ -1385,6 +1385,18 @@ def parse_json_body(handler, max_bytes=1_000_000):
     return json.loads(raw.decode() or "{}")
 
 
+def _multipart_disposition_param(disposition: str, key: str):
+    match = re.search(
+        rf'(?:^|;)\s*{re.escape(key)}\s*=\s*(?:"([^"]*)"|([^;]*))',
+        disposition,
+        re.IGNORECASE,
+    )
+    if not match:
+        return None
+    value = match.group(1) if match.group(1) is not None else match.group(2)
+    return str(value or "").strip()
+
+
 def parse_multipart(handler, max_bytes=50_000_000):
     ctype = handler.headers.get("Content-Type", "")
     if "multipart/form-data" not in ctype or "boundary=" not in ctype:
@@ -1400,12 +1412,14 @@ def parse_multipart(handler, max_bytes=50_000_000):
         head, data = part.split(b"\r\n\r\n",1)
         if data.endswith(b"\r\n"): data=data[:-2]
         header=head.decode(errors="replace")
-        if "Content-Disposition" not in header: continue
-        name=""; filename=None
-        for seg in header.split(";"):
-            seg=seg.strip()
-            if seg.startswith("name="): name=seg.split("=",1)[1].strip('"')
-            if seg.startswith("filename="): filename=seg.split("=",1)[1].strip('"')
+        disposition = next(
+            (line.strip() for line in header.splitlines() if line.lower().startswith("content-disposition:")),
+            "",
+        )
+        if not disposition:
+            continue
+        name = _multipart_disposition_param(disposition, "name") or ""
+        filename = _multipart_disposition_param(disposition, "filename")
         if filename is not None: files.append((name,filename,data))
         else: fields[name]=data.decode(errors="replace")
     return fields, files

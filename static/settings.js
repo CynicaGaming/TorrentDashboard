@@ -49,6 +49,7 @@ window.TDSettings = (() => {
     document.querySelector('#clientProxyAuth')?.addEventListener('change', syncClientSettingsControls);
     document.querySelector('#updateAction')?.addEventListener('click', handleUpdateAction);
     document.querySelector('#nSoundMode')?.addEventListener('change', updateNotificationSoundUi);
+    bindNotificationSoundModeSelect();
     document.querySelector('#nSoundFile')?.addEventListener('change', event => setNotificationSoundFile(event.target.files?.[0] || null));
     document.querySelector('#nSoundVolume')?.addEventListener('input', updateNotificationVolumeUi);
     bindNotificationSoundDrop();
@@ -310,7 +311,64 @@ window.TDSettings = (() => {
     if(output)output.textContent=`${value}%`;
   }
 
+  function closeNotificationSoundModeSelect() {
+    const button=document.querySelector('#nSoundModeButton'),menu=document.querySelector('#nSoundModeMenu');
+    if(!button||!menu)return;
+    menu.classList.add('hidden');
+    button.setAttribute('aria-expanded','false');
+  }
+
+  function syncNotificationSoundModeSelect() {
+    const mode=document.querySelector('#nSoundMode')?.value==='custom'?'custom':'default';
+    const label=document.querySelector('#nSoundModeLabel');
+    if(label)label.textContent=mode==='custom'?'Custom':'Default';
+    document.querySelectorAll('[data-sound-mode]').forEach(option=>option.setAttribute('aria-selected',String(option.dataset.soundMode===mode)));
+  }
+
+  function chooseNotificationSoundMode(mode) {
+    const select=document.querySelector('#nSoundMode');
+    if(!select)return;
+    const next=mode==='custom'?'custom':'default';
+    if(select.value!==next){select.value=next;select.dispatchEvent(new Event('change',{bubbles:true}))}
+    else updateNotificationSoundUi();
+    closeNotificationSoundModeSelect();
+    document.querySelector('#nSoundModeButton')?.focus();
+  }
+
+  function bindNotificationSoundModeSelect() {
+    const control=document.querySelector('#nSoundModeControl'),button=document.querySelector('#nSoundModeButton'),menu=document.querySelector('#nSoundModeMenu');
+    if(!control||!button||!menu||control.dataset.bound==='1')return;
+    control.dataset.bound='1';
+    const options=[...menu.querySelectorAll('[data-sound-mode]')];
+    const open=()=>{
+      menu.classList.remove('hidden');
+      button.setAttribute('aria-expanded','true');
+      syncNotificationSoundModeSelect();
+      (options.find(option=>option.getAttribute('aria-selected')==='true')||options[0])?.focus();
+    };
+    button.addEventListener('click',()=>menu.classList.contains('hidden')?open():closeNotificationSoundModeSelect());
+    button.addEventListener('keydown',event=>{if(['ArrowDown','ArrowUp','Enter',' '].includes(event.key)){event.preventDefault();open()}});
+    options.forEach(option=>option.addEventListener('click',()=>chooseNotificationSoundMode(option.dataset.soundMode)));
+    menu.addEventListener('keydown',event=>{
+      const current=Math.max(0,options.indexOf(document.activeElement));
+      if(event.key==='Escape'){event.preventDefault();closeNotificationSoundModeSelect();button.focus();return}
+      if(event.key==='Enter'||event.key===' '){event.preventDefault();chooseNotificationSoundMode(document.activeElement?.dataset?.soundMode);return}
+      if(event.key==='ArrowDown'||event.key==='ArrowUp'||event.key==='Home'||event.key==='End'){
+        event.preventDefault();
+        let next=current;
+        if(event.key==='ArrowDown')next=(current+1)%options.length;
+        if(event.key==='ArrowUp')next=(current-1+options.length)%options.length;
+        if(event.key==='Home')next=0;
+        if(event.key==='End')next=options.length-1;
+        options[next]?.focus();
+      }
+    });
+    document.addEventListener('pointerdown',event=>{if(!control.contains(event.target))closeNotificationSoundModeSelect()});
+    syncNotificationSoundModeSelect();
+  }
+
   function updateNotificationSoundUi() {
+    syncNotificationSoundModeSelect();
     const mode = document.querySelector('#nSoundMode')?.value || 'default';
     const wrap = document.querySelector('#nCustomSoundWrap');
     if (wrap) wrap.classList.toggle('hidden', mode !== 'custom');

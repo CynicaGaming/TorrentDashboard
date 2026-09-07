@@ -195,3 +195,18 @@
 .notification-volume-row{display:grid;grid-template-columns:auto minmax(180px,1fr);align-items:center;gap:14px;padding:4px 0}.notification-volume-row>label{margin:0;color:var(--muted);font-size:10px}.notification-volume-control{display:grid;grid-template-columns:minmax(0,1fr) 44px;align-items:center;gap:10px}.notification-volume-control input[type=range]{width:100%;accent-color:var(--accent)}.notification-volume-control output{font-variant-numeric:tabular-nums;text-align:right;color:var(--text);font-size:10px}
 @media(max-width:560px){.notification-volume-row{grid-template-columns:1fr;gap:7px}.notification-sound-drop{min-height:116px}}
 
+
+
+/* 0.5.127 notification sound selector */
+.notification-sound-mode-field{display:grid;gap:6px;min-width:0;color:var(--muted);font-size:10px}
+.notification-control-label{display:block;color:var(--muted)}
+.notification-sound-select{position:relative;width:100%;min-width:0}
+.notification-sound-select-button{width:100%;min-height:38px;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 11px;border:1px solid var(--border);border-radius:8px;background:var(--panel2);color:var(--text);text-align:left}
+.notification-sound-select-button:hover,.notification-sound-select-button:focus-visible{border-color:color-mix(in srgb,var(--accent) 65%,var(--border));outline:none}
+.notification-sound-select-button .material-symbol-icon{width:18px;height:18px;flex:0 0 auto;color:var(--muted);transition:transform .14s ease}
+.notification-sound-select-button[aria-expanded="true"] .material-symbol-icon{transform:rotate(180deg)}
+.notification-sound-menu{position:absolute;z-index:60;left:0;right:0;top:calc(100% + 4px);overflow:hidden;padding:3px;border:1px solid var(--border);border-radius:8px;background:var(--panel);box-shadow:0 14px 32px rgba(0,0,0,.3)}
+.notification-sound-option{display:block;width:100%;min-height:34px;padding:8px 10px;border:0;border-radius:6px;background:transparent;color:var(--text);text-align:left}
+.notification-sound-option:hover,.notification-sound-option:focus-visible{background:var(--panel2);outline:none}
+.notification-sound-option[aria-selected="true"]{background:var(--panel2);box-shadow:inset 2px 0 0 var(--accent);color:var(--text)}
+@media(prefers-reduced-motion:reduce){.notification-sound-select-button .material-symbol-icon{transition:none}}

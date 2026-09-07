@@ -4930,6 +4930,30 @@
         "Source validation, unit tests, UI-string validation, JavaScript syntax checks, renamed default-sound verification, and CSP assertions run before publication."
       ],
       "known_issues": []
+    },
+    {
+      "version": "0.5.127",
+      "date": "2026-09-07",
+      "status": "prerelease",
+      "title": "Notification sound save and selector fixes",
+      "summary": "Fixes custom notification sound uploads that tested successfully but failed on save, and replaces the platform-native sound selector with a consistently highlighted full-width dropdown.",
+      "highlights": [
+        "Custom WAV, MP3, and OGG filenames are now parsed correctly from browser multipart uploads.",
+        "The Sound control now uses a keyboard-accessible custom dropdown whose selected row fills the full control width."
+      ],
+      "fixes": [
+        "Saving a valid custom audio file no longer reports that the file must be WAV, MP3, or OGG after a successful preview.",
+        "Default and Custom options no longer rely on inconsistent operating-system option highlighting."
+      ],
+      "technical": [
+        "Multipart parsing now extracts name and filename only from the Content-Disposition header line instead of allowing subsequent MIME headers to contaminate the filename.",
+        "The hidden native select remains the settings value source while the visible listbox mirrors and updates it."
+      ],
+      "validation": [
+        "Adds a multipart regression test with a Content-Type header after filename=alert.mp3.",
+        "Runs source validation, unit tests, UI-string validation, and JavaScript syntax checks before publication."
+      ],
+      "known_issues": []
     }
   ]
 }
