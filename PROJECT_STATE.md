@@ -6,17 +6,16 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.143** (prerelease)
+- Latest documented build: **v0.5.144** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 
 ### Latest release summary
 
-Adds the first Windows executable packaging layer for Dashboard.exe, Recovery.exe, and Updater.exe while retaining the editable source distribution.
+Fixes update staging after the Windows executable preview introduced a second ZIP asset on each GitHub release.
 
 ## Current engineering decisions
 
-- Use the executable directory as the writable installation root while leaving browser assets and runtime state external.
-- Keep Python source as the canonical development format and treat compilation strictly as a release artifact.
+- Keep source and compiled release artifact names in separate namespaces so legacy source updaters can identify the source ZIP unambiguously.
 
 ## Development principles
 
@@ -28,6 +27,13 @@ Adds the first Windows executable packaging layer for Dashboard.exe, Recovery.ex
 - Keep public development continuity portable across forks; label canonical repository/branch/PR references as upstream context rather than local identity.
 
 ## Recent work
+
+### v0.5.144 — Update source package selection hotfix
+
+Fixes update staging after the Windows executable preview introduced a second ZIP asset on each GitHub release.
+
+- Update discovery now selects the exact source archive Torrent-Dashboard-<version>.zip before considering fallback ZIP assets.
+- Windows preview packages use a distinct TorrentDashboard-Windows-<version>-x64.zip name so older source updaters do not mistake them for installable source releases.
 
 ### v0.5.143 — Windows executable packaging foundation
 
@@ -65,23 +71,13 @@ Adds persistent opaque recovery keys to user profiles and makes both console sur
 - Allows Standard users to use read-only recovery diagnostics while Administrators retain maintenance, task-control, and verified updater commands.
 - Makes the embedded dashboard Console available to all signed-in users while preserving role-aware backend authorization.
 
-### v0.5.139 — Embedded administrator console
-
-Adds a password visibility control to standalone recovery login and a native authenticated console view inside the dashboard.
-
-- Adds a Material password visibility toggle to the standalone Recovery Console administrator password field.
-- Changes authenticated Console navigation from a separate recovery page to a native dashboard view so the sidebar, top bar, and normal navigation remain available.
-- Adds the same allowlisted recovery command interface to the dashboard Console view, including command history, help, clear, frontend cache recovery, and verified updater commands.
-- Keeps the standalone /console route unchanged as the independent pre-login recovery surface.
-
 ## What to do next
 
-1. **Executable-aware updater** — Teach update discovery/staging/rollback to select and install the Windows executable package so Dashboard.exe and Recovery.exe can self-update safely.
-2. **Windows package hardening** — Exercise compiled startup, recovery, update rollback, and migration on clean and existing Windows installations before making the executable package primary.
+1. **Add executable-aware update installation** — Teach Updater.exe to stage, replace, health-check, and roll back complete Windows executable packages.
 
 ## Known issues
 
-- The Windows executable package is preview-only in v0.5.143; self-update from the compiled package will be enabled in the next packaging phase.
+- Compiled preview self-update remains intentionally disabled until executable-aware atomic replacement and rollback are implemented.
 
 ## Handoff instructions for a new development session
 

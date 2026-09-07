@@ -55,7 +55,7 @@ def main() -> int:
     output = (ROOT / args.output).resolve()
     work = output / "pyinstaller-work"
     spec_dist = output / "pyinstaller-dist"
-    package = output / f"Torrent-Dashboard-{version}-windows-x64"
+    package = output / f"TorrentDashboard-Windows-{version}-x64"
     for path in (work, spec_dist, package):
         if path.exists():
             shutil.rmtree(path)
@@ -106,7 +106,7 @@ def main() -> int:
     }
     (package / "package-info.json").write_text(json.dumps(package_info, indent=2) + "\n", encoding="utf-8")
 
-    archive = output / f"Torrent-Dashboard-{version}-windows-x64.zip"
+    archive = output / f"TorrentDashboard-Windows-{version}-x64.zip"
     if archive.exists():
         archive.unlink()
     with zipfile.ZipFile(archive, "w", zipfile.ZIP_DEFLATED) as zf:
@@ -115,7 +115,7 @@ def main() -> int:
                 zf.write(path, arcname=f"{package.name}/{path.relative_to(package)}")
 
     digest = sha256(archive)
-    info_path = output / f"Torrent-Dashboard-{version}-windows-x64.release.json"
+    info_path = output / f"TorrentDashboard-Windows-{version}-x64.release.json"
     info = dict(package_info)
     info.update({"package": archive.name, "sha256": digest})
     info_path.write_text(json.dumps(info, indent=2) + "\n", encoding="utf-8")

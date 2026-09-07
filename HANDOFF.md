@@ -7,46 +7,41 @@
 This handoff is intentionally portable across public forks. Verify the current checkout's Git remote, branch, and open work before using upstream references as instructions.
 
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
-- Last documented upstream build: **v0.5.143** (prerelease)
+- Last documented upstream build: **v0.5.144** (prerelease)
 
 ## Last known-good state
 
-Adds the first Windows executable packaging layer for Dashboard.exe, Recovery.exe, and Updater.exe while retaining the editable source distribution.
+Fixes update staging after the Windows executable preview introduced a second ZIP asset on each GitHub release.
 
 The released-state details and recent history are in `PROJECT_STATE.md`; architectural constraints are in `ARCHITECTURE.md`.
 
 ## Active development intent
 
 - Status: **ready**
-- Objective: **Introduce compiled Windows distribution without changing the editable Python development model**
-- Why: Dashboard and disaster recovery should run on Windows without requiring a separately installed Python runtime while source remains easy to modify.
+- Objective: **Add executable-aware update installation and rollback for the Windows package**
+- Why: The Windows preview now builds and publishes safely without interfering with source updates; the remaining work is atomic compiled-package replacement.
 
 ### Acceptance criteria
 
-- Dashboard.exe, Recovery.exe, and Updater.exe build from the existing Python source on Windows.
-- Compiled applications resolve config/data/static resources relative to the installation directory.
-- The source-mode dashboard and recovery tool continue to run unchanged.
-- The executable package leaves frontend assets and runtime state external and editable.
-- Compiled self-update is blocked until executable-aware atomic replacement and rollback are implemented.
+- Updater.exe can discover and verify the Windows executable release asset independently of the source ZIP.
+- Dashboard.exe, Recovery.exe, and Updater.exe can be replaced without corrupting config.json or data.
+- The updater restarts Dashboard.exe, verifies health/version, and rolls back the whole executable package on failure.
+- Source-mode updating remains supported and continues selecting Torrent-Dashboard-<version>.zip.
 
 ### Decisions already made
 
-- Use PyInstaller onedir packaging for the initial Windows distribution.
-- Name the executables Dashboard.exe, Recovery.exe, and Updater.exe.
-- Keep the current source ZIP as the production updater target during the preview phase.
+- Keep the source ZIP name Torrent-Dashboard-<version>.zip.
+- Use TorrentDashboard-Windows-<version>-x64.zip for the compiled preview artifact.
+- Keep Dashboard.exe, Recovery.exe, and Updater.exe as the executable names.
 
 ### Expected areas of change
 
-- `torrent_dashboard/runtime_paths.py`
-- `dashboard.py`
-- `torrent_dashboard/users.py`
-- `recovery_tool.py`
-- `recovery.cmd`
 - `updater.py`
-- `release_tools/windows.spec`
+- `dashboard.py`
+- `torrent_dashboard/release_provenance.py`
 - `release_tools/build_windows.py`
-- `tests/test_runtime_paths.py`
-- `.github/workflows/release.yml`
+- `.github/workflows/windows-preview.yml`
+- `tests/test_release_provenance.py`
 
 ### Blockers
 
@@ -54,12 +49,11 @@ None currently recorded.
 
 ### Explicitly out of scope
 
-- Code signing in the initial packaging increment.
-- Switching the production updater to executable packages before rollback validation.
+- Code signing until executable update/rollback behavior is stable.
 
 ## Exact next action
 
-Add executable-package discovery, staging, replacement, restart health checking, and rollback to Updater.exe.
+Implement compiled-package discovery, staging, replacement, restart health checking, and rollback in Updater.exe.
 
 ## Resume checklist
 

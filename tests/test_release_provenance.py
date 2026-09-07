@@ -8,6 +8,7 @@ from pathlib import Path
 from torrent_dashboard.release_provenance import (
     ReleaseProvenance,
     asset_sha256,
+    find_dashboard_asset,
     github_release_integrity,
     normalize_release_integrity,
     release_info_payload,
@@ -15,6 +16,19 @@ from torrent_dashboard.release_provenance import (
 
 
 class ReleaseParsingTests(unittest.TestCase):
+    def test_source_zip_is_preferred_over_windows_preview(self):
+        release = {
+            "tag_name": "v0.5.144",
+            "assets": [
+                {"name": "Torrent-Dashboard-0.5.144-windows-x64.zip"},
+                {"name": "Torrent-Dashboard-0.5.144.zip"},
+            ],
+        }
+        self.assertEqual(
+            find_dashboard_asset(release)["name"],
+            "Torrent-Dashboard-0.5.144.zip",
+        )
+
     def test_asset_digest_and_github_release_normalization(self):
         digest = "AB" * 32
         release = {

@@ -12,6 +12,42 @@
   },
   "releases": [
     {
+      "version": "0.5.144",
+      "date": "2026-09-07",
+      "status": "prerelease",
+      "title": "Update source package selection hotfix",
+      "summary": "Fixes update staging after the Windows executable preview introduced a second ZIP asset on each GitHub release.",
+      "highlights": [
+        "Update discovery now selects the exact source archive Torrent-Dashboard-<version>.zip before considering fallback ZIP assets.",
+        "Windows preview packages use a distinct TorrentDashboard-Windows-<version>-x64.zip name so older source updaters do not mistake them for installable source releases."
+      ],
+      "fixes": [
+        "Fixes Update ZIP does not contain a valid Torrent Dashboard application when the updater downloaded the Windows executable preview ZIP instead of the source ZIP."
+      ],
+      "technical": [
+        "Adds a regression test with the Windows preview asset listed before the source asset, matching GitHub release ordering observed in v0.5.143.",
+        "Keeps Dashboard.exe, Recovery.exe, and Updater.exe names unchanged inside the Windows package."
+      ],
+      "validation": [
+        "Runs the complete source validation and unit test suite.",
+        "Builds the renamed Windows preview package on a native Windows runner and smoke-tests all three executables."
+      ],
+      "known_issues": [
+        "Compiled preview self-update remains intentionally disabled until executable-aware atomic replacement and rollback are implemented."
+      ],
+      "architecture": [],
+      "decisions": [
+        "Keep source and compiled release artifact names in separate namespaces so legacy source updaters can identify the source ZIP unambiguously."
+      ],
+      "next_steps": [
+        {
+          "priority": 1,
+          "title": "Add executable-aware update installation",
+          "detail": "Teach Updater.exe to stage, replace, health-check, and roll back complete Windows executable packages."
+        }
+      ]
+    },
+    {
       "version": "0.5.143",
       "date": "2026-09-07",
       "status": "prerelease",

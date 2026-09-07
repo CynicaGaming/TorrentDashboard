@@ -27,18 +27,30 @@ def version_key(value: str):
 
 
 def find_dashboard_asset(release):
-    """Select the Torrent Dashboard ZIP from one GitHub release payload."""
+    """Select the source-distribution ZIP from one GitHub release payload."""
     assets = release.get("assets") or []
+    version = str(release.get("tag_name") or "").strip().lstrip("vV")
+    if _SEMVER_RE.fullmatch(version):
+        expected = f"Torrent-Dashboard-{version}.zip"
+        exact = next(
+            (asset for asset in assets if str(asset.get("name") or "") == expected),
+            None,
+        )
+        if exact:
+            return exact
+
     candidates = [
         asset
         for asset in assets
         if _DASHBOARD_ASSET_RE.fullmatch(str(asset.get("name") or ""))
+        and "-windows-" not in str(asset.get("name") or "").lower()
     ]
     if not candidates:
         candidates = [
             asset
             for asset in assets
             if str(asset.get("name") or "").lower().endswith(".zip")
+            and "windows" not in str(asset.get("name") or "").lower()
         ]
     return candidates[0] if candidates else None
 

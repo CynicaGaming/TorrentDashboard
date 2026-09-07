@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - feature/windows-exe-packaging
   workflow_dispatch:
 
 permissions:
@@ -50,7 +49,7 @@ jobs:
       - name: Smoke Test Executables
         shell: pwsh
         run: |
-          $pkg = "dist-windows\Torrent-Dashboard-${{ steps.version.outputs.version }}-windows-x64"
+          $pkg = "dist-windows\TorrentDashboard-Windows-${{ steps.version.outputs.version }}-x64"
           & "$pkg\Dashboard.exe" --help | Out-Null
           if ($LASTEXITCODE -ne 0) { throw "Dashboard.exe --help failed" }
           & "$pkg\Recovery.exe" --help | Out-Null
@@ -82,8 +81,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: pwsh
         run: |
-          $zip = "dist-windows\Torrent-Dashboard-${{ steps.version.outputs.version }}-windows-x64.zip"
-          $info = "dist-windows\Torrent-Dashboard-${{ steps.version.outputs.version }}-windows-x64.release.json"
+          $zip = "dist-windows\TorrentDashboard-Windows-${{ steps.version.outputs.version }}-x64.zip"
+          $info = "dist-windows\TorrentDashboard-Windows-${{ steps.version.outputs.version }}-x64.release.json"
           gh release upload "${{ steps.version.outputs.tag }}" $zip $info --clobber
 
       - name: Verify Windows Preview Asset
@@ -92,5 +91,5 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: pwsh
         run: |
-          $asset = gh api "repos/${{ github.repository }}/releases/tags/${{ steps.version.outputs.tag }}" --jq '.assets[] | select(.name == "Torrent-Dashboard-${{ steps.version.outputs.version }}-windows-x64.zip") | select(.digest | startswith("sha256:")) | .id'
+          $asset = gh api "repos/${{ github.repository }}/releases/tags/${{ steps.version.outputs.tag }}" --jq '.assets[] | select(.name == "TorrentDashboard-Windows-${{ steps.version.outputs.version }}-x64.zip") | select(.digest | startswith("sha256:")) | .id'
           if ($asset -notmatch '^[0-9]+$') { throw "Windows preview release asset was not published with a SHA-256 digest" }
