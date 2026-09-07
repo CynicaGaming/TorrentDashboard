@@ -12,6 +12,33 @@
   },
   "releases": [
     {
+      "version": "0.5.129",
+      "date": "2026-09-07",
+      "status": "prerelease",
+      "title": "Desktop and mobile legibility pass",
+      "summary": "Raises undersized secondary and compact text across the dashboard and settings UI while preserving the existing information density and responsive layout.",
+      "highlights": [
+        "Improves torrent table, metric, filter, drawer, modal, notification, and setup text sizing on desktop.",
+        "Raises mobile torrent metadata, navigation, settings labels, and helper text to more readable sizes.",
+        "Improves Jellyfin integration, scheduled-task, notification-sound, and advanced qBitTorrent settings typography."
+      ],
+      "fixes": [
+        "Removes most remaining 8–10 px text from frequently read interface surfaces.",
+        "Improves line height for secondary copy so larger text remains readable without crowding controls."
+      ],
+      "technical": [
+        "Uses targeted responsive CSS overrides rather than a blanket browser zoom or global font-size increase.",
+        "Keeps desktop information density higher than mobile while maintaining a larger readable floor on both."
+      ],
+      "validation": [
+        "Source validation, unit tests, UI-string validation, JavaScript syntax checks, and release-note checks run before publication."
+      ],
+      "known_issues": [],
+      "architecture": [],
+      "decisions": [],
+      "next_steps": []
+    },
+    {
       "version": "0.5.128",
       "date": "2026-09-07",
       "status": "prerelease",

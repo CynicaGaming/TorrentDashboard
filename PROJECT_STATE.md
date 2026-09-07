@@ -6,12 +6,12 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.128** (prerelease)
+- Latest documented build: **v0.5.129** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 
 ### Latest release summary
 
-Simplifies the Clients authentication UI by putting the qBitTorrent 5.2+ requirement directly on the API key option and removing redundant Bearer-authentication helper text.
+Raises undersized secondary and compact text across the dashboard and settings UI while preserving the existing information density and responsive layout.
 
 ## Development principles
 
@@ -23,6 +23,14 @@ Simplifies the Clients authentication UI by putting the qBitTorrent 5.2+ require
 - Keep public development continuity portable across forks; label canonical repository/branch/PR references as upstream context rather than local identity.
 
 ## Recent work
+
+### v0.5.129 — Desktop and mobile legibility pass
+
+Raises undersized secondary and compact text across the dashboard and settings UI while preserving the existing information density and responsive layout.
+
+- Improves torrent table, metric, filter, drawer, modal, notification, and setup text sizing on desktop.
+- Raises mobile torrent metadata, navigation, settings labels, and helper text to more readable sizes.
+- Improves Jellyfin integration, scheduled-task, notification-sound, and advanced qBitTorrent settings typography.
 
 ### v0.5.128 — qBitTorrent API key labeling cleanup
 
@@ -52,15 +60,6 @@ Fixes the Integrations accordion disclosure indicator so its Material-style chev
 
 - Replaces the static integration dropdown glyph with the same locally embedded Material-style chevron used by Jellyfin scheduled tasks.
 - Rotates the integration chevron from right when collapsed to down when expanded, including the initially open integration.
-
-### v0.5.124 — Jellyfin scheduled task controls
-
-Adds a compact Scheduled tasks panel to saved Jellyfin integrations, dynamically showing Jellyfin and plugin tasks with last-run timing plus explicit run and stop controls.
-
-- Adds a nested Scheduled tasks disclosure inside each saved Jellyfin integration, grouped by Jellyfin task category and styled as a compact version of Jellyfin's native task list.
-- Shows each task name, last run time, execution duration, running progress, and previous failure state when Jellyfin reports one.
-- Adds a right-aligned Material-style play control for idle tasks and a stop control while a task is running.
-- Discovers tasks dynamically through Jellyfin so scheduled tasks registered by plugins such as Intro Skipper or Jellyfin Enhanced appear without Torrent Dashboard changes.
 
 ## What to do next
 
