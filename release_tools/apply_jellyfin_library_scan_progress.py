@@ -21,6 +21,8 @@ def main() -> None:
     css = ROOT / "static" / "settings.css"
     dashboard = ROOT / "dashboard.py"
     sw = ROOT / "static" / "sw.js"
+    index = ROOT / "static" / "index.html"
+    app = ROOT / "static" / "app.js"
     releases = ROOT / "release_notes" / "releases.json"
 
     replace_once(
@@ -108,6 +110,13 @@ def main() -> None:
         css.write_text(css_text.rstrip() + css_append, encoding="utf-8")
 
     replace_once(dashboard, 'VERSION = "0.5.131"', 'VERSION = "0.5.132"')
+    replace_once(app, "const FRONTEND_BUILD='0.5.131';", "const FRONTEND_BUILD='0.5.132';")
+
+    index_text = index.read_text(encoding="utf-8")
+    if index_text.count("0.5.131") < 5:
+        raise RuntimeError("Unexpected index frontend version count")
+    index.write_text(index_text.replace("0.5.131", "0.5.132"), encoding="utf-8")
+
     replace_once(sw, "torrent-dashboard-v05131", "torrent-dashboard-v05132")
     sw_text = sw.read_text(encoding="utf-8")
     if sw_text.count("v=0.5.131") != 4:
