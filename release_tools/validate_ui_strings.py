@@ -918,6 +918,11 @@ def main():
     assert 'recovery_key_hash' not in users_py and 'regenerate_user_recovery_key' not in users_py
     assert 'SAFE_TORRENT_ACTIONS' in recovery_console_py and 'delete' not in recovery_console_py.split('SAFE_TORRENT_ACTIONS',1)[1].split(')',1)[0]
     assert 'id="setupRecoveryModal"' in html and 'id="setupRecoveryKeyValue"' in html
+    assert '/api/recovery/initialize' not in dashboard_py and 'recovery_configured' not in dashboard_py and 'recovery_configured' not in app_js
+    local_recovery = (ROOT / 'recovery_tool.py').read_text(encoding='utf-8')
+    assert 'Recovery key:' in local_recovery and 'recovery_update(APP_DIR' in local_recovery
+    assert 'network-reset' in local_recovery and 'restore <backup-file>' in local_recovery and 'clear-update' in local_recovery
+    assert all(token not in local_recovery for token in ('BaseHTTPRequestHandler','ThreadingHTTPServer','socketserver','http.server'))
     print("UI string audit passed")
 
 

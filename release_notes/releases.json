@@ -12,6 +12,46 @@
   },
   "releases": [
     {
+      "version": "0.5.142",
+      "date": "2026-09-07",
+      "status": "prerelease",
+      "title": "Local recovery tool",
+      "summary": "Adds a key-gated local recovery program that can repair and update Torrent Dashboard without starting the HTTP service.",
+      "highlights": [
+        "Adds recovery_tool.py, which authenticates only with the setup-generated dashboard recovery key and never starts a listening server.",
+        "Adds commands to select the GitHub update repository, check releases, install or reinstall the latest verified release, and start Torrent Dashboard after repair.",
+        "Adds config validation, automatic config backups, backup restore, network bind/HTTPS reset, stuck-update cleanup, and recovery/update log viewing.",
+        "Adds recovery.cmd so Windows installations can launch local recovery without remembering the Python command."
+      ],
+      "fixes": [
+        "Removes the authenticated-session fallback that generated a recovery key after setup; recovery keys are now created only by successful first-run setup."
+      ],
+      "technical": [
+        "The local tool performs recovery-key verification directly from config.json and does not import dashboard.py, so HTTP binding or dashboard frontend failures do not prevent it from starting.",
+        "Update installation delegates to updater.py recovery mode, retaining GitHub SHA-256 asset verification, safe ZIP extraction, pre-update backup, restart health checking, and automatic rollback.",
+        "Repository changes and recovery config edits are written atomically and create a timestamped config backup first.",
+        "The tool exposes a fixed recovery command set and is not an operating-system shell."
+      ],
+      "validation": [
+        "Adds local recovery authentication, missing-key, repository-backup, restore-safety, and no-listening-server tests alongside the full source/UI/JavaScript validation suite."
+      ],
+      "known_issues": [
+        "Local recovery requires the setup-generated recovery key and a readable config.json; there is intentionally no post-setup key-generation bypass."
+      ],
+      "architecture": [],
+      "decisions": [
+        "Keep disaster recovery independent of the dashboard HTTP server while reusing the existing verified updater for installation semantics.",
+        "Require the root recovery key before exposing any local repair action, including read-only diagnostics."
+      ],
+      "next_steps": [
+        {
+          "priority": 1,
+          "title": "Recovery-key rotation",
+          "detail": "Add a controlled authenticated Console command to rotate the dashboard-wide recovery key while preserving the setup-only creation invariant."
+        }
+      ]
+    },
+    {
       "version": "0.5.141",
       "date": "2026-09-07",
       "status": "prerelease",

@@ -6,17 +6,17 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.141** (prerelease)
+- Latest documented build: **v0.5.142** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 
 ### Latest release summary
 
-Replaces pre-login Console access and personal recovery keys with one dashboard-wide recovery key that signs in as the built-in Administrator.
+Adds a key-gated local recovery program that can repair and update Torrent Dashboard without starting the HTTP service.
 
 ## Current engineering decisions
 
-- Treat dashboard recovery as a root credential rather than a per-user credential.
-- Keep the recovery Administrator synthetic and outside user CRUD so its identity and privilege cannot be changed.
+- Keep disaster recovery independent of the dashboard HTTP server while reusing the existing verified updater for installation semantics.
+- Require the root recovery key before exposing any local repair action, including read-only diagnostics.
 
 ## Development principles
 
@@ -28,6 +28,15 @@ Replaces pre-login Console access and personal recovery keys with one dashboard-
 - Keep public development continuity portable across forks; label canonical repository/branch/PR references as upstream context rather than local identity.
 
 ## Recent work
+
+### v0.5.142 — Local recovery tool
+
+Adds a key-gated local recovery program that can repair and update Torrent Dashboard without starting the HTTP service.
+
+- Adds recovery_tool.py, which authenticates only with the setup-generated dashboard recovery key and never starts a listening server.
+- Adds commands to select the GitHub update repository, check releases, install or reinstall the latest verified release, and start Torrent Dashboard after repair.
+- Adds config validation, automatic config backups, backup restore, network bind/HTTPS reset, stuck-update cleanup, and recovery/update log viewing.
+- Adds recovery.cmd so Windows installations can launch local recovery without remembering the Python command.
 
 ### v0.5.141 — Dashboard recovery login
 
@@ -65,21 +74,13 @@ Adds a restricted recovery console that remains available from the login screen 
 - Provides diagnostics, redacted configuration inspection, client/integration tests, Jellyfin task control, safe torrent maintenance actions, event inspection, and updater commands.
 - Supports update check, download, repository selection, verified install, and one-command verified update application from the recovery console.
 
-### v0.5.137 — Simplified Jellyfin libraries
-
-Removes redundant library scan controls and scan-state text now that Jellyfin's Scan Media Library task is available through Favorites and Scheduled tasks.
-
-- Removes the cycle/refresh control beside the Jellyfin Libraries heading.
-- Removes the per-library Scan / Idle status column from library cards.
-- Keeps library names, media types, locations, and server status visible while task execution stays centralized in Favorites and Scheduled tasks.
-
 ## What to do next
 
-1. **Recovery-key rotation** — Add a controlled command for rotating the dashboard-wide recovery key from the authenticated Console.
+1. **Recovery-key rotation** — Add a controlled authenticated Console command to rotate the dashboard-wide recovery key while preserving the setup-only creation invariant.
 
 ## Known issues
 
-- Recovery-key rotation is not exposed yet; the authenticated Console is the intended future management surface.
+- Local recovery requires the setup-generated recovery key and a readable config.json; there is intentionally no post-setup key-generation bypass.
 
 ## Handoff instructions for a new development session
 

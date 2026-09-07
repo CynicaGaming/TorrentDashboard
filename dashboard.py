@@ -116,7 +116,7 @@ RELEASE_INTEGRITY_CACHE_PATH = DATA_DIR / "release-integrity.json"
 CUSTOM_SOUND_BASENAME = "notification-custom"
 LEGACY_CUSTOM_SOUND_BASENAME = "custom-notification-sound"
 MAX_CUSTOM_SOUND_BYTES = 2 * 1024 * 1024
-VERSION = "0.5.141"
+VERSION = "0.5.142"
 STATUS_REFRESH_SECONDS = 1.0
 
 RELEASE_PROVENANCE = ReleaseProvenance(
@@ -2134,7 +2134,7 @@ class Handler(BaseHTTPRequestHandler):
             cfg,token,sess,new_cookie=self.auth()
             if not sess:
                 return self.send_json(401,{"authenticated":False,"auth_mode":cfg["auth"].get("mode")})
-            safe={"authenticated":True,"username":sess["username"],"display_name":sess.get("display_name") or sess["username"],"user_id":sess.get("user_id","") ,"group":sess.get("group","standard"),"group_label":USER_GROUPS.get(sess.get("group"),"Standard User"),"can_manage":session_is_admin(sess),"is_recovery_account":sess.get("user_id","")==RECOVERY_ACCOUNT_ID,"recovery_configured":bool(cfg.get("recovery",{}).get("key_hash")),"auth_kind":sess["auth_kind"],"csrf":sess["csrf"],"auth_mode":cfg["auth"].get("mode"),"title":cfg["dashboard"].get("title"),"version":VERSION,"lan_ip":local_lan_ip(),"port":cfg["dashboard"].get("port",8765),"scheme":"https" if cfg["dashboard"].get("https_enabled") else "http"}
+            safe={"authenticated":True,"username":sess["username"],"display_name":sess.get("display_name") or sess["username"],"user_id":sess.get("user_id","") ,"group":sess.get("group","standard"),"group_label":USER_GROUPS.get(sess.get("group"),"Standard User"),"can_manage":session_is_admin(sess),"is_recovery_account":sess.get("user_id","")==RECOVERY_ACCOUNT_ID,"auth_kind":sess["auth_kind"],"csrf":sess["csrf"],"auth_mode":cfg["auth"].get("mode"),"title":cfg["dashboard"].get("title"),"version":VERSION,"lan_ip":local_lan_ip(),"port":cfg["dashboard"].get("port",8765),"scheme":"https" if cfg["dashboard"].get("https_enabled") else "http"}
             return self.send_json(200,safe,new_cookie)
 
         ctx=self.require_auth(False)
@@ -2252,19 +2252,6 @@ class Handler(BaseHTTPRequestHandler):
         if not ctx: return
         cfg,token,sess,new_cookie=ctx
         try:
-            if path=="/api/recovery/initialize":
-                if not session_is_admin(sess) or sess.get("user_id")==RECOVERY_ACCOUNT_ID:
-                    return self.send_json(403,{"error":"Administrator dashboard access is required"},new_cookie)
-                def initialize_recovery(current):
-                    if current.get("recovery",{}).get("key_hash"):
-                        return current,None
-                    key=generate_dashboard_recovery_key(); current["recovery"]=recovery_key_record(key)
-                    return current,key
-                _,recovery_key=mutate_config(initialize_recovery)
-                if not recovery_key:
-                    return self.send_json(200,{"ok":True,"configured":True},new_cookie)
-                HISTORY.event("dashboard","recovery_key_initialized",sess.get("username",RECOVERY_ACCOUNT_USERNAME),"",{"client_ip":self.client_ip()})
-                return self.send_json(200,{"ok":True,"configured":True,"recovery_key":recovery_key},new_cookie)
             if sess.get("user_id")==RECOVERY_ACCOUNT_ID and path.startswith("/api/account"):
                 return self.send_json(403,{"error":"The built-in Administrator recovery account cannot be edited"},new_cookie)
             if path=="/api/account":

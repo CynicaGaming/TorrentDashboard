@@ -1,5 +1,5 @@
 'use strict';
-const FRONTEND_BUILD='0.5.141';
+const FRONTEND_BUILD='0.5.142';
 const HTML_BUILD=document.querySelector('meta[name="torrent-dashboard-build"]')?.content||'';
 const RECOVERY_KEY=`td-frontend-recovery-${FRONTEND_BUILD}`;
 async function recoverFrontendBuild(reason){
@@ -693,7 +693,6 @@ async function bootstrap(){
     $('#brandTitle').textContent=state.me.title;$('#brandAddress').textContent=state.me.lan_ip||'Local';document.title=state.me.title;$('#version').textContent=`v${state.me.version}`;
     if(state.me.user_id){try{const account=await api('/api/account');applyAccountUser(account.user)}catch{}}
     syncCurrentUserUi();$('#accountSettingsBtn')?.classList.toggle('hidden',!!state.me?.is_recovery_account);
-    if(state.me.can_manage&&!state.me.recovery_configured&&!state.me.is_recovery_account){try{const recovery=await post('/api/recovery/initialize',{});if(recovery.recovery_key)showSetupRecoveryKey(recovery.recovery_key,'Recovery key created')}catch(error){console.error('[Torrent Dashboard] Recovery-key initialization failed',error)}}
     if(state.me.can_manage){await loadSettings()}else{state.settings={dashboard:{low_disk_gb:20},notifications:{browser:false,sound:false}}}
     await loadServers();bindUI();applyPrefs();if(state.server!=='all')await loadMeta();await refreshStatus();await loadNotifications(true);scheduleRefresh();scheduleNotificationRefresh();registerPwa();
   }

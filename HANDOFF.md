@@ -7,50 +7,44 @@
 This handoff is intentionally portable across public forks. Verify the current checkout's Git remote, branch, and open work before using upstream references as instructions.
 
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
-- Last documented upstream build: **v0.5.141** (prerelease)
+- Last documented upstream build: **v0.5.142** (prerelease)
 
 ## Last known-good state
 
-Replaces pre-login Console access and personal recovery keys with one dashboard-wide recovery key that signs in as the built-in Administrator.
+Adds a key-gated local recovery program that can repair and update Torrent Dashboard without starting the HTTP service.
 
 The released-state details and recent history are in `PROJECT_STATE.md`; architectural constraints are in `ARCHITECTURE.md`.
 
 ## Active development intent
 
 - Status: **ready**
-- Objective: **Replace pre-login Console access and per-user recovery keys with one dashboard-wide recovery key**
-- Why: Recovery should be a simple root credential for the dashboard rather than a second user-authentication system.
+- Objective: **Provide recovery when Torrent Dashboard cannot start or bind its HTTP service**
+- Why: A dashboard-wide recovery key is only useful for critical failures if there is a local repair path that does not depend on the web server.
 
 ### Acceptance criteria
 
-- The sign-in screen offers Sign in and Recovery; Recovery asks only for the dashboard recovery key.
-- Fresh setup generates the recovery key and shows the plaintext once before entering the dashboard.
-- The recovery key creates a normal authenticated session for a built-in, system-owned Administrator principal that is not part of user CRUD.
-- Per-user recovery keys and their profile UI/API/storage fields are removed.
-- The standalone /console surface and its separate recovery cookie/session are removed while the authenticated Console view remains available.
-- Existing installations without a dashboard recovery key initialize one once from an authenticated Administrator session and reveal it once.
+- Local recovery starts without importing dashboard.py or binding an HTTP listener.
+- Every local recovery action requires the setup-generated dashboard recovery key.
+- Recovery can select a GitHub repository, check releases, and install or reinstall a SHA-256-verified release using the existing updater rollback path.
+- Recovery can validate and back up config, restore a recovery backup, reset bind/port/HTTPS settings, clear stuck update state, start the dashboard, and inspect restart logs.
+- The post-setup recovery-key generation failsafe is removed; first-run setup is the only key-creation path.
 
 ### Decisions already made
 
-- Use a 256-bit opaque TDRK key stored only as a PBKDF2 hash plus creation metadata.
-- Keep the built-in recovery Administrator outside normal user management so it cannot be renamed or deleted.
-- Recovery authentication creates the normal dashboard session cookie rather than a parallel recovery session.
-- Keep the authenticated Console and its server-side role enforcement for later expansion.
+- Use recovery_tool.py as a standard-library local entry point and keep it independent of the HTTP handler.
+- Reuse updater.py for verified downloads, backup, health check, and rollback instead of creating a second installer.
+- Do not expose an OS shell from local recovery.
 
 ### Expected areas of change
 
-- `torrent_dashboard/recovery.py`
-- `torrent_dashboard/users.py`
-- `torrent_dashboard/config.py`
-- `torrent_dashboard/recovery_console.py`
+- `recovery_tool.py`
+- `recovery.cmd`
+- `updater.py`
 - `dashboard.py`
-- `static/index.html`
 - `static/app.js`
-- `static/app.css`
+- `static/index.html`
 - `static/sw.js`
-- `tests/test_recovery.py`
-- `tests/test_users.py`
-- `tests/test_recovery_console.py`
+- `tests/test_local_recovery.py`
 - `release_tools/validate_ui_strings.py`
 - `release_notes/releases.json`
 
@@ -61,11 +55,11 @@ None currently recorded.
 ### Explicitly out of scope
 
 - Arbitrary operating-system shell access.
-- Recovery-key rotation after initial creation; this can be added to the authenticated Console later.
+- Recovery without config.json or without possession of the setup-generated recovery key.
 
 ## Exact next action
 
-Add controlled recovery-key rotation and additional recovery operations to the authenticated Console when needed.
+Add recovery-key rotation to the authenticated dashboard Console when desired.
 
 ## Resume checklist
 
