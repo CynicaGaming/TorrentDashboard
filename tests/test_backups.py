@@ -1,13 +1,18 @@
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor
+import hashlib
 import json
+import stat
 import sqlite3
 import tempfile
 import threading
 import unittest
+from unittest.mock import patch
 import zipfile
 from pathlib import Path
 
+from torrent_dashboard import backups
 from torrent_dashboard.backups import (
     backup_path,
     create_backup,
@@ -125,6 +130,129 @@ class BackupManagerTests(unittest.TestCase):
                 current_config=config(),
                 history_lock=self.lock,
             )
+
+
+    def archive(self, payload=None, version="0.5.147", extra=None):
+        payload = payload or {"payload/config.json": json.dumps(config()).encode()}
+        manifest = {
+            "application": "torrent-dashboard", "schema": 1, "source_version": version,
+            "files": [{"path": name, "size": len(data), "sha256": hashlib.sha256(data).hexdigest()}
+                      for name, data in payload.items()],
+        }
+        path = self.app / "crafted.tdbackup"
+        with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as archive:
+            archive.writestr("backup-manifest.json", json.dumps(manifest))
+            for name, data in payload.items():
+                archive.writestr(name, data)
+            if extra:
+                archive.writestr(*extra)
+        return path
+
+    def test_temporary_updater_and_sqlite_sidecars_are_excluded(self):
+        runner = self.app / "data" / "update-runner" / "Updater-fixture.exe"
+        runner.parent.mkdir()
+        runner.write_bytes(b"inert test fixture")
+        for suffix in ("-wal", "-shm", "-journal"):
+            (self.app / "data" / ("torrent_desk.sqlite3" + suffix)).write_bytes(b"")
+        item = create_backup(self.app, "0.5.147", config())
+        with zipfile.ZipFile(backup_path(self.app, item["name"])) as archive:
+            self.assertFalse(any("update-runner" in name for name in archive.namelist()))
+            self.assertFalse(any(name.endswith(("-wal", "-shm", "-journal")) for name in archive.namelist()))
+
+    def test_invalid_creation_never_publishes_a_backup(self):
+        invalid = config()
+        invalid["recovery"] = {}
+        with self.assertRaisesRegex(RuntimeError, "recovery"):
+            create_backup(self.app, "0.5.147", invalid)
+        self.assertEqual(list_backups(self.app), [])
+        self.assertEqual(list((self.app / "data" / "backups").iterdir()), [])
+
+    def test_unsafe_and_windows_ambiguous_archive_paths_are_rejected(self):
+        for suffix in ("../escape", "C:/escape", "name:stream", "CON", "nul.txt", "COM¹.log",
+                       "folder./file", "trailing ", "double//slash", "./file", "bad\\name", "line\nname"):
+            with self.subTest(suffix=suffix):
+                payload = {"payload/config.json": json.dumps(config()).encode(), "payload/data/" + suffix: b"test"}
+                with self.assertRaisesRegex(RuntimeError, "path"):
+                    validate_backup(self.archive(payload))
+
+    def test_case_collisions_and_file_directory_conflicts_are_rejected(self):
+        for names in (("Data", "data"), ("folder", "folder/file"), ("FOLDER", "folder/file")):
+            with self.subTest(names=names):
+                payload = {"payload/config.json": json.dumps(config()).encode()}
+                payload.update({"payload/data/" + name: b"test" for name in names})
+                with self.assertRaisesRegex(RuntimeError, "colliding|conflicting"):
+                    validate_backup(self.archive(payload))
+
+    def test_unlisted_members_and_special_files_are_rejected(self):
+        with self.assertRaisesRegex(RuntimeError, "manifest"):
+            validate_backup(self.archive(extra=("unlisted.txt", b"extra")))
+        link = zipfile.ZipInfo("payload/data/link")
+        link.create_system = 3
+        link.external_attr = (stat.S_IFLNK | 0o777) << 16
+        with self.assertRaisesRegex(RuntimeError, "link"):
+            validate_backup(self.archive(extra=(link, b"target")))
+
+    def test_malformed_version_cannot_bypass_restore_compatibility(self):
+        for version in ("unknown", "999bad", "", "1.2"):
+            with self.subTest(version=version), self.assertRaisesRegex(RuntimeError, "version"):
+                validate_backup(self.archive(version=version), current_version="0.5.147")
+
+    def test_manifest_and_expanded_payload_limits(self):
+        path = self.archive()
+        with patch.object(backups, "MAX_MANIFEST_BYTES", 1), self.assertRaisesRegex(RuntimeError, "manifest"):
+            validate_backup(path)
+        path = self.archive({"payload/config.json": json.dumps(config()).encode(), "payload/data/large": b"0" * 100000})
+        with patch.object(backups, "MAX_BACKUP_BYTES", 2000), self.assertRaisesRegex(RuntimeError, "expands"):
+            validate_backup(path)
+
+    def test_same_name_imports_do_not_overwrite_one_another(self):
+        content = self.archive().read_bytes()
+        with ThreadPoolExecutor(max_workers=4) as pool:
+            items = list(pool.map(lambda _: import_backup(self.app, "shared.tdbackup", content), range(4)))
+        self.assertEqual(len({item["name"] for item in items}), 4)
+        for item in items:
+            self.assertEqual(backup_path(self.app, item["name"]).read_bytes(), content)
+
+    def test_cross_install_restore_and_safety_backup_round_trip(self):
+        original = create_backup(self.app, "0.5.147", config())
+        content = backup_path(self.app, original["name"]).read_bytes()
+        with tempfile.TemporaryDirectory() as directory:
+            destination = Path(directory)
+            destination_config = config("Destination")
+            (destination / "config.json").write_text(json.dumps(destination_config))
+            (destination / "data").mkdir()
+            (destination / "data" / "destination.txt").write_text("preserve via safety backup")
+            imported = import_backup(destination, "portable.tdbackup", content)
+            self.assertEqual(json.loads((destination / "config.json").read_text()), destination_config)
+            result = restore_backup(destination, imported["name"], current_version="0.5.147", current_config=destination_config)
+            restored = json.loads((destination / "config.json").read_text())
+            self.assertEqual(restored["dashboard"]["title"], "Original")
+            self.assertEqual((destination / "data" / "avatars" / "admin.webp").read_bytes(), b"avatar")
+            connection = sqlite3.connect(destination / "data" / "torrent_desk.sqlite3")
+            try:
+                self.assertEqual(connection.execute("SELECT value FROM sample").fetchone()[0], "history")
+            finally:
+                connection.close()
+            restore_backup(destination, result["safety_backup"]["name"], current_version="0.5.147", current_config=restored)
+            self.assertEqual(json.loads((destination / "config.json").read_text()), destination_config)
+            self.assertTrue((destination / "data" / "destination.txt").is_file())
+            self.assertFalse((destination / "data" / "avatars").exists())
+
+    def test_failed_restore_rolls_back_previous_state(self):
+        item = create_backup(self.app, "0.5.147", config())
+        changed = config("Latest destination")
+        (self.app / "config.json").write_text(json.dumps(changed))
+        with self.assertRaisesRegex(RuntimeError, "previous state was restored"):
+            restore_backup(self.app, item["name"], current_version="0.5.147", current_config=changed,
+                           validator=lambda: (_ for _ in ()).throw(RuntimeError("invalid restored state")))
+        self.assertEqual(json.loads((self.app / "config.json").read_text()), changed)
+        self.assertTrue(any(row["kind"] == "pre-restore" for row in list_backups(self.app)))
+
+    def test_failed_rollback_reports_recovery_backup_instead_of_success(self):
+        item = create_backup(self.app, "0.5.147", config())
+        with patch.object(backups, "_apply_payload", side_effect=OSError("filesystem unavailable")):
+            with self.assertRaisesRegex(RuntimeError, "automatic rollback also failed.*PreRestore"):
+                restore_backup(self.app, item["name"], current_version="0.5.147", current_config=config())
 
 
 if __name__ == "__main__":

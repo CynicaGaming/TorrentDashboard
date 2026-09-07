@@ -60,7 +60,7 @@ Generated release/handoff consistency, where `X.Y.Z` is the current `src/torrent
 python release_tools/generate_release_notes.py --version X.Y.Z --check
 ```
 
-See `TESTING.md` for the manual smoke-test matrix that complements automation.
+See `TESTING.md` for the manual smoke-test matrix that complements automation. Pull requests run the same checks on Linux/Windows with Python 3.13 and 3.14 through `.github/workflows/validate.yml`; this workflow has read-only permissions and does not publish releases. See `docs/HARDENING.md` for the current hardening scope and remaining operational checks.
 
 ## Windows executable development
 

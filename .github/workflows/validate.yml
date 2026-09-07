@@ -1,0 +1,46 @@
+name: Validate Pull Request
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main, hardening/state-and-input-safety]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: validate-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Source (${{ matrix.os }}, Python ${{ matrix.python }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python: ['3.13', '3.14']
+    env:
+      PYTHONPATH: src
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Validate source and run unit tests
+        run: python release_tools/validate_source.py
+      - name: Validate browser contracts
+        run: |
+          python release_tools/validate_ui_strings.py
+          node --check static/app.js
+          node --check static/settings.js
+      - name: Check generated documentation
+        run: python -c "import subprocess, sys; from torrent_dashboard import __version__; subprocess.run([sys.executable, 'release_tools/generate_release_notes.py', '--version', __version__, '--check'], check=True)"
+      - name: Check public repository hygiene
+        run: python release_tools/validate_public_repo.py

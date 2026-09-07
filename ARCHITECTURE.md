@@ -19,9 +19,18 @@ The current rules are:
 
 ### `src/torrent_dashboard/dashboard.py`
 
-Owns application composition, process startup, HTTP routing, qBitTorrent orchestration, sessions, network/interface discovery, notification delivery, history collection, update orchestration, and compatibility adapters that have not yet been extracted. Configuration and integration domains are imported from package modules rather than implemented here.
+Owns application composition, process startup, HTTP routing, qBitTorrent orchestration, sessions, network/interface discovery, notification delivery, history-store composition, update orchestration, and compatibility adapters that have not yet been extracted. Configuration and integration domains are imported from package modules rather than implemented here.
 
 This file is still larger than the desired steady-state architecture. Refactors should reduce its responsibilities incrementally while keeping behavior stable.
+
+### State, history, and input boundaries
+
+- `history.py` owns SQLite history and closes every connection before releasing the shared history lock, including reads, events, and cleanup.
+- `state_gate.py` coordinates concurrent HTTP requests and collection cycles with exclusive restore maintenance. Waiting maintenance drains current activity and pauses new activity. Request authentication happens after entry, so sessions invalidated during restore cannot authorize queued mutations.
+- `http_input.py` owns bounded HTTP framing, JSON-object validation, and multipart parsing.
+- `persistence.py` atomically replaces configuration files using exclusive temporary files, file flush/fsync, and owner-only permissions on POSIX.
+
+Lock acquisition order is **state gate → configuration transaction → history → cache**. Do not acquire the state gate recursively or upgrade ordinary activity to maintenance. `ConfigStore.exclusive()` is reserved for a fresh backup snapshot or an externally restored configuration while holding the appropriate state gate. Normal configuration changes continue to use `mutate()`.
 
 ### `src/torrent_dashboard/users.py`
 
@@ -163,5 +172,9 @@ Extraction should remain incremental. A refactor should not simultaneously redes
 
 ## Portable backup boundary
 
-`src/torrent_dashboard/backups.py` owns portable dashboard-state archives. Backup payloads contain configuration and persistent files under `data/`, use a manifest with per-file SHA-256 digests, and deliberately exclude application code/binaries, updater staging, release caches, nested backup libraries, and qBitTorrent-owned data. The dashboard holds the history-store lock while snapshotting or restoring SQLite state. Restores preserve the local backup and recovery-backup libraries and create a pre-restore safety archive before replacing state.
+`src/torrent_dashboard/backups.py` owns portable dashboard-state archives. Backup payloads contain configuration and persistent files under `data/`, use a manifest with per-file SHA-256 digests, and deliberately exclude application code/binaries, updater staging, release caches, nested backup libraries, and qBitTorrent-owned data. The dashboard holds a fresh configuration snapshot and the history-store lock while snapshotting SQLite state. Restore additionally holds exclusive application maintenance until caches and sessions have been reset. Detached updater runners and SQLite sidecars are excluded. Restores preserve the local backup and recovery-backup libraries and create a pre-restore safety archive before replacing state.
 
+
+Archives are verified before atomic publication to the backup library. Portable names must be unambiguous on Windows and Linux; validation rejects drive/stream syntax, device names, case collisions, file/directory conflicts, and unlisted members. Manifest/configuration reads have dedicated limits, and file digests are streamed.
+
+Restore provides rollback for ordinary exceptions, with explicit reporting if rollback itself fails. It is not an atomic multi-file transaction across process termination or power loss; preserve the safety archive for manual recovery in those cases. External editors and standalone recovery processes are outside the in-process state gate.

@@ -1,6 +1,6 @@
 # Torrent Dashboard Design Language
 
-Torrent Dashboard uses a single content language across desktop and responsive surfaces. These rules apply to static HTML, dynamically generated controls, dialogs, status messages, notifications, and toasts.
+Torrent Dashboard uses a single content language across desktop and responsive surfaces. This document describes the current contract; superseded layout iterations remain in release history. These rules apply to static HTML, dynamically generated controls, dialogs, status messages, notifications, and toasts.
 
 ## Core rules
 
@@ -25,7 +25,6 @@ Torrent Dashboard follows a Firefox-inspired desktop-application pattern rather 
 - Prefer direct product concepts over legacy implementation terminology. Use **client** on client-management surfaces and **allowed IP addresses** in user-facing access controls; internal configuration keys and historical documentation do not need to be renamed solely for copy consistency.
 - Prefer verb phrases for actions: **Add client**, **Test connection**, **Copy address**, **Remove torrent**. Avoid noun-heavy implementation phrases and parenthetical constructions such as **Remove torrent(s)**.
 - Do not capitalize words merely because they appear in a control. Capitalization should communicate hierarchy or a proper name, not decoration.
-
 
 
 ## Iconography
@@ -76,19 +75,9 @@ On desktop and tablet layouts, secondary inspection surfaces that describe a sel
 - The list and inspector should each have their own border, radius, background, and clear spacing so their roles are immediately distinguishable.
 - The primary torrent list remains independently scrollable while details are open.
 - Torrent details are persistent and collapsible rather than closable. The collapsed state is a compact disclosure bar; it never clears the selected torrent.
-- Selecting a torrent expands the inspector automatically and updates its content. With no selection, the dock remains available and may be expanded to an empty state.
+- Selecting a torrent expands the inspector automatically and updates its content. With no selection, desktop starts expanded with the normal detail structure and em-dash values; mobile starts collapsed.
 - The full disclosure bar is the interaction target and must remain keyboard- and touch-accessible; small icon-only collapse/close controls are not required.
 - Mobile may use a bottom-sheet treatment when expanded, but the collapsed disclosure bar remains persistently reachable.
-
-## Bounded list and inspector workspaces
-
-On desktop and tablet layouts, list/detail workspaces should fit within the initial viewport under normal browser chrome rather than forcing the page to grow around a large list surface.
-
-- A list-only torrent workspace should remain deliberately bounded; unused vertical space is preferable to an oversized empty table.
-- Opening the torrent inspector may enlarge the shared workspace, but the torrent list and detail inspector should remain visible together in the initial viewport at standard desktop/tablet sizes.
-- The primary list becomes the flexible internal scroll region. Long lists should scroll inside the workspace before the overall dashboard page scrolls.
-- The detail body may scroll independently when its content exceeds the inspector allocation.
-- Mobile remains an exception: the existing bottom-sheet interaction may consume most of the viewport because simultaneous list/detail visibility is not practical at phone widths.
 
 ## Empty states and live dashboard metrics
 
@@ -99,17 +88,6 @@ Empty-state language must describe why the current surface is empty rather than 
 - Empty states inside bounded list workspaces should remain visually centered in the available list body and should not be pushed below a flexing scroll region.
 - Primary dashboard metric cards should represent meaningful operational state. Values that refresh every polling interval, such as a per-second "Last update" timestamp, should not occupy a permanent summary card unless staleness itself requires attention.
 - Connection failures and stale data should be surfaced as health/error states rather than requiring users to infer problems from a timestamp.
-
-## Viewport-docked desktop inspectors
-
-On non-mobile layouts, a docked list/detail workspace should use the actual remaining viewport rather than a fixed viewport-height guess. When torrent details are expanded, the workspace should extend to the bottom of the visible dashboard content, keep the torrent list scrollable above a visually separate detail panel, and allocate enough height to the inspector for its primary content to remain legible. When collapsed, the inspector remains as a compact dock bar without forcing the expanded workspace height. The separation between list and inspector is part of the hierarchy, not unused space. Mobile keeps the sheet model.
-
-
-
-## Client-style dashboard workspace
-
-The Dashboard retains its page title and short activity subtitle for visual hierarchy and orientation. Navigation also establishes location, but removing the heading does not materially increase usable torrent space and weakens the page hierarchy. On desktop/tablet, the torrent workspace fills the actual remaining viewport so the persistent Torrent details disclosure stays anchored to the bottom. Collapsed it reads as a compact client-style bar; expanded it grows upward while the torrent list scrolls above it.
-
 
 ## Explicit update checks
 
@@ -143,7 +121,7 @@ Add Torrent treats a magnet/URL and a local `.torrent` file as distinct source m
 
 Add Torrent keeps selection controls in one stable checkbox column so scanning and bulk selection remain predictable. The content column reserves one fixed disclosure slot on every row: folders use a Material disclosure icon and files use an equal-width spacer. Hierarchy indentation is applied after that shared slot, so child files visibly sit beneath their parent folder labels while Size and Priority remain aligned. Column labels describe the table directly: Name is left-aligned at the start of its column, folder rows do not repeat descendant file counts in the Priority column, and the live file/size summary makes a separate Content heading unnecessary.
 
-For the persistent Torrent details dock, clicking the torrent whose details are already selected clears that detail context and returns the dock to its empty collapsed state. Selecting a different torrent replaces the context and expands the dock normally. The detail context must also be reconciled against each refreshed torrent list: if the selected server/hash no longer exists, clear the stale detail selection automatically. The disclosure bar is the single selection-identity surface; do not repeat the torrent title/hash in a second header immediately above the detail tabs.
+For the persistent Torrent details dock, clicking the torrent whose details are already selected clears that detail context and returns the dock to its no-selection shell, expanded on desktop and collapsed on mobile. Selecting a different torrent replaces the context and expands the dock normally. The detail context must also be reconciled against each refreshed torrent list: if the selected server/hash no longer exists, clear the stale detail selection automatically and return to the same no-selection shell. The disclosure bar is the single selection-identity surface; do not repeat the torrent title/hash in a second header immediately above the detail tabs.
 
 
 ## Fixed torrent columns
@@ -170,44 +148,9 @@ At the mobile breakpoint, torrent cards use a compact two-column metadata matrix
 
 Trackers and Peers use purpose-built responsive detail records rather than inheriting the generic mobile table-to-card fallback. Desktop/tablet retains the normal labeled tables. At the mobile breakpoint, Peers presents the peer address as the record heading, client as secondary context, and labeled Progress, Download, and Upload metrics. Trackers presents a cleaned tracker name or URL, a human-readable status badge, labeled Seeds and Peers counts, and the tracker message only when one exists. qBitTorrent tracker status codes must not be exposed as unexplained numbers, and pseudo-trackers such as DHT, PeX, and LSD must not display literal Markdown-style asterisks. The General tab remains an independent presentation and is not altered by this responsive record treatment.
 
-### Stable desktop torrent workspace height
-
-On desktop/tablet, the torrent workspace has one bounded height derived from the viewport and its fixed document position. Ordinary document scrolling must never change that height. The torrent list keeps its own vertical scroller inside the bounded workspace, while expanding/collapsing Torrent details only reallocates space inside that same workspace. Viewport resizing may legitimately recalculate the workspace height; page scroll position must not be an input to that calculation.
-
-### Content-fit desktop Torrent details
-
-The desktop torrent workspace remains a fixed bounded surface. When Torrent details is expanded on the finite General tab, the detail pane should measure its rendered content and claim enough height inside that fixed workspace to show the complete General view without an unnecessary inner scrollbar whenever the viewport can accommodate it. Preserve a usable torrent-list slice and its independent scrollbar. Potentially unbounded tabs such as Trackers, Peers, HTTP sources, and Content remain bounded and independently scrollable rather than expanding the workspace or consuming the entire torrent list.
-
-
-
-### Fixed torrent list and natural-height desktop details
-
-This supersedes the earlier shared-height desktop workspace compromise. On desktop/tablet, the torrent list owns a stable bounded height and its own vertical scrollbar; opening Torrent details must not resize that list. The finite General detail view may extend the document below the list and should use its natural content height so routine properties are readable without an inner scrollbar. Potentially unbounded detail tabs such as Trackers, Peers, HTTP sources, and Content remain bounded and internally scrollable. Page scrolling may move the combined list/detail surfaces through the viewport, but must not change the torrent list height. Torrent Dashboard branding and browser/PWA iconography remain local assets with no external runtime dependency.
-
-
-### Desktop Torrent details viewport reveal
-
-The fixed desktop torrent-list height and natural-height General detail model remain unchanged. The dashboard header, metrics, and filter controls are ordinary document content above the torrent workspace and must not be folded into a new detail-height calculation. When a user explicitly expands Torrent details from a collapsed state on desktop/tablet, the document should reveal the torrent workspace at the top of the viewport so those preceding panels scroll out naturally. This reproduces the useful manual-scroll state without shrinking the torrent list or reintroducing an inner General scrollbar. Respect reduced-motion preferences and do not force this reveal repeatedly while the detail pane is already expanded.
-
-
-### Six-row desktop torrent viewport
-
-The desktop torrent list is a deterministic data viewport rather than a remainder of the browser viewport. Its height is the rendered torrent-table header plus exactly six normal torrent rows, including the current density's row height and the panel border allowance. Header, metric, filter, login/profile, and Torrent details geometry must not change that list height. If fewer than six rows are visible, leaving unused whitespace in the list is acceptable. If more than six rows are visible, the list scrolls internally. Torrent details remains a separate surface below the list; General may use natural document height while long-data tabs retain bounded internal scrolling.
-
-
-### Adaptive desktop torrent viewport fit
-
-The desktop torrent list uses six rows as a preferred maximum, not an unconditional fixed height. The dashboard computes a stable viewport budget from the torrent workspace's document position and the browser height, then subtracts the currently rendered Torrent details pane and the workspace gap. The remaining space is snapped down to a whole number of rendered torrent rows, with three rows as the minimum useful desktop list. This keeps the expanded General pane and the torrent list inside the original top-of-page viewport whenever the available geometry permits, without making the list react to document scrolling. General remains natural-height; long-data detail tabs retain their bounded internal scrolling. Opening Torrent details must not force the document to scroll because the layout itself is responsible for fitting the workspace.
-
-
 ### Viewport-proportional desktop torrent workspace
 
-The expanded desktop torrent workspace should preserve the visual balance established by the v0.5.112 layout across different monitor heights. The torrent list prefers roughly 44% of the usable viewport remaining below the workspace's stable document position, while Torrent details receives the rest. The split is not a hard percentage: the rendered detail pane has priority, and the list shrinks when necessary so finite General content remains fully readable. The list height is always snapped to complete rendered torrent rows with a three-row minimum, and taller viewports may expose more than six rows instead of leaving unnecessary dead space. Document scrolling must not change the calculation; browser height and density changes may recompute it.
-
-
-### Torrent sort chevrons
-
-Torrent-table header labels continue to align with their body data: text-oriented headers remain left-aligned and numeric headers remain right-aligned. The sort affordance itself is independent of that text alignment. Every sortable torrent header uses the same trailing/right-edge chevron position so the indicator is visually associated with its owning column and never appears to belong to the neighboring column.
+The expanded desktop torrent workspace should preserve the visual balance established by the v0.5.112 layout across different monitor heights. The torrent list prefers roughly 44% of the usable viewport remaining below the workspace's stable document position, while Torrent details receives the rest. Opening details must not automatically scroll the document. The split is not a hard percentage: the rendered detail pane has priority, and the list shrinks when necessary so finite General content remains fully readable. The list height is always snapped to complete rendered torrent rows with a three-row minimum, and taller viewports may expose more than six rows instead of leaving unnecessary dead space. Document scrolling must not change the calculation; browser height and density changes may recompute it.
 
 
 ### Torrent sort indicator grouping
@@ -239,11 +182,11 @@ Torrent-table header labels continue to align with their body data: text-oriente
 
 ## Add Torrent folder disclosure actions
 
-The Add Torrent content preview keeps per-folder chevrons as the primary local disclosure control and adds **Expand all** / **Collapse all** as compact secondary actions beside the file summary. The actions operate only on the currently loaded metadata tree; they do not change file selection, priority, or torrent add options.
+The Add Torrent content preview keeps per-folder chevrons as the primary local disclosure control and adds locally embedded **Expand all folders** / **Collapse all folders** icon controls as compact secondary actions beside the file summary. The actions operate only on the currently loaded metadata tree; they do not change file selection, priority, or torrent add options.
 
 The controls remain disabled until the metadata contains at least one folder. **Expand all** is disabled when every folder is already open, and **Collapse all** is disabled when every known folder path is already collapsed. Bulk disclosure must preserve the same folder ordering, indentation, checkbox state, and file-priority state used by individual folder toggles.
 
-On narrow layouts the summary stays above the two disclosure actions and the actions share the available row width rather than forcing the content preview wider than the modal.
+On narrow layouts the action pair may wrap below the summary as a unit; the two icons remain side-by-side.
 
 
 ## Material Add Torrent folder controls

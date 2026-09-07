@@ -19,7 +19,8 @@ class RuntimePathTests(unittest.TestCase):
 
     def test_dashboard_command_prefers_packaged_executable_on_windows(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
+            # Windows temp paths can use an 8.3 alias; commands use resolved paths.
+            root = Path(tmp).resolve()
             (root / "Dashboard.exe").write_bytes(b"MZ")
             with mock.patch.object(runtime_paths.os, "name", "nt"):
                 command = runtime_paths.dashboard_command(root)
@@ -28,7 +29,7 @@ class RuntimePathTests(unittest.TestCase):
 
     def test_updater_command_prefers_packaged_executable_on_windows(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
+            root = Path(tmp).resolve()
             (root / "Updater.exe").write_bytes(b"MZ")
             with mock.patch.object(runtime_paths.os, "name", "nt"):
                 command = runtime_paths.updater_command(root)
