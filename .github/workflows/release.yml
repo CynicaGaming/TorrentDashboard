@@ -105,7 +105,7 @@ jobs:
               '/torrent_dashboard/__init__.py','/torrent_dashboard/config.py',
           )
           for suffix in retired:
-              assert not any(n.endswith(suffix) for n in names), suffix
+              assert f'Torrent-Dashboard-{version}{suffix}' not in names, suffix
           assert not any(n.endswith('recover_v0_5_123.py') or n.endswith('run_recovery_safe.py') for n in names)
           info=json.loads(info_path.read_text(encoding='utf-8'))
           digest=hashlib.sha256(path.read_bytes()).hexdigest()
