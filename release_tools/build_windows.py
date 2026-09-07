@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build the Windows x64 preview package with Dashboard.exe, Recovery.exe and Updater.exe."""
+"""Build the Windows x64 package with Dashboard.exe, Recovery.exe and Updater.exe."""
 from __future__ import annotations
 
 import argparse
@@ -24,11 +24,11 @@ def app_version() -> str:
 
 
 def sha256(path: Path) -> str:
-    h = hashlib.sha256()
+    digest = hashlib.sha256()
     with path.open("rb") as handle:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            h.update(chunk)
-    return h.hexdigest()
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 def copy_tree(source: Path, destination: Path) -> None:
@@ -78,10 +78,19 @@ def main() -> int:
         check=True,
     )
 
-    built = spec_dist / "TorrentDashboard"
-    if not built.is_dir():
+    dashboard_bundle = spec_dist / "TorrentDashboard"
+    if not dashboard_bundle.is_dir():
         raise RuntimeError("PyInstaller did not create the expected TorrentDashboard directory")
-    shutil.copytree(built, package)
+    shutil.copytree(dashboard_bundle, package)
+
+    # Recovery and Updater are deliberately standalone one-file executables.
+    # This keeps local recovery independent of Dashboard's _internal runtime and
+    # lets Dashboard launch a detached Updater copy that can replace Updater.exe.
+    for name in ("Recovery.exe", "Updater.exe"):
+        source = spec_dist / name
+        if not source.is_file():
+            raise RuntimeError(f"PyInstaller did not create standalone {name}")
+        shutil.copy2(source, package / name)
 
     copy_tree(ROOT / "static", package / "static")
     copy_tree(ROOT / "release_notes", package / "release_notes")
@@ -95,6 +104,17 @@ def main() -> int:
     if missing:
         raise RuntimeError(f"Compiled package is missing: {', '.join(missing)}")
 
+    managed_roots = [
+        "Dashboard.exe",
+        "Recovery.exe",
+        "Updater.exe",
+        "_internal",
+        "static",
+        "release_notes",
+        "README.md",
+        "CHANGELOG.md",
+        "package-info.json",
+    ]
     package_info = {
         "schema": 1,
         "version": version,
@@ -102,17 +122,20 @@ def main() -> int:
         "tag": args.tag,
         "platform": "windows-x64",
         "executables": ["Dashboard.exe", "Recovery.exe", "Updater.exe"],
-        "distribution": "preview",
+        "distribution": "windows-x64",
+        "layout": "windows-bundle-v1",
+        "managed_roots": managed_roots,
+        "preview": True,
     }
     (package / "package-info.json").write_text(json.dumps(package_info, indent=2) + "\n", encoding="utf-8")
 
     archive = output / f"TorrentDashboard-Windows-{version}-x64.zip"
     if archive.exists():
         archive.unlink()
-    with zipfile.ZipFile(archive, "w", zipfile.ZIP_DEFLATED) as zf:
+    with zipfile.ZipFile(archive, "w", zipfile.ZIP_DEFLATED) as zipped:
         for path in sorted(package.rglob("*")):
             if path.is_file():
-                zf.write(path, arcname=f"{package.name}/{path.relative_to(package)}")
+                zipped.write(path, arcname=f"{package.name}/{path.relative_to(package)}")
 
     digest = sha256(archive)
     info_path = output / f"TorrentDashboard-Windows-{version}-x64.release.json"

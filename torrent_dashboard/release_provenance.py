@@ -26,12 +26,19 @@ def version_key(value: str):
     return (*nums, *pre_key)
 
 
-def find_dashboard_asset(release):
-    """Select the source-distribution ZIP from one GitHub release payload."""
+def release_asset_name(version: str, distribution: str = "source") -> str:
+    """Return the canonical release ZIP name for one distribution."""
+    if distribution == "windows-x64":
+        return f"TorrentDashboard-Windows-{version}-x64.zip"
+    return f"Torrent-Dashboard-{version}.zip"
+
+
+def find_dashboard_asset(release, distribution: str = "source"):
+    """Select the exact source or compiled ZIP from one GitHub release payload."""
     assets = release.get("assets") or []
     version = str(release.get("tag_name") or "").strip().lstrip("vV")
     if _SEMVER_RE.fullmatch(version):
-        expected = f"Torrent-Dashboard-{version}.zip"
+        expected = release_asset_name(version, distribution)
         exact = next(
             (asset for asset in assets if str(asset.get("name") or "") == expected),
             None,
@@ -39,19 +46,27 @@ def find_dashboard_asset(release):
         if exact:
             return exact
 
-    candidates = [
-        asset
-        for asset in assets
-        if _DASHBOARD_ASSET_RE.fullmatch(str(asset.get("name") or ""))
-        and "-windows-" not in str(asset.get("name") or "").lower()
-    ]
-    if not candidates:
+    if distribution == "windows-x64":
         candidates = [
             asset
             for asset in assets
             if str(asset.get("name") or "").lower().endswith(".zip")
+            and "windows" in str(asset.get("name") or "").lower()
+        ]
+    else:
+        candidates = [
+            asset
+            for asset in assets
+            if _DASHBOARD_ASSET_RE.fullmatch(str(asset.get("name") or ""))
             and "windows" not in str(asset.get("name") or "").lower()
         ]
+        if not candidates:
+            candidates = [
+                asset
+                for asset in assets
+                if str(asset.get("name") or "").lower().endswith(".zip")
+                and "windows" not in str(asset.get("name") or "").lower()
+            ]
     return candidates[0] if candidates else None
 
 
@@ -65,7 +80,7 @@ def asset_sha256(asset):
     return digest
 
 
-def github_release_integrity(releases, limit=2):
+def github_release_integrity(releases, limit=2, distribution: str = "source"):
     """Extract normalized package provenance rows from GitHub releases."""
     rows = []
     for release in releases if isinstance(releases, list) else []:
@@ -74,7 +89,7 @@ def github_release_integrity(releases, limit=2):
         version = str(release.get("tag_name") or "").strip().lstrip("vV")
         if not _SEMVER_RE.fullmatch(version):
             continue
-        asset = find_dashboard_asset(release)
+        asset = find_dashboard_asset(release, distribution)
         if not asset:
             continue
         try:
@@ -85,7 +100,7 @@ def github_release_integrity(releases, limit=2):
             {
                 "version": version,
                 "sha256": digest,
-                "package": str(asset.get("name") or f"Torrent-Dashboard-{version}.zip"),
+                "package": str(asset.get("name") or release_asset_name(version, distribution)),
                 "publishedAt": str(release.get("published_at") or release.get("created_at") or ""),
                 "channel": "prerelease" if release.get("prerelease") else "stable",
                 "releaseUrl": str(release.get("html_url") or ""),
@@ -389,6 +404,7 @@ __all__ = [
     "find_dashboard_asset",
     "github_release_integrity",
     "normalize_release_integrity",
+    "release_asset_name",
     "release_info_payload",
     "sha256_file",
     "version_key",

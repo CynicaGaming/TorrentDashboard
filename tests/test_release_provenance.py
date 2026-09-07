@@ -16,6 +16,19 @@ from torrent_dashboard.release_provenance import (
 
 
 class ReleaseParsingTests(unittest.TestCase):
+    def test_windows_zip_is_selected_for_windows_distribution(self):
+        release = {
+            "tag_name": "v0.5.145",
+            "assets": [
+                {"name": "Torrent-Dashboard-0.5.145.zip"},
+                {"name": "TorrentDashboard-Windows-0.5.145-x64.zip"},
+            ],
+        }
+        self.assertEqual(
+            find_dashboard_asset(release, "windows-x64")["name"],
+            "TorrentDashboard-Windows-0.5.145-x64.zip",
+        )
+
     def test_source_zip_is_preferred_over_windows_preview(self):
         release = {
             "tag_name": "v0.5.144",

@@ -80,7 +80,13 @@ from torrent_dashboard.recovery import (
     recovery_key_record,
     verify_dashboard_recovery_key,
 )
-from torrent_dashboard.runtime_paths import app_dir, is_frozen
+from torrent_dashboard.runtime_paths import (
+    app_dir,
+    is_frozen,
+    runtime_distribution,
+    source_python_env,
+    updater_command,
+)
 from torrent_dashboard.users import (
     AVATAR_DIR,
     MAX_AVATAR_BYTES,
@@ -117,7 +123,7 @@ RELEASE_INTEGRITY_CACHE_PATH = DATA_DIR / "release-integrity.json"
 CUSTOM_SOUND_BASENAME = "notification-custom"
 LEGACY_CUSTOM_SOUND_BASENAME = "custom-notification-sound"
 MAX_CUSTOM_SOUND_BYTES = 2 * 1024 * 1024
-VERSION = "0.5.144"
+VERSION = "0.5.145"
 STATUS_REFRESH_SECONDS = 1.0
 
 RELEASE_PROVENANCE = ReleaseProvenance(
@@ -1607,13 +1613,14 @@ def fetch_update_release(cfg):
     version=tag.lstrip("vV")
     if not re.fullmatch(r"\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?",version):
         raise RuntimeError("GitHub release tag must use semantic versioning, for example v0.4.0")
-    asset=_find_dashboard_asset(release)
+    distribution=runtime_distribution(APP_DIR)
+    asset=_find_dashboard_asset(release,distribution)
     if not asset:
         raise RuntimeError("The latest GitHub release does not contain a Torrent Dashboard ZIP")
     api_url=str(asset.get("url") or "")
     if not api_url.startswith("https://api.github.com/"):
         raise RuntimeError("GitHub release asset URL is invalid")
-    integrity_history=_github_release_integrity(releases,20)
+    integrity_history=_github_release_integrity(releases,20,distribution)
     data={
         "version":version,
         "channel":"prerelease" if release.get("prerelease") else "stable",
@@ -1690,7 +1697,25 @@ def safe_extract_zip(zip_path: Path, dest: Path):
         z.extractall(dest)
     entries=[p for p in dest.iterdir() if p.name not in ("__MACOSX",)]
     source=entries[0] if len(entries)==1 and entries[0].is_dir() else dest
-    if not (source/"dashboard.py").exists() or not (source/"static"/"index.html").exists():
+    distribution=runtime_distribution(APP_DIR)
+    if distribution == "windows-x64":
+        try:
+            package_info=json.loads((source/"package-info.json").read_text(encoding="utf-8"))
+        except Exception:
+            package_info={}
+        valid=(
+            package_info.get("distribution") == "windows-x64"
+            and (source/"Dashboard.exe").is_file()
+            and (source/"Recovery.exe").is_file()
+            and (source/"Updater.exe").is_file()
+            and (source/"static"/"index.html").is_file()
+        )
+    else:
+        valid=(
+            ((source/"dashboard.py").is_file() or (source/"src"/"torrent_dashboard"/"dashboard.py").is_file())
+            and (source/"static"/"index.html").is_file()
+        )
+    if not valid:
         raise RuntimeError("Update ZIP does not contain a valid Torrent Dashboard application")
     return source
 
@@ -1752,12 +1777,9 @@ def launch_update_installer(handler, cfg, requested_version=None):
         raise RuntimeError("The staged update version changed; check for updates again")
     source=Path(state.get("source","")).resolve()
     if not source.exists(): raise RuntimeError("The staged update files are missing")
-    if is_frozen():
-        raise RuntimeError("Compiled preview self-update is not enabled yet; use the source package for updates")
-    updater=(APP_DIR/"updater.py").resolve()
-    if not updater.exists(): raise RuntimeError("updater.py is missing")
-    cmd=[sys.executable,str(updater),"--pid",str(os.getpid()),"--source",str(source),"--target",str(APP_DIR),"--version",str(state.get("version"))]
-    kwargs={"cwd":str(APP_DIR),"stdin":subprocess.DEVNULL,"stdout":subprocess.DEVNULL,"stderr":subprocess.DEVNULL}
+    cmd=updater_command(APP_DIR,detached=is_frozen())
+    cmd += ["--pid",str(os.getpid()),"--source",str(source),"--target",str(APP_DIR),"--version",str(state.get("version"))]
+    kwargs={"cwd":str(APP_DIR),"stdin":subprocess.DEVNULL,"stdout":subprocess.DEVNULL,"stderr":subprocess.DEVNULL,"env":source_python_env(APP_DIR)}
     if os.name=="nt":
         kwargs["creationflags"]=getattr(subprocess,"CREATE_NEW_PROCESS_GROUP",0)|getattr(subprocess,"DETACHED_PROCESS",0)
     else: kwargs["start_new_session"]=True

@@ -12,6 +12,47 @@
   },
   "releases": [
     {
+      "version": "0.5.145",
+      "date": "2026-09-07",
+      "status": "prerelease",
+      "title": "Distribution-aware updater migration bridge",
+      "summary": "Prepares Torrent Dashboard to cross from the legacy root Python layout to src/torrent_dashboard while enabling verified compiled Windows updates and rollback.",
+      "highlights": [
+        "Update discovery now selects the source or Windows x64 release asset explicitly based on the installed distribution.",
+        "Updater.exe can install and roll back complete managed Windows packages while preserving config.json and data.",
+        "Recovery.exe and Updater.exe are built as standalone executables; Dashboard.exe remains an onedir application for fast startup and editable external assets.",
+        "Runtime path helpers now understand both the legacy root Python layout and the upcoming src/torrent_dashboard layout."
+      ],
+      "fixes": [
+        "Removes the compiled-preview self-update block and launches a detached Updater.exe so Windows can replace the installed updater safely.",
+        "Local Recovery hands update installation to the detached updater and exits before Recovery.exe is replaced."
+      ],
+      "technical": [
+        "Source release ZIPs now carry package-info.json layout metadata while retaining the legacy root layout for one migration release.",
+        "Compiled package metadata declares managed roots so stale PyInstaller runtime files can be removed transactionally and restored on rollback.",
+        "The updater can recognize both root dashboard.py and future src/torrent_dashboard/dashboard.py source packages."
+      ],
+      "validation": [
+        "Runs the complete source validation and unit-test suite.",
+        "Builds Dashboard.exe, standalone Recovery.exe, and standalone Updater.exe on a native Windows runner and smoke-tests all three."
+      ],
+      "known_issues": [],
+      "architecture": [
+        "v0.5.145 intentionally retains the root Python layout so v0.5.144 can update into the migration bridge without restarting stale code."
+      ],
+      "decisions": [
+        "Use v0.5.145 as the compatibility bridge before moving canonical Python source under src/torrent_dashboard in v0.5.146.",
+        "Keep config.json and data outside managed update roots for both source and compiled distributions."
+      ],
+      "next_steps": [
+        {
+          "priority": 1,
+          "title": "Move canonical Python source under src/torrent_dashboard",
+          "detail": "Use the migration-aware v0.5.145 updater to retire the legacy root Python entry points safely in v0.5.146."
+        }
+      ]
+    },
+    {
       "version": "0.5.144",
       "date": "2026-09-07",
       "status": "prerelease",

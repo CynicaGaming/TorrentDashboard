@@ -6,16 +6,21 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.144** (prerelease)
+- Latest documented build: **v0.5.145** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 
 ### Latest release summary
 
-Fixes update staging after the Windows executable preview introduced a second ZIP asset on each GitHub release.
+Prepares Torrent Dashboard to cross from the legacy root Python layout to src/torrent_dashboard while enabling verified compiled Windows updates and rollback.
+
+## Architecture state
+
+- v0.5.145 intentionally retains the root Python layout so v0.5.144 can update into the migration bridge without restarting stale code.
 
 ## Current engineering decisions
 
-- Keep source and compiled release artifact names in separate namespaces so legacy source updaters can identify the source ZIP unambiguously.
+- Use v0.5.145 as the compatibility bridge before moving canonical Python source under src/torrent_dashboard in v0.5.146.
+- Keep config.json and data outside managed update roots for both source and compiled distributions.
 
 ## Development principles
 
@@ -27,6 +32,15 @@ Fixes update staging after the Windows executable preview introduced a second ZI
 - Keep public development continuity portable across forks; label canonical repository/branch/PR references as upstream context rather than local identity.
 
 ## Recent work
+
+### v0.5.145 — Distribution-aware updater migration bridge
+
+Prepares Torrent Dashboard to cross from the legacy root Python layout to src/torrent_dashboard while enabling verified compiled Windows updates and rollback.
+
+- Update discovery now selects the source or Windows x64 release asset explicitly based on the installed distribution.
+- Updater.exe can install and roll back complete managed Windows packages while preserving config.json and data.
+- Recovery.exe and Updater.exe are built as standalone executables; Dashboard.exe remains an onedir application for fast startup and editable external assets.
+- Runtime path helpers now understand both the legacy root Python layout and the upcoming src/torrent_dashboard layout.
 
 ### v0.5.144 — Update source package selection hotfix
 
@@ -62,22 +76,9 @@ Replaces pre-login Console access and personal recovery keys with one dashboard-
 - Recovery signs into a system-owned Administrator principal that cannot be renamed or deleted through user management.
 - Keeps the authenticated Console inside the dashboard for allowlisted operational commands and future recovery expansion.
 
-### v0.5.140 — Per-user recovery keys
-
-Adds persistent opaque recovery keys to user profiles and makes both console surfaces enforce the signed-in user's current role.
-
-- Adds one personal recovery key per user, generated or regenerated from Account settings after current-password confirmation.
-- Uses username plus an opaque TDRK recovery key on the standalone Recovery Console; the key contains no user identifier or embedded authorization data.
-- Allows Standard users to use read-only recovery diagnostics while Administrators retain maintenance, task-control, and verified updater commands.
-- Makes the embedded dashboard Console available to all signed-in users while preserving role-aware backend authorization.
-
 ## What to do next
 
-1. **Add executable-aware update installation** — Teach Updater.exe to stage, replace, health-check, and roll back complete Windows executable packages.
-
-## Known issues
-
-- Compiled preview self-update remains intentionally disabled until executable-aware atomic replacement and rollback are implemented.
+1. **Move canonical Python source under src/torrent_dashboard** — Use the migration-aware v0.5.145 updater to retire the legacy root Python entry points safely in v0.5.146.
 
 ## Handoff instructions for a new development session
 

@@ -13,13 +13,15 @@ import getpass
 import hashlib
 import hmac
 import json
+import os
+import subprocess
 import re
 import shutil
 import sys
 import time
 from pathlib import Path
 
-from torrent_dashboard.runtime_paths import app_dir, is_frozen
+from torrent_dashboard.runtime_paths import app_dir, is_frozen, source_python_env, updater_command
 
 APP_DIR = app_dir()
 CONFIG_PATH = APP_DIR / "config.json"
@@ -157,11 +159,17 @@ def current_version() -> str:
             return str(json.loads(package_info.read_text(encoding="utf-8")).get("version") or "unknown")
         except Exception:
             pass
-    source = APP_DIR / "dashboard.py"
-    if source.is_file():
+    for source in (
+        APP_DIR / "src" / "torrent_dashboard" / "__init__.py",
+        APP_DIR / "src" / "torrent_dashboard" / "dashboard.py",
+        APP_DIR / "dashboard.py",
+    ):
+        if not source.is_file():
+            continue
         text = source.read_text(encoding="utf-8")
-        match = re.search(r'^VERSION\s*=\s*["\']([^"\']+)', text, re.M)
-        return match.group(1) if match else "unknown"
+        match = re.search(r'^(?:VERSION|__version__)\s*=\s*["\']([^"\']+)', text, re.M)
+        if match:
+            return match.group(1)
     return "unknown"
 
 
@@ -169,8 +177,12 @@ def updater_module():
     try:
         import updater
         return updater
-    except Exception as exc:
-        raise RuntimeError(f"updater.py could not be loaded: {exc}") from exc
+    except Exception:
+        try:
+            from torrent_dashboard import updater
+            return updater
+        except Exception as exc:
+            raise RuntimeError(f"Updater module could not be loaded: {exc}") from exc
 
 
 def validation_report(cfg: dict) -> list[tuple[str, bool, str]]:
@@ -223,7 +235,7 @@ def check_update(cfg: dict):
     upd = updater_module()
     repo = configured_repository(cfg)
     installed = current_version()
-    version, release, asset = upd.newest_release(repo)
+    version, release, asset = upd.newest_release(repo, upd.installation_distribution(APP_DIR))
     print(f"Installed version: {installed}")
     print(f"Latest version:    {version}")
     print(f"Repository:        {repo}")
@@ -236,12 +248,27 @@ def check_update(cfg: dict):
 
 
 def install_update(cfg: dict, force: bool = False) -> None:
-    if is_frozen():
-        raise RuntimeError("Compiled preview self-update is not enabled yet; use the source package for updates")
     upd = updater_module()
     repo = configured_repository(cfg)
     if upd.dashboard_instance_running():
         raise RuntimeError("Stop Torrent Dashboard before installing from local recovery")
+    if is_frozen():
+        cmd = updater_command(APP_DIR, detached=True)
+        cmd += ["--github-update", "--target", str(APP_DIR), "--repository", repo, "--pid", str(os.getpid())]
+        if force:
+            cmd.append("--force")
+        kwargs = {
+            "cwd": str(APP_DIR),
+            "stdin": subprocess.DEVNULL,
+            "stdout": None,
+            "stderr": None,
+            "env": source_python_env(APP_DIR),
+        }
+        if os.name == "nt":
+            kwargs["creationflags"] = getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
+        subprocess.Popen(cmd, **kwargs)
+        print("Updater.exe launched. Recovery will close so the recovery executable can be replaced safely.")
+        raise SystemExit(0)
     upd.recovery_update(APP_DIR, repo, force=force)
 
 

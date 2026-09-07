@@ -20,7 +20,7 @@ def analysis(entry):
     )
 
 
-def executable(a, name):
+def onedir_executable(a, name):
     pyz = PYZ(a.pure)
     return EXE(
         pyz,
@@ -41,24 +41,40 @@ def executable(a, name):
     )
 
 
+def onefile_executable(a, name):
+    pyz = PYZ(a.pure)
+    return EXE(
+        pyz,
+        a.scripts,
+        a.binaries,
+        a.datas,
+        [],
+        name=name,
+        debug=False,
+        bootloader_ignore_signals=False,
+        strip=False,
+        upx=True,
+        console=True,
+        disable_windowed_traceback=False,
+        argv_emulation=False,
+        target_arch=None,
+        codesign_identity=None,
+        entitlements_file=None,
+    )
+
+
 dashboard = analysis("dashboard.py")
 recovery = analysis("recovery_tool.py")
 updater = analysis("updater.py")
 
-Dashboard = executable(dashboard, "Dashboard")
-Recovery = executable(recovery, "Recovery")
-Updater = executable(updater, "Updater")
+Dashboard = onedir_executable(dashboard, "Dashboard")
+Recovery = onefile_executable(recovery, "Recovery")
+Updater = onefile_executable(updater, "Updater")
 
 bundle = COLLECT(
     Dashboard,
-    Recovery,
-    Updater,
     dashboard.binaries,
     dashboard.datas,
-    recovery.binaries,
-    recovery.datas,
-    updater.binaries,
-    updater.datas,
     strip=False,
     upx=True,
     upx_exclude=[],
