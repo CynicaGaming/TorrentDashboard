@@ -4,11 +4,11 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#0b0d10" name="theme-color"/>
-<meta content="0.5.146" name="torrent-dashboard-build"/>
+<meta content="0.5.147" name="torrent-dashboard-build"/>
 <link href="/manifest.webmanifest" rel="manifest"/>
 <link href="/static/favicon.svg" rel="icon" type="image/svg+xml"/>
-<link href="/static/app.css?v=0.5.146" rel="stylesheet"/>
-<link href="/static/settings.css?v=0.5.146" rel="stylesheet"/>
+<link href="/static/app.css?v=0.5.147" rel="stylesheet"/>
+<link href="/static/settings.css?v=0.5.147" rel="stylesheet"/>
 <title>Torrent Dashboard</title>
 </head>
 <body>
@@ -79,6 +79,7 @@
 <button data-view="settings" data-settings-page="general" type="button">General</button>
 <button data-view="settings" data-settings-page="access" type="button">Access</button>
 <button data-view="settings" data-settings-page="clients" type="button">Clients</button>
+<button data-view="settings" data-settings-page="backups" type="button">Backups</button>
 <button data-view="settings" data-settings-page="updates" type="button">Updates</button>
 <button data-view="settings" data-settings-page="notifications" type="button">Notifications</button>
 <button data-view="settings" data-settings-page="integrations" type="button">Integrations</button>
@@ -178,7 +179,7 @@
 </section>
 <section class="view" id="view-settings">
 <div class="settings-layout">
-<label class="settings-mobile-picker">Settings category<select id="settingsMobilePage" aria-label="Settings category"><option value="general">General</option><option value="access">Access</option><option value="clients">Clients</option><option value="updates">Updates</option><option value="notifications">Notifications</option><option value="integrations">Integrations</option><option value="users">Users</option></select></label>
+<label class="settings-mobile-picker">Settings category<select id="settingsMobilePage" aria-label="Settings category"><option value="general">General</option><option value="access">Access</option><option value="clients">Clients</option><option value="backups">Backups</option><option value="updates">Updates</option><option value="notifications">Notifications</option><option value="integrations">Integrations</option><option value="users">Users</option></select></label>
 <div class="settings-content">
 <form id="settingsForm">
 <section class="settings-page active" data-settings-section="general">
@@ -208,6 +209,16 @@
 </section>
 <section class="settings-page" data-settings-section="clients">
 <div class="panel settings-card"><div class="panel-title">Clients</div><p class="muted client-settings-intro">Manage your qBitTorrent connections. Open Settings on a saved client to change its transfer preferences.</p><div id="serverSettings"></div><button id="addServerSetting" type="button">＋ Add client</button></div>
+</section>
+<section class="settings-page" data-settings-section="backups">
+<div class="panel settings-card backup-settings-card">
+<div class="panel-title">Backups</div>
+<p class="muted backup-intro">Create portable backups of Torrent Dashboard configuration and state. Backups include users, saved credentials, integrations, notification assets, profile pictures, and dashboard history. Application binaries and qBitTorrent data are not included.</p>
+<div class="backup-warning"><strong>Keep backup files secure.</strong><span>Portable backups contain saved credentials and recovery data in readable archive form.</span></div>
+<div class="settings-inline-actions backup-toolbar"><button class="primary" id="backupCreate" type="button">Create backup</button><button class="secondary" id="backupImport" type="button">Import backup</button><input accept=".tdbackup,application/zip" class="hidden" id="backupImportFile" type="file"/></div>
+<div class="test-result muted backup-status" id="backupStatus">Backups are stored locally under <code>data/backups</code>. Export one to move it to another installation.</div>
+<div class="backup-list" id="backupList"><div class="settings-empty"><b>Loading backups…</b><span>Local backup archives will appear here.</span></div></div>
+</div>
 </section>
 <section class="settings-page" data-settings-section="updates">
 <div class="panel settings-card" id="updateSettingsCard">
@@ -277,7 +288,7 @@
 <div class="menu account-menu hidden" id="accountMenu" role="menu"><div class="account-menu-head"><span class="profile-avatar profile-avatar-menu"><img alt="" class="hidden" data-avatar-image/><span class="avatar-default" data-avatar-default aria-hidden="true"></span></span><div><strong id="accountMenuName">Account</strong><small id="accountMenuGroup">User</small></div></div><div class="menu-separator" role="separator"></div><button id="accountSettingsBtn" type="button">Account settings</button><button id="accountConsoleBtn" type="button">Console</button><button class="hidden" id="installPwa" type="button">Install app</button><div class="menu-separator" role="separator"></div><button id="logoutBtn" type="button">Sign out</button></div>
 <div class="menu hidden" id="contextMenu"></div>
 <div class="toasts" id="toasts"></div>
-<script src="/static/settings.js?v=0.5.146"></script>
-<script src="/static/app.js?v=0.5.146"></script>
+<script src="/static/settings.js?v=0.5.147"></script>
+<script src="/static/app.js?v=0.5.147"></script>
 </body>
 </html>

@@ -7,39 +7,41 @@
 This handoff is intentionally portable across public forks. Verify the current checkout's Git remote, branch, and open work before using upstream references as instructions.
 
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
-- Last documented upstream build: **v0.5.146** (prerelease)
+- Last documented upstream build: **v0.5.147** (prerelease)
 
 ## Last known-good state
 
-Moves all maintained Torrent Dashboard application Python code into src/torrent_dashboard and makes that one package the source for editable, recovery, updater, and compiled Windows builds.
+Adds a dedicated in-app backup manager for creating, viewing, restoring, importing, and exporting portable Torrent Dashboard state backups.
 
 The released-state details and recent history are in `PROJECT_STATE.md`; architectural constraints are in `ARCHITECTURE.md`.
 
 ## Active development intent
 
 - Status: **ready**
-- Objective: **Exercise and harden compiled Windows update and rollback behavior**
-- Why: The Python source layout is unified; the remaining packaging risk is operational validation of repeated executable upgrades before treating the Windows build as non-preview.
+- Objective: **Exercise portable backup migration and restore on compiled Windows installations**
+- Why: Portable backup management is implemented; the remaining risk is operational validation of a full export/import/restore round trip between real installations.
 
 ### Acceptance criteria
 
-- A Windows executable installation updates across multiple prereleases without manual intervention.
-- Recovery.exe can reinstall a Windows package while Dashboard is unavailable.
-- Rollback restores Dashboard.exe, Recovery.exe, Updater.exe, _internal, and external assets after a failed health check.
-- config.json and data remain untouched across compiled updates and rollback.
+- A compiled Windows installation creates and exports a valid .tdbackup archive from Settings → Backups.
+- A second same-or-newer installation imports the archive and lists it without modifying current state.
+- Restoring the imported backup migrates users, credentials, integrations, dashboard history, profile pictures, and notification assets while leaving application binaries and qBitTorrent data untouched.
+- Restore signs out existing sessions and the automatically created pre-restore safety backup can return the destination to its previous state.
 
 ### Decisions already made
 
-- src/torrent_dashboard is the canonical application source.
-- Dashboard.exe remains onedir; Recovery.exe and Updater.exe remain standalone onefile executables.
-- Do not add code signing until compiled update mechanics have stabilized.
+- Backup management is a dedicated Settings category, not part of Updates.
+- Portable backups contain dashboard state only and preserve saved secrets for migration fidelity.
+- Restores always create a safety backup before applying state and reject backups created by a newer Torrent Dashboard version.
 
 ### Expected areas of change
 
-- `src/torrent_dashboard/`
-- `release_tools/`
-- `.github/workflows/windows-preview.yml`
-- `tests/test_updater_distribution.py`
+- `src/torrent_dashboard/backups.py`
+- `src/torrent_dashboard/dashboard.py`
+- `static/index.html`
+- `static/settings.js`
+- `static/settings.css`
+- `tests/test_backups.py`
 
 ### Blockers
 
@@ -47,11 +49,11 @@ None currently recorded.
 
 ### Explicitly out of scope
 
-- Code signing during initial executable update soak testing.
+- Encrypted backup archives, scheduled backups, retention policies, and remote/cloud backup destinations in the initial release.
 
 ## Exact next action
 
-Exercise Windows executable update, recovery reinstall, health-check failure, and rollback across subsequent prereleases.
+Run a compiled Windows create/export/import/restore round trip across two installations, then restore the generated pre-restore safety backup on the destination.
 
 ## Resume checklist
 

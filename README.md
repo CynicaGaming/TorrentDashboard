@@ -111,3 +111,8 @@ python release_tools/validate_ui_strings.py
 ```
 
 Structured release metadata in `release_notes/releases.json` generates the changelog, project state, portable handoff, and GitHub release body. Pull requests and forks are welcome. Fork maintainers can point **Settings → Updates** at their own public release repository or change `DEFAULT_UPDATE_REPOSITORY` for their build.
+
+## Backups
+
+Administrators can manage portable installation backups under **Settings → Backups**. A `.tdbackup` archive contains `config.json` plus persistent dashboard state such as history, profile pictures, and notification assets. It does not contain Torrent Dashboard application binaries, staged updates, or qBitTorrent data. Backup archives contain saved credentials and recovery data, so store exported files securely. Restores automatically create a pre-restore safety backup first.
+

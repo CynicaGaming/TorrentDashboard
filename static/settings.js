@@ -9,6 +9,8 @@ window.TDSettings = (() => {
   let clientSettingsServerId = '';
   let integrationHealthRefreshing = false;
   let pendingNotificationSoundFile = null;
+  let backups = [];
+  let backupsLoading = false;
 
   const corePages = new Set(['general','access','clients','updates','notifications']);
   const SECRET_MASK = '••••••••••';
@@ -19,7 +21,7 @@ window.TDSettings = (() => {
 
   function activate(page) {
     page = page || localStorage.tdSettingsPage || 'general';
-    const allowed = ['general','access','clients','updates','notifications','integrations','users'];
+    const allowed = ['general','access','clients','backups','updates','notifications','integrations','users'];
     if (!allowed.includes(page)) page = 'general';
     localStorage.tdSettingsPage = page;
     document.querySelectorAll('[data-settings-section]').forEach(el => el.classList.toggle('active', el.dataset.settingsSection === page));
@@ -28,6 +30,7 @@ window.TDSettings = (() => {
     if (mobilePage && mobilePage.value !== page) mobilePage.value = page;
     const savebar = document.querySelector('#settingsSavebar');
     if (savebar) savebar.classList.toggle('hidden', !corePages.has(page));
+    if (page === 'backups') loadBackups();
   }
 
   function bind() {
@@ -48,6 +51,9 @@ window.TDSettings = (() => {
     document.querySelector('#clientProxyType')?.addEventListener('change', syncClientSettingsControls);
     document.querySelector('#clientProxyAuth')?.addEventListener('change', syncClientSettingsControls);
     document.querySelector('#updateAction')?.addEventListener('click', handleUpdateAction);
+    document.querySelector('#backupCreate')?.addEventListener('click', createBackup);
+    document.querySelector('#backupImport')?.addEventListener('click', () => document.querySelector('#backupImportFile')?.click());
+    document.querySelector('#backupImportFile')?.addEventListener('change', event => importBackupFile(event.target.files?.[0] || null));
     document.querySelector('#nSoundMode')?.addEventListener('change', updateNotificationSoundUi);
     bindNotificationSoundModeSelect();
     document.querySelector('#nSoundFile')?.addEventListener('change', event => setNotificationSoundFile(event.target.files?.[0] || null));
@@ -431,6 +437,91 @@ window.TDSettings = (() => {
     } catch(e) {
       if (status) { status.className='test-result bad'; status.textContent=e.message || 'Notification test failed.'; }
     } finally { if (revoke) URL.revokeObjectURL(soundUrl); }
+  }
+
+  function formatBackupBytes(value) {
+    let size=Math.max(0,Number(value)||0);const units=['B','KB','MB','GB'];let index=0;
+    while(size>=1024&&index<units.length-1){size/=1024;index+=1}
+    return `${size>=100||index===0?Math.round(size):size.toFixed(1)} ${units[index]}`;
+  }
+
+  function formatBackupDate(value) {
+    if(!value)return 'Unknown date';
+    const date=new Date(value);return Number.isNaN(date.getTime())?'Unknown date':date.toLocaleString();
+  }
+
+  function backupKindLabel(kind) {
+    return kind==='pre-restore'?'Safety backup':'Backup';
+  }
+
+  function setBackupStatus(message='',tone='muted') {
+    const status=document.querySelector('#backupStatus');if(!status)return;
+    status.className=`test-result ${tone} backup-status`;status.textContent=message;
+  }
+
+  function renderBackups() {
+    const list=document.querySelector('#backupList');if(!list)return;
+    if(!backups.length){list.innerHTML='<div class="settings-empty"><b>No backups yet</b><span>Create a backup here or import a .tdbackup file from another installation.</span></div>';return}
+    list.innerHTML='';
+    backups.forEach(item=>{
+      const row=document.createElement('article');row.className=`backup-item${item.valid===false?' invalid':''}`;
+      const details=[backupKindLabel(item.kind),`v${item.source_version||'unknown'}`,formatBackupBytes(item.size),`${Number(item.files||0)} files`];
+      row.innerHTML=`<div class="backup-item-copy"><strong>${esc(item.name||'Backup')}</strong><span>${esc(formatBackupDate(item.created_at))} · ${esc(details.join(' · '))}</span>${item.valid===false?`<small>${esc(item.error||'Backup metadata is invalid')}</small>`:''}</div><div class="backup-item-actions"><button class="secondary backup-export" type="button">Export</button><button class="primary backup-restore" type="button" ${item.valid===false?'disabled':''}>Restore</button></div>`;
+      row.querySelector('.backup-export')?.addEventListener('click',()=>exportBackup(item.name));
+      row.querySelector('.backup-restore')?.addEventListener('click',()=>restoreBackup(item));
+      list.appendChild(row);
+    });
+    applySentenceCaseUi(list);
+  }
+
+  async function loadBackups() {
+    if(backupsLoading||!state.me?.can_manage)return;
+    backupsLoading=true;
+    try{const data=await api('/api/backups');backups=data.backups||[];renderBackups()}
+    catch(error){setBackupStatus(error.message||'Could not load backups.','bad')}
+    finally{backupsLoading=false}
+  }
+
+  async function createBackup() {
+    const button=document.querySelector('#backupCreate');if(button)button.disabled=true;
+    setBackupStatus('Creating a consistent backup of dashboard state…');
+    try{const data=await post('/api/backups/create',{});setBackupStatus(`Backup created: ${data.backup?.name||'complete'}`,'ok');toast('Backup created');await loadBackups()}
+    catch(error){setBackupStatus(error.message||'Backup creation failed.','bad')}
+    finally{if(button)button.disabled=false}
+  }
+
+  async function importBackupFile(file) {
+    const input=document.querySelector('#backupImportFile');
+    if(!file){if(input)input.value='';return}
+    if(!String(file.name||'').toLowerCase().endsWith('.tdbackup')){if(input)input.value='';return setBackupStatus('Choose a .tdbackup file.','bad')}
+    if(!Number.isFinite(file.size)||file.size<1||file.size>512*1024*1024){if(input)input.value='';return setBackupStatus('Backup must be between 1 byte and 512 MB.','bad')}
+    const button=document.querySelector('#backupImport');if(button)button.disabled=true;
+    setBackupStatus(`Importing ${file.name}…`);
+    try{
+      const form=new FormData();form.append('backup',file,file.name);
+      const response=await fetch('/api/backups/import',{method:'POST',headers:{'X-CSRF-Token':state.csrf},body:form});
+      const data=await response.json().catch(()=>({}));if(!response.ok)throw new Error(data.error||`HTTP ${response.status}`);
+      setBackupStatus(`Imported ${data.backup?.name||file.name}.`,'ok');toast('Backup imported');await loadBackups();
+    }catch(error){setBackupStatus(error.message||'Backup import failed.','bad')}
+    finally{if(input)input.value='';if(button)button.disabled=false}
+  }
+
+  function exportBackup(name) {
+    if(!name)return;
+    const link=document.createElement('a');link.href=`/api/backups/export?name=${encodeURIComponent(name)}`;link.download=name;link.rel='noopener';document.body.appendChild(link);link.click();link.remove();
+  }
+
+  async function restoreBackup(item) {
+    const name=String(item?.name||'');if(!name)return;
+    const warning=`Restore ${name}?\n\nTorrent Dashboard will first create a safety backup of the current state, then replace configuration and dashboard data with this backup. You will be signed out and must use the restored installation credentials. Application binaries and qBitTorrent data are not changed.`;
+    if(!confirm(warning))return;
+    setBackupStatus(`Restoring ${name}…`);
+    document.querySelectorAll('.backup-item-actions button').forEach(button=>button.disabled=true);
+    try{
+      const data=await post('/api/backups/restore',{name});
+      const safety=data.safety_backup?.name?` Safety backup: ${data.safety_backup.name}.`:'';
+      setBackupStatus(`Restore complete.${safety} Reloading…`,'ok');toast('Backup restored');setTimeout(()=>window.location.reload(),700);
+    }catch(error){setBackupStatus(error.message||'Backup restore failed.','bad');renderBackups()}
   }
 
   function updateSourceRepository() {
