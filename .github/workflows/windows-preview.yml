@@ -31,8 +31,8 @@ jobs:
         id: version
         shell: pwsh
         run: |
-          $match = Select-String -Path "dashboard.py" -Pattern '^VERSION\s*=\s*"([^"]+)"'
-          if (-not $match) { throw "Could not determine VERSION from dashboard.py" }
+          $match = Select-String -Path "src/torrent_dashboard/__init__.py" -Pattern '^__version__\s*=\s*"([^"]+)"'
+          if (-not $match) { throw "Could not determine __version__ from src/torrent_dashboard/__init__.py" }
           $version = $match.Matches[0].Groups[1].Value
           "version=$version" >> $env:GITHUB_OUTPUT
           "tag=v$version" >> $env:GITHUB_OUTPUT
@@ -59,6 +59,9 @@ jobs:
           foreach ($name in @("Dashboard.exe","Recovery.exe","Updater.exe","static\index.html","package-info.json")) {
             if (-not (Test-Path "$pkg\$name")) { throw "Missing $name" }
           }
+          $info = Get-Content "$pkg\package-info.json" | ConvertFrom-Json
+          if ($info.distribution -ne 'windows-x64') { throw "Wrong distribution" }
+          if ($info.layout -ne 'windows-bundle-v1') { throw "Wrong Windows package layout" }
 
       - name: Wait For Source Pre-Release
         if: github.ref == 'refs/heads/main'

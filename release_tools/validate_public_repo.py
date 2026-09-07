@@ -13,16 +13,17 @@ PATTERNS={
  'qBitTorrent API key':re.compile(r'\bqbt_[A-Za-z0-9]{28}\b'),
 }
 TEXT={'.py','.js','.css','.html','.md','.json','.yml','.yaml','.toml','.ini','.cfg','.txt','.bat','.ps1','.sh','.webmanifest'}
-files=[x.decode() for x in subprocess.check_output(['git','ls-files','-z'],cwd=ROOT).split(b'\0') if x]
+files=[x.decode() for x in subprocess.check_output(['git','ls-files','--cached','--others','--exclude-standard','-z'],cwd=ROOT).split(b'\0') if x]
 fail=[]
 for rel in files:
     rel=rel.replace('\\','/')
     if rel in BAD or any(rel.startswith(p) for p in PREFIX): fail.append('disallowed tracked path: '+rel); continue
     p=ROOT/rel
+    if not p.exists(): continue
     if p.name!='.gitignore' and p.suffix.lower() not in TEXT: continue
     try: text=p.read_text(encoding='utf-8')
     except UnicodeDecodeError: continue
     for label,rx in PATTERNS.items():
         if rx.search(text): fail.append(f'{label} pattern found in {rel}')
 if fail: raise SystemExit('Public repository hygiene check failed:\n- '+'\n- '.join(sorted(set(fail))))
-print(f'Public repository hygiene check passed ({len(files)} tracked files scanned)')
+print(f'Public repository hygiene check passed ({len(files)} tracked/untracked files scanned)')

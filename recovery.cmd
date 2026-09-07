@@ -5,9 +5,10 @@ if exist "Recovery.exe" (
   "Recovery.exe" %*
   exit /b %errorlevel%
 )
+set "PYTHONPATH=%~dp0src;%PYTHONPATH%"
 where py >nul 2>nul
 if %errorlevel%==0 (
-  py -3 recovery_tool.py %*
+  py -3 -m torrent_dashboard.recovery_tool %*
 ) else (
-  python recovery_tool.py %*
+  python -m torrent_dashboard.recovery_tool %*
 )

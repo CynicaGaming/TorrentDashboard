@@ -95,12 +95,12 @@ def main():
     settings_js = (ROOT / "static" / "settings.js").read_text(encoding="utf-8")
     app_css = (ROOT / "static" / "app.css").read_text(encoding="utf-8")
     settings_css = (ROOT / "static" / "settings.css").read_text(encoding="utf-8")
-    dashboard_py = (ROOT / "dashboard.py").read_text(encoding="utf-8")
-    config_py = (ROOT / "torrent_dashboard" / "config.py").read_text(encoding="utf-8")
-    config_store_py = (ROOT / "torrent_dashboard" / "config_store.py").read_text(encoding="utf-8")
-    integrations_py = (ROOT / "torrent_dashboard" / "integrations.py").read_text(encoding="utf-8")
-    jellyfin_py = (ROOT / "torrent_dashboard" / "jellyfin.py").read_text(encoding="utf-8")
-    users_py = (ROOT / "torrent_dashboard" / "users.py").read_text(encoding="utf-8")
+    dashboard_py = (ROOT / "src" / "torrent_dashboard" / "dashboard.py").read_text(encoding="utf-8")
+    config_py = (ROOT / "src" / "torrent_dashboard" / "config.py").read_text(encoding="utf-8")
+    config_store_py = (ROOT / "src" / "torrent_dashboard" / "config_store.py").read_text(encoding="utf-8")
+    integrations_py = (ROOT / "src" / "torrent_dashboard" / "integrations.py").read_text(encoding="utf-8")
+    jellyfin_py = (ROOT / "src" / "torrent_dashboard" / "jellyfin.py").read_text(encoding="utf-8")
+    users_py = (ROOT / "src" / "torrent_dashboard" / "users.py").read_text(encoding="utf-8")
     design_language = (ROOT / "DESIGN_LANGUAGE.md").read_text(encoding="utf-8")
     testing_md = (ROOT / "TESTING.md").read_text(encoding="utf-8")
 
@@ -309,7 +309,7 @@ def main():
     # stale versioned scripts trigger recovery, and optional Add Torrent bindings
     # cannot abort critical dashboard startup.
     sw = (ROOT / "static" / "sw.js").read_text(encoding="utf-8")
-    version = re.search(r'^VERSION\s*=\s*["\']([^"\']+)', dashboard_py, re.M).group(1)
+    version = re.search(r'^__version__\s*=\s*["\']([^"\']+)', (ROOT / 'src' / 'torrent_dashboard' / '__init__.py').read_text(encoding='utf-8'), re.M).group(1)
     assert f'<meta content="{version}" name="torrent-dashboard-build"/>' in html
     assert f"const FRONTEND_BUILD='{version}';" in app_js
     assert "HTML_BUILD!==FRONTEND_BUILD" in app_js and "recoverFrontendBuild" in app_js
@@ -906,8 +906,8 @@ def main():
     assert '### Jellyfin service integration' in testing_md
 
     # 0.5.141 replaces the pre-login Console with dashboard-wide Recovery.
-    recovery_py = (ROOT / "torrent_dashboard" / "recovery.py").read_text(encoding="utf-8")
-    recovery_console_py = (ROOT / "torrent_dashboard" / "recovery_console.py").read_text(encoding="utf-8")
+    recovery_py = (ROOT / "src" / "torrent_dashboard" / "recovery.py").read_text(encoding="utf-8")
+    recovery_console_py = (ROOT / "src" / "torrent_dashboard" / "recovery_console.py").read_text(encoding="utf-8")
     assert 'id="loginRecoveryTab"' in html and 'id="recoveryLoginForm"' in html and 'id="recoveryKey"' in html
     assert html.count('id="recoveryKey"') == 1
     assert 'href="/console"' not in html and not (ROOT / "static" / "recovery-console.html").exists()
@@ -919,7 +919,7 @@ def main():
     assert 'SAFE_TORRENT_ACTIONS' in recovery_console_py and 'delete' not in recovery_console_py.split('SAFE_TORRENT_ACTIONS',1)[1].split(')',1)[0]
     assert 'id="setupRecoveryModal"' in html and 'id="setupRecoveryKeyValue"' in html
     assert '/api/recovery/initialize' not in dashboard_py and 'recovery_configured' not in dashboard_py and 'recovery_configured' not in app_js
-    local_recovery = (ROOT / 'recovery_tool.py').read_text(encoding='utf-8')
+    local_recovery = (ROOT / 'src' / 'torrent_dashboard' / 'recovery_tool.py').read_text(encoding='utf-8')
     assert 'Recovery key:' in local_recovery and 'recovery_update(APP_DIR' in local_recovery
     assert 'network-reset' in local_recovery and 'restore <backup-file>' in local_recovery and 'clear-update' in local_recovery
     assert all(token not in local_recovery for token in ('BaseHTTPRequestHandler','ThreadingHTTPServer','socketserver','http.server'))

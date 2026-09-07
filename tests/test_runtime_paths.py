@@ -10,7 +10,7 @@ from torrent_dashboard import runtime_paths
 
 class RuntimePathTests(unittest.TestCase):
     def test_source_app_dir_is_repository_root(self):
-        self.assertTrue((runtime_paths.app_dir() / "dashboard.py").is_file())
+        self.assertTrue((runtime_paths.app_dir() / "src" / "torrent_dashboard" / "dashboard.py").is_file())
 
     def test_frozen_app_dir_uses_executable_parent(self):
         fake = Path(tempfile.gettempdir()) / "td-test" / "Dashboard.exe"

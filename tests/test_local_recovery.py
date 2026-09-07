@@ -4,7 +4,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-import recovery_tool as rt
+from torrent_dashboard import recovery_tool as rt
 from torrent_dashboard.recovery import generate_dashboard_recovery_key, recovery_key_record
 
 

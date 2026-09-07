@@ -49,7 +49,7 @@ Torrent Dashboard provides a modern browser interface for monitoring and managin
 ### Linux
 
 1. Download and extract the latest release ZIP.
-2. Run `python3 dashboard.py` from the extracted directory.
+2. Run `python3 src/torrent_dashboard/dashboard.py` from the extracted directory.
 3. Complete the First Run Setup wizard.
 
 Torrent Dashboard listens on `0.0.0.0` so permitted devices on your network can reach it. The wizard detects the local address and lets you choose the dashboard port and trusted interfaces.
@@ -81,6 +81,9 @@ The repository intentionally excludes live configuration and runtime data. Relea
 If you discover a security issue, do not post credentials or sensitive exploit details in a public issue.
 
 ## Development
+
+The maintained Python application lives under `src/torrent_dashboard/`. The Windows executable package is generated from that same source tree and contains `Dashboard.exe`, `Recovery.exe`, and `Updater.exe` in one extracted folder; frontend assets and runtime state remain external.
+
 
 Start with [`DEVELOPMENT.md`](DEVELOPMENT.md) for the contributor/fork workflow and [`HANDOFF.md`](HANDOFF.md) for the current portable development handoff. Architecture and module ownership are documented in [`ARCHITECTURE.md`](ARCHITECTURE.md), interface/content conventions in [`DESIGN_LANGUAGE.md`](DESIGN_LANGUAGE.md), and the automated/manual verification contract in [`TESTING.md`](TESTING.md).
 

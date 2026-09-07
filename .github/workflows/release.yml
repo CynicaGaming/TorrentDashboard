@@ -16,6 +16,8 @@ concurrency:
 jobs:
   build-release:
     runs-on: ubuntu-latest
+    env:
+      PYTHONPATH: src
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -50,8 +52,8 @@ jobs:
         run: |
           VERSION=$(python - <<'PY'
           import re
-          text=open('dashboard.py', encoding='utf-8').read()
-          print(re.search(r'^VERSION\s*=\s*["\']([^"\']+)', text, re.M).group(1))
+          text=open('src/torrent_dashboard/__init__.py', encoding='utf-8').read()
+          print(re.search(r'^__version__\s*=\s*["\']([^"\']+)', text, re.M).group(1))
           PY
           )
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
@@ -87,20 +89,31 @@ jobs:
           with zipfile.ZipFile(path) as z:
               names=[n for n in z.namelist() if not n.endswith('/')]
           required=(
-              '/dashboard.py','/updater.py','/torrent_dashboard/__init__.py','/torrent_dashboard/users.py',
-              '/torrent_dashboard/config_store.py','/torrent_dashboard/config.py','/torrent_dashboard/integrations.py',
-              '/torrent_dashboard/jellyfin.py','/torrent_dashboard/release_provenance.py','/ARCHITECTURE.md',
-              '/PROJECT_STATE.md','/CHANGELOG.md','/release_notes/releases.json','/static/index.html',
-              '/static/app.js','/static/settings.js','/static/settings.css',
+              '/src/torrent_dashboard/__init__.py','/src/torrent_dashboard/dashboard.py',
+              '/src/torrent_dashboard/updater.py','/src/torrent_dashboard/recovery_tool.py',
+              '/src/torrent_dashboard/users.py','/src/torrent_dashboard/config_store.py',
+              '/src/torrent_dashboard/config.py','/src/torrent_dashboard/integrations.py',
+              '/src/torrent_dashboard/jellyfin.py','/src/torrent_dashboard/release_provenance.py',
+              '/pyproject.toml','/ARCHITECTURE.md','/PROJECT_STATE.md','/CHANGELOG.md',
+              '/release_notes/releases.json','/static/index.html','/static/app.js',
+              '/static/settings.js','/static/settings.css',
           )
           for suffix in required:
               assert any(n.endswith(suffix) for n in names), suffix
+          retired=(
+              '/dashboard.py','/updater.py','/recovery_tool.py',
+              '/torrent_dashboard/__init__.py','/torrent_dashboard/config.py',
+          )
+          for suffix in retired:
+              assert not any(n.endswith(suffix) for n in names), suffix
           assert not any(n.endswith('recover_v0_5_123.py') or n.endswith('run_recovery_safe.py') for n in names)
           info=json.loads(info_path.read_text(encoding='utf-8'))
           digest=hashlib.sha256(path.read_bytes()).hexdigest()
           assert info['version'] == version
           assert info['package'] == path.name
           assert info['sha256'] == digest
+          assert info['distribution'] == 'source'
+          assert info['layout'] == 'src'
           PY
 
       - name: Publish Or Refresh GitHub Pre-Release

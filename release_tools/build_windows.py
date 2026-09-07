@@ -16,10 +16,10 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def app_version() -> str:
-    text = (ROOT / "dashboard.py").read_text(encoding="utf-8")
-    match = re.search(r'^VERSION\s*=\s*["\']([^"\']+)', text, re.M)
+    text = (ROOT / "src" / "torrent_dashboard" / "__init__.py").read_text(encoding="utf-8")
+    match = re.search(r'^__version__\s*=\s*["\']([^"\']+)', text, re.M)
     if not match:
-        raise RuntimeError("Could not determine VERSION from dashboard.py")
+        raise RuntimeError("Could not determine __version__ from src/torrent_dashboard/__init__.py")
     return match.group(1)
 
 

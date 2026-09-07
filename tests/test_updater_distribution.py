@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-import updater
+from torrent_dashboard import updater
 
 
 class UpdaterDistributionTests(unittest.TestCase):

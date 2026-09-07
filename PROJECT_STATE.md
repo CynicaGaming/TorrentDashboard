@@ -6,21 +6,21 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.145** (prerelease)
+- Latest documented build: **v0.5.146** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 
 ### Latest release summary
 
-Prepares Torrent Dashboard to cross from the legacy root Python layout to src/torrent_dashboard while enabling verified compiled Windows updates and rollback.
+Moves all maintained Torrent Dashboard application Python code into src/torrent_dashboard and makes that one package the source for editable, recovery, updater, and compiled Windows builds.
 
 ## Architecture state
 
-- v0.5.145 intentionally retains the root Python layout so v0.5.144 can update into the migration bridge without restarting stale code.
+- src/torrent_dashboard is now the canonical application boundary; repository-root Python files are reserved for release/development tooling rather than runtime application modules.
 
 ## Current engineering decisions
 
-- Use v0.5.145 as the compatibility bridge before moving canonical Python source under src/torrent_dashboard in v0.5.146.
-- Keep config.json and data outside managed update roots for both source and compiled distributions.
+- Use the conventional src/torrent_dashboard layout rather than making src itself the Python package.
+- Keep static assets, config.json, and data external to compiled executables and managed separately from application Python.
 
 ## Development principles
 
@@ -32,6 +32,15 @@ Prepares Torrent Dashboard to cross from the legacy root Python layout to src/to
 - Keep public development continuity portable across forks; label canonical repository/branch/PR references as upstream context rather than local identity.
 
 ## Recent work
+
+### v0.5.146 — Canonical src package layout
+
+Moves all maintained Torrent Dashboard application Python code into src/torrent_dashboard and makes that one package the source for editable, recovery, updater, and compiled Windows builds.
+
+- All application Python now lives under src/torrent_dashboard; the legacy root dashboard.py, updater.py, recovery_tool.py, and torrent_dashboard directory are retired.
+- Adds pyproject.toml with dashboard, recovery, and updater console entry points backed by the same package.
+- The source release remains one extracted Torrent Dashboard folder, while the Windows package remains one folder containing Dashboard.exe, Recovery.exe, Updater.exe, external static assets, and runtime data.
+- Windows packages continue using standalone Recovery.exe and Updater.exe so recovery and executable replacement do not depend on Dashboard's bundled runtime.
 
 ### v0.5.145 — Distribution-aware updater migration bridge
 
@@ -67,18 +76,13 @@ Adds a key-gated local recovery program that can repair and update Torrent Dashb
 - Adds config validation, automatic config backups, backup restore, network bind/HTTPS reset, stuck-update cleanup, and recovery/update log viewing.
 - Adds recovery.cmd so Windows installations can launch local recovery without remembering the Python command.
 
-### v0.5.141 — Dashboard recovery login
-
-Replaces pre-login Console access and personal recovery keys with one dashboard-wide recovery key that signs in as the built-in Administrator.
-
-- Replaces the Console link on the sign-in screen with a Recovery tab that asks only for the dashboard recovery key.
-- Generates a 256-bit opaque recovery key during first-run setup and displays the plaintext once before entering the dashboard.
-- Recovery signs into a system-owned Administrator principal that cannot be renamed or deleted through user management.
-- Keeps the authenticated Console inside the dashboard for allowlisted operational commands and future recovery expansion.
-
 ## What to do next
 
-1. **Move canonical Python source under src/torrent_dashboard** — Use the migration-aware v0.5.145 updater to retire the legacy root Python entry points safely in v0.5.146.
+1. **Exercise executable updates** — Run multiple Windows prerelease upgrades and rollback scenarios before removing preview labeling or adding code signing.
+
+## Known issues
+
+- Windows executables are not code-signed yet; code signing remains deferred until compiled update behavior has been exercised across multiple releases.
 
 ## Handoff instructions for a new development session
 

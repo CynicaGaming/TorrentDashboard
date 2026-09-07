@@ -21,6 +21,11 @@ import sys
 import time
 from pathlib import Path
 
+if __package__ in (None, ""):
+    _src = Path(__file__).resolve().parents[1]
+    if str(_src) not in sys.path:
+        sys.path.insert(0, str(_src))
+
 from torrent_dashboard.runtime_paths import app_dir, is_frozen, source_python_env, updater_command
 
 APP_DIR = app_dir()

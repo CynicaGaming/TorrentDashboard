@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+"""Torrent Dashboard HTTP application and composition root."""
 from __future__ import annotations
 
 import argparse
@@ -33,6 +34,12 @@ from http import cookies
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
+if __package__ in (None, ""):
+    _src = Path(__file__).resolve().parents[1]
+    if str(_src) not in sys.path:
+        sys.path.insert(0, str(_src))
+
+from torrent_dashboard import __version__
 from torrent_dashboard.config import (
     ConfigRepository,
     DEFAULT_CONFIG,
@@ -123,7 +130,7 @@ RELEASE_INTEGRITY_CACHE_PATH = DATA_DIR / "release-integrity.json"
 CUSTOM_SOUND_BASENAME = "notification-custom"
 LEGACY_CUSTOM_SOUND_BASENAME = "custom-notification-sound"
 MAX_CUSTOM_SOUND_BYTES = 2 * 1024 * 1024
-VERSION = "0.5.145"
+VERSION = __version__
 STATUS_REFRESH_SECONDS = 1.0
 
 RELEASE_PROVENANCE = ReleaseProvenance(

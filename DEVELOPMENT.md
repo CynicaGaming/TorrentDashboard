@@ -105,7 +105,7 @@ python release_tools/generate_release_notes.py --version X.Y.Z
 
 ## Versioning and release metadata
 
-Torrent Dashboard currently uses semantic `0.x.x` prerelease versions. The version must remain synchronized across `dashboard.py`, frontend build metadata, asset query strings, and the service-worker cache. `release_tools/validate_source.py` enforces that contract.
+Torrent Dashboard currently uses semantic `0.x.x` prerelease versions. The version must remain synchronized across `src/torrent_dashboard/dashboard.py`, frontend build metadata, asset query strings, and the service-worker cache. `release_tools/validate_source.py` enforces that contract.
 
 Each published increment gets one entry in `release_notes/releases.json`. That entry is the source for the GitHub release body, changelog, and released-state handoff material.
 

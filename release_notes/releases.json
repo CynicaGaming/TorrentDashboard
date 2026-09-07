@@ -12,6 +12,47 @@
   },
   "releases": [
     {
+      "version": "0.5.146",
+      "date": "2026-09-07",
+      "status": "prerelease",
+      "title": "Canonical src package layout",
+      "summary": "Moves all maintained Torrent Dashboard application Python code into src/torrent_dashboard and makes that one package the source for editable, recovery, updater, and compiled Windows builds.",
+      "highlights": [
+        "All application Python now lives under src/torrent_dashboard; the legacy root dashboard.py, updater.py, recovery_tool.py, and torrent_dashboard directory are retired.",
+        "Adds pyproject.toml with dashboard, recovery, and updater console entry points backed by the same package.",
+        "The source release remains one extracted Torrent Dashboard folder, while the Windows package remains one folder containing Dashboard.exe, Recovery.exe, Updater.exe, external static assets, and runtime data.",
+        "Windows packages continue using standalone Recovery.exe and Updater.exe so recovery and executable replacement do not depend on Dashboard's bundled runtime."
+      ],
+      "fixes": [],
+      "technical": [
+        "Source package metadata declares the src layout and instructs the v0.5.145 migration-aware updater to remove the legacy Python paths transactionally.",
+        "Runtime path resolution, tests, validators, PyInstaller inputs, source packaging, launchers, and documentation now target src/torrent_dashboard.",
+        "The rollback path restores the previous root Python layout if the migrated dashboard fails its health check."
+      ],
+      "validation": [
+        "Runs the full source validator and unit-test suite with src on PYTHONPATH.",
+        "Builds the source ZIP and verifies that only the src application layout is present.",
+        "Builds Dashboard.exe, Recovery.exe, and Updater.exe on native Windows and smoke-tests each executable."
+      ],
+      "known_issues": [
+        "Windows executables are not code-signed yet; code signing remains deferred until compiled update behavior has been exercised across multiple releases."
+      ],
+      "architecture": [
+        "src/torrent_dashboard is now the canonical application boundary; repository-root Python files are reserved for release/development tooling rather than runtime application modules."
+      ],
+      "decisions": [
+        "Use the conventional src/torrent_dashboard layout rather than making src itself the Python package.",
+        "Keep static assets, config.json, and data external to compiled executables and managed separately from application Python."
+      ],
+      "next_steps": [
+        {
+          "priority": 1,
+          "title": "Exercise executable updates",
+          "detail": "Run multiple Windows prerelease upgrades and rollback scenarios before removing preview labeling or adding code signing."
+        }
+      ]
+    },
+    {
       "version": "0.5.145",
       "date": "2026-09-07",
       "status": "prerelease",

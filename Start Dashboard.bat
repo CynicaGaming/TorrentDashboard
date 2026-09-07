@@ -1,6 +1,7 @@
 @echo off
 setlocal
 cd /d "%~dp0"
+set "PYTHONPATH=%~dp0src;%PYTHONPATH%"
 
 if /i "%~1"=="update" goto :update
 
@@ -9,7 +10,7 @@ goto :start
 :runpython
 where py >nul 2>nul
 if %errorlevel%==0 (
-  py %*
+  py -3 %*
   exit /b %errorlevel%
 )
 where python >nul 2>nul
@@ -21,7 +22,7 @@ echo Python 3 was not found. Install Python 3 and try again.
 exit /b 9009
 
 :start
-call :runpython dashboard.py
+call :runpython -m torrent_dashboard.dashboard
 if not %errorlevel%==0 pause
 goto :end
 
@@ -31,7 +32,7 @@ echo.
 echo The dashboard must be stopped before recovery updating.
 echo This does not require the web interface.
 echo.
-call :runpython updater.py --github-update
+call :runpython -m torrent_dashboard.updater --github-update --target "%~dp0"
 pause
 goto :end
 

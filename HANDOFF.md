@@ -7,42 +7,39 @@
 This handoff is intentionally portable across public forks. Verify the current checkout's Git remote, branch, and open work before using upstream references as instructions.
 
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
-- Last documented upstream build: **v0.5.145** (prerelease)
+- Last documented upstream build: **v0.5.146** (prerelease)
 
 ## Last known-good state
 
-Prepares Torrent Dashboard to cross from the legacy root Python layout to src/torrent_dashboard while enabling verified compiled Windows updates and rollback.
+Moves all maintained Torrent Dashboard application Python code into src/torrent_dashboard and makes that one package the source for editable, recovery, updater, and compiled Windows builds.
 
 The released-state details and recent history are in `PROJECT_STATE.md`; architectural constraints are in `ARCHITECTURE.md`.
 
 ## Active development intent
 
 - Status: **ready**
-- Objective: **Move canonical Python application source under src/torrent_dashboard**
-- Why: The migration bridge now understands both layouts and can cross the boundary without breaking in-place updates or compiled recovery.
+- Objective: **Exercise and harden compiled Windows update and rollback behavior**
+- Why: The Python source layout is unified; the remaining packaging risk is operational validation of repeated executable upgrades before treating the Windows build as non-preview.
 
 ### Acceptance criteria
 
-- All maintained application Python modules live under src/torrent_dashboard.
-- pyproject.toml exposes dashboard, recovery, and updater entry points from the same package.
-- Source and Windows releases are generated from the same canonical src tree.
-- An installation on v0.5.145 can update to the src layout and restart successfully.
-- Dashboard.exe, Recovery.exe, and Updater.exe continue to build and compiled rollback remains functional.
+- A Windows executable installation updates across multiple prereleases without manual intervention.
+- Recovery.exe can reinstall a Windows package while Dashboard is unavailable.
+- Rollback restores Dashboard.exe, Recovery.exe, Updater.exe, _internal, and external assets after a failed health check.
+- config.json and data remain untouched across compiled updates and rollback.
 
 ### Decisions already made
 
-- Use src/torrent_dashboard as the canonical Python package layout.
-- Keep static assets and runtime state external to compiled executables.
-- Use v0.5.145 as the only legacy-layout compatibility bridge.
+- src/torrent_dashboard is the canonical application source.
+- Dashboard.exe remains onedir; Recovery.exe and Updater.exe remain standalone onefile executables.
+- Do not add code signing until compiled update mechanics have stabilized.
 
 ### Expected areas of change
 
 - `src/torrent_dashboard/`
-- `pyproject.toml`
 - `release_tools/`
-- `tests/`
-- `.github/workflows/release.yml`
 - `.github/workflows/windows-preview.yml`
+- `tests/test_updater_distribution.py`
 
 ### Blockers
 
@@ -50,11 +47,11 @@ None currently recorded.
 
 ### Explicitly out of scope
 
-- Code signing until the compiled update path has been exercised across multiple releases.
+- Code signing during initial executable update soak testing.
 
 ## Exact next action
 
-Move the application modules and three entry points into src/torrent_dashboard, update packaging/tests/workflows, and validate an in-place migration from v0.5.145.
+Exercise Windows executable update, recovery reinstall, health-check failure, and rollback across subsequent prereleases.
 
 ## Resume checklist
 

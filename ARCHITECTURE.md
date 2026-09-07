@@ -8,8 +8,8 @@ Torrent Dashboard intentionally remains a small, dependency-light Python applica
 
 The current rules are:
 
-- `dashboard.py` is the **composition root and HTTP adapter**. It may assemble services and route requests, but new domain logic should normally live under `torrent_dashboard/`.
-- Modules under `torrent_dashboard/` **must not import `dashboard`**. Dependencies on runtime-specific behavior are passed in explicitly instead of creating circular imports.
+- `src/torrent_dashboard/dashboard.py` is the **composition root and HTTP adapter**. It may assemble services and route requests, but new domain logic should normally live under `src/torrent_dashboard/`.
+- Modules under `src/torrent_dashboard/` **must not import `dashboard`**. Dependencies on runtime-specific behavior are passed in explicitly instead of creating circular imports.
 - Domain modules should expose small public interfaces through `__all__` and keep filesystem/network side effects at clear boundaries.
 - Configuration changes must use the `ConfigStore.mutate()` transaction path. Request code must never save a stale configuration snapshot directly.
 - Release metadata is authored once in `release_notes/releases.json`; generated files and GitHub release notes must not become competing sources of truth.
@@ -17,13 +17,13 @@ The current rules are:
 
 ## Current backend layout
 
-### `dashboard.py`
+### `src/torrent_dashboard/dashboard.py`
 
 Owns application composition, process startup, HTTP routing, qBitTorrent orchestration, sessions, network/interface discovery, notification delivery, history collection, update orchestration, and compatibility adapters that have not yet been extracted. Configuration and integration domains are imported from package modules rather than implemented here.
 
 This file is still larger than the desired steady-state architecture. Refactors should reduce its responsibilities incrementally while keeping behavior stable.
 
-### `torrent_dashboard/users.py`
+### `src/torrent_dashboard/users.py`
 
 Owns the user/account domain:
 
@@ -35,23 +35,23 @@ Owns the user/account domain:
 - password changes
 - legacy authentication-field synchronization
 
-### `torrent_dashboard/config.py`
+### `src/torrent_dashboard/config.py`
 
 Owns configuration defaults, legacy migrations, update-repository normalization, browser-safe configuration redaction, and atomic `config.json` persistence through `ConfigRepository`. LAN detection needed by one legacy migration is injected by the composition root rather than imported from it.
 
-### `torrent_dashboard/config_store.py`
+### `src/torrent_dashboard/config_store.py`
 
 Owns in-process configuration transaction coordination. `mutate()` acquires the lock before reading the latest configuration through `ConfigRepository`, applies one transformation, persists it, and releases the lock only after the write completes.
 
-### `torrent_dashboard/integrations.py`
+### `src/torrent_dashboard/integrations.py`
 
 Owns the integration provider catalog, field validation and normalization, configured-secret redaction, connection tests, and integration CRUD transforms. Provider definitions no longer live in the HTTP adapter.
 
-### `torrent_dashboard/jellyfin.py`
+### `src/torrent_dashboard/jellyfin.py`
 
-Owns the Jellyfin service-integration runtime: authenticated server status, virtual-folder/library inventory normalization, and explicit global library refresh requests. Jellyfin API keys remain server-side; browser responses contain only normalized server/library metadata. `dashboard.py` only resolves authenticated HTTP routes and composes these operations.
+Owns the Jellyfin service-integration runtime: authenticated server status, virtual-folder/library inventory normalization, and explicit global library refresh requests. Jellyfin API keys remain server-side; browser responses contain only normalized server/library metadata. `src/torrent_dashboard/dashboard.py` only resolves authenticated HTTP routes and composes these operations.
 
-### `torrent_dashboard/release_provenance.py`
+### `src/torrent_dashboard/release_provenance.py`
 
 Owns release/update provenance behavior:
 
@@ -60,9 +60,9 @@ Owns release/update provenance behavior:
 - `data/release-integrity.json` normalization and atomic cache persistence
 - bundled/GitHub release-history merging, including installed-package precedence
 
-Runtime paths, the running version, and the default upstream repository are injected by `dashboard.py`; the module does not import the composition root or perform GitHub network requests.
+Runtime paths, the running version, and the default upstream repository are injected by `src/torrent_dashboard/dashboard.py`; the module does not import the composition root or perform GitHub network requests.
 
-### `updater.py`
+### `src/torrent_dashboard/updater.py`
 
 Owns out-of-process update replacement, restart verification, and rollback. It should remain independent from dashboard HTTP routing so a failed application update can still be recovered.
 
@@ -123,17 +123,17 @@ Manual/environment-dependent verification is documented in `TESTING.md` rather t
 Preferred dependency direction:
 
 ```text
-HTTP / process adapters (`dashboard.py`, `updater.py`)
+HTTP / process adapters (`src/torrent_dashboard/dashboard.py`, `src/torrent_dashboard/updater.py`)
                  │
                  ▼
       application/domain modules
-          (`torrent_dashboard/`)
+          (`src/torrent_dashboard/`)
                  │
                  ▼
        Python standard library
 ```
 
-A package module importing `dashboard.py` is considered an architectural violation because it makes the composition root part of the domain dependency graph.
+A package module importing `src/torrent_dashboard/dashboard.py` is considered an architectural violation because it makes the composition root part of the domain dependency graph.
 
 ## Development continuity
 

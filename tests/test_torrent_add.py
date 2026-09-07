@@ -5,7 +5,7 @@ import unittest
 from types import SimpleNamespace
 from unittest.mock import Mock
 
-from dashboard import QBitClient, parse_multipart
+from torrent_dashboard.dashboard import QBitClient, parse_multipart
 
 
 def make_client():
