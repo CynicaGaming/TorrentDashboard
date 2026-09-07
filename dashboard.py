@@ -86,6 +86,7 @@ from torrent_dashboard.users import (
     hash_password,
     normalize_user,
     public_user,
+    regenerate_user_recovery_key,
     remove_user_avatar,
     save_current_user_profile,
     save_user,
@@ -96,6 +97,7 @@ from torrent_dashboard.users import (
     user_by_username,
     user_display_name,
     verify_password,
+    verify_user_recovery_key,
 )
 
 APP_DIR = Path(__file__).resolve().parent
@@ -110,7 +112,7 @@ RELEASE_INTEGRITY_CACHE_PATH = DATA_DIR / "release-integrity.json"
 CUSTOM_SOUND_BASENAME = "notification-custom"
 LEGACY_CUSTOM_SOUND_BASENAME = "custom-notification-sound"
 MAX_CUSTOM_SOUND_BYTES = 2 * 1024 * 1024
-VERSION = "0.5.139"
+VERSION = "0.5.140"
 STATUS_REFRESH_SECONDS = 1.0
 
 RELEASE_PROVENANCE = ReleaseProvenance(
@@ -1810,13 +1812,18 @@ def _recovery_console_integration(cfg, integration_id):
     return item
 
 
-def recovery_console_execute(handler, cfg, raw_command):
+def recovery_console_execute(handler, cfg, raw_command, sess=None):
     tokens = parse_recovery_command(raw_command)
     command = tokens[0].lower()
     args = tokens[1:]
+    is_admin = session_is_admin(sess)
+
+    def require_console_admin():
+        if not is_admin:
+            raise RuntimeError("Administrator access is required for this console command")
 
     if command in ("help", "?"):
-        return {"output": recovery_help_text()}
+        return {"output": recovery_help_text(is_admin)}
 
     if command in ("status", "health"):
         update = update_state()
@@ -1836,6 +1843,7 @@ def recovery_console_execute(handler, cfg, raw_command):
         return {"output": "\n".join(lines)}
 
     if command == "config" and (not args or args[0].lower() == "show"):
+        require_console_admin()
         return {"output": _recovery_console_json(redacted_config(cfg))}
 
     if command in ("clients", "client"):
@@ -1845,6 +1853,7 @@ def recovery_console_execute(handler, cfg, raw_command):
                 return {"output": "No download clients are configured."}
             return {"output": "\n".join(f"{item.get('id','')}  {item.get('name') or item.get('id') or 'qBitTorrent'}  {'enabled' if item.get('enabled', True) else 'disabled'}" for item in clients)}
         if args[0].lower() == "test" and len(args) >= 2:
+            require_console_admin()
             server = _recovery_console_server(cfg, args[1])
             result = test_server_connection(server)
             return {"output": _recovery_console_json(result)}
@@ -1857,6 +1866,7 @@ def recovery_console_execute(handler, cfg, raw_command):
                 return {"output": "No integrations are configured."}
             return {"output": "\n".join(f"{item.get('id','')}  {item.get('type','')}  {item.get('name') or item.get('type') or 'Integration'}  {'enabled' if item.get('enabled', True) else 'disabled'}" for item in items)}
         if args[0].lower() == "test" and len(args) >= 2:
+            require_console_admin()
             item = _recovery_console_integration(cfg, args[1])
             return {"output": _recovery_console_json(test_integration_connection(item))}
         raise RuntimeError("Usage: integration test <integration-id>")
@@ -1877,6 +1887,7 @@ def recovery_console_execute(handler, cfg, raw_command):
                 lines.append(f"{task.get('id','')}  [{task.get('category','Other')}] {task.get('name','Scheduled task')}  {task.get('state','Idle')}{suffix}")
             return {"output": "\n".join(lines)}
         if action in ("start", "stop"):
+            require_console_admin()
             if len(args) < 3:
                 raise RuntimeError(f"Usage: jellyfin {action} <integration-id> <task-id>")
             result = start_jellyfin_scheduled_task(item, args[2]) if action == "start" else stop_jellyfin_scheduled_task(item, args[2])
@@ -1884,6 +1895,7 @@ def recovery_console_execute(handler, cfg, raw_command):
         raise RuntimeError("Usage: jellyfin tasks|start|stop <integration-id> [task-id]")
 
     if command == "torrent":
+        require_console_admin()
         if len(args) < 4 or args[0].lower() != "action":
             raise RuntimeError("Usage: torrent action <client-id> <start|stop|recheck|reannounce> <hash|all>")
         server_id, action, target = args[1], args[2].lower(), args[3]
@@ -1895,9 +1907,11 @@ def recovery_console_execute(handler, cfg, raw_command):
         return {"output": f"Torrent action {action} sent (status {status})."}
 
     if command == "users":
+        require_console_admin()
         return {"output": _recovery_console_json([public_user(user) for user in cfg.get("users", [])])}
 
     if command == "events":
+        require_console_admin()
         limit = 50
         if args:
             try:
@@ -1924,6 +1938,7 @@ def recovery_console_execute(handler, cfg, raw_command):
         if sub == "repo":
             if len(args) == 1:
                 return {"output": update_repository(cfg)}
+            require_console_admin()
             requested = DEFAULT_UPDATE_REPOSITORY if args[1].lower() == "default" else args[1]
             previous = update_repository(cfg)
             def mutate_source(current):
@@ -1937,17 +1952,20 @@ def recovery_console_execute(handler, cfg, raw_command):
             HISTORY.event("dashboard", "recovery_update_source_changed", repo, "", {"client_ip": handler.client_ip()})
             return {"output": f"Update repository: {repo}"}
         if sub == "download":
+            require_console_admin()
             result = stage_update(cfg)
             if result.get("state") == "upToDate":
                 return {"output": f"Torrent Dashboard {VERSION} is up to date."}
             return {"output": f"Verified update {result.get('version')} downloaded and staged."}
         if sub == "install":
+            require_console_admin()
             if "--confirm" not in args:
                 raise RuntimeError("Update installation requires --confirm")
             requested_version = next((value for value in args[1:] if not value.startswith("--")), None)
             result = launch_update_installer(handler, cfg, requested_version)
             return {"output": f"Installing verified update {result.get('version')}.", **result}
         if sub == "apply":
+            require_console_admin()
             if "--confirm" not in args:
                 raise RuntimeError("Update apply requires --confirm")
             staged = stage_update(cfg)
@@ -2035,8 +2053,9 @@ class Handler(BaseHTTPRequestHandler):
     def recovery_auth(self):
         cfg=load_config()
         dashboard_token=self.cookie_token(); dashboard_session=SESSIONS.get(dashboard_token)
-        if dashboard_session and session_is_admin(dashboard_session):
-            return cfg,"dashboard administrator",dashboard_session
+        if dashboard_session:
+            label = "dashboard administrator" if session_is_admin(dashboard_session) else "dashboard user"
+            return cfg,label,dashboard_session
         recovery_token=self.recovery_cookie_token(); recovery_session=RECOVERY_SESSIONS.get(recovery_token)
         if recovery_session:
             return cfg,"recovery session",recovery_session
@@ -2056,7 +2075,7 @@ class Handler(BaseHTTPRequestHandler):
         cfg,kind,sess=self.recovery_auth()
         if not sess:
             return self.send_json(200,{"authenticated":False,"version":VERSION})
-        return self.send_json(200,{"authenticated":True,"kind":kind,"csrf":sess.get("csrf","") ,"version":VERSION})
+        return self.send_json(200,{"authenticated":True,"kind":kind,"csrf":sess.get("csrf","") ,"version":VERSION,"username":sess.get("username","") ,"display_name":sess.get("display_name") or sess.get("username","") ,"group":sess.get("group","standard"),"group_label":USER_GROUPS.get(sess.get("group"),"Standard user"),"can_manage":session_is_admin(sess)})
 
     def recovery_unlock_route(self):
         ip=self.client_ip(); now=time.time(); limit=10
@@ -2070,23 +2089,31 @@ class Handler(BaseHTTPRequestHandler):
             data=parse_json_body(self,12000)
         except Exception as exc:
             return self.send_json(400,{"error":str(exc)})
-        cfg=load_config(); username=str(data.get("username") or "").strip(); password=str(data.get("password") or ""); supplied_code=normalize_recovery_code(data.get("recovery_code"))
-        principal=""
-        if supplied_code and hmac.compare_digest(supplied_code,RECOVERY_CODE_RAW):
-            principal="startup recovery code"
+        cfg=load_config(); username=str(data.get("username") or "").strip(); password=str(data.get("password") or ""); recovery_key=str(data.get("recovery_key") or "").strip(); supplied_code=normalize_recovery_code(data.get("recovery_code"))
+        principal=""; user=None; auth_kind="recovery"
+        if username and recovery_key:
+            candidate=user_by_username(cfg,username)
+            encoded=str((candidate or {}).get("recovery_key_hash") or "")
+            if candidate and encoded and verify_user_recovery_key(recovery_key,encoded):
+                user=candidate; principal=f"recovery key for {candidate.get('username')}"; auth_kind="recovery_key"
         elif username and password:
-            user=user_by_username(cfg,username)
-            encoded=str((user or {}).get("password_hash") or "")
-            if user and user.get("group")=="administrator" and encoded and verify_password(password,encoded):
-                principal=f"administrator {user.get('username')}"
+            candidate=user_by_username(cfg,username)
+            encoded=str((candidate or {}).get("password_hash") or "")
+            if candidate and candidate.get("group")=="administrator" and encoded and verify_password(password,encoded):
+                user=candidate; principal=f"administrator {candidate.get('username')}"; auth_kind="password"
+        elif supplied_code and hmac.compare_digest(supplied_code,RECOVERY_CODE_RAW):
+            principal="temporary startup recovery code"; auth_kind="startup_recovery_code"
         if not principal:
-            HISTORY.event("dashboard","recovery_console_unlock_failed",username[:128] or "recovery-code","",{"client_ip":ip})
-            return self.send_json(401,{"error":"Invalid administrator credentials or recovery code"})
+            HISTORY.event("dashboard","recovery_console_unlock_failed",username[:128] or "recovery-key","",{"client_ip":ip})
+            return self.send_json(401,{"error":"Invalid username/recovery key, administrator credentials, or startup recovery code"})
         with RECOVERY_LOCK:
             RECOVERY_ATTEMPTS.pop(ip,None)
-        token,sess=RECOVERY_SESSIONS.create("Recovery",RECOVERY_SESSION_MINUTES/60,"recovery",group="administrator",display_name="Recovery Console")
-        HISTORY.event("dashboard","recovery_console_unlocked",principal,"",{"client_ip":ip})
-        return self.send_json(200,{"ok":True,"kind":principal,"csrf":sess["csrf"],"version":VERSION},extra={"Set-Cookie":self.recovery_cookie_header(token)})
+        if user:
+            token,sess=RECOVERY_SESSIONS.create(user.get("username") or "Recovery",RECOVERY_SESSION_MINUTES/60,auth_kind,group=user.get("group","standard"),user_id=user.get("id","") ,display_name=user_display_name(user))
+        else:
+            token,sess=RECOVERY_SESSIONS.create("Recovery",RECOVERY_SESSION_MINUTES/60,auth_kind,group="administrator",display_name="Recovery Console")
+        HISTORY.event("dashboard","recovery_console_unlocked",principal,"",{"client_ip":ip,"group":sess.get("group")})
+        return self.send_json(200,{"ok":True,"kind":principal,"csrf":sess["csrf"],"version":VERSION,"username":sess.get("username","") ,"display_name":sess.get("display_name") or sess.get("username","") ,"group":sess.get("group","standard"),"group_label":USER_GROUPS.get(sess.get("group"),"Standard user"),"can_manage":session_is_admin(sess)},extra={"Set-Cookie":self.recovery_cookie_header(token)})
 
     def recovery_logout_route(self):
         token=self.recovery_cookie_token()
@@ -2100,7 +2127,7 @@ class Handler(BaseHTTPRequestHandler):
         try:
             data=parse_json_body(self,12000)
             command=str(data.get("command") or "")
-            result=recovery_console_execute(self,cfg,command)
+            result=recovery_console_execute(self,cfg,command,sess)
             HISTORY.event("dashboard","recovery_console_command",command.split(" ",1)[0][:64],"",{"client_ip":self.client_ip(),"auth_kind":kind})
             return self.send_json(200,{"ok":True,**result})
         except Exception as exc:
@@ -2266,7 +2293,7 @@ class Handler(BaseHTTPRequestHandler):
             if path=="/api/account":
                 data=parse_json_body(self,20000)
                 updated,user=mutate_config(lambda current: save_current_user_profile(current,sess.get("user_id",""),data))
-                SESSIONS.update_user(user)
+                SESSIONS.update_user(user); RECOVERY_SESSIONS.update_user(user)
                 HISTORY.event("dashboard","account_profile_changed",user.get("username",""),"",{"client_ip":self.client_ip()})
                 return self.send_json(200,{"ok":True,"user":public_user(user)},new_cookie)
             if path=="/api/account/password":
@@ -2275,6 +2302,12 @@ class Handler(BaseHTTPRequestHandler):
                 SESSIONS.remove_user_except(user.get("id",""),token)
                 HISTORY.event("dashboard","account_password_changed",user.get("username",""),"",{"client_ip":self.client_ip()})
                 return self.send_json(200,{"ok":True},new_cookie)
+            if path=="/api/account/recovery-key":
+                data=parse_json_body(self,12000)
+                updated,user,recovery_key=mutate_config(lambda current: regenerate_user_recovery_key(current,sess.get("user_id",""),data.get("current_password")))
+                RECOVERY_SESSIONS.remove_user(user.get("id",""))
+                HISTORY.event("dashboard","account_recovery_key_regenerated",user.get("username",""),"",{"client_ip":self.client_ip(),"group":user.get("group")})
+                return self.send_json(200,{"ok":True,"user":public_user(user),"recovery_key":recovery_key},new_cookie)
             if path=="/api/account/avatar":
                 fields,files=parse_multipart(self,max_bytes=MAX_AVATAR_BYTES+256000)
                 if not files:
@@ -2362,11 +2395,11 @@ class Handler(BaseHTTPRequestHandler):
                 HISTORY.event("dashboard",f"jellyfin_scheduled_task_{action}",task_id,"",{"client_ip":self.client_ip(),"integration_id":item.get("id","")})
                 return self.send_json(200,result,new_cookie)
             if path=="/api/users":
-                data=parse_json_body(self,20000); updated,user=mutate_config(lambda current: save_user(current,data)); SESSIONS.update_user(user)
+                data=parse_json_body(self,20000); updated,user=mutate_config(lambda current: save_user(current,data)); SESSIONS.update_user(user); RECOVERY_SESSIONS.update_user(user)
                 HISTORY.event("dashboard","user_saved",user.get("username",""),"",{"client_ip":self.client_ip(),"group":user.get("group")})
                 return self.send_json(200,{"ok":True,"user":public_user(user)},new_cookie)
             if path=="/api/users/delete":
-                data=parse_json_body(self,10000); uid=str(data.get("id") or ""); updated,_=mutate_config(lambda current: (delete_user(current,uid,sess.get("user_id","")),None)); delete_user_avatar_files(uid); SESSIONS.remove_user(uid)
+                data=parse_json_body(self,10000); uid=str(data.get("id") or ""); updated,_=mutate_config(lambda current: (delete_user(current,uid,sess.get("user_id","")),None)); delete_user_avatar_files(uid); SESSIONS.remove_user(uid); RECOVERY_SESSIONS.remove_user(uid)
                 HISTORY.event("dashboard","user_deleted",uid,"",{"client_ip":self.client_ip()})
                 return self.send_json(200,{"ok":True},new_cookie)
             if path=="/api/settings":

@@ -1,5 +1,5 @@
 "use strict";
-const RECOVERY_BUILD="0.5.139";
+const RECOVERY_BUILD="0.5.140";
 const $=selector=>document.querySelector(selector);
 let csrf="";
 let sessionKind="";
@@ -29,12 +29,17 @@ async function request(url,options={}){
   if(!response.ok)throw new Error(data?.error||data||`HTTP ${response.status}`);return data;
 }
 async function detectSession(){
-  try{const data=await request("/api/recovery/session");if(!data.authenticated)return;csrf=data.csrf||"";sessionKind=data.kind||"administrator";$("#consoleSessionLabel").textContent=`Authorized via ${sessionKind}`;setLocked(false,"Unlocked");appendLine(`Torrent Dashboard Recovery Console v${data.version||RECOVERY_BUILD}`,"good");appendLine("No command has been run. Type help to list available commands.","muted");}catch{}
+  try{const data=await request("/api/recovery/session");if(!data.authenticated)return;applyRecoverySession(data);}catch{}
 }
-async function unlockConsole(event){
-  event.preventDefault();const error=$("#consoleUnlockError");error.textContent="";
-  const payload={username:$("#consoleUser").value.trim(),password:$("#consolePassword").value,recovery_code:$("#consoleRecoveryCode").value.trim()};
-  try{const data=await request("/api/recovery/unlock",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});csrf=data.csrf||"";sessionKind=data.kind||"recovery";$("#consolePassword").value="";$("#consoleRecoveryCode").value="";$("#consoleSessionLabel").textContent=`Authorized via ${sessionKind}`;setLocked(false,"Unlocked");appendLine(`Torrent Dashboard Recovery Console v${data.version||RECOVERY_BUILD}`,"good");appendLine("No command has been run. Type help to list available commands.","muted");}catch(err){error.textContent=err.message||"Could not unlock recovery console";}
+function applyRecoverySession(data){csrf=data.csrf||"";sessionKind=data.kind||"recovery";$("#consolePassword").value="";$("#consoleRecoveryKey").value="";$("#consoleRecoveryCode").value="";const who=data.display_name||data.username||"Recovery user",role=data.group_label||data.group||"Standard user";$("#consoleSessionLabel").textContent=`${who} · ${role}`;setLocked(false,"Unlocked");appendLine(`Torrent Dashboard Recovery Console v${data.version||RECOVERY_BUILD}`,"good");appendLine(`Authorized as ${who} · ${role}. Type help to list commands available to your role.`,"muted");}
+async function unlockConsole(event){event?.preventDefault();return unlockConsoleWith("key");}
+async function unlockConsoleWith(method){
+  const error=$("#consoleUnlockError");error.textContent="";const username=$("#consoleUser").value.trim();
+  const payload={};
+  if(method==="key"){if(!username)return error.textContent="Enter your username";payload.username=username;payload.recovery_key=$("#consoleRecoveryKey").value.trim();if(!payload.recovery_key)return error.textContent="Enter your recovery key";}
+  else if(method==="password"){if(!username)return error.textContent="Enter the administrator username";payload.username=username;payload.password=$("#consolePassword").value;if(!payload.password)return error.textContent="Enter the administrator password";}
+  else{payload.recovery_code=$("#consoleRecoveryCode").value.trim();if(!payload.recovery_code)return error.textContent="Enter the startup recovery code";}
+  try{const data=await request("/api/recovery/unlock",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});applyRecoverySession(data);}catch(err){error.textContent=err.message||"Could not unlock recovery console";}
 }
 async function clearFrontendCache(){
   appendLine("td> frontend clear-cache","command");
@@ -55,6 +60,8 @@ async function lockConsole(){
 
 $("#consoleUnlockForm").addEventListener("submit",unlockConsole);
 $("#consolePasswordToggle").addEventListener("click",()=>setPasswordVisibility($("#consolePassword").type==="password"));
+$("#consolePasswordUnlock").addEventListener("click",()=>unlockConsoleWith("password"));
+$("#consoleStartupUnlock").addEventListener("click",()=>unlockConsoleWith("startup"));
 $("#consoleCommandForm").addEventListener("submit",event=>{event.preventDefault();const input=$("#consoleCommand"),command=input.value;input.value="";runCommand(command);});
 $("#consoleHelp").addEventListener("click",()=>runCommand("help"));
 $("#consoleClear").addEventListener("click",()=>{$("#consoleOutput").textContent="";$("#consoleCommand").focus();});

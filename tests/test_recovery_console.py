@@ -32,6 +32,14 @@ class RecoveryConsoleTests(unittest.TestCase):
     def test_help_explicitly_states_console_is_not_an_os_shell(self):
         self.assertIn("not an operating-system shell", recovery_help_text())
 
+    def test_standard_help_is_read_only_and_admin_help_includes_actions(self):
+        standard = recovery_help_text(False)
+        admin = recovery_help_text(True)
+        self.assertIn("read-only", standard)
+        self.assertNotIn("update apply --confirm", standard)
+        self.assertIn("update apply --confirm", admin)
+        self.assertIn("torrent action", admin)
+
 
 if __name__ == "__main__":
     unittest.main()

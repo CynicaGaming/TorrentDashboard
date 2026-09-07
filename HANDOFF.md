@@ -7,44 +7,49 @@
 This handoff is intentionally portable across public forks. Verify the current checkout's Git remote, branch, and open work before using upstream references as instructions.
 
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
-- Last documented upstream build: **v0.5.139** (prerelease)
+- Last documented upstream build: **v0.5.140** (prerelease)
 
 ## Last known-good state
 
-Adds a password visibility control to standalone recovery login and a native authenticated console view inside the dashboard.
+Adds persistent opaque recovery keys to user profiles and makes both console surfaces enforce the signed-in user's current role.
 
 The released-state details and recent history are in `PROJECT_STATE.md`; architectural constraints are in `ARCHITECTURE.md`.
 
 ## Active development intent
 
 - Status: **ready**
-- Objective: **Validate the embedded administrator console and standalone password visibility control on desktop and mobile**
-- Why: v0.5.139 separates the normal authenticated console experience from the independent pre-login recovery surface while keeping both on the same allowlisted backend.
+- Objective: **Validate per-user opaque recovery keys and role-aware console authorization**
+- Why: Recovery access should survive normal-login problems without granting every recovery user administrative privileges or embedding identity in the key itself.
 
 ### Acceptance criteria
 
-- The standalone Recovery Console administrator password can be shown and hidden without changing authentication behavior.
-- Authenticated administrators open Console inside the normal dashboard instead of navigating away.
-- The embedded console executes the same allowlisted recovery commands with the existing administrator session and CSRF token.
-- The standalone /console page remains independent of app.js and settings.js for frontend-failure recovery.
+- Each user can generate or regenerate one recovery key from Account settings only after confirming the current password.
+- Only the recovery-key hash and non-secret metadata are persisted; plaintext is shown once.
+- Standalone recovery unlock accepts username plus recovery key without requiring the account password.
+- Standard recovery sessions can run only read-only diagnostics; administrator sessions can run the existing controlled maintenance commands.
+- The embedded Console is available to Standard and Administrator dashboard sessions and uses the same backend role enforcement.
+- Administrator-password and startup-code fallbacks continue to work during the migration period.
 
 ### Decisions already made
 
-- Keep the standalone Recovery Console independent and use a native dashboard view for authenticated console access.
-- Do not add arbitrary operating-system shell execution.
+- Do not embed a user ID, username, role, or lookup token in personal recovery keys.
+- Use a 256-bit random opaque key with a TDRK display prefix and store only its PBKDF2 hash.
+- Require current-password verification for generation and regeneration.
+- Keep command authorization server-side and role-aware.
 
 ### Expected areas of change
 
+- `torrent_dashboard/users.py`
+- `torrent_dashboard/recovery_console.py`
+- `dashboard.py`
 - `static/index.html`
 - `static/app.js`
 - `static/app.css`
 - `static/recovery-console.html`
 - `static/recovery-console.js`
-- `static/recovery-console.css`
-- `static/sw.js`
-- `dashboard.py`
+- `tests/test_users.py`
+- `tests/test_recovery_console.py`
 - `release_notes/releases.json`
-- `release_tools/validate_ui_strings.py`
 
 ### Blockers
 
@@ -53,11 +58,11 @@ None currently recorded.
 ### Explicitly out of scope
 
 - Arbitrary operating-system shell access.
-- Recovery when the Python HTTP server cannot start.
+- Encoding user identity or authorization inside recovery keys.
 
 ## Exact next action
 
-Smoke-test standalone password visibility, dashboard Console navigation, command history, safe task actions, and a verified update check.
+Add the separate minimal local recovery entry point for cases where the normal Torrent Dashboard HTTP process cannot start.
 
 ## Resume checklist
 

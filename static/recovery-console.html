@@ -4,9 +4,9 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#080b0f" name="theme-color"/>
-<meta content="0.5.139" name="torrent-dashboard-recovery-build"/>
+<meta content="0.5.140" name="torrent-dashboard-recovery-build"/>
 <link href="/static/favicon.svg" rel="icon" type="image/svg+xml"/>
-<link href="/recovery/console.css?v=0.5.139" rel="stylesheet"/>
+<link href="/recovery/console.css?v=0.5.140" rel="stylesheet"/>
 <title>Torrent Dashboard Recovery Console</title>
 </head>
 <body>
@@ -19,11 +19,15 @@
   <div class="recovery-panel-head"><div><span class="eyebrow">Safe recovery surface</span><h1>Console</h1><p>Runs a restricted set of Torrent Dashboard commands without loading the normal dashboard application bundle.</p></div><span class="lock-status locked" id="consoleLockStatus">Locked</span></div>
   <section class="unlock-panel" id="consoleUnlock">
     <form id="consoleUnlockForm" autocomplete="off">
-      <div class="unlock-copy"><strong>Unlock recovery access</strong><span>Use an administrator account or the recovery code printed in the Torrent Dashboard host console at startup.</span></div>
-      <div class="unlock-grid"><label>Administrator username<input id="consoleUser" autocomplete="off" autocapitalize="none" spellcheck="false"/></label><label>Administrator password<span class="recovery-password-field"><input id="consolePassword" autocomplete="current-password" type="password"/><button class="recovery-password-toggle" id="consolePasswordToggle" type="button" aria-label="Show password" title="Show password"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5C21.27 7.61 17 4.5 12 4.5Zm0 12A4.5 4.5 0 1 1 12 7.5a4.5 4.5 0 0 1 0 9Zm0-7.2a2.7 2.7 0 1 0 0 5.4 2.7 2.7 0 0 0 0-5.4Z"/></svg></button></span></label></div>
-      <div class="unlock-divider"><span>or</span></div>
-      <label>Recovery code<input id="consoleRecoveryCode" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="XXXX-XXXX-XXXX-XXXX-XXXX"/></label>
-      <button class="primary" type="submit">Unlock console</button>
+      <div class="unlock-copy"><strong>Unlock recovery access</strong><span>Use your username and personal recovery key. Your console permissions follow your current Torrent Dashboard role.</span></div>
+      <div class="unlock-grid"><label>Username<input id="consoleUser" autocomplete="username" autocapitalize="none" spellcheck="false"/></label><label>Recovery key<input id="consoleRecoveryKey" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="TDRK-…"/></label></div>
+      <button class="primary" type="submit">Unlock with recovery key</button>
+      <div class="unlock-divider"><span>Administrator fallback</span></div>
+      <label>Administrator password<span class="recovery-password-field"><input id="consolePassword" autocomplete="current-password" type="password"/><button class="recovery-password-toggle" id="consolePasswordToggle" type="button" aria-label="Show password" title="Show password"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5C21.27 7.61 17 4.5 12 4.5Zm0 12A4.5 4.5 0 1 1 12 7.5a4.5 4.5 0 0 1 0 9Zm0-7.2a2.7 2.7 0 1 0 0 5.4 2.7 2.7 0 0 0 0-5.4Z"/></svg></button></span></label>
+      <button class="secondary" id="consolePasswordUnlock" type="button">Unlock with administrator password</button>
+      <div class="unlock-divider"><span>Temporary break-glass fallback</span></div>
+      <label>Startup recovery code<input id="consoleRecoveryCode" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="XXXX-XXXX-XXXX-XXXX-XXXX"/></label>
+      <button class="secondary" id="consoleStartupUnlock" type="button">Unlock with startup code</button>
       <div class="unlock-error" id="consoleUnlockError" role="alert"></div>
     </form>
   </section>
@@ -35,6 +39,6 @@
 </section>
 <footer class="recovery-foot">Commands run only when explicitly submitted. Command history is kept in memory for this page only.</footer>
 </main>
-<script src="/recovery/console.js?v=0.5.139"></script>
+<script src="/recovery/console.js?v=0.5.140"></script>
 </body>
 </html>

@@ -6,16 +6,17 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.139** (prerelease)
+- Latest documented build: **v0.5.140** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 
 ### Latest release summary
 
-Adds a password visibility control to standalone recovery login and a native authenticated console view inside the dashboard.
+Adds persistent opaque recovery keys to user profiles and makes both console surfaces enforce the signed-in user's current role.
 
 ## Current engineering decisions
 
-- Use a native dashboard Console view for authenticated administrators while retaining the standalone recovery page for frontend-failure recovery.
+- Recovery keys are opaque random secrets and require a username; they do not self-identify users or encode privileges.
+- Authorization is resolved from the user's current profile at session creation and command execution remains allowlisted rather than shell-based.
 
 ## Development principles
 
@@ -27,6 +28,15 @@ Adds a password visibility control to standalone recovery login and a native aut
 - Keep public development continuity portable across forks; label canonical repository/branch/PR references as upstream context rather than local identity.
 
 ## Recent work
+
+### v0.5.140 — Per-user recovery keys
+
+Adds persistent opaque recovery keys to user profiles and makes both console surfaces enforce the signed-in user's current role.
+
+- Adds one personal recovery key per user, generated or regenerated from Account settings after current-password confirmation.
+- Uses username plus an opaque TDRK recovery key on the standalone Recovery Console; the key contains no user identifier or embedded authorization data.
+- Allows Standard users to use read-only recovery diagnostics while Administrators retain maintenance, task-control, and verified updater commands.
+- Makes the embedded dashboard Console available to all signed-in users while preserving role-aware backend authorization.
 
 ### v0.5.139 — Embedded administrator console
 
@@ -63,21 +73,13 @@ Adds persistent drag-handle ordering to Jellyfin scheduled-task favorites for fa
 - Supports keyboard reordering from the drag handle with Arrow Up, Arrow Down, Home, and End.
 - Persists the chosen favorite order with the Jellyfin integration so it survives reloads and application updates.
 
-### v0.5.135 — Jellyfin scheduled-task favorites
-
-Adds persistent Jellyfin scheduled-task favorites for one-click access to frequently run maintenance tasks.
-
-- Adds a Favorites section directly above Scheduled tasks in each Jellyfin integration.
-- Adds Material star controls to every scheduled task so tasks can be pinned or unpinned without leaving the integration.
-- Favorite rows retain the same last-run, duration, running-progress, play, and stop behavior as the main task list.
-
 ## What to do next
 
-No next steps are recorded in the latest release metadata.
+1. **Minimal local recovery entry point** — Add a recovery CLI/minimal mode that can validate personal recovery keys and repair/update the application when the normal HTTP process cannot start.
 
 ## Known issues
 
-- The standalone web recovery console still requires the Torrent Dashboard Python HTTP server to be running.
+- The standalone web recovery console still requires the Torrent Dashboard Python HTTP process to be running; a separate minimal local recovery entry point remains the next resilience layer.
 
 ## Handoff instructions for a new development session
 

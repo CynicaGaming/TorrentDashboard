@@ -29,25 +29,29 @@ def parse_recovery_command(value):
     return tokens
 
 
-def recovery_help_text():
-    return """Torrent Dashboard Recovery Console
+def recovery_help_text(is_admin=False):
+    common = """Torrent Dashboard Recovery Console
 
-Read-only / diagnostic:
+Available to your account:
   help
   status
-  config show
   clients
-  client test <client-id>
   integrations
-  integration test <integration-id>
   jellyfin tasks <integration-id>
-  users
-  events [limit]
   update status
   update check
   update repo
+"""
+    if is_admin:
+        common += """
+Administrator diagnostics:
+  config show
+  client test <client-id>
+  integration test <integration-id>
+  users
+  events [limit]
 
-Controlled actions:
+Administrator actions:
   torrent action <client-id> <start|stop|recheck|reannounce> <hash|all>
   jellyfin start <integration-id> <task-id>
   jellyfin stop <integration-id> <task-id>
@@ -55,10 +59,16 @@ Controlled actions:
   update download
   update install [version] --confirm
   update apply --confirm
-
+"""
+    else:
+        common += """
+Your recovery session is read-only. Administrator-only diagnostics and actions are hidden.
+"""
+    common += """
 Browser-local recovery:
   frontend clear-cache
   clear
   reload
 
-This is not an operating-system shell. Only the commands above are accepted."""
+This is not an operating-system shell. Only the commands shown for your role are accepted."""
+    return common

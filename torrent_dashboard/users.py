@@ -8,6 +8,7 @@ import hmac
 import json
 import re
 import secrets
+import time
 import uuid
 from pathlib import Path
 
@@ -26,6 +27,9 @@ USER_GROUPS = {
     "administrator": "Administrator",
     "standard": "Standard user",
 }
+
+RECOVERY_KEY_PREFIX = "TDRK"
+RECOVERY_KEY_BYTES = 32
 
 
 def hash_password(password: str, iterations: int = 260_000) -> str:
@@ -50,6 +54,43 @@ def verify_password(password: str, encoded: str) -> bool:
         return hmac.compare_digest(expected, got)
     except Exception:
         return False
+
+
+def normalize_user_recovery_key(value: str) -> str:
+    raw = str(value or "").strip().upper()
+    return "".join(ch for ch in raw if ch not in "- \t\r\n")
+
+
+def generate_user_recovery_key() -> str:
+    secret = base64.b32encode(secrets.token_bytes(RECOVERY_KEY_BYTES)).decode("ascii").rstrip("=")
+    grouped = "-".join(secret[index:index + 4] for index in range(0, len(secret), 4))
+    return f"{RECOVERY_KEY_PREFIX}-{grouped}"
+
+
+def verify_user_recovery_key(value: str, encoded: str) -> bool:
+    normalized = normalize_user_recovery_key(value)
+    if not normalized.startswith(RECOVERY_KEY_PREFIX) or len(normalized) < 40:
+        return False
+    return verify_password(normalized, str(encoded or ""))
+
+
+def regenerate_user_recovery_key(cfg, user_id, current_password):
+    out = json.loads(json.dumps(cfg))
+    user = user_by_id(out, user_id)
+    if not user:
+        raise RuntimeError("This session is not linked to a user account")
+    encoded = str(user.get("password_hash") or "")
+    if not encoded:
+        raise RuntimeError("Set an account password before generating a recovery key")
+    if not verify_password(str(current_password or ""), encoded):
+        raise RuntimeError("Current password is incorrect")
+    recovery_key = generate_user_recovery_key()
+    normalized = normalize_user_recovery_key(recovery_key)
+    user["recovery_key_hash"] = hash_password(normalized)
+    user["recovery_key_created_at"] = int(time.time())
+    user["recovery_key_last4"] = normalized[-4:]
+    sync_legacy_auth(out)
+    return out, user, recovery_key
 
 
 def user_display_name(user):
@@ -131,6 +172,21 @@ def normalize_user(data, existing=None, require_password=False):
             else existing.get("avatar_version") or ""
         )[:64],
         "group": group,
+        "recovery_key_hash": str(
+            data.get("recovery_key_hash")
+            if data.get("recovery_key_hash") is not None
+            else existing.get("recovery_key_hash") or ""
+        ),
+        "recovery_key_created_at": int(
+            data.get("recovery_key_created_at")
+            if data.get("recovery_key_created_at") is not None
+            else existing.get("recovery_key_created_at") or 0
+        ),
+        "recovery_key_last4": str(
+            data.get("recovery_key_last4")
+            if data.get("recovery_key_last4") is not None
+            else existing.get("recovery_key_last4") or ""
+        )[-4:],
     }
 
 
@@ -148,6 +204,9 @@ def public_user(user):
         "avatar_configured": bool(avatar_path),
         "avatar_version": str(user.get("avatar_version") or ""),
         "password_configured": bool(user.get("password_hash")),
+        "recovery_key_configured": bool(user.get("recovery_key_hash")),
+        "recovery_key_created_at": int(user.get("recovery_key_created_at") or 0),
+        "recovery_key_last4": str(user.get("recovery_key_last4") or "")[-4:],
     }
 
 
@@ -392,9 +451,12 @@ __all__ = [
     "configured_user_avatar",
     "delete_user",
     "delete_user_avatar_files",
+    "generate_user_recovery_key",
     "hash_password",
+    "normalize_user_recovery_key",
     "normalize_user",
     "public_user",
+    "regenerate_user_recovery_key",
     "remove_user_avatar",
     "save_current_user_profile",
     "save_user",
@@ -405,4 +467,5 @@ __all__ = [
     "user_by_username",
     "user_display_name",
     "verify_password",
+    "verify_user_recovery_key",
 ]

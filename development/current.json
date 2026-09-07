@@ -1,34 +1,39 @@
 {
   "schema": 1,
   "status": "ready",
-  "objective": "Validate the embedded administrator console and standalone password visibility control on desktop and mobile",
-  "why": "v0.5.139 separates the normal authenticated console experience from the independent pre-login recovery surface while keeping both on the same allowlisted backend.",
+  "objective": "Validate per-user opaque recovery keys and role-aware console authorization",
+  "why": "Recovery access should survive normal-login problems without granting every recovery user administrative privileges or embedding identity in the key itself.",
   "acceptance_criteria": [
-    "The standalone Recovery Console administrator password can be shown and hidden without changing authentication behavior.",
-    "Authenticated administrators open Console inside the normal dashboard instead of navigating away.",
-    "The embedded console executes the same allowlisted recovery commands with the existing administrator session and CSRF token.",
-    "The standalone /console page remains independent of app.js and settings.js for frontend-failure recovery."
+    "Each user can generate or regenerate one recovery key from Account settings only after confirming the current password.",
+    "Only the recovery-key hash and non-secret metadata are persisted; plaintext is shown once.",
+    "Standalone recovery unlock accepts username plus recovery key without requiring the account password.",
+    "Standard recovery sessions can run only read-only diagnostics; administrator sessions can run the existing controlled maintenance commands.",
+    "The embedded Console is available to Standard and Administrator dashboard sessions and uses the same backend role enforcement.",
+    "Administrator-password and startup-code fallbacks continue to work during the migration period."
   ],
   "decisions": [
-    "Keep the standalone Recovery Console independent and use a native dashboard view for authenticated console access.",
-    "Do not add arbitrary operating-system shell execution."
+    "Do not embed a user ID, username, role, or lookup token in personal recovery keys.",
+    "Use a 256-bit random opaque key with a TDRK display prefix and store only its PBKDF2 hash.",
+    "Require current-password verification for generation and regeneration.",
+    "Keep command authorization server-side and role-aware."
   ],
   "files": [
+    "torrent_dashboard/users.py",
+    "torrent_dashboard/recovery_console.py",
+    "dashboard.py",
     "static/index.html",
     "static/app.js",
     "static/app.css",
     "static/recovery-console.html",
     "static/recovery-console.js",
-    "static/recovery-console.css",
-    "static/sw.js",
-    "dashboard.py",
-    "release_notes/releases.json",
-    "release_tools/validate_ui_strings.py"
+    "tests/test_users.py",
+    "tests/test_recovery_console.py",
+    "release_notes/releases.json"
   ],
   "blockers": [],
   "out_of_scope": [
     "Arbitrary operating-system shell access.",
-    "Recovery when the Python HTTP server cannot start."
+    "Encoding user identity or authorization inside recovery keys."
   ],
-  "next_action": "Smoke-test standalone password visibility, dashboard Console navigation, command history, safe task actions, and a verified update check."
+  "next_action": "Add the separate minimal local recovery entry point for cases where the normal Torrent Dashboard HTTP process cannot start."
 }
