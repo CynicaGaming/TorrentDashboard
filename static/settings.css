@@ -244,3 +244,12 @@
 @keyframes jellyfin-refresh-spin{to{transform:rotate(360deg)}}
 @media(prefers-reduced-motion:reduce){.jellyfin-inline-refresh:disabled .material-symbol-icon{animation:none}}
 @media(max-width:700px){.jellyfin-inline-refresh{flex-basis:34px;width:34px;height:34px;min-width:34px}.jellyfin-inline-refresh .material-symbol-icon{width:20px;height:20px}}
+
+
+/* 0.5.135 Jellyfin scheduled-task favorites */
+.jellyfin-favorite-section{display:grid;gap:7px;margin:0 0 8px;padding:9px;border:1px solid var(--border);border-radius:11px;background:color-mix(in srgb,var(--panel2) 35%,transparent)}
+.jellyfin-favorite-head{display:flex;align-items:center;gap:8px;padding:1px 2px 2px;color:var(--text)}.jellyfin-favorite-head>span:last-child{display:grid;gap:2px}.jellyfin-favorite-head strong{font-size:11px}.jellyfin-favorite-head small{font-size:8.5px;color:var(--muted)}.jellyfin-favorite-heading-icon{display:grid;place-items:center;width:20px;height:20px;color:var(--accent)}.jellyfin-favorite-heading-icon .material-symbol-icon{width:18px;height:18px;fill:currentColor}
+.jellyfin-favorite-list{display:grid;gap:4px}.jellyfin-favorite-list .integration-service-empty{padding:8px 7px}
+.jellyfin-task-row{grid-template-columns:28px minmax(0,1fr) 30px 30px}
+.jellyfin-task-favorite{display:grid;place-items:center;width:30px;height:30px;min-width:30px;padding:0;border:0;border-radius:8px;background:transparent;color:var(--muted)}.jellyfin-task-favorite:hover{background:var(--panel3);color:var(--accent)}.jellyfin-task-favorite[aria-pressed="true"]{color:var(--accent)}.jellyfin-task-favorite:disabled{opacity:.45}.jellyfin-task-favorite .material-symbol-icon{width:19px;height:19px;fill:currentColor}
+@media(max-width:700px){.jellyfin-task-row{grid-template-columns:26px minmax(0,1fr) 30px 30px;gap:6px}.jellyfin-favorite-section{padding:8px}.jellyfin-task-favorite{width:30px;height:30px}}

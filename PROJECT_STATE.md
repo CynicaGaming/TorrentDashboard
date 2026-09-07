@@ -6,12 +6,12 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.134** (prerelease)
+- Latest documented build: **v0.5.135** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 
 ### Latest release summary
 
-Keeps Scan Media Library progress in Jellyfin Scheduled tasks instead of duplicating it beneath Libraries.
+Adds persistent Jellyfin scheduled-task favorites for one-click access to frequently run maintenance tasks.
 
 ## Development principles
 
@@ -23,6 +23,14 @@ Keeps Scan Media Library progress in Jellyfin Scheduled tasks instead of duplica
 - Keep public development continuity portable across forks; label canonical repository/branch/PR references as upstream context rather than local identity.
 
 ## Recent work
+
+### v0.5.135 — Jellyfin scheduled-task favorites
+
+Adds persistent Jellyfin scheduled-task favorites for one-click access to frequently run maintenance tasks.
+
+- Adds a Favorites section directly above Scheduled tasks in each Jellyfin integration.
+- Adds Material star controls to every scheduled task so tasks can be pinned or unpinned without leaving the integration.
+- Favorite rows retain the same last-run, duration, running-progress, play, and stop behavior as the main task list.
 
 ### v0.5.134 — Remove duplicate Jellyfin scan progress
 
@@ -55,14 +63,6 @@ Uses a cycle-style Material glyph for the inline Jellyfin status and library ref
 - Replaces the single-arrow refresh glyph beside Jellyfin status with a two-arrow cycle glyph.
 - Uses the same cycle glyph beside Libraries for a consistent synchronization visual.
 - Keeps the existing accessible labels, tooltips, loading animation, and refresh behavior unchanged.
-
-### v0.5.130 — Jellyfin inline refresh controls
-
-Replaces the Jellyfin status and library refresh text buttons with compact Material refresh icons positioned directly beside the information they refresh.
-
-- Adds a Material refresh icon beside the Jellyfin connection status.
-- Adds a Material refresh icon beside the Libraries heading.
-- Preserves the existing status reload and library refresh actions with accessible labels and tooltips.
 
 ## What to do next
 

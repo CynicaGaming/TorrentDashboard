@@ -10,6 +10,7 @@ from torrent_dashboard.integrations import (
     normalize_integration,
     probe_integration_health,
     save_integration,
+    save_jellyfin_task_favorites,
 )
 
 
@@ -44,6 +45,24 @@ class IntegrationModuleTests(unittest.TestCase):
         removed = delete_integration(updated, item["id"])
         self.assertEqual(removed["integrations"], [])
         self.assertEqual(cfg["integrations"], [])
+
+    def test_jellyfin_favorite_task_ids_persist_and_deduplicate(self):
+        cfg = {"integrations": [{
+            "id": "jellyfin-1",
+            "type": "jellyfin",
+            "name": "Jellyfin",
+            "enabled": True,
+            "url": "http://jellyfin:8096",
+            "api_key": "stored-key",
+        }]}
+        updated, item = save_jellyfin_task_favorites(cfg, "jellyfin-1", ["task-a", "task-a", "task-b", ""])
+        self.assertEqual(item["favorite_task_ids"], ["task-a", "task-b"])
+        normalized = normalize_integration(
+            {"id": "jellyfin-1", "type": "jellyfin", "url": "http://jellyfin:8096", "api_key": ""},
+            item,
+        )
+        self.assertEqual(normalized["favorite_task_ids"], ["task-a", "task-b"])
+        self.assertNotIn("favorite_task_ids", cfg["integrations"][0])
 
     def test_catalog_exposes_provider_form_metadata(self):
         catalog = {item["type"]: item for item in integration_catalog()}

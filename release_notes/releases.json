@@ -12,6 +12,31 @@
   },
   "releases": [
     {
+      "version": "0.5.135",
+      "date": "2026-09-07",
+      "status": "prerelease",
+      "title": "Jellyfin scheduled-task favorites",
+      "summary": "Adds persistent Jellyfin scheduled-task favorites for one-click access to frequently run maintenance tasks.",
+      "highlights": [
+        "Adds a Favorites section directly above Scheduled tasks in each Jellyfin integration.",
+        "Adds Material star controls to every scheduled task so tasks can be pinned or unpinned without leaving the integration.",
+        "Favorite rows retain the same last-run, duration, running-progress, play, and stop behavior as the main task list."
+      ],
+      "fixes": [],
+      "technical": [
+        "Stores favorite scheduled-task IDs with the saved Jellyfin integration so favorites survive reloads, updates, and browser changes.",
+        "Uses a focused favorites mutation endpoint so starring a task does not accidentally save unrelated unsaved integration form edits.",
+        "Keeps dynamically discovered plugin tasks eligible for favorites without hard-coded task names or categories."
+      ],
+      "validation": [
+        "Source validation, unit tests, UI-string validation, JavaScript syntax checks, and release-note checks run before publication."
+      ],
+      "known_issues": [],
+      "architecture": [],
+      "decisions": [],
+      "next_steps": []
+    },
+    {
       "version": "0.5.134",
       "date": "2026-09-07",
       "status": "prerelease",
@@ -149,7 +174,7 @@
         "Improves Jellyfin integration, scheduled-task, notification-sound, and advanced qBitTorrent settings typography."
       ],
       "fixes": [
-        "Removes most remaining 8–10 px text from frequently read interface surfaces.",
+        "Removes most remaining 8\u201310 px text from frequently read interface surfaces.",
         "Improves line height for secondary copy so larger text remains readable without crowding controls."
       ],
       "technical": [
@@ -172,7 +197,7 @@
       "summary": "Simplifies the Clients authentication UI by putting the qBitTorrent 5.2+ requirement directly on the API key option and removing redundant Bearer-authentication helper text.",
       "highlights": [
         "The Clients authentication selector now reads API key (qBitTorrent 5.2+).",
-        "Removes the separate qBitTorrent 5.2+ · Bearer authentication line beneath the API key field."
+        "Removes the separate qBitTorrent 5.2+ \u00b7 Bearer authentication line beneath the API key field."
       ],
       "fixes": [
         "Makes the regular Clients settings card consistent with the existing first-run qBitTorrent authentication selector."
@@ -288,9 +313,9 @@
       "date": "2026-09-02",
       "status": "prerelease",
       "title": "Collapsible revision patch notes",
-      "summary": "Expanded Settings → Updates from a single latest-release note block into a collapsible patch-note history for every documented Torrent Dashboard revision.",
+      "summary": "Expanded Settings \u2192 Updates from a single latest-release note block into a collapsible patch-note history for every documented Torrent Dashboard revision.",
       "highlights": [
-        "Settings → Updates now shows one collapsible patch-note entry per documented revision, ordered newest first.",
+        "Settings \u2192 Updates now shows one collapsible patch-note entry per documented revision, ordered newest first.",
         "Bundled release metadata is available immediately when the Updates page opens; a newly discovered GitHub release is merged into the history before it is installed.",
         "The newest revision opens by default and each older revision can be expanded independently.",
         "Future prerelease publication preserves older prereleases instead of deleting the complete prerelease history."
@@ -347,9 +372,9 @@
       "date": "2026-09-02",
       "status": "prerelease",
       "title": "Patch notes presentation cleanup",
-      "summary": "Simplified Settings → Updates to focus on the latest two releases while retaining the complete release history for changelog and project handoff purposes, with a cleaner release-card presentation.",
+      "summary": "Simplified Settings \u2192 Updates to focus on the latest two releases while retaining the complete release history for changelog and project handoff purposes, with a cleaner release-card presentation.",
       "highlights": [
-        "Settings → Updates now shows only the latest release and the immediately previous release instead of the complete historical list.",
+        "Settings \u2192 Updates now shows only the latest release and the immediately previous release instead of the complete historical list.",
         "Release cards now use a dedicated version badge, release-status badges, publication date, clearer typography, and improved spacing.",
         "The expanded release no longer repeats the version/title heading inside the patch-note body.",
         "The full structured release history remains preserved in release_notes/releases.json, CHANGELOG.md, and PROJECT_STATE.md."
@@ -407,7 +432,7 @@
       "title": "Installed package integrity metadata",
       "summary": "Persists the verified release-package SHA-256 with installed builds and surfaces the exact package digest alongside patch notes.",
       "highlights": [
-        "Settings → Updates shows Package SHA-256 for a release whenever authoritative package metadata is available, with a one-click Copy control.",
+        "Settings \u2192 Updates shows Package SHA-256 for a release whenever authoritative package metadata is available, with a one-click Copy control.",
         "The normal updater writes release-info.json into the staged application only after the downloaded ZIP matches GitHub's published SHA-256.",
         "Recovery updates persist the same release metadata after independently verifying the GitHub asset digest.",
         "The release build emits a Torrent-Dashboard-<version>.release.json sidecar containing the final ZIP digest, version, repository, tag, and commit."
@@ -532,7 +557,7 @@
       "highlights": [
         "Successful GitHub release lookups persist authoritative package digests to data/release-integrity.json.",
         "Normal Settings loads merge the persisted integrity cache into the two displayed patch-note revisions.",
-        "Opening Settings → Updates silently refreshes release metadata at most once per minute, so historical SHA-256 values self-populate without requiring a manual Check for updates click."
+        "Opening Settings \u2192 Updates silently refreshes release metadata at most once per minute, so historical SHA-256 values self-populate without requiring a manual Check for updates click."
       ],
       "fixes": [
         "The previous patch-note card no longer loses its SHA-256 when Settings is reloaded or opened in a new browser session after the remote metadata was fetched."
@@ -1372,7 +1397,7 @@
       "highlights": [
         "Dashboard / Live torrent activity is visible again because removing it did not materially improve usable workspace height and weakened page hierarchy.",
         "The collapsed Torrent details disclosure shows only Torrent details when no torrent is selected; selection-specific copy appears only for an actual selection.",
-        "Opening Settings → Updates no longer contacts GitHub automatically; Check for updates is the explicit freshness/network action.",
+        "Opening Settings \u2192 Updates no longer contacts GitHub automatically; Check for updates is the explicit freshness/network action.",
         "The bottom-anchored desktop/tablet torrent workspace and mobile disclosure behavior remain unchanged."
       ],
       "fixes": [
@@ -1981,7 +2006,7 @@
       "title": "Configurable torrent table columns",
       "summary": "Adds a persistent torrent-column organizer with visibility and ordering controls, expands the available table data, and makes Seeds, Peers, and Tags part of the default dashboard layout.",
       "highlights": [
-        "Settings → General now provides a Torrent columns organizer where optional columns can be shown, hidden, and moved up or down.",
+        "Settings \u2192 General now provides a Torrent columns organizer where optional columns can be shown, hidden, and moved up or down.",
         "Seeds, Peers, and Tags are visible by default, with Size, Category, Tracker, and Added available as optional columns.",
         "Name remains the required first data column while the selection checkbox and row-actions control remain fixed.",
         "Column visibility and order persist as a browser-local preference and survive live refreshes and reloads.",
@@ -2138,7 +2163,7 @@
         "Visible torrent data columns can be dragged horizontally to reorder them directly in the table header.",
         "Right-clicking the torrent header bar opens a Columns menu for showing or hiding optional columns and restoring defaults.",
         "Category remains visible by default alongside Seeds, Peers, and Tags.",
-        "The Settings → General torrent-column organizer has been removed so column management has one clear interaction surface."
+        "The Settings \u2192 General torrent-column organizer has been removed so column management has one clear interaction surface."
       ],
       "fixes": [
         "Removes the extra navigation round trip required to adjust a table layout while looking at the Dashboard.",
@@ -3696,7 +3721,7 @@
       "date": "2026-09-03",
       "status": "prerelease",
       "title": "Responsive tracker and peer details",
-      "summary": "Makes Torrent details → Trackers and Peers readable on mobile with purpose-built labeled records while preserving desktop tables and the existing General tab.",
+      "summary": "Makes Torrent details \u2192 Trackers and Peers readable on mobile with purpose-built labeled records while preserving desktop tables and the existing General tab.",
       "highlights": [
         "Peers on mobile now shows each address and client with labeled Progress, Download, and Upload metrics instead of an anonymous vertical value stack.",
         "Trackers on mobile now shows cleaned tracker names, human-readable status badges, Seeds and Peers counts, and an optional tracker message.",
@@ -3907,7 +3932,7 @@
       ],
       "fixes": [
         "Removes the v0.5.108 shared-workspace cap that still left General too shallow on shorter desktop viewports.",
-        "Preserves a stable 360–560 px torrent-list region across page scrolling and detail expansion while long detail datasets retain their own scrolling."
+        "Preserves a stable 360\u2013560 px torrent-list region across page scrolling and detail expansion while long detail datasets retain their own scrolling."
       ],
       "technical": [
         "syncTorrentWorkspaceLayout now writes a bounded --torrent-list-height derived from the workspace stable document position; the workspace itself uses natural document height.",
@@ -5090,7 +5115,7 @@
       "summary": "Fixes custom notification sound previews and adds a torrent-style drag-and-drop uploader plus a persisted notification volume control.",
       "highlights": [
         "Adds a drag-and-drop custom sound target that mirrors the .torrent file picker and still supports click-to-browse.",
-        "Adds a 0–100 notification volume slider used by test playback and normal completion notifications.",
+        "Adds a 0\u2013100 notification volume slider used by test playback and normal completion notifications.",
         "Uses notification-default.wav for the bundled sound and notification-custom.<ext> for newly uploaded custom sounds."
       ],
       "fixes": [

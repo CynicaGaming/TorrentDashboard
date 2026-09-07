@@ -99,6 +99,26 @@ def integration_catalog():
     return out
 
 
+def normalize_favorite_task_ids(value):
+    """Normalize a bounded, de-duplicated list of Jellyfin scheduled-task IDs."""
+    if value in (None, ""):
+        return []
+    if not isinstance(value, list):
+        raise RuntimeError("Jellyfin favorite task IDs must be a list")
+    result = []
+    for raw in value:
+        task_id = str(raw or "").strip()
+        if not task_id:
+            continue
+        if len(task_id) > 128:
+            raise RuntimeError("Jellyfin scheduled-task ID is too long")
+        if task_id not in result:
+            result.append(task_id)
+        if len(result) >= 64:
+            break
+    return result
+
+
 def normalize_integration(data, existing=None):
     """Normalize one integration while preserving already-stored secret fields."""
     existing = existing or {}
@@ -128,7 +148,27 @@ def normalize_integration(data, existing=None):
                 raise RuntimeError(f"{field['label']} must start with http:// or https://")
             value = str(value).rstrip("/") if key == "url" else str(value)
         item[key] = value
+    if provider == "jellyfin":
+        item["favorite_task_ids"] = normalize_favorite_task_ids(
+            data.get("favorite_task_ids", existing.get("favorite_task_ids", []))
+        )
     return item
+
+
+def save_jellyfin_task_favorites(cfg, integration_id, task_ids):
+    """Update only the favorite scheduled-task IDs for one saved Jellyfin integration."""
+    iid = str(integration_id or "").strip()
+    if not iid:
+        raise RuntimeError("Jellyfin integration ID is required")
+    out = json.loads(json.dumps(cfg))
+    for item in out.get("integrations", []):
+        if str(item.get("id") or "") != iid:
+            continue
+        if item.get("type") != "jellyfin":
+            raise RuntimeError("Integration is not Jellyfin")
+        item["favorite_task_ids"] = normalize_favorite_task_ids(task_ids)
+        return out, item
+    raise RuntimeError("Jellyfin integration not found")
 
 
 def redacted_integrations(cfg):

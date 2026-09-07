@@ -57,6 +57,7 @@ from torrent_dashboard.integrations import (
     normalize_integration,
     redacted_integrations,
     save_integration,
+    save_jellyfin_task_favorites,
     test_integration_connection,
 )
 from torrent_dashboard.jellyfin import (
@@ -103,7 +104,7 @@ RELEASE_INTEGRITY_CACHE_PATH = DATA_DIR / "release-integrity.json"
 CUSTOM_SOUND_BASENAME = "notification-custom"
 LEGACY_CUSTOM_SOUND_BASENAME = "custom-notification-sound"
 MAX_CUSTOM_SOUND_BYTES = 2 * 1024 * 1024
-VERSION = "0.5.134"
+VERSION = "0.5.135"
 STATUS_REFRESH_SECONDS = 1.0
 
 RELEASE_PROVENANCE = ReleaseProvenance(
@@ -2057,6 +2058,12 @@ class Handler(BaseHTTPRequestHandler):
                 data=parse_json_body(self,10000); iid=str(data.get("id") or ""); updated,_=mutate_config(lambda current: (delete_integration(current,iid),None))
                 HISTORY.event("dashboard","integration_deleted",iid,"",{"client_ip":self.client_ip()})
                 return self.send_json(200,{"ok":True},new_cookie)
+            if path=="/api/integrations/jellyfin/favorites":
+                data=parse_json_body(self,20000); iid=str(data.get("id") or "")
+                updated,item=mutate_config(lambda current: save_jellyfin_task_favorites(current,iid,data.get("task_ids",[])))
+                favorites=item.get("favorite_task_ids",[])
+                HISTORY.event("dashboard","jellyfin_task_favorites_changed",item.get("name","Jellyfin"),"",{"client_ip":self.client_ip(),"integration_id":iid,"count":len(favorites)})
+                return self.send_json(200,{"ok":True,"favorite_task_ids":favorites},new_cookie)
             if path=="/api/integrations/jellyfin/refresh":
                 data=parse_json_body(self,10000); item=find_jellyfin_integration(cfg,data.get("id"))
                 try:

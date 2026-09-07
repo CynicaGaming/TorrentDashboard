@@ -526,13 +526,13 @@ window.TDSettings = (() => {
 
 
   function jellyfinTaskIcon(name) {
-    const paths={chevron:'M9.29 6.71a.996.996 0 0 0 0 1.41L13.17 12l-3.88 3.88a.996.996 0 1 0 1.41 1.41l4.59-4.59a.996.996 0 0 0 0-1.41L10.7 6.7a.996.996 0 0 0-1.41.01Z',play:'M8 5v14l11-7z',stop:'M6 6h12v12H6z',schedule:'M11.99 2C6.48 2 2 6.48 2 12s4.48 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2Zm.01 18a8 8 0 1 1 0-16 8 8 0 0 1 0 16Zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7Z',cycle:'M12 6v3l4-4-4-4v3c-4.42 0-8 3.58-8 8 0 1.57.46 3.03 1.24 4.26L6.7 14.8A5.98 5.98 0 0 1 6 12c0-3.31 2.69-6 6-6Zm6.76 1.74L17.3 9.2A5.98 5.98 0 0 1 18 12c0 3.31-2.69 6-6 6v-3l-4 4 4 4v-3c4.42 0 8-3.58 8-8 0-1.57-.46-3.03-1.24-4.26Z'};
+    const paths={chevron:'M9.29 6.71a.996.996 0 0 0 0 1.41L13.17 12l-3.88 3.88a.996.996 0 1 0 1.41 1.41l4.59-4.59a.996.996 0 0 0 0-1.41L10.7 6.7a.996.996 0 0 0-1.41.01Z',play:'M8 5v14l11-7z',stop:'M6 6h12v12H6z',schedule:'M11.99 2C6.48 2 2 6.48 2 12s4.48 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2Zm.01 18a8 8 0 1 1 0-16 8 8 0 0 1 0 16Zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7Z',cycle:'M12 6v3l4-4-4-4v3c-4.42 0-8 3.58-8 8 0 1.57.46 3.03 1.24 4.26L6.7 14.8A5.98 5.98 0 0 1 6 12c0-3.31 2.69-6 6-6Zm6.76 1.74L17.3 9.2A5.98 5.98 0 0 1 18 12c0 3.31-2.69 6-6 6v-3l-4 4 4 4v-3c4.42 0 8-3.58 8-8 0-1.57-.46-3.03-1.24-4.26Z',star:'M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z',star_outline:'M22 9.24l-7.19-.62L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21 12 17.27 18.18 21l-1.63-7.03L22 9.24ZM12 15.4l-3.76 2.27 1-4.28-3.32-2.88 4.38-.38L12 6.1l1.71 4.04 4.38.38-3.32 2.88 1 4.28L12 15.4Z'};
     return `<svg class="material-symbol-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="${paths[name]||paths.schedule}"/></svg>`;
   }
 
   function jellyfinServiceMarkup(item) {
     if (item.type !== 'jellyfin' || !item.id || item._new) return '';
-    return `<section class="integration-service jellyfin-service" data-jellyfin-service><div class="integration-service-head"><div class="integration-service-heading"><span class="eyebrow">Jellyfin server</span><div class="jellyfin-server-line"><span class="service-status-badge checking" data-jellyfin-status>Checking…</span><strong data-jellyfin-name>Jellyfin</strong><button class="jellyfin-inline-refresh jellyfin-reload" type="button" aria-label="Refresh status" title="Refresh status">${jellyfinTaskIcon('cycle')}</button></div><small data-jellyfin-meta>Loading server status…</small></div></div><div class="jellyfin-library-head"><div><span class="jellyfin-library-title"><strong>Libraries</strong><button class="jellyfin-inline-refresh jellyfin-refresh-libraries" type="button" aria-label="Refresh libraries" title="Refresh libraries">${jellyfinTaskIcon('cycle')}</button></span><small data-jellyfin-library-count>Loading…</small></div></div><div class="jellyfin-library-list" data-jellyfin-libraries><div class="integration-service-empty">Loading libraries…</div></div><section class="jellyfin-task-section"><button class="jellyfin-task-summary" type="button" aria-expanded="false"><span class="jellyfin-task-summary-main"><span class="jellyfin-task-chevron">${jellyfinTaskIcon('chevron')}</span><span><strong>Scheduled tasks</strong><small data-jellyfin-task-count>Loading…</small></span></span></button><div class="jellyfin-task-body hidden" data-jellyfin-task-body><div class="jellyfin-task-list" data-jellyfin-tasks><div class="integration-service-empty">Loading scheduled tasks…</div></div></div></section></section>`;
+    return `<section class="integration-service jellyfin-service" data-jellyfin-service><div class="integration-service-head"><div class="integration-service-heading"><span class="eyebrow">Jellyfin server</span><div class="jellyfin-server-line"><span class="service-status-badge checking" data-jellyfin-status>Checking…</span><strong data-jellyfin-name>Jellyfin</strong><button class="jellyfin-inline-refresh jellyfin-reload" type="button" aria-label="Refresh status" title="Refresh status">${jellyfinTaskIcon('cycle')}</button></div><small data-jellyfin-meta>Loading server status…</small></div></div><div class="jellyfin-library-head"><div><span class="jellyfin-library-title"><strong>Libraries</strong><button class="jellyfin-inline-refresh jellyfin-refresh-libraries" type="button" aria-label="Refresh libraries" title="Refresh libraries">${jellyfinTaskIcon('cycle')}</button></span><small data-jellyfin-library-count>Loading…</small></div></div><div class="jellyfin-library-list" data-jellyfin-libraries><div class="integration-service-empty">Loading libraries…</div></div><section class="jellyfin-favorite-section"><div class="jellyfin-favorite-head"><span class="jellyfin-favorite-heading-icon">${jellyfinTaskIcon('star')}</span><span><strong>Favorites</strong><small data-jellyfin-favorite-count>Loading…</small></span></div><div class="jellyfin-favorite-list" data-jellyfin-favorites><div class="integration-service-empty">Loading favorites…</div></div></section><section class="jellyfin-task-section"><button class="jellyfin-task-summary" type="button" aria-expanded="false"><span class="jellyfin-task-summary-main"><span class="jellyfin-task-chevron">${jellyfinTaskIcon('chevron')}</span><span><strong>Scheduled tasks</strong><small data-jellyfin-task-count>Loading…</small></span></span></button><div class="jellyfin-task-body hidden" data-jellyfin-task-body><div class="jellyfin-task-list" data-jellyfin-tasks><div class="integration-service-empty">Loading scheduled tasks…</div></div></div></section></section>`;
   }
 
   function jellyfinLibraryType(value='') {
@@ -579,13 +579,41 @@ window.TDSettings = (() => {
     return `Last ran ${when}${duration?`, taking ${duration}`:''}.`;
   }
 
+  function jellyfinTaskRowMarkup(task,favoriteIds) {
+    const taskId=String(task.id||''),favorite=favoriteIds.has(taskId),status=String(task.last_status||'').toLowerCase(),failed=!task.running&&status&&!['completed','success','succeeded'].includes(status),action=task.running?'stop':'start',action_label=task.running?`Stop ${task.name||'scheduled task'}`:`Run ${task.name||'scheduled task'}`,favorite_label=favorite?`Remove ${task.name||'scheduled task'} from favorites`:`Add ${task.name||'scheduled task'} to favorites`;
+    return `<article class="jellyfin-task-row${task.running?' running':''}${failed?' failed':''}"><span class="jellyfin-task-clock">${jellyfinTaskIcon('schedule')}</span><div class="jellyfin-task-copy"><strong>${esc(task.name||'Scheduled task')}</strong><span>${esc(jellyfinTaskSubtitle(task))}</span></div><button class="jellyfin-task-favorite" type="button" data-favorite-task-id="${esc(taskId)}" aria-pressed="${favorite?'true':'false'}" aria-label="${esc(favorite_label)}" title="${esc(favorite_label)}">${jellyfinTaskIcon(favorite?'star':'star_outline')}</button><button class="jellyfin-task-action" type="button" data-task-id="${esc(taskId)}" data-action="${action}" aria-label="${esc(action_label)}" title="${esc(action_label)}">${jellyfinTaskIcon(task.running?'stop':'play')}</button></article>`;
+  }
+
   function renderJellyfinTasks(card, tasks) {
+    card._jellyfinTasks=tasks;
     const list=card.querySelector('[data-jellyfin-tasks]');if(!list)return;
     const count=card.querySelector('[data-jellyfin-task-count]');if(count)count.textContent=`${tasks.length} ${tasks.length===1?'task':'tasks'}`;
     const runtime=card.querySelector('[data-jellyfin-service]');if(runtime)runtime.dataset.taskRunning=tasks.some(task=>task.running)?'1':'0';
+    const item=integrations.find(entry=>String(entry.id||'')===String(card.dataset.id||''));
+    const favoriteIds=new Set((item?.favorite_task_ids||[]).map(value=>String(value||'')).filter(Boolean));
+    const favoriteTasks=tasks.filter(task=>favoriteIds.has(String(task.id||'')));
+    const favoriteCount=card.querySelector('[data-jellyfin-favorite-count]');if(favoriteCount)favoriteCount.textContent=`${favoriteTasks.length} ${favoriteTasks.length===1?'favorite':'favorites'}`;
+    const favoriteList=card.querySelector('[data-jellyfin-favorites]');
+    if(favoriteList)favoriteList.innerHTML=favoriteTasks.length?favoriteTasks.map(task=>jellyfinTaskRowMarkup(task,favoriteIds)).join(''):'<div class="integration-service-empty">Star scheduled tasks to pin them here.</div>';
     if(!tasks.length){list.innerHTML='<div class="integration-service-empty">No scheduled tasks reported</div>';return}
     const groups=new Map();tasks.forEach(task=>{const category=String(task.category||'Other').trim()||'Other';if(!groups.has(category))groups.set(category,[]);groups.get(category).push(task)});
-    list.innerHTML=[...groups.entries()].map(([category,items])=>`<section class="jellyfin-task-group"><div class="jellyfin-task-category">${esc(category)}</div><div class="jellyfin-task-group-list">${items.map(task=>{const status=String(task.last_status||'').toLowerCase(),failed=!task.running&&status&&!['completed','success','succeeded'].includes(status),action=task.running?'stop':'start',label=task.running?`Stop ${task.name||'scheduled task'}`:`Run ${task.name||'scheduled task'}`;return `<article class="jellyfin-task-row${task.running?' running':''}${failed?' failed':''}"><span class="jellyfin-task-clock">${jellyfinTaskIcon('schedule')}</span><div class="jellyfin-task-copy"><strong>${esc(task.name||'Scheduled task')}</strong><span>${esc(jellyfinTaskSubtitle(task))}</span></div><button class="jellyfin-task-action" type="button" data-task-id="${esc(task.id||'')}" data-action="${action}" aria-label="${esc(label)}" title="${esc(label)}">${jellyfinTaskIcon(task.running?'stop':'play')}</button></article>`;}).join('')}</div></section>`).join('');
+    list.innerHTML=[...groups.entries()].map(([category,items])=>`<section class="jellyfin-task-group"><div class="jellyfin-task-category">${esc(category)}</div><div class="jellyfin-task-group-list">${items.map(task=>jellyfinTaskRowMarkup(task,favoriteIds)).join('')}</div></section>`).join('');
+  }
+
+  async function toggleJellyfinTaskFavorite(card,button) {
+    const taskId=String(button?.dataset.favoriteTaskId||'').trim();if(!taskId||!card?.dataset.id)return;
+    const item=integrations.find(entry=>String(entry.id||'')===String(card.dataset.id||''));if(!item)return;
+    const previous=[...(item.favorite_task_ids||[])];
+    const next=new Set(previous.map(value=>String(value||'')).filter(Boolean));
+    if(next.has(taskId))next.delete(taskId);else next.add(taskId);
+    item.favorite_task_ids=[...next];
+    renderJellyfinTasks(card,card._jellyfinTasks||[]);
+    try{const result=await post('/api/integrations/jellyfin/favorites',{id:card.dataset.id,task_ids:item.favorite_task_ids});item.favorite_task_ids=Array.isArray(result?.favorite_task_ids)?result.favorite_task_ids:item.favorite_task_ids;renderJellyfinTasks(card,card._jellyfinTasks||[])}catch(error){item.favorite_task_ids=previous;renderJellyfinTasks(card,card._jellyfinTasks||[]);toast(error.message||'Could not update Jellyfin task favorites','error')}
+  }
+
+  function handleJellyfinTaskClick(card,event) {
+    const favorite=event.target.closest('.jellyfin-task-favorite');if(favorite){toggleJellyfinTaskFavorite(card,favorite);return}
+    const action=event.target.closest('.jellyfin-task-action');if(action)runJellyfinTask(card,action);
   }
 
   function scheduleJellyfinTaskPoll(card) {
@@ -658,7 +686,8 @@ window.TDSettings = (() => {
       card.querySelector('.jellyfin-reload')?.addEventListener('click', () => loadJellyfinOverview(card));
       card.querySelector('.jellyfin-refresh-libraries')?.addEventListener('click', () => refreshJellyfinLibraries(card));
       card.querySelector('.jellyfin-task-summary')?.addEventListener('click', () => toggleJellyfinTasks(card));
-      card.querySelector('[data-jellyfin-tasks]')?.addEventListener('click', event => { const button=event.target.closest('.jellyfin-task-action'); if(button) runJellyfinTask(card,button); });
+      card.querySelector('[data-jellyfin-tasks]')?.addEventListener('click', event => handleJellyfinTaskClick(card,event));
+      card.querySelector('[data-jellyfin-favorites]')?.addEventListener('click', event => handleJellyfinTaskClick(card,event));
       list.appendChild(card);
       decorateSecretFields(card);
       applySentenceCaseUi(card);
