@@ -1,0 +1,43 @@
+name: Hotfix source package validation
+
+on:
+  push:
+    branches:
+      - hotfix/source-package-output-pruning
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    env:
+      PYTHONPATH: src
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+      - name: Validate source and tests
+        shell: bash
+        run: |
+          python release_tools/validate_source.py
+          python release_tools/validate_ui_strings.py
+          python -m unittest discover -s tests -p 'test_*.py'
+          node --check static/app.js
+          node --check static/settings.js
+      - name: Build package into custom output directory
+        shell: bash
+        run: |
+          python release_tools/build_release.py --repo "${{ github.repository }}" --tag v0.5.146 --output dist-test
+          python - <<'PY'
+          import zipfile
+          from pathlib import Path
+          path = Path('dist-test/Torrent-Dashboard-0.5.146.zip')
+          assert path.is_file()
+          with zipfile.ZipFile(path) as archive:
+              names = archive.namelist()
+          assert any(name.endswith('/src/torrent_dashboard/dashboard.py') for name in names)
+          assert not any('/dist-test/' in name for name in names)
+          assert not any('/.git/' in name for name in names)
+          PY
