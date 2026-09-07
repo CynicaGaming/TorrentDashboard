@@ -42,6 +42,33 @@ def include(path: Path):
     return path.is_file()
 
 
+def package_files(output: Path):
+    """Yield package files without traversing excluded or output trees."""
+    output = output.resolve()
+    for current, directories, filenames in os.walk(ROOT, topdown=True):
+        current_path = Path(current)
+        relative = current_path.relative_to(ROOT)
+        if not relative.parts:
+            directories[:] = sorted(
+                name
+                for name in directories
+                if name not in EXCLUDE_TOP and (current_path / name).resolve() != output
+            )
+        else:
+            directories[:] = sorted(
+                name
+                for name in directories
+                if name != "__pycache__" and (current_path / name).resolve() != output
+            )
+        for filename in sorted(filenames):
+            path = current_path / filename
+            resolved = path.resolve()
+            if resolved == output or output in resolved.parents:
+                continue
+            if include(path):
+                yield path
+
+
 def compatibility_launchers(version: str) -> dict[str, str]:
     """Return release-only root launchers accepted by pre-src update staging.
 
@@ -112,9 +139,8 @@ def main():
         "compatibility_launchers": sorted(launchers),
     }
     with zipfile.ZipFile(asset_path, "w", zipfile.ZIP_DEFLATED) as zipped:
-        for path in sorted(ROOT.rglob("*")):
-            if include(path) and output != path.resolve() and output not in path.resolve().parents:
-                zipped.write(path, arcname=f"{prefix}/{path.relative_to(ROOT)}")
+        for path in package_files(output):
+            zipped.write(path, arcname=f"{prefix}/{path.relative_to(ROOT)}")
         for name, source in launchers.items():
             zipped.writestr(f"{prefix}/{name}", source)
         zipped.writestr(f"{prefix}/package-info.json", json.dumps(package_info, indent=2) + "\n")
