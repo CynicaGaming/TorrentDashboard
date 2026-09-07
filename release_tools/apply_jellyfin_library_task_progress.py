@@ -25,6 +25,7 @@ def main() -> None:
     appjs = ROOT / "static" / "app.js"
     sw = ROOT / "static" / "sw.js"
     releases = ROOT / "release_notes" / "releases.json"
+    ui_validator = ROOT / "release_tools" / "validate_ui_strings.py"
 
     replace_once(
         jellyfin,
@@ -64,6 +65,12 @@ def main() -> None:
         settings,
         "try{const result=await post('/api/integrations/jellyfin/refresh',{id:card.dataset.id});toast(result.message||'Jellyfin library refresh requested');scheduleJellyfinLibraryPoll(card,true);await new Promise(resolve=>setTimeout(resolve,500));await loadJellyfinOverview(card)}catch(error)",
         "try{const result=await post('/api/integrations/jellyfin/refresh',{id:card.dataset.id});toast(result.message||'Jellyfin library scan started');await new Promise(resolve=>setTimeout(resolve,350));await loadJellyfinTasks(card,{quiet:true})}catch(error)",
+    )
+
+    replace_once(
+        ui_validator,
+        "    assert '/System/Info' in jellyfin_py and '/Library/VirtualFolders' in jellyfin_py and '/Library/Refresh' in jellyfin_py\n",
+        "    assert '/System/Info' in jellyfin_py and '/Library/VirtualFolders' in jellyfin_py and '/ScheduledTasks?isHidden=false' in jellyfin_py\n",
     )
 
     replace_once(dashboard, 'VERSION = "0.5.132"', 'VERSION = "0.5.133"')
