@@ -6,12 +6,12 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.132** (prerelease)
+- Latest documented build: **v0.5.133** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 
 ### Latest release summary
 
-Shows active Jellyfin library rescans using the same compact running-task presentation as Scheduled tasks.
+Drives the Libraries scan indicator from Jellyfin's real Scan Media Library scheduled task rather than virtual-folder refresh polling.
 
 ## Development principles
 
@@ -23,6 +23,14 @@ Shows active Jellyfin library rescans using the same compact running-task presen
 - Keep public development continuity portable across forks; label canonical repository/branch/PR references as upstream context rather than local identity.
 
 ## Recent work
+
+### v0.5.133 — Jellyfin scan task progress
+
+Drives the Libraries scan indicator from Jellyfin's real Scan Media Library scheduled task rather than virtual-folder refresh polling.
+
+- Starts Jellyfin's actual Scan Media Library scheduled task when the Libraries cycle control is pressed.
+- Uses that task's CurrentProgressPercentage and running state for the compact Libraries progress row.
+- Reuses the existing Scheduled tasks refresh loop instead of running a separate library-overview polling loop.
 
 ### v0.5.132 — Jellyfin library scan progress
 
@@ -55,13 +63,6 @@ Raises undersized secondary and compact text across the dashboard and settings U
 - Improves torrent table, metric, filter, drawer, modal, notification, and setup text sizing on desktop.
 - Raises mobile torrent metadata, navigation, settings labels, and helper text to more readable sizes.
 - Improves Jellyfin integration, scheduled-task, notification-sound, and advanced qBitTorrent settings typography.
-
-### v0.5.128 — qBitTorrent API key labeling cleanup
-
-Simplifies the Clients authentication UI by putting the qBitTorrent 5.2+ requirement directly on the API key option and removing redundant Bearer-authentication helper text.
-
-- The Clients authentication selector now reads API key (qBitTorrent 5.2+).
-- Removes the separate qBitTorrent 5.2+ · Bearer authentication line beneath the API key field.
 
 ## What to do next
 

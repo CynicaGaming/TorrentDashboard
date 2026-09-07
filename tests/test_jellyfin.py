@@ -82,18 +82,39 @@ class JellyfinIntegrationTests(unittest.TestCase):
         self.assertEqual([call[0].rsplit("/", 2)[-2:] for call in calls], [["System", "Info"], ["Library", "VirtualFolders"]])
         self.assertTrue(all(call[2] == "secret-key" for call in calls))
 
-    def test_refresh_uses_global_library_scan_endpoint(self):
+    def test_refresh_starts_real_scan_media_library_scheduled_task(self):
         calls = []
 
         def opener(request, timeout=0):
             calls.append((request.full_url, request.get_method(), request.headers.get("X-emby-token"), timeout))
+            if request.full_url.endswith("/ScheduledTasks?isHidden=false"):
+                return FakeResponse([
+                    {
+                        "Id": "scan-task",
+                        "Key": "RefreshMediaLibraryTask",
+                        "Name": "Scan Media Library",
+                        "Category": "Library",
+                        "State": "Idle",
+                        "CurrentProgressPercentage": None,
+                    },
+                    {
+                        "Id": "other-task",
+                        "Key": "Plugin.Task",
+                        "Name": "Other task",
+                        "Category": "Plugin",
+                        "State": "Idle",
+                    },
+                ])
             return FakeResponse()
 
         result = refresh_jellyfin_libraries(self.item(), opener=opener)
         self.assertTrue(result["ok"])
-        self.assertEqual(calls[0][0], "http://jellyfin:8096/Library/Refresh")
-        self.assertEqual(calls[0][1], "POST")
-        self.assertEqual(calls[0][2], "secret-key")
+        self.assertEqual(result["task"]["id"], "scan-task")
+        self.assertEqual(calls[0][0], "http://jellyfin:8096/ScheduledTasks?isHidden=false")
+        self.assertEqual(calls[0][1], "GET")
+        self.assertEqual(calls[1][0], "http://jellyfin:8096/ScheduledTasks/Running/scan-task")
+        self.assertEqual(calls[1][1], "POST")
+        self.assertTrue(all(call[2] == "secret-key" for call in calls))
 
     def test_saved_jellyfin_lookup_rejects_other_provider(self):
         cfg = {"integrations": [{"id": "sonarr-1", "type": "sonarr"}]}

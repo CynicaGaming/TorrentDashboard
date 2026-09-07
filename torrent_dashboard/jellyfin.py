@@ -207,15 +207,31 @@ def jellyfin_overview(item, *, opener=None):
     }
 
 
+def _is_library_scan_task(task):
+    key = str(task.get("key") or "").strip().lower()
+    name = str(task.get("name") or "").strip().lower()
+    return key == "refreshmedialibrarytask" or "refreshmedialibrary" in key or name in {"scan media library", "scan library"}
+
+
+def jellyfin_library_scan_task(item, *, opener=None):
+    """Return Jellyfin's real Scan Media Library scheduled task."""
+    task = next((task for task in jellyfin_scheduled_tasks(item, opener=opener) if _is_library_scan_task(task)), None)
+    if not task:
+        raise RuntimeError("Jellyfin did not report a Scan Media Library scheduled task")
+    return task
+
+
 def refresh_jellyfin_libraries(item, *, opener=None):
-    """Request Jellyfin's normal global library scan."""
-    _jellyfin_request(item, "/Library/Refresh", method="POST", expect_json=False, opener=opener)
-    return {"ok": True, "message": "Jellyfin library refresh requested"}
+    """Start Jellyfin's real Scan Media Library scheduled task."""
+    task = jellyfin_library_scan_task(item, opener=opener)
+    start_jellyfin_scheduled_task(item, task["id"], opener=opener)
+    return {"ok": True, "message": "Jellyfin library scan started", "task": task}
 
 
 __all__ = [
     "find_jellyfin_integration",
     "jellyfin_libraries",
+    "jellyfin_library_scan_task",
     "jellyfin_overview",
     "jellyfin_scheduled_tasks",
     "jellyfin_server_info",

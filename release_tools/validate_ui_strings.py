@@ -892,7 +892,7 @@ def main():
     assert '/api/integrations/jellyfin/refresh' in dashboard_py
     assert 'find_jellyfin_integration' in dashboard_py and 'jellyfin_overview' in dashboard_py
     assert 'def jellyfin_overview' in jellyfin_py and 'def refresh_jellyfin_libraries' in jellyfin_py
-    assert '/System/Info' in jellyfin_py and '/Library/VirtualFolders' in jellyfin_py and '/Library/Refresh' in jellyfin_py
+    assert '/System/Info' in jellyfin_py and '/Library/VirtualFolders' in jellyfin_py and '/ScheduledTasks?isHidden=false' in jellyfin_py
     assert 'function jellyfinServiceMarkup' in settings_js
     assert 'function renderJellyfinOverview' in settings_js and 'function loadJellyfinOverview' in settings_js
     assert 'function refreshJellyfinLibraries' in settings_js and 'Refresh libraries' in settings_js

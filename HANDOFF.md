@@ -7,11 +7,11 @@
 This handoff is intentionally portable across public forks. Verify the current checkout's Git remote, branch, and open work before using upstream references as instructions.
 
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
-- Last documented upstream build: **v0.5.132** (prerelease)
+- Last documented upstream build: **v0.5.133** (prerelease)
 
 ## Last known-good state
 
-Shows active Jellyfin library rescans using the same compact running-task presentation as Scheduled tasks.
+Drives the Libraries scan indicator from Jellyfin's real Scan Media Library scheduled task rather than virtual-folder refresh polling.
 
 The released-state details and recent history are in `PROJECT_STATE.md`; architectural constraints are in `ARCHITECTURE.md`.
 
