@@ -12,6 +12,36 @@
   },
   "releases": [
     {
+      "version": "0.5.139",
+      "date": "2026-09-07",
+      "status": "prerelease",
+      "title": "Embedded administrator console",
+      "summary": "Adds a password visibility control to standalone recovery login and a native authenticated console view inside the dashboard.",
+      "highlights": [
+        "Adds a Material password visibility toggle to the standalone Recovery Console administrator password field.",
+        "Changes authenticated Console navigation from a separate recovery page to a native dashboard view so the sidebar, top bar, and normal navigation remain available.",
+        "Adds the same allowlisted recovery command interface to the dashboard Console view, including command history, help, clear, frontend cache recovery, and verified updater commands.",
+        "Keeps the standalone /console route unchanged as the independent pre-login recovery surface."
+      ],
+      "fixes": [],
+      "technical": [
+        "The embedded console uses the existing administrator dashboard session and its CSRF token; it does not create a second recovery login when the user is already authenticated.",
+        "Standalone recovery authentication remains isolated from the normal frontend and still accepts administrator credentials or the ephemeral startup recovery code.",
+        "No arbitrary operating-system shell access is added; both console surfaces use the same backend recovery command allowlist."
+      ],
+      "validation": [
+        "Source validation, UI-string audit, unit tests, app/settings/recovery JavaScript syntax checks, and generated release-note checks run before publication."
+      ],
+      "known_issues": [
+        "The standalone web recovery console still requires the Torrent Dashboard Python HTTP server to be running."
+      ],
+      "architecture": [],
+      "decisions": [
+        "Use a native dashboard Console view for authenticated administrators while retaining the standalone recovery page for frontend-failure recovery."
+      ],
+      "next_steps": []
+    },
+    {
       "version": "0.5.138",
       "date": "2026-09-07",
       "status": "prerelease",

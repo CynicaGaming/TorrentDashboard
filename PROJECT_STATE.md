@@ -6,17 +6,16 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.138** (prerelease)
+- Latest documented build: **v0.5.139** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 
 ### Latest release summary
 
-Adds a restricted recovery console that remains available from the login screen when the normal dashboard frontend is unavailable.
+Adds a password visibility control to standalone recovery login and a native authenticated console view inside the dashboard.
 
 ## Current engineering decisions
 
-- Keep recovery functionality independent from the normal frontend bundle and prohibit arbitrary shell execution.
-- Use the existing verified updater backend so recovery updates retain release integrity checks and updater rollback behavior.
+- Use a native dashboard Console view for authenticated administrators while retaining the standalone recovery page for frontend-failure recovery.
 
 ## Development principles
 
@@ -28,6 +27,15 @@ Adds a restricted recovery console that remains available from the login screen 
 - Keep public development continuity portable across forks; label canonical repository/branch/PR references as upstream context rather than local identity.
 
 ## Recent work
+
+### v0.5.139 — Embedded administrator console
+
+Adds a password visibility control to standalone recovery login and a native authenticated console view inside the dashboard.
+
+- Adds a Material password visibility toggle to the standalone Recovery Console administrator password field.
+- Changes authenticated Console navigation from a separate recovery page to a native dashboard view so the sidebar, top bar, and normal navigation remain available.
+- Adds the same allowlisted recovery command interface to the dashboard Console view, including command history, help, clear, frontend cache recovery, and verified updater commands.
+- Keeps the standalone /console route unchanged as the independent pre-login recovery surface.
 
 ### v0.5.138 — Standalone recovery console
 
@@ -63,21 +71,13 @@ Adds persistent Jellyfin scheduled-task favorites for one-click access to freque
 - Adds Material star controls to every scheduled task so tasks can be pinned or unpinned without leaving the integration.
 - Favorite rows retain the same last-run, duration, running-progress, play, and stop behavior as the main task list.
 
-### v0.5.134 — Remove duplicate Jellyfin scan progress
-
-Keeps Scan Media Library progress in Jellyfin Scheduled tasks instead of duplicating it beneath Libraries.
-
-- Removes the duplicate Scan Media Library progress row from the Libraries section.
-- Keeps the Libraries cycle control for starting Jellyfin's real Scan Media Library task.
-- Continues to show scan state and CurrentProgressPercentage in the existing Scheduled tasks list.
-
 ## What to do next
 
 No next steps are recorded in the latest release metadata.
 
 ## Known issues
 
-- The web recovery console requires the Torrent Dashboard Python server to be running; it cannot recover a process that fails before the HTTP server starts.
+- The standalone web recovery console still requires the Torrent Dashboard Python HTTP server to be running.
 
 ## Handoff instructions for a new development session
 

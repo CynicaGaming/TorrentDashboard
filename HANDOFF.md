@@ -7,48 +7,44 @@
 This handoff is intentionally portable across public forks. Verify the current checkout's Git remote, branch, and open work before using upstream references as instructions.
 
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
-- Last documented upstream build: **v0.5.138** (prerelease)
+- Last documented upstream build: **v0.5.139** (prerelease)
 
 ## Last known-good state
 
-Adds a restricted recovery console that remains available from the login screen when the normal dashboard frontend is unavailable.
+Adds a password visibility control to standalone recovery login and a native authenticated console view inside the dashboard.
 
 The released-state details and recent history are in `PROJECT_STATE.md`; architectural constraints are in `ARCHITECTURE.md`.
 
 ## Active development intent
 
 - Status: **ready**
-- Objective: **Validate the standalone authenticated recovery console on desktop and mobile**
-- Why: v0.5.138 provides an independent recovery path for frontend failures while keeping privileged actions authenticated and allowlisted.
+- Objective: **Validate the embedded administrator console and standalone password visibility control on desktop and mobile**
+- Why: v0.5.139 separates the normal authenticated console experience from the independent pre-login recovery surface while keeping both on the same allowlisted backend.
 
 ### Acceptance criteria
 
-- The sign-in screen exposes a plain Console link that works even if the normal app JavaScript fails.
-- The recovery page loads without app.js or settings.js and does not run commands automatically.
-- Administrator sessions, administrator credentials, and the ephemeral startup recovery code can authorize the console; standard users cannot.
-- Update check/download/install/apply commands use the existing verified updater path.
-- Arbitrary shell commands and destructive torrent deletion are rejected.
+- The standalone Recovery Console administrator password can be shown and hidden without changing authentication behavior.
+- Authenticated administrators open Console inside the normal dashboard instead of navigating away.
+- The embedded console executes the same allowlisted recovery commands with the existing administrator session and CSRF token.
+- The standalone /console page remains independent of app.js and settings.js for frontend-failure recovery.
 
 ### Decisions already made
 
-- Keep the recovery console as a separate frontend bundle and route.
-- Use a dedicated 30-minute recovery session with HttpOnly SameSite=Strict cookies and CSRF protection.
-- Expose an explicit allowlist of application operations rather than an OS command shell.
+- Keep the standalone Recovery Console independent and use a native dashboard view for authenticated console access.
+- Do not add arbitrary operating-system shell execution.
 
 ### Expected areas of change
 
-- `dashboard.py`
-- `torrent_dashboard/recovery_console.py`
-- `static/recovery-console.html`
-- `static/recovery-console.css`
-- `static/recovery-console.js`
 - `static/index.html`
+- `static/app.js`
 - `static/app.css`
+- `static/recovery-console.html`
+- `static/recovery-console.js`
+- `static/recovery-console.css`
 - `static/sw.js`
-- `tests/test_recovery_console.py`
-- `release_tools/validate_ui_strings.py`
-- `.github/workflows/release.yml`
+- `dashboard.py`
 - `release_notes/releases.json`
+- `release_tools/validate_ui_strings.py`
 
 ### Blockers
 
@@ -57,12 +53,11 @@ None currently recorded.
 ### Explicitly out of scope
 
 - Arbitrary operating-system shell access.
-- Remote process management when the Torrent Dashboard HTTP server is not running.
-- Destructive torrent deletion from the recovery console.
+- Recovery when the Python HTTP server cannot start.
 
 ## Exact next action
 
-Smoke-test login-screen recovery access, administrator-session access, the startup recovery code, safe command execution, and a verified updater check against the maintainer environment.
+Smoke-test standalone password visibility, dashboard Console navigation, command history, safe task actions, and a verified update check.
 
 ## Resume checklist
 

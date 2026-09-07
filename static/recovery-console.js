@@ -1,5 +1,5 @@
 "use strict";
-const RECOVERY_BUILD="0.5.138";
+const RECOVERY_BUILD="0.5.139";
 const $=selector=>document.querySelector(selector);
 let csrf="";
 let sessionKind="";
@@ -15,6 +15,13 @@ function setLocked(locked,label="Locked"){
   const badge=$("#consoleLockStatus");badge.textContent=label;badge.classList.toggle("locked",locked);badge.classList.toggle("unlocked",!locked);
   if(locked){csrf="";sessionKind="";}else setTimeout(()=>$("#consoleCommand")?.focus(),0);
 }
+
+function setPasswordVisibility(show){
+  const input=$("#consolePassword"),button=$("#consolePasswordToggle");if(!input||!button)return;
+  input.type=show?"text":"password";button.dataset.visible=show?"1":"0";button.setAttribute("aria-label",show?"Hide password":"Show password");button.title=show?"Hide password":"Show password";
+  button.innerHTML=show?'<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M2.27 3.27 1 4.54l3.13 3.13A11.8 11.8 0 0 0 1 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l3.08 3.07L20.73 20 3.54 2.73 2.27 3.27ZM12 17a5 5 0 0 1-5-5c0-.65.13-1.27.35-1.83l1.55 1.55A3.17 3.17 0 0 0 12 15.17c.1 0 .19 0 .28-.02l1.55 1.55A4.9 4.9 0 0 1 12 17Zm9.73-5c-.77 1.94-1.94 3.57-3.39 4.82l-2.12-2.12A5 5 0 0 0 9.3 7.78L7.66 6.14A11.4 11.4 0 0 1 12 5c5 0 9.27 3.11 11 7-.34.86-.77 1.67-1.27 2.4L19.9 12.57c.04-.19.1-.37.1-.57 0-2.76-2.24-5-5-5-.2 0-.38.06-.57.1l-1.66-1.66A7 7 0 0 1 19 12c0 .42-.05.83-.12 1.22L21.73 16.07A11.3 11.3 0 0 0 23 12h-1.27Z"/></svg>':'<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5C21.27 7.61 17 4.5 12 4.5Zm0 12A4.5 4.5 0 1 1 12 7.5a4.5 4.5 0 0 1 0 9Zm0-7.2a2.7 2.7 0 1 0 0 5.4 2.7 2.7 0 0 0 0-5.4Z"/></svg>';
+}
+
 async function request(url,options={}){
   options.headers={...(options.headers||{})};
   if(options.method&&options.method!=="GET"&&options.method!=="HEAD"&&csrf)options.headers["X-CSRF-Token"]=csrf;
@@ -47,9 +54,10 @@ async function lockConsole(){
 }
 
 $("#consoleUnlockForm").addEventListener("submit",unlockConsole);
+$("#consolePasswordToggle").addEventListener("click",()=>setPasswordVisibility($("#consolePassword").type==="password"));
 $("#consoleCommandForm").addEventListener("submit",event=>{event.preventDefault();const input=$("#consoleCommand"),command=input.value;input.value="";runCommand(command);});
 $("#consoleHelp").addEventListener("click",()=>runCommand("help"));
 $("#consoleClear").addEventListener("click",()=>{$("#consoleOutput").textContent="";$("#consoleCommand").focus();});
 $("#consoleLock").addEventListener("click",lockConsole);
 $("#consoleCommand").addEventListener("keydown",event=>{if(event.key==="ArrowUp"){event.preventDefault();if(commandHistory.length){historyIndex=Math.max(0,historyIndex-1);event.currentTarget.value=commandHistory[historyIndex]||"";}}else if(event.key==="ArrowDown"){event.preventDefault();historyIndex=Math.min(commandHistory.length,historyIndex+1);event.currentTarget.value=historyIndex<commandHistory.length?commandHistory[historyIndex]:"";}else if(event.key.toLowerCase()==="l"&&event.ctrlKey){event.preventDefault();$("#consoleOutput").textContent="";}});
-setLocked(true,"Locked");detectSession();
+setPasswordVisibility(false);setLocked(true,"Locked");detectSession();

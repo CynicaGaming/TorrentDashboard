@@ -108,6 +108,11 @@ def main():
     validate_javascript("static/app.js", app_js)
     validate_javascript("static/settings.js", settings_js)
     validate_design_language(app_js, settings_js)
+    assert 'id="view-console"' in html and 'id="embeddedConsoleForm"' in html
+    assert 'data-view="console"' in html and 'id="accountConsoleBtn"' in html
+    assert 'id="consolePasswordToggle"' in (ROOT / "static" / "recovery-console.html").read_text(encoding="utf-8")
+    assert 'const embeddedConsoleState=' in app_js and "post('/api/recovery/command',{command})" in app_js
+
 
     assert 'placeholder="Search torrents…"' in html
     assert 'id="savedView"' not in html
@@ -905,7 +910,7 @@ def main():
     recovery_html = (ROOT / "static" / "recovery-console.html").read_text(encoding="utf-8")
     recovery_js = (ROOT / "static" / "recovery-console.js").read_text(encoding="utf-8")
     recovery_py = (ROOT / "torrent_dashboard" / "recovery_console.py").read_text(encoding="utf-8")
-    assert 'href="/console"' in html and '/console?session=1' in html
+    assert 'href="/console"' in html and '/console?session=1' not in html
     assert '/api/recovery/unlock' in dashboard_py and '/api/recovery/command' in dashboard_py
     assert 'RECOVERY_CODE_RAW' in dashboard_py and 'SameSite=Strict' in dashboard_py
     assert 'app.js' not in recovery_html and 'settings.js' not in recovery_html
