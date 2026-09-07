@@ -244,7 +244,3 @@
 @keyframes jellyfin-refresh-spin{to{transform:rotate(360deg)}}
 @media(prefers-reduced-motion:reduce){.jellyfin-inline-refresh:disabled .material-symbol-icon{animation:none}}
 @media(max-width:700px){.jellyfin-inline-refresh{flex-basis:34px;width:34px;height:34px;min-width:34px}.jellyfin-inline-refresh .material-symbol-icon{width:20px;height:20px}}
-/* 0.5.132 Jellyfin library scan progress */
-.jellyfin-library-progress{margin:0 0 8px}.jellyfin-library-progress .jellyfin-task-row{grid-template-columns:28px minmax(0,1fr) auto}.jellyfin-library-progress-value{min-width:42px;text-align:right;font-size:10px;color:var(--accent);font-variant-numeric:tabular-nums}.jellyfin-library-progress .jellyfin-task-clock .material-symbol-icon{animation:jellyfinRefreshSpin 1s linear infinite}
-@media(max-width:700px){.jellyfin-library-progress .jellyfin-task-row{grid-template-columns:26px minmax(0,1fr) auto}.jellyfin-library-progress-value{font-size:10px}}
-@media(prefers-reduced-motion:reduce){.jellyfin-library-progress .jellyfin-task-clock .material-symbol-icon{animation:none}}

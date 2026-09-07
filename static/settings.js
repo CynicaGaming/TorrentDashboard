@@ -532,28 +532,13 @@ window.TDSettings = (() => {
 
   function jellyfinServiceMarkup(item) {
     if (item.type !== 'jellyfin' || !item.id || item._new) return '';
-    return `<section class="integration-service jellyfin-service" data-jellyfin-service><div class="integration-service-head"><div class="integration-service-heading"><span class="eyebrow">Jellyfin server</span><div class="jellyfin-server-line"><span class="service-status-badge checking" data-jellyfin-status>Checking…</span><strong data-jellyfin-name>Jellyfin</strong><button class="jellyfin-inline-refresh jellyfin-reload" type="button" aria-label="Refresh status" title="Refresh status">${jellyfinTaskIcon('cycle')}</button></div><small data-jellyfin-meta>Loading server status…</small></div></div><div class="jellyfin-library-head"><div><span class="jellyfin-library-title"><strong>Libraries</strong><button class="jellyfin-inline-refresh jellyfin-refresh-libraries" type="button" aria-label="Refresh libraries" title="Refresh libraries">${jellyfinTaskIcon('cycle')}</button></span><small data-jellyfin-library-count>Loading…</small></div></div><div class="jellyfin-library-progress hidden" data-jellyfin-library-progress></div><div class="jellyfin-library-list" data-jellyfin-libraries><div class="integration-service-empty">Loading libraries…</div></div><section class="jellyfin-task-section"><button class="jellyfin-task-summary" type="button" aria-expanded="false"><span class="jellyfin-task-summary-main"><span class="jellyfin-task-chevron">${jellyfinTaskIcon('chevron')}</span><span><strong>Scheduled tasks</strong><small data-jellyfin-task-count>Loading…</small></span></span></button><div class="jellyfin-task-body hidden" data-jellyfin-task-body><div class="jellyfin-task-list" data-jellyfin-tasks><div class="integration-service-empty">Loading scheduled tasks…</div></div></div></section></section>`;
+    return `<section class="integration-service jellyfin-service" data-jellyfin-service><div class="integration-service-head"><div class="integration-service-heading"><span class="eyebrow">Jellyfin server</span><div class="jellyfin-server-line"><span class="service-status-badge checking" data-jellyfin-status>Checking…</span><strong data-jellyfin-name>Jellyfin</strong><button class="jellyfin-inline-refresh jellyfin-reload" type="button" aria-label="Refresh status" title="Refresh status">${jellyfinTaskIcon('cycle')}</button></div><small data-jellyfin-meta>Loading server status…</small></div></div><div class="jellyfin-library-head"><div><span class="jellyfin-library-title"><strong>Libraries</strong><button class="jellyfin-inline-refresh jellyfin-refresh-libraries" type="button" aria-label="Refresh libraries" title="Refresh libraries">${jellyfinTaskIcon('cycle')}</button></span><small data-jellyfin-library-count>Loading…</small></div></div><div class="jellyfin-library-list" data-jellyfin-libraries><div class="integration-service-empty">Loading libraries…</div></div><section class="jellyfin-task-section"><button class="jellyfin-task-summary" type="button" aria-expanded="false"><span class="jellyfin-task-summary-main"><span class="jellyfin-task-chevron">${jellyfinTaskIcon('chevron')}</span><span><strong>Scheduled tasks</strong><small data-jellyfin-task-count>Loading…</small></span></span></button><div class="jellyfin-task-body hidden" data-jellyfin-task-body><div class="jellyfin-task-list" data-jellyfin-tasks><div class="integration-service-empty">Loading scheduled tasks…</div></div></div></section></section>`;
   }
 
   function jellyfinLibraryType(value='') {
     const raw=String(value||'').toLowerCase();
     const labels={movies:'Movies',tvshows:'TV shows',music:'Music',books:'Books',photos:'Photos',musicvideos:'Music videos',homevideos:'Home videos',boxsets:'Collections',mixed:'Mixed content'};
     return labels[raw] || (raw ? uiText(raw) : 'Library');
-  }
-
-  function isJellyfinLibraryScanTask(task) {
-    const key=String(task?.key||'').trim().toLowerCase();
-    const name=String(task?.name||'').trim().toLowerCase();
-    return key==='refreshmedialibrarytask'||key.includes('refreshmedialibrary')||name==='scan media library'||name==='scan library';
-  }
-
-  function renderJellyfinLibraryProgress(card,task) {
-    const host=card.querySelector('[data-jellyfin-library-progress]');if(!host)return;
-    if(!task?.running){host.classList.add('hidden');host.innerHTML='';return}
-    const progress=task.progress==null?null:Number(task.progress);
-    const percentage=Number.isFinite(progress)?`${Math.round(Math.max(0,Math.min(100,progress)))}%`:'';
-    host.classList.remove('hidden');
-    host.innerHTML=`<article class="jellyfin-task-row running"><span class="jellyfin-task-clock">${jellyfinTaskIcon('cycle')}</span><div class="jellyfin-task-copy"><strong>${esc(task.name||'Scan Media Library')}</strong><span>${esc(jellyfinTaskSubtitle(task))}</span></div><strong class="jellyfin-library-progress-value">${esc(percentage||'…')}</strong></article>`;
   }
 
   function renderJellyfinOverview(card, data) {
@@ -597,13 +582,7 @@ window.TDSettings = (() => {
   function renderJellyfinTasks(card, tasks) {
     const list=card.querySelector('[data-jellyfin-tasks]');if(!list)return;
     const count=card.querySelector('[data-jellyfin-task-count]');if(count)count.textContent=`${tasks.length} ${tasks.length===1?'task':'tasks'}`;
-    const runtime=card.querySelector('[data-jellyfin-service]');
-    const scanTask=tasks.find(isJellyfinLibraryScanTask)||null;
-    const wasLibraryScanRunning=runtime?.dataset.libraryScanRunning==='1';
-    const libraryScanRunning=!!scanTask?.running;
-    if(runtime){runtime.dataset.taskRunning=tasks.some(task=>task.running)?'1':'0';runtime.dataset.libraryScanRunning=libraryScanRunning?'1':'0'}
-    renderJellyfinLibraryProgress(card,scanTask);
-    if(wasLibraryScanRunning&&!libraryScanRunning)setTimeout(()=>loadJellyfinOverview(card),0);
+    const runtime=card.querySelector('[data-jellyfin-service]');if(runtime)runtime.dataset.taskRunning=tasks.some(task=>task.running)?'1':'0';
     if(!tasks.length){list.innerHTML='<div class="integration-service-empty">No scheduled tasks reported</div>';return}
     const groups=new Map();tasks.forEach(task=>{const category=String(task.category||'Other').trim()||'Other';if(!groups.has(category))groups.set(category,[]);groups.get(category).push(task)});
     list.innerHTML=[...groups.entries()].map(([category,items])=>`<section class="jellyfin-task-group"><div class="jellyfin-task-category">${esc(category)}</div><div class="jellyfin-task-group-list">${items.map(task=>{const status=String(task.last_status||'').toLowerCase(),failed=!task.running&&status&&!['completed','success','succeeded'].includes(status),action=task.running?'stop':'start',label=task.running?`Stop ${task.name||'scheduled task'}`:`Run ${task.name||'scheduled task'}`;return `<article class="jellyfin-task-row${task.running?' running':''}${failed?' failed':''}"><span class="jellyfin-task-clock">${jellyfinTaskIcon('schedule')}</span><div class="jellyfin-task-copy"><strong>${esc(task.name||'Scheduled task')}</strong><span>${esc(jellyfinTaskSubtitle(task))}</span></div><button class="jellyfin-task-action" type="button" data-task-id="${esc(task.id||'')}" data-action="${action}" aria-label="${esc(label)}" title="${esc(label)}">${jellyfinTaskIcon(task.running?'stop':'play')}</button></article>`;}).join('')}</div></section>`).join('');

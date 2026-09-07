@@ -6,12 +6,12 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.133** (prerelease)
+- Latest documented build: **v0.5.134** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 
 ### Latest release summary
 
-Drives the Libraries scan indicator from Jellyfin's real Scan Media Library scheduled task rather than virtual-folder refresh polling.
+Keeps Scan Media Library progress in Jellyfin Scheduled tasks instead of duplicating it beneath Libraries.
 
 ## Development principles
 
@@ -23,6 +23,14 @@ Drives the Libraries scan indicator from Jellyfin's real Scan Media Library sche
 - Keep public development continuity portable across forks; label canonical repository/branch/PR references as upstream context rather than local identity.
 
 ## Recent work
+
+### v0.5.134 — Remove duplicate Jellyfin scan progress
+
+Keeps Scan Media Library progress in Jellyfin Scheduled tasks instead of duplicating it beneath Libraries.
+
+- Removes the duplicate Scan Media Library progress row from the Libraries section.
+- Keeps the Libraries cycle control for starting Jellyfin's real Scan Media Library task.
+- Continues to show scan state and CurrentProgressPercentage in the existing Scheduled tasks list.
 
 ### v0.5.133 — Jellyfin scan task progress
 
@@ -55,14 +63,6 @@ Replaces the Jellyfin status and library refresh text buttons with compact Mater
 - Adds a Material refresh icon beside the Jellyfin connection status.
 - Adds a Material refresh icon beside the Libraries heading.
 - Preserves the existing status reload and library refresh actions with accessible labels and tooltips.
-
-### v0.5.129 — Desktop and mobile legibility pass
-
-Raises undersized secondary and compact text across the dashboard and settings UI while preserving the existing information density and responsive layout.
-
-- Improves torrent table, metric, filter, drawer, modal, notification, and setup text sizing on desktop.
-- Raises mobile torrent metadata, navigation, settings labels, and helper text to more readable sizes.
-- Improves Jellyfin integration, scheduled-task, notification-sound, and advanced qBitTorrent settings typography.
 
 ## What to do next
 

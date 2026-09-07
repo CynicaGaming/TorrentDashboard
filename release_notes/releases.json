@@ -12,6 +12,32 @@
   },
   "releases": [
     {
+      "version": "0.5.134",
+      "date": "2026-09-07",
+      "status": "prerelease",
+      "title": "Remove duplicate Jellyfin scan progress",
+      "summary": "Keeps Scan Media Library progress in Jellyfin Scheduled tasks instead of duplicating it beneath Libraries.",
+      "highlights": [
+        "Removes the duplicate Scan Media Library progress row from the Libraries section.",
+        "Keeps the Libraries cycle control for starting Jellyfin's real Scan Media Library task.",
+        "Continues to show scan state and CurrentProgressPercentage in the existing Scheduled tasks list."
+      ],
+      "fixes": [
+        "Eliminates duplicate scan-status presentation in the Jellyfin integration."
+      ],
+      "technical": [
+        "Removes the special library-scan renderer, scan-specific DOM state, and associated CSS.",
+        "Scheduled task polling remains the single task-status update path while Jellyfin tasks are running."
+      ],
+      "validation": [
+        "Source validation, unit tests, UI-string validation, JavaScript syntax checks, and release-note checks run before publication."
+      ],
+      "known_issues": [],
+      "architecture": [],
+      "decisions": [],
+      "next_steps": []
+    },
+    {
       "version": "0.5.133",
       "date": "2026-09-07",
       "status": "prerelease",
