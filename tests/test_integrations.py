@@ -62,6 +62,13 @@ class IntegrationModuleTests(unittest.TestCase):
             item,
         )
         self.assertEqual(normalized["favorite_task_ids"], ["task-a", "task-b"])
+        reordered, reordered_item = save_jellyfin_task_favorites(updated, "jellyfin-1", ["task-b", "task-a"])
+        self.assertEqual(reordered_item["favorite_task_ids"], ["task-b", "task-a"])
+        renormalized = normalize_integration(
+            {"id": "jellyfin-1", "type": "jellyfin", "url": "http://jellyfin:8096", "api_key": ""},
+            reordered_item,
+        )
+        self.assertEqual(renormalized["favorite_task_ids"], ["task-b", "task-a"])
         self.assertNotIn("favorite_task_ids", cfg["integrations"][0])
 
     def test_catalog_exposes_provider_form_metadata(self):

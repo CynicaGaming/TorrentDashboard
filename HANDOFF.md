@@ -7,11 +7,11 @@
 This handoff is intentionally portable across public forks. Verify the current checkout's Git remote, branch, and open work before using upstream references as instructions.
 
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
-- Last documented upstream build: **v0.5.135** (prerelease)
+- Last documented upstream build: **v0.5.136** (prerelease)
 
 ## Last known-good state
 
-Adds persistent Jellyfin scheduled-task favorites for one-click access to frequently run maintenance tasks.
+Adds persistent drag-handle ordering to Jellyfin scheduled-task favorites for faster access to frequently run tasks.
 
 The released-state details and recent history are in `PROJECT_STATE.md`; architectural constraints are in `ARCHITECTURE.md`.
 

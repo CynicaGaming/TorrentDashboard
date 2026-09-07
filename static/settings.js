@@ -526,7 +526,7 @@ window.TDSettings = (() => {
 
 
   function jellyfinTaskIcon(name) {
-    const paths={chevron:'M9.29 6.71a.996.996 0 0 0 0 1.41L13.17 12l-3.88 3.88a.996.996 0 1 0 1.41 1.41l4.59-4.59a.996.996 0 0 0 0-1.41L10.7 6.7a.996.996 0 0 0-1.41.01Z',play:'M8 5v14l11-7z',stop:'M6 6h12v12H6z',schedule:'M11.99 2C6.48 2 2 6.48 2 12s4.48 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2Zm.01 18a8 8 0 1 1 0-16 8 8 0 0 1 0 16Zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7Z',cycle:'M12 6v3l4-4-4-4v3c-4.42 0-8 3.58-8 8 0 1.57.46 3.03 1.24 4.26L6.7 14.8A5.98 5.98 0 0 1 6 12c0-3.31 2.69-6 6-6Zm6.76 1.74L17.3 9.2A5.98 5.98 0 0 1 18 12c0 3.31-2.69 6-6 6v-3l-4 4 4 4v-3c4.42 0 8-3.58 8-8 0-1.57-.46-3.03-1.24-4.26Z',star:'M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z',star_outline:'M22 9.24l-7.19-.62L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21 12 17.27 18.18 21l-1.63-7.03L22 9.24ZM12 15.4l-3.76 2.27 1-4.28-3.32-2.88 4.38-.38L12 6.1l1.71 4.04 4.38.38-3.32 2.88 1 4.28L12 15.4Z'};
+    const paths={chevron:'M9.29 6.71a.996.996 0 0 0 0 1.41L13.17 12l-3.88 3.88a.996.996 0 1 0 1.41 1.41l4.59-4.59a.996.996 0 0 0 0-1.41L10.7 6.7a.996.996 0 0 0-1.41.01Z',play:'M8 5v14l11-7z',stop:'M6 6h12v12H6z',schedule:'M11.99 2C6.48 2 2 6.48 2 12s4.48 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2Zm.01 18a8 8 0 1 1 0-16 8 8 0 0 1 0 16Zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7Z',cycle:'M12 6v3l4-4-4-4v3c-4.42 0-8 3.58-8 8 0 1.57.46 3.03 1.24 4.26L6.7 14.8A5.98 5.98 0 0 1 6 12c0-3.31 2.69-6 6-6Zm6.76 1.74L17.3 9.2A5.98 5.98 0 0 1 18 12c0 3.31-2.69 6-6 6v-3l-4 4 4 4v-3c4.42 0 8-3.58 8-8 0-1.57-.46-3.03-1.24-4.26Z',star:'M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z',star_outline:'M22 9.24l-7.19-.62L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21 12 17.27 18.18 21l-1.63-7.03L22 9.24ZM12 15.4l-3.76 2.27 1-4.28-3.32-2.88 4.38-.38L12 6.1l1.71 4.04 4.38.38-3.32 2.88 1 4.28L12 15.4Z',drag_indicator:'M11 18c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2Zm0-6c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2Zm0-6c0 1.1-.9 2-2 2S7 7.1 7 6s.9-2 2-2 2 .9 2 2Zm6 12c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2Zm0-6c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2Zm0-6c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2Z'};
     return `<svg class="material-symbol-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="${paths[name]||paths.schedule}"/></svg>`;
   }
 
@@ -579,9 +579,10 @@ window.TDSettings = (() => {
     return `Last ran ${when}${duration?`, taking ${duration}`:''}.`;
   }
 
-  function jellyfinTaskRowMarkup(task,favoriteIds) {
-    const taskId=String(task.id||''),favorite=favoriteIds.has(taskId),status=String(task.last_status||'').toLowerCase(),failed=!task.running&&status&&!['completed','success','succeeded'].includes(status),action=task.running?'stop':'start',action_label=task.running?`Stop ${task.name||'scheduled task'}`:`Run ${task.name||'scheduled task'}`,favorite_label=favorite?`Remove ${task.name||'scheduled task'} from favorites`:`Add ${task.name||'scheduled task'} to favorites`;
-    return `<article class="jellyfin-task-row${task.running?' running':''}${failed?' failed':''}"><span class="jellyfin-task-clock">${jellyfinTaskIcon('schedule')}</span><div class="jellyfin-task-copy"><strong>${esc(task.name||'Scheduled task')}</strong><span>${esc(jellyfinTaskSubtitle(task))}</span></div><button class="jellyfin-task-favorite" type="button" data-favorite-task-id="${esc(taskId)}" aria-pressed="${favorite?'true':'false'}" aria-label="${esc(favorite_label)}" title="${esc(favorite_label)}">${jellyfinTaskIcon(favorite?'star':'star_outline')}</button><button class="jellyfin-task-action" type="button" data-task-id="${esc(taskId)}" data-action="${action}" aria-label="${esc(action_label)}" title="${esc(action_label)}">${jellyfinTaskIcon(task.running?'stop':'play')}</button></article>`;
+  function jellyfinTaskRowMarkup(task,favorite_ids,favorite_row=false) {
+    const task_id=String(task.id||''),favorite=favorite_ids.has(task_id),status=String(task.last_status||'').toLowerCase(),failed=!task.running&&status&&!['completed','success','succeeded'].includes(status),action=task.running?'stop':'start',action_label=task.running?`Stop ${task.name||'scheduled task'}`:`Run ${task.name||'scheduled task'}`,favorite_label=favorite?`Remove ${task.name||'scheduled task'} from favorites`:`Add ${task.name||'scheduled task'} to favorites`,reorder_label=`Reorder ${task.name||'scheduled task'}`,drag_label=`Drag to reorder ${task.name||'scheduled task'}`;
+    const leading=favorite_row?`<button class="jellyfin-task-drag" type="button" data-drag-task-id="${esc(task_id)}" aria-label="${esc(reorder_label)}" title="${esc(drag_label)}">${jellyfinTaskIcon('drag_indicator')}</button>`:`<span class="jellyfin-task-clock">${jellyfinTaskIcon('schedule')}</span>`;
+    return `<article class="jellyfin-task-row${favorite_row?' favorite-row':''}${task.running?' running':''}${failed?' failed':''}"${favorite_row?` data-favorite-row-id="${esc(task_id)}"`:''}>${leading}<div class="jellyfin-task-copy"><strong>${esc(task.name||'Scheduled task')}</strong><span>${esc(jellyfinTaskSubtitle(task))}</span></div><button class="jellyfin-task-favorite" type="button" data-favorite-task-id="${esc(task_id)}" aria-pressed="${favorite?'true':'false'}" aria-label="${esc(favorite_label)}" title="${esc(favorite_label)}">${jellyfinTaskIcon(favorite?'star':'star_outline')}</button><button class="jellyfin-task-action" type="button" data-task-id="${esc(task_id)}" data-action="${action}" aria-label="${esc(action_label)}" title="${esc(action_label)}">${jellyfinTaskIcon(task.running?'stop':'play')}</button></article>`;
   }
 
   function renderJellyfinTasks(card, tasks) {
@@ -591,10 +592,11 @@ window.TDSettings = (() => {
     const runtime=card.querySelector('[data-jellyfin-service]');if(runtime)runtime.dataset.taskRunning=tasks.some(task=>task.running)?'1':'0';
     const item=integrations.find(entry=>String(entry.id||'')===String(card.dataset.id||''));
     const favoriteIds=new Set((item?.favorite_task_ids||[]).map(value=>String(value||'')).filter(Boolean));
-    const favoriteTasks=tasks.filter(task=>favoriteIds.has(String(task.id||'')));
+    const taskById=new Map(tasks.map(task=>[String(task.id||''),task]));
+    const favoriteTasks=[...favoriteIds].map(taskId=>taskById.get(taskId)).filter(Boolean);
     const favoriteCount=card.querySelector('[data-jellyfin-favorite-count]');if(favoriteCount)favoriteCount.textContent=`${favoriteTasks.length} ${favoriteTasks.length===1?'favorite':'favorites'}`;
     const favoriteList=card.querySelector('[data-jellyfin-favorites]');
-    if(favoriteList)favoriteList.innerHTML=favoriteTasks.length?favoriteTasks.map(task=>jellyfinTaskRowMarkup(task,favoriteIds)).join(''):'<div class="integration-service-empty">Star scheduled tasks to pin them here.</div>';
+    if(favoriteList&&favoriteList.dataset.reordering!=='1')favoriteList.innerHTML=favoriteTasks.length?favoriteTasks.map(task=>jellyfinTaskRowMarkup(task,favoriteIds,true)).join(''):'<div class="integration-service-empty">Star scheduled tasks to pin them here.</div>';
     if(!tasks.length){list.innerHTML='<div class="integration-service-empty">No scheduled tasks reported</div>';return}
     const groups=new Map();tasks.forEach(task=>{const category=String(task.category||'Other').trim()||'Other';if(!groups.has(category))groups.set(category,[]);groups.get(category).push(task)});
     list.innerHTML=[...groups.entries()].map(([category,items])=>`<section class="jellyfin-task-group"><div class="jellyfin-task-category">${esc(category)}</div><div class="jellyfin-task-group-list">${items.map(task=>jellyfinTaskRowMarkup(task,favoriteIds)).join('')}</div></section>`).join('');
@@ -609,6 +611,63 @@ window.TDSettings = (() => {
     item.favorite_task_ids=[...next];
     renderJellyfinTasks(card,card._jellyfinTasks||[]);
     try{const result=await post('/api/integrations/jellyfin/favorites',{id:card.dataset.id,task_ids:item.favorite_task_ids});item.favorite_task_ids=Array.isArray(result?.favorite_task_ids)?result.favorite_task_ids:item.favorite_task_ids;renderJellyfinTasks(card,card._jellyfinTasks||[])}catch(error){item.favorite_task_ids=previous;renderJellyfinTasks(card,card._jellyfinTasks||[]);toast(error.message||'Could not update Jellyfin task favorites','error')}
+  }
+
+  function jellyfinFavoriteOrderFromList(list) {
+    return [...list.querySelectorAll('[data-favorite-row-id]')].map(row=>String(row.dataset.favoriteRowId||'')).filter(Boolean);
+  }
+
+  function jellyfinFavoriteHandleForTask(list,task_id) {
+    return [...list.querySelectorAll('.jellyfin-task-drag')].find(handle=>String(handle.dataset.dragTaskId||'')===String(task_id||''))||null;
+  }
+
+  async function persistJellyfinFavoriteOrder(card,next_ids,previous_ids) {
+    const item=integrations.find(entry=>String(entry.id||'')===String(card.dataset.id||''));if(!item)return false;
+    const list=card.querySelector('[data-jellyfin-favorites]');if(list)list.dataset.reorderSaving='1';
+    item.favorite_task_ids=[...next_ids];renderJellyfinTasks(card,card._jellyfinTasks||[]);
+    try{const result=await post('/api/integrations/jellyfin/favorites',{id:card.dataset.id,task_ids:item.favorite_task_ids});item.favorite_task_ids=Array.isArray(result?.favorite_task_ids)?result.favorite_task_ids:item.favorite_task_ids;renderJellyfinTasks(card,card._jellyfinTasks||[]);return true}catch(error){item.favorite_task_ids=[...previous_ids];renderJellyfinTasks(card,card._jellyfinTasks||[]);toast(error.message||'Could not reorder Jellyfin task favorites','error');return false}finally{if(list)delete list.dataset.reorderSaving}
+  }
+
+  function bindJellyfinFavoriteReorder(card) {
+    const list=card.querySelector('[data-jellyfin-favorites]');if(!list||list.dataset.reorderBound==='1')return;
+    list.dataset.reorderBound='1';let drag=null;
+    list.addEventListener('pointerdown',event=>{
+      const handle=event.target.closest('.jellyfin-task-drag');if(!handle||!list.contains(handle)||list.dataset.reorderSaving==='1')return;
+      const row=handle.closest('[data-favorite-row-id]');if(!row)return;
+      const item=integrations.find(entry=>String(entry.id||'')===String(card.dataset.id||''));if(!item)return;
+      event.preventDefault();drag={pointer_id:event.pointerId,row,handle,previous_ids:[...(item.favorite_task_ids||[])],changed:false};
+      list.dataset.reordering='1';row.classList.add('reordering');
+      try{handle.setPointerCapture(event.pointerId)}catch(error){}
+    });
+    list.addEventListener('pointermove',event=>{
+      if(!drag||event.pointerId!==drag.pointer_id)return;
+      event.preventDefault();const hit=document.elementFromPoint(event.clientX,event.clientY),target=hit?.closest?.('[data-favorite-row-id]');
+      if(!target||target===drag.row||target.parentElement!==list)return;
+      const rect=target.getBoundingClientRect(),reference=event.clientY<rect.top+rect.height/2?target:target.nextSibling;
+      list.insertBefore(drag.row,reference);drag.changed=true;
+    });
+    const finish=async(event,cancelled=false)=>{
+      if(!drag||event.pointerId!==drag.pointer_id)return;
+      const current=drag;drag=null;current.row.classList.remove('reordering');delete list.dataset.reordering;
+      try{current.handle.releasePointerCapture(event.pointerId)}catch(error){}
+      const item=integrations.find(entry=>String(entry.id||'')===String(card.dataset.id||''));
+      if(cancelled){if(item)item.favorite_task_ids=[...current.previous_ids];renderJellyfinTasks(card,card._jellyfinTasks||[]);return}
+      const next_ids=jellyfinFavoriteOrderFromList(list);
+      if(!current.changed||JSON.stringify(next_ids)===JSON.stringify(current.previous_ids)){renderJellyfinTasks(card,card._jellyfinTasks||[]);return}
+      await persistJellyfinFavoriteOrder(card,next_ids,current.previous_ids);
+    };
+    list.addEventListener('pointerup',event=>finish(event,false));
+    list.addEventListener('pointercancel',event=>finish(event,true));
+    list.addEventListener('keydown',event=>{
+      if(!['ArrowUp','ArrowDown','Home','End'].includes(event.key)||list.dataset.reorderSaving==='1')return;
+      const handle=event.target.closest('.jellyfin-task-drag');if(!handle)return;
+      const row=handle.closest('[data-favorite-row-id]');if(!row)return;
+      const rows=[...list.querySelectorAll('[data-favorite-row-id]')],index=rows.indexOf(row);if(index<0)return;
+      let target_index=index;if(event.key==='ArrowUp')target_index=Math.max(0,index-1);if(event.key==='ArrowDown')target_index=Math.min(rows.length-1,index+1);if(event.key==='Home')target_index=0;if(event.key==='End')target_index=rows.length-1;if(target_index===index)return;
+      event.preventDefault();const item=integrations.find(entry=>String(entry.id||'')===String(card.dataset.id||''));if(!item)return;const previous_ids=[...(item.favorite_task_ids||[])],task_id=String(row.dataset.favoriteRowId||'');
+      const target=rows[target_index];if(target_index>index)list.insertBefore(row,target.nextSibling);else list.insertBefore(row,target);
+      const next_ids=jellyfinFavoriteOrderFromList(list);persistJellyfinFavoriteOrder(card,next_ids,previous_ids).finally(()=>jellyfinFavoriteHandleForTask(list,task_id)?.focus());
+    });
   }
 
   function handleJellyfinTaskClick(card,event) {
@@ -688,6 +747,7 @@ window.TDSettings = (() => {
       card.querySelector('.jellyfin-task-summary')?.addEventListener('click', () => toggleJellyfinTasks(card));
       card.querySelector('[data-jellyfin-tasks]')?.addEventListener('click', event => handleJellyfinTaskClick(card,event));
       card.querySelector('[data-jellyfin-favorites]')?.addEventListener('click', event => handleJellyfinTaskClick(card,event));
+      bindJellyfinFavoriteReorder(card);
       list.appendChild(card);
       decorateSecretFields(card);
       applySentenceCaseUi(card);

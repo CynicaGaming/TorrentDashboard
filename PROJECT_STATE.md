@@ -6,12 +6,12 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.135** (prerelease)
+- Latest documented build: **v0.5.136** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 
 ### Latest release summary
 
-Adds persistent Jellyfin scheduled-task favorites for one-click access to frequently run maintenance tasks.
+Adds persistent drag-handle ordering to Jellyfin scheduled-task favorites for faster access to frequently run tasks.
 
 ## Development principles
 
@@ -23,6 +23,15 @@ Adds persistent Jellyfin scheduled-task favorites for one-click access to freque
 - Keep public development continuity portable across forks; label canonical repository/branch/PR references as upstream context rather than local identity.
 
 ## Recent work
+
+### v0.5.136 — Reorderable Jellyfin task favorites
+
+Adds persistent drag-handle ordering to Jellyfin scheduled-task favorites for faster access to frequently run tasks.
+
+- Adds a Material drag indicator to the left side of every Jellyfin favorite task row.
+- Allows favorite tasks to be reordered directly from the Favorites section with pointer or touch input.
+- Supports keyboard reordering from the drag handle with Arrow Up, Arrow Down, Home, and End.
+- Persists the chosen favorite order with the Jellyfin integration so it survives reloads and application updates.
 
 ### v0.5.135 — Jellyfin scheduled-task favorites
 
@@ -55,14 +64,6 @@ Shows active Jellyfin library rescans using the same compact running-task presen
 - Shows an inline Scan media library task row while a Jellyfin library refresh is running.
 - Displays Jellyfin-reported scan status and percentage using the existing scheduled-task visual language.
 - Polls the Jellyfin overview every two seconds only while a library scan is active.
-
-### v0.5.131 — Jellyfin cycle refresh glyph
-
-Uses a cycle-style Material glyph for the inline Jellyfin status and library refresh controls.
-
-- Replaces the single-arrow refresh glyph beside Jellyfin status with a two-arrow cycle glyph.
-- Uses the same cycle glyph beside Libraries for a consistent synchronization visual.
-- Keeps the existing accessible labels, tooltips, loading animation, and refresh behavior unchanged.
 
 ## What to do next
 

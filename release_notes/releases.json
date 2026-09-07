@@ -12,6 +12,32 @@
   },
   "releases": [
     {
+      "version": "0.5.136",
+      "date": "2026-09-07",
+      "status": "prerelease",
+      "title": "Reorderable Jellyfin task favorites",
+      "summary": "Adds persistent drag-handle ordering to Jellyfin scheduled-task favorites for faster access to frequently run tasks.",
+      "highlights": [
+        "Adds a Material drag indicator to the left side of every Jellyfin favorite task row.",
+        "Allows favorite tasks to be reordered directly from the Favorites section with pointer or touch input.",
+        "Supports keyboard reordering from the drag handle with Arrow Up, Arrow Down, Home, and End.",
+        "Persists the chosen favorite order with the Jellyfin integration so it survives reloads and application updates."
+      ],
+      "fixes": [],
+      "technical": [
+        "Uses the existing ordered favorite_task_ids configuration field and focused favorites endpoint; no Jellyfin-side state is modified.",
+        "Keeps play, stop, and favorite controls independent by limiting reorder gestures to the drag handle.",
+        "Avoids replacing favorite-row DOM while a pointer reorder gesture is active, preventing scheduled-task refreshes from interrupting a drag."
+      ],
+      "validation": [
+        "Source validation, unit tests, UI-string validation, JavaScript syntax checks, release-note checks, and favorite-order persistence coverage run before publication."
+      ],
+      "known_issues": [],
+      "architecture": [],
+      "decisions": [],
+      "next_steps": []
+    },
+    {
       "version": "0.5.135",
       "date": "2026-09-07",
       "status": "prerelease",

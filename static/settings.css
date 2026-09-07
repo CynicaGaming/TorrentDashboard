@@ -253,3 +253,8 @@
 .jellyfin-task-row{grid-template-columns:28px minmax(0,1fr) 30px 30px}
 .jellyfin-task-favorite{display:grid;place-items:center;width:30px;height:30px;min-width:30px;padding:0;border:0;border-radius:8px;background:transparent;color:var(--muted)}.jellyfin-task-favorite:hover{background:var(--panel3);color:var(--accent)}.jellyfin-task-favorite[aria-pressed="true"]{color:var(--accent)}.jellyfin-task-favorite:disabled{opacity:.45}.jellyfin-task-favorite .material-symbol-icon{width:19px;height:19px;fill:currentColor}
 @media(max-width:700px){.jellyfin-task-row{grid-template-columns:26px minmax(0,1fr) 30px 30px;gap:6px}.jellyfin-favorite-section{padding:8px}.jellyfin-task-favorite{width:30px;height:30px}}
+
+
+/* 0.5.136 reorderable Jellyfin favorites */
+.jellyfin-task-drag{display:grid;place-items:center;width:26px;height:26px;min-width:26px;padding:0;border:0;border-radius:7px;background:transparent;color:var(--muted);cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}.jellyfin-task-drag:hover,.jellyfin-task-drag:focus-visible{background:var(--panel3);color:var(--accent)}.jellyfin-task-drag:active,.jellyfin-favorite-list[data-reordering="1"] .jellyfin-task-drag{cursor:grabbing}.jellyfin-task-drag .material-symbol-icon{width:19px;height:19px;fill:currentColor}.jellyfin-favorite-list .favorite-row.reordering{opacity:.72;background:color-mix(in srgb,var(--accent) 10%,var(--panel2));box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 45%,var(--border))}.jellyfin-favorite-list[data-reorder-saving="1"] .jellyfin-task-drag{opacity:.5;cursor:wait}
+@media(max-width:700px){.jellyfin-task-drag{width:30px;height:30px;min-width:30px}.jellyfin-task-drag .material-symbol-icon{width:20px;height:20px}}
