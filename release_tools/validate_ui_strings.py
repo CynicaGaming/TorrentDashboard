@@ -901,6 +901,18 @@ def main():
     assert '## Jellyfin service integrations' in design_language
     assert '### Jellyfin service integration' in testing_md
 
+    # 0.5.138 adds a standalone, authenticated recovery console that does not depend on the normal app bundle.
+    recovery_html = (ROOT / "static" / "recovery-console.html").read_text(encoding="utf-8")
+    recovery_js = (ROOT / "static" / "recovery-console.js").read_text(encoding="utf-8")
+    recovery_py = (ROOT / "torrent_dashboard" / "recovery_console.py").read_text(encoding="utf-8")
+    assert 'href="/console"' in html and '/console?session=1' in html
+    assert '/api/recovery/unlock' in dashboard_py and '/api/recovery/command' in dashboard_py
+    assert 'RECOVERY_CODE_RAW' in dashboard_py and 'SameSite=Strict' in dashboard_py
+    assert 'app.js' not in recovery_html and 'settings.js' not in recovery_html
+    assert '/recovery/console.js' in recovery_html and '/recovery/console.css' in recovery_html
+    assert 'eval(' not in recovery_js and 'Function(' not in recovery_js
+    assert 'SAFE_TORRENT_ACTIONS' in recovery_py and 'delete' not in recovery_py.split('SAFE_TORRENT_ACTIONS',1)[1].split(')',1)[0]
+
     print("UI string audit passed")
 
 

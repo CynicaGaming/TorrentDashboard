@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
+<meta content="#080b0f" name="theme-color"/>
+<meta content="0.5.138" name="torrent-dashboard-recovery-build"/>
+<link href="/static/favicon.svg" rel="icon" type="image/svg+xml"/>
+<link href="/recovery/console.css?v=0.5.138" rel="stylesheet"/>
+<title>Torrent Dashboard Recovery Console</title>
+</head>
+<body>
+<main class="recovery-shell">
+<header class="recovery-header">
+  <div class="recovery-brand"><span class="recovery-mark"><img alt="" aria-hidden="true" src="/static/favicon.svg"/></span><span><strong>Torrent Dashboard</strong><small>Recovery Console</small></span></div>
+  <a class="back-link" href="/">Back to sign in</a>
+</header>
+<section class="recovery-panel">
+  <div class="recovery-panel-head"><div><span class="eyebrow">Safe recovery surface</span><h1>Console</h1><p>Runs a restricted set of Torrent Dashboard commands without loading the normal dashboard application bundle.</p></div><span class="lock-status locked" id="consoleLockStatus">Locked</span></div>
+  <section class="unlock-panel" id="consoleUnlock">
+    <form id="consoleUnlockForm" autocomplete="off">
+      <div class="unlock-copy"><strong>Unlock recovery access</strong><span>Use an administrator account or the recovery code printed in the Torrent Dashboard host console at startup.</span></div>
+      <div class="unlock-grid"><label>Administrator username<input id="consoleUser" autocomplete="off" autocapitalize="none" spellcheck="false"/></label><label>Administrator password<input id="consolePassword" autocomplete="current-password" type="password"/></label></div>
+      <div class="unlock-divider"><span>or</span></div>
+      <label>Recovery code<input id="consoleRecoveryCode" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="XXXX-XXXX-XXXX-XXXX-XXXX"/></label>
+      <button class="primary" type="submit">Unlock console</button>
+      <div class="unlock-error" id="consoleUnlockError" role="alert"></div>
+    </form>
+  </section>
+  <section class="terminal hidden" id="consoleTerminal" aria-label="Torrent Dashboard recovery console">
+    <div class="console-toolbar"><span id="consoleSessionLabel">Authorized</span><div><button id="consoleHelp" type="button">Help</button><button id="consoleClear" type="button">Clear</button><button id="consoleLock" type="button">Lock</button></div></div>
+    <div class="console-output" id="consoleOutput" role="log" aria-live="polite" aria-relevant="additions"></div>
+    <form class="console-command" id="consoleCommandForm" autocomplete="off"><span class="console-prompt" aria-hidden="true">td&gt;</span><input id="consoleCommand" aria-label="Recovery console command" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Type help for commands"/><button type="submit">Run</button></form>
+  </section>
+</section>
+<footer class="recovery-foot">Commands run only when explicitly submitted. Command history is kept in memory for this page only.</footer>
+</main>
+<script src="/recovery/console.js?v=0.5.138"></script>
+</body>
+</html>

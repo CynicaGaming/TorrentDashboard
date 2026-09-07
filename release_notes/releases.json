@@ -12,6 +12,38 @@
   },
   "releases": [
     {
+      "version": "0.5.138",
+      "date": "2026-09-07",
+      "status": "prerelease",
+      "title": "Standalone recovery console",
+      "summary": "Adds a restricted recovery console that remains available from the login screen when the normal dashboard frontend is unavailable.",
+      "highlights": [
+        "Adds a Console tab/link to the sign-in screen plus administrator Console links in the dashboard navigation and account menu.",
+        "Serves the recovery console from a standalone HTML, CSS, and JavaScript bundle that does not load the normal app.js or settings.js files.",
+        "Provides diagnostics, redacted configuration inspection, client/integration tests, Jellyfin task control, safe torrent maintenance actions, event inspection, and updater commands.",
+        "Supports update check, download, repository selection, verified install, and one-command verified update application from the recovery console."
+      ],
+      "fixes": [],
+      "technical": [
+        "Recovery actions require either an existing administrator dashboard session, administrator credentials, or an ephemeral startup recovery code printed only by the running server process.",
+        "Recovery authorization uses a separate HttpOnly SameSite=Strict cookie with a 30-minute session and CSRF protection; failed unlock attempts are rate limited.",
+        "The console is an allowlisted application command interface, not an operating-system shell; destructive torrent deletion and arbitrary process execution are intentionally unavailable.",
+        "Recovery assets are excluded from service-worker handling so a stale dashboard cache cannot block the recovery surface."
+      ],
+      "validation": [
+        "Source validation, UI-string audit, unit tests, normal and recovery JavaScript syntax checks, generated release-note checks, and release-package recovery asset checks run before publication."
+      ],
+      "known_issues": [
+        "The web recovery console requires the Torrent Dashboard Python server to be running; it cannot recover a process that fails before the HTTP server starts."
+      ],
+      "architecture": [],
+      "decisions": [
+        "Keep recovery functionality independent from the normal frontend bundle and prohibit arbitrary shell execution.",
+        "Use the existing verified updater backend so recovery updates retain release integrity checks and updater rollback behavior."
+      ],
+      "next_steps": []
+    },
+    {
       "version": "0.5.137",
       "date": "2026-09-07",
       "status": "prerelease",

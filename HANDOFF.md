@@ -7,38 +7,47 @@
 This handoff is intentionally portable across public forks. Verify the current checkout's Git remote, branch, and open work before using upstream references as instructions.
 
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
-- Last documented upstream build: **v0.5.137** (prerelease)
+- Last documented upstream build: **v0.5.138** (prerelease)
 
 ## Last known-good state
 
-Removes redundant library scan controls and scan-state text now that Jellyfin's Scan Media Library task is available through Favorites and Scheduled tasks.
+Adds a restricted recovery console that remains available from the login screen when the normal dashboard frontend is unavailable.
 
 The released-state details and recent history are in `PROJECT_STATE.md`; architectural constraints are in `ARCHITECTURE.md`.
 
 ## Active development intent
 
 - Status: **ready**
-- Objective: **Validate the simplified Jellyfin library presentation and favorite scheduled-task workflow**
-- Why: v0.5.137 removes duplicate library scan controls so Jellyfin task execution is centralized in Favorites and Scheduled tasks.
+- Objective: **Validate the standalone authenticated recovery console on desktop and mobile**
+- Why: v0.5.138 provides an independent recovery path for frontend failures while keeping privileged actions authenticated and allowlisted.
 
 ### Acceptance criteria
 
-- The Libraries heading has no scan or refresh action.
-- Library rows show only library identity/type and configured locations, with no Scan or Idle field.
-- Scan Media Library remains runnable from Favorites or Scheduled tasks and reports progress there.
-- The Jellyfin server-status refresh control still works on desktop and mobile.
+- The sign-in screen exposes a plain Console link that works even if the normal app JavaScript fails.
+- The recovery page loads without app.js or settings.js and does not run commands automatically.
+- Administrator sessions, administrator credentials, and the ephemeral startup recovery code can authorize the console; standard users cannot.
+- Update check/download/install/apply commands use the existing verified updater path.
+- Arbitrary shell commands and destructive torrent deletion are rejected.
 
 ### Decisions already made
 
-- Treat Jellyfin scheduled tasks as the single task-execution surface for maintenance operations.
-- Keep the Libraries section informational rather than duplicating scheduled-task controls.
-- Persist favorite task ordering with the Jellyfin integration configuration.
+- Keep the recovery console as a separate frontend bundle and route.
+- Use a dedicated 30-minute recovery session with HttpOnly SameSite=Strict cookies and CSRF protection.
+- Expose an explicit allowlist of application operations rather than an OS command shell.
 
 ### Expected areas of change
 
-- `static/settings.js`
-- `static/settings.css`
 - `dashboard.py`
+- `torrent_dashboard/recovery_console.py`
+- `static/recovery-console.html`
+- `static/recovery-console.css`
+- `static/recovery-console.js`
+- `static/index.html`
+- `static/app.css`
+- `static/sw.js`
+- `tests/test_recovery_console.py`
+- `release_tools/validate_ui_strings.py`
+- `.github/workflows/release.yml`
 - `release_notes/releases.json`
 
 ### Blockers
@@ -47,13 +56,13 @@ None currently recorded.
 
 ### Explicitly out of scope
 
-- Editing Jellyfin scheduled-task trigger schedules.
-- Changing Jellyfin's scheduled-task API behavior.
-- Jellyfin media-item browsing or playback management.
+- Arbitrary operating-system shell access.
+- Remote process management when the Torrent Dashboard HTTP server is not running.
+- Destructive torrent deletion from the recovery console.
 
 ## Exact next action
 
-Smoke-test the Jellyfin Libraries, Favorites, and Scheduled tasks sections against the maintainer's live Jellyfin server.
+Smoke-test login-screen recovery access, administrator-session access, the startup recovery code, safe command execution, and a verified updater check against the maintainer environment.
 
 ## Resume checklist
 

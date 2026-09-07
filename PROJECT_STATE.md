@@ -6,12 +6,17 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.137** (prerelease)
+- Latest documented build: **v0.5.138** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 
 ### Latest release summary
 
-Removes redundant library scan controls and scan-state text now that Jellyfin's Scan Media Library task is available through Favorites and Scheduled tasks.
+Adds a restricted recovery console that remains available from the login screen when the normal dashboard frontend is unavailable.
+
+## Current engineering decisions
+
+- Keep recovery functionality independent from the normal frontend bundle and prohibit arbitrary shell execution.
+- Use the existing verified updater backend so recovery updates retain release integrity checks and updater rollback behavior.
 
 ## Development principles
 
@@ -23,6 +28,15 @@ Removes redundant library scan controls and scan-state text now that Jellyfin's 
 - Keep public development continuity portable across forks; label canonical repository/branch/PR references as upstream context rather than local identity.
 
 ## Recent work
+
+### v0.5.138 — Standalone recovery console
+
+Adds a restricted recovery console that remains available from the login screen when the normal dashboard frontend is unavailable.
+
+- Adds a Console tab/link to the sign-in screen plus administrator Console links in the dashboard navigation and account menu.
+- Serves the recovery console from a standalone HTML, CSS, and JavaScript bundle that does not load the normal app.js or settings.js files.
+- Provides diagnostics, redacted configuration inspection, client/integration tests, Jellyfin task control, safe torrent maintenance actions, event inspection, and updater commands.
+- Supports update check, download, repository selection, verified install, and one-command verified update application from the recovery console.
 
 ### v0.5.137 — Simplified Jellyfin libraries
 
@@ -57,17 +71,13 @@ Keeps Scan Media Library progress in Jellyfin Scheduled tasks instead of duplica
 - Keeps the Libraries cycle control for starting Jellyfin's real Scan Media Library task.
 - Continues to show scan state and CurrentProgressPercentage in the existing Scheduled tasks list.
 
-### v0.5.133 — Jellyfin scan task progress
-
-Drives the Libraries scan indicator from Jellyfin's real Scan Media Library scheduled task rather than virtual-folder refresh polling.
-
-- Starts Jellyfin's actual Scan Media Library scheduled task when the Libraries cycle control is pressed.
-- Uses that task's CurrentProgressPercentage and running state for the compact Libraries progress row.
-- Reuses the existing Scheduled tasks refresh loop instead of running a separate library-overview polling loop.
-
 ## What to do next
 
 No next steps are recorded in the latest release metadata.
+
+## Known issues
+
+- The web recovery console requires the Torrent Dashboard Python server to be running; it cannot recover a process that fails before the HTTP server starts.
 
 ## Handoff instructions for a new development session
 
