@@ -48,6 +48,15 @@ from torrent_dashboard.config import (
     public_config,
 )
 from torrent_dashboard.config_store import ConfigStore
+from torrent_dashboard.backups import (
+    BACKUP_EXTENSION,
+    MAX_BACKUP_BYTES,
+    backup_path,
+    create_backup,
+    import_backup,
+    list_backups,
+    restore_backup,
+)
 from torrent_dashboard.release_provenance import (
     ReleaseProvenance,
     asset_sha256 as _asset_sha256,
@@ -280,6 +289,10 @@ class SessionStore:
             doomed = [token for token, item in self.sessions.items() if item.get("user_id") == uid and token != keep_token]
             for token in doomed:
                 self.sessions.pop(token, None)
+
+    def clear(self):
+        with self.lock:
+            self.sessions.clear()
 
 
 SESSIONS = SessionStore()
@@ -2065,6 +2078,28 @@ class Handler(BaseHTTPRequestHandler):
     def send_json(self, code, obj, cookie_token=None, extra=None):
         self.send_bytes(code,json.dumps(obj,separators=(",",":"),default=str).encode(),"application/json; charset=utf-8",cookie_token,extra)
 
+    def send_file(self, code, path, content_type="application/octet-stream", filename=None, cookie_token=None):
+        path = Path(path)
+        safe_name = Path(str(filename or path.name)).name.replace('"', '')
+        self.send_response(code)
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Length", str(path.stat().st_size))
+        self.send_header("Content-Disposition", f'attachment; filename="{safe_name}"')
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("Referrer-Policy", "same-origin")
+        self.send_header("X-Frame-Options", "DENY")
+        if cookie_token:
+            secure = "; Secure" if load_config()["dashboard"].get("https_enabled") else ""
+            self.send_header("Set-Cookie", f"td_session={cookie_token}; Path=/; HttpOnly; SameSite=Lax{secure}")
+        self.end_headers()
+        with path.open("rb") as handle:
+            while True:
+                chunk = handle.read(1024 * 1024)
+                if not chunk:
+                    break
+                self.wfile.write(chunk)
+
     def require_auth(self, mutation=False):
         cfg,token,sess,new_cookie=self.auth()
         if not sess:
@@ -2187,7 +2222,7 @@ class Handler(BaseHTTPRequestHandler):
             if not avatar_path:
                 return self.send_json(404,{"error":"No profile picture is configured"},new_cookie)
             return self.send_bytes(200,avatar_path.read_bytes(),avatar_mime,new_cookie)
-        if path in ("/api/settings","/api/integrations","/api/integration-health","/api/integrations/jellyfin/status","/api/integrations/jellyfin/tasks","/api/users","/api/network/interfaces","/api/client-settings","/api/torrent-metadata/save") and not session_is_admin(sess):
+        if path in ("/api/settings","/api/integrations","/api/integration-health","/api/integrations/jellyfin/status","/api/integrations/jellyfin/tasks","/api/users","/api/network/interfaces","/api/client-settings","/api/torrent-metadata/save","/api/backups","/api/backups/export") and not session_is_admin(sess):
             return self.send_json(403,{"error":"Administrator access is required"},new_cookie)
 
         if path=="/api/torrent-metadata/save":
@@ -2259,6 +2294,14 @@ class Handler(BaseHTTPRequestHandler):
             except Exception as e:
                 return self.send_json(502,{"error":str(e)},new_cookie)
         if path=="/api/users": return self.send_json(200,{"users":[public_user(u) for u in cfg.get("users",[])],"current_user_id":sess.get("user_id","")},new_cookie)
+        if path=="/api/backups":
+            return self.send_json(200,{"backups":list_backups(APP_DIR),"extension":BACKUP_EXTENSION,"max_bytes":MAX_BACKUP_BYTES},new_cookie)
+        if path=="/api/backups/export":
+            try:
+                item=backup_path(APP_DIR,qs.get("name",[""])[0])
+                return self.send_file(200,item,"application/octet-stream",item.name,new_cookie)
+            except Exception as exc:
+                return self.send_json(404,{"error":str(exc)},new_cookie)
         if path=="/api/settings": return self.send_json(200,redacted_config(cfg),new_cookie)
         if path=="/api/network/interfaces": return self.send_json(200,{"interfaces":detect_network_interfaces(qs.get("refresh",["0"])[0]=="1")},new_cookie)
         if path=="/api/notification-sound":
@@ -2396,6 +2439,29 @@ class Handler(BaseHTTPRequestHandler):
                 data=parse_json_body(self); updated,_=mutate_config(lambda current: (apply_settings_update(current,data),None))
                 HISTORY.event("dashboard", "settings_changed", sess.get("username",""), "", {"client_ip": self.client_ip()})
                 return self.send_json(200,{"ok":True,"settings":redacted_config(updated)},new_cookie)
+            if path=="/api/backups/create":
+                item=create_backup(APP_DIR,VERSION,cfg,history_lock=HISTORY.lock)
+                HISTORY.event("dashboard","backup_created",item.get("name", ""),"",{"client_ip":self.client_ip()})
+                return self.send_json(200,{"ok":True,"backup":item},new_cookie)
+            if path=="/api/backups/import":
+                fields,files=parse_multipart(self,max_bytes=MAX_BACKUP_BYTES+256000)
+                if not files:
+                    raise RuntimeError("Choose a Torrent Dashboard backup file")
+                _,filename,content=files[0]
+                item=import_backup(APP_DIR,filename,content)
+                HISTORY.event("dashboard","backup_imported",item.get("name", ""),"",{"client_ip":self.client_ip()})
+                return self.send_json(200,{"ok":True,"backup":item},new_cookie)
+            if path=="/api/backups/restore":
+                data=parse_json_body(self,12000)
+                result=restore_backup(
+                    APP_DIR,str(data.get("name") or ""),current_version=VERSION,current_config=cfg,
+                    history_lock=HISTORY.lock,validator=load_config,
+                )
+                with CACHE_LOCK:
+                    CLIENTS.clear(); CACHE.clear()
+                HISTORY.event("dashboard","backup_restored",result.get("backup",{}).get("name", ""),"",{"client_ip":self.client_ip()})
+                SESSIONS.clear()
+                return self.send_json(200,{"ok":True,"backup":result.get("backup"),"safety_backup":result.get("safety_backup"),"reauthenticate":True},None)
             if path=="/api/update-source":
                 data=parse_json_body(self,10000)
                 def update_source_mutation(current):

@@ -380,3 +380,12 @@ Manual regression coverage:
 - Press Refresh libraries and verify Jellyfin starts a normal library scan; Torrent Dashboard must not alter library configuration or metadata options.
 - Verify a successful refresh records a `jellyfin_library_refresh_requested` history event and a failed refresh records `jellyfin_library_refresh_failed`.
 - Repeat at mobile width and verify the library records collapse to a single-column layout without obscuring Save/Delete/Test connection controls.
+
+### Portable backup management
+
+- Run `python -m unittest tests.test_backups -v` with `PYTHONPATH=src`.
+- Verify created archives include configuration, history, profile assets, and notification assets while excluding `data/backups`, `data/recovery-backups`, updater staging, and release caches.
+- Export a backup from one installation, import it into a second installation on the same or newer Torrent Dashboard version, restore it, and confirm the restored credentials, integrations, users, history, and assets are present.
+- Confirm restore signs out the current browser session and creates a pre-restore safety backup that can be used to return to the previous state.
+- Corrupt a backup payload and confirm SHA-256 validation prevents restore.
+

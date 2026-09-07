@@ -84,29 +84,59 @@ jobs:
           import zipfile
           from pathlib import Path
           version='${{ steps.version.outputs.version }}'
+          prefix=f'Torrent-Dashboard-{version}'
           path=Path('dist') / f'Torrent-Dashboard-{version}.zip'
           info_path=Path('dist') / f'Torrent-Dashboard-{version}.release.json'
           with zipfile.ZipFile(path) as z:
               names=[n for n in z.namelist() if not n.endswith('/')]
-          required=(
-              '/src/torrent_dashboard/__init__.py','/src/torrent_dashboard/dashboard.py',
-              '/src/torrent_dashboard/updater.py','/src/torrent_dashboard/recovery_tool.py',
-              '/src/torrent_dashboard/users.py','/src/torrent_dashboard/config_store.py',
-              '/src/torrent_dashboard/config.py','/src/torrent_dashboard/integrations.py',
-              '/src/torrent_dashboard/jellyfin.py','/src/torrent_dashboard/release_provenance.py',
-              '/pyproject.toml','/ARCHITECTURE.md','/PROJECT_STATE.md','/CHANGELOG.md',
-              '/release_notes/releases.json','/static/index.html','/static/app.js',
-              '/static/settings.js','/static/settings.css',
-          )
-          for suffix in required:
-              assert any(n.endswith(suffix) for n in names), suffix
-          retired=(
-              '/dashboard.py','/updater.py','/recovery_tool.py',
-              '/torrent_dashboard/__init__.py','/torrent_dashboard/config.py',
-          )
-          for suffix in retired:
-              assert f'Torrent-Dashboard-{version}{suffix}' not in names, suffix
-          assert not any(n.endswith('recover_v0_5_123.py') or n.endswith('run_recovery_safe.py') for n in names)
+              required=(
+                  '/src/torrent_dashboard/__init__.py','/src/torrent_dashboard/dashboard.py',
+                  '/src/torrent_dashboard/updater.py','/src/torrent_dashboard/recovery_tool.py',
+                  '/src/torrent_dashboard/users.py','/src/torrent_dashboard/config_store.py',
+                  '/src/torrent_dashboard/config.py','/src/torrent_dashboard/integrations.py',
+                  '/src/torrent_dashboard/jellyfin.py','/src/torrent_dashboard/release_provenance.py',
+                  '/pyproject.toml','/ARCHITECTURE.md','/PROJECT_STATE.md','/CHANGELOG.md',
+                  '/release_notes/releases.json','/static/index.html','/static/app.js',
+                  '/static/settings.js','/static/settings.css',
+              )
+              for suffix in required:
+                  assert any(n.endswith(suffix) for n in names), suffix
+
+              # 0.5.146 is the bridge into the canonical src layout. Older
+              # update staging validates dashboard.py at the extracted root,
+              # so the release ZIP carries tiny launchers that immediately
+              # delegate to src/torrent_dashboard. Maintained repository source
+              # remains src-only.
+              compatibility=('dashboard.py','updater.py','recovery_tool.py')
+              for name in compatibility:
+                  member=f'{prefix}/{name}'
+                  assert member in names, member
+                  source=z.read(member).decode('utf-8')
+                  compile(source, member, 'exec')
+                  assert 'maintained code lives under src/' in source
+              assert f'VERSION = "{version}"' in z.read(f'{prefix}/dashboard.py').decode('utf-8')
+              assert 'from torrent_dashboard.dashboard import main' in z.read(f'{prefix}/dashboard.py').decode('utf-8')
+
+              # Emulate the legacy safe_extract_zip application check that
+              # produced "Update ZIP does not contain a valid Torrent Dashboard application".
+              top={name.split('/',1)[0] for name in names}
+              assert top == {prefix}, top
+              assert f'{prefix}/dashboard.py' in names
+              assert f'{prefix}/static/index.html' in names
+
+              retired=(
+                  '/torrent_dashboard/__init__.py','/torrent_dashboard/config.py',
+                  '/torrent_dashboard/dashboard.py','/torrent_dashboard/updater.py',
+              )
+              for suffix in retired:
+                  assert f'{prefix}{suffix}' not in names, suffix
+              assert not any(n.endswith('recover_v0_5_123.py') or n.endswith('run_recovery_safe.py') for n in names)
+
+              package_info=json.loads(z.read(f'{prefix}/package-info.json'))
+              assert package_info['distribution'] == 'source'
+              assert package_info['layout'] == 'src'
+              assert package_info['compatibility_launchers'] == sorted(compatibility)
+
           info=json.loads(info_path.read_text(encoding='utf-8'))
           digest=hashlib.sha256(path.read_bytes()).hexdigest()
           assert info['version'] == version

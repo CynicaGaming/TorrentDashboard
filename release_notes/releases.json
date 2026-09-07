@@ -12,6 +12,48 @@
   },
   "releases": [
     {
+      "version": "0.5.147",
+      "date": "2026-09-07",
+      "status": "prerelease",
+      "title": "Portable backup management",
+      "summary": "Adds a dedicated in-app backup manager for creating, viewing, restoring, importing, and exporting portable Torrent Dashboard state backups.",
+      "highlights": [
+        "Adds Settings \u2192 Backups as a dedicated administrator maintenance area instead of coupling backup lifecycle to software updates.",
+        "Creates portable .tdbackup archives containing configuration, users, saved credentials, integrations, dashboard history, profile pictures, and notification assets while excluding application binaries and qBitTorrent data.",
+        "Existing backups can be exported to another installation, imported into its local backup library, and restored from the browser.",
+        "Every restore creates a pre-restore safety backup first and signs out active sessions after the restored identity and access configuration becomes active."
+      ],
+      "fixes": [],
+      "technical": [
+        "Adds src/torrent_dashboard/backups.py with a versioned manifest, per-file SHA-256 verification, path traversal and symlink rejection, archive size limits, and newer-version restore guards.",
+        "SQLite history is captured with the SQLite online backup API while holding the history-store lock so backups remain consistent while the dashboard is running.",
+        "Restores preserve local backup/recovery-backup libraries, clear stale runtime/update state, validate the restored configuration, and automatically roll back to the safety backup if applying the payload fails."
+      ],
+      "validation": [
+        "Adds unit coverage for portable archive contents, excluded ephemeral state, import/export library behavior, restore safety snapshots, integrity failures, and newer-version rejection.",
+        "Runs source validation, UI string validation, the complete unit-test suite, JavaScript syntax checks, and source-package validation.",
+        "Builds and smoke-tests Dashboard.exe, Recovery.exe, and Updater.exe on native Windows after the backup changes are applied."
+      ],
+      "known_issues": [
+        "Portable backup archives are not encrypted and contain saved credentials and recovery data; exported .tdbackup files must be stored securely."
+      ],
+      "architecture": [
+        "Backup archives are state-only portability artifacts. Application code/binaries remain owned by the release/updater system and qBitTorrent-owned data remains outside Torrent Dashboard backups."
+      ],
+      "decisions": [
+        "Place backup management in its own Settings category because backup lifecycle is independent from software update lifecycle.",
+        "Preserve the local backup library and legacy recovery config backups across restores so a failed or unwanted migration retains a local escape path.",
+        "Do not add backup encryption, scheduling, or remote destinations in the first portable-backup release."
+      ],
+      "next_steps": [
+        {
+          "priority": 1,
+          "title": "Exercise cross-install restore",
+          "detail": "Create and export a backup from one compiled Windows installation, import and restore it on a second same-or-newer build, then use the generated safety backup to return the destination to its prior state."
+        }
+      ]
+    },
+    {
       "version": "0.5.146",
       "date": "2026-09-07",
       "status": "prerelease",

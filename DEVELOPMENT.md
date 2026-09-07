@@ -18,8 +18,9 @@ Never place credentials, private network addresses, private incident details, cu
 - Node.js for JavaScript syntax validation
 - qBitTorrent with Web UI enabled for integration and manual smoke testing
 - Git for normal contribution workflows
+- Windows plus the pinned PyInstaller version when producing the Windows executable package
 
-No Python framework or third-party runtime dependency is required for the dashboard itself.
+No Python framework or third-party runtime dependency is required for the dashboard itself. PyInstaller is a build-time dependency only for compiled Windows artifacts.
 
 ## Development workflow
 
@@ -53,13 +54,28 @@ node --check static/app.js
 node --check static/settings.js
 ```
 
-Generated release/handoff consistency, where `X.Y.Z` is the current `dashboard.VERSION`:
+Generated release/handoff consistency, where `X.Y.Z` is the current `src/torrent_dashboard/__init__.py` `__version__` value:
 
 ```bash
 python release_tools/generate_release_notes.py --version X.Y.Z --check
 ```
 
 See `TESTING.md` for the manual smoke-test matrix that complements automation.
+
+## Windows executable development
+
+The editable Python application and the compiled Windows package use the same canonical source tree under `src/torrent_dashboard/`. The executables are disposable build artifacts: modify the source, validate the change, and rebuild rather than editing generated executables or `_internal/`.
+
+See [`docs/WINDOWS_BUILD.md`](docs/WINDOWS_BUILD.md) for the complete local rebuild procedure, package layout, smoke tests, and updater/rollback soak-test guidance.
+
+In short, on Windows the build path is:
+
+```powershell
+python -m pip install "pyinstaller==6.22.2"
+python release_tools/build_windows.py --repo "CynicaGaming/TorrentDashboard" --tag "vX.Y.Z" --output dist-windows
+```
+
+The supplied tag must match `src/torrent_dashboard/__init__.py::__version__`. A normal source change can therefore be recompiled immediately; an official updater-visible increment should receive a new version before publication.
 
 ## Generated and authored project state
 
@@ -105,15 +121,17 @@ python release_tools/generate_release_notes.py --version X.Y.Z
 
 ## Versioning and release metadata
 
-Torrent Dashboard currently uses semantic `0.x.x` prerelease versions. The version must remain synchronized across `src/torrent_dashboard/dashboard.py`, frontend build metadata, asset query strings, and the service-worker cache. `release_tools/validate_source.py` enforces that contract.
+Torrent Dashboard currently uses semantic `0.x.x` prerelease versions. The canonical application version is `src/torrent_dashboard/__init__.py::__version__`; `src/torrent_dashboard/dashboard.py` imports that value, and frontend build metadata, asset query strings, and the service-worker cache must remain synchronized with it. `release_tools/validate_source.py` enforces that contract.
 
 Each published increment gets one entry in `release_notes/releases.json`. That entry is the source for the GitHub release body, changelog, and released-state handoff material.
 
 ## Canonical upstream branch model
 
-The canonical upstream currently develops increments on `refactor/backend-modularization-users` and promotes validated commits to `prerelease/backend-modularization` for updater-visible prereleases. This is an upstream implementation detail, not a requirement for forks.
+The canonical upstream currently integrates and publishes prerelease work from `main`. Feature/refactor branches may be used for isolated development, but validated work is merged back to `main` before it becomes updater-visible.
 
-The workflows under `.github/workflows/` contain branch triggers. Fork maintainers who use different branch names or publication rules should review those triggers before enabling release automation.
+Pushes to `main` trigger both `.github/workflows/release.yml` and `.github/workflows/windows-preview.yml`. The first validates and publishes/refreshes the editable source prerelease; the second rebuilds and smoke-tests the Windows x64 executable package from the same source tree and publishes its preview assets to the same versioned prerelease.
+
+This is an upstream implementation detail, not a requirement for forks. Fork maintainers who use different branch names or publication rules should review workflow branch triggers before enabling release automation.
 
 ## Fork release behavior
 
