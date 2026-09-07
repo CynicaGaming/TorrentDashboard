@@ -6,12 +6,12 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.127** (prerelease)
+- Latest documented build: **v0.5.128** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 
 ### Latest release summary
 
-Fixes custom notification sound uploads that tested successfully but failed on save, and replaces the platform-native sound selector with a consistently highlighted full-width dropdown.
+Simplifies the Clients authentication UI by putting the qBitTorrent 5.2+ requirement directly on the API key option and removing redundant Bearer-authentication helper text.
 
 ## Development principles
 
@@ -23,6 +23,13 @@ Fixes custom notification sound uploads that tested successfully but failed on s
 - Keep public development continuity portable across forks; label canonical repository/branch/PR references as upstream context rather than local identity.
 
 ## Recent work
+
+### v0.5.128 — qBitTorrent API key labeling cleanup
+
+Simplifies the Clients authentication UI by putting the qBitTorrent 5.2+ requirement directly on the API key option and removing redundant Bearer-authentication helper text.
+
+- The Clients authentication selector now reads API key (qBitTorrent 5.2+).
+- Removes the separate qBitTorrent 5.2+ · Bearer authentication line beneath the API key field.
 
 ### v0.5.127 — Notification sound save and selector fixes
 
@@ -54,14 +61,6 @@ Adds a compact Scheduled tasks panel to saved Jellyfin integrations, dynamically
 - Shows each task name, last run time, execution duration, running progress, and previous failure state when Jellyfin reports one.
 - Adds a right-aligned Material-style play control for idle tasks and a stop control while a task is running.
 - Discovers tasks dynamically through Jellyfin so scheduled tasks registered by plugins such as Intro Skipper or Jellyfin Enhanced appear without Torrent Dashboard changes.
-
-### v0.5.123 — Recovered release line and integration health indicators
-
-Restores the validated v0.5.122 development baseline as the canonical release line and adds at-a-glance integration health indicators without downgrading existing installations.
-
-- Restores the complete modular v0.5.122 application baseline, including the operational Jellyfin service integration, as the source for subsequent releases.
-- Adds a status indicator to the left of every saved integration name: green for healthy, yellow for reachable but degraded, and red for disconnected or disabled.
-- Integration health refreshes automatically while the Integrations settings page is open and after manual connection tests.
 
 ## What to do next
 

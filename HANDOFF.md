@@ -7,11 +7,11 @@
 This handoff is intentionally portable across public forks. Verify the current checkout's Git remote, branch, and open work before using upstream references as instructions.
 
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
-- Last documented upstream build: **v0.5.127** (prerelease)
+- Last documented upstream build: **v0.5.128** (prerelease)
 
 ## Last known-good state
 
-Fixes custom notification sound uploads that tested successfully but failed on save, and replaces the platform-native sound selector with a consistently highlighted full-width dropdown.
+Simplifies the Clients authentication UI by putting the qBitTorrent 5.2+ requirement directly on the API key option and removing redundant Bearer-authentication helper text.
 
 The released-state details and recent history are in `PROJECT_STATE.md`; architectural constraints are in `ARCHITECTURE.md`.
 
