@@ -8,6 +8,7 @@ window.TDSettings = (() => {
   let currentUserId = '';
   let clientSettingsServerId = '';
   let integrationHealthRefreshing = false;
+  let pendingNotificationSoundFile = null;
 
   const corePages = new Set(['general','access','clients','updates','notifications']);
   const SECRET_MASK = '••••••••••';
@@ -48,7 +49,9 @@ window.TDSettings = (() => {
     document.querySelector('#clientProxyAuth')?.addEventListener('change', syncClientSettingsControls);
     document.querySelector('#updateAction')?.addEventListener('click', handleUpdateAction);
     document.querySelector('#nSoundMode')?.addEventListener('change', updateNotificationSoundUi);
-    document.querySelector('#nSoundFile')?.addEventListener('change', updateNotificationSoundUi);
+    document.querySelector('#nSoundFile')?.addEventListener('change', event => setNotificationSoundFile(event.target.files?.[0] || null));
+    document.querySelector('#nSoundVolume')?.addEventListener('input', updateNotificationVolumeUi);
+    bindNotificationSoundDrop();
     document.querySelector('#testNotification')?.addEventListener('click', testNotification);
     document.querySelector('#addIntegrationSetting')?.addEventListener('click', addIntegration);
     document.querySelector('#addUserSetting')?.addEventListener('click', addUser);
@@ -214,11 +217,14 @@ window.TDSettings = (() => {
     setChecked('nBrowser', n.browser !== false);
     setChecked('nSound', n.sound);
     setValue('nSoundMode', n.sound_mode || 'default');
+    setValue('nSoundVolume', Number.isFinite(Number(n.volume)) ? Math.max(0, Math.min(100, Number(n.volume))) : 72);
+    pendingNotificationSoundFile = null;
     const soundFile = document.querySelector('#nSoundFile');
     if (soundFile) soundFile.value = '';
     const soundName = document.querySelector('#nCustomSoundName');
     if (soundName) soundName.textContent = n.custom_sound_name || 'No custom sound uploaded';
     updateNotificationSoundUi();
+    updateNotificationVolumeUi();
     activate(localStorage.tdSettingsPage || 'general');
   }
 
@@ -241,7 +247,8 @@ window.TDSettings = (() => {
       notifications: {
         browser: document.querySelector('#nBrowser')?.checked !== false,
         sound: !!document.querySelector('#nSound')?.checked,
-        sound_mode: document.querySelector('#nSoundMode')?.value || 'default'
+        sound_mode: document.querySelector('#nSoundMode')?.value || 'default',
+        volume: notificationVolumePercent()
       }
     };
     try {
@@ -261,20 +268,64 @@ window.TDSettings = (() => {
     }
   }
 
+  const NOTIFICATION_SOUND_EXTENSIONS = new Set(['.wav','.mp3','.ogg']);
+
+  function notificationSoundExtension(file) {
+    const name=String(file?.name||'').toLowerCase();
+    const dot=name.lastIndexOf('.');
+    return dot>=0?name.slice(dot):'';
+  }
+
+  function validateNotificationSoundFile(file) {
+    if(!file)return null;
+    const ext=notificationSoundExtension(file);
+    if(!NOTIFICATION_SOUND_EXTENSIONS.has(ext))throw new Error('Choose a WAV, MP3, or OGG sound file.');
+    if(!Number.isFinite(file.size)||file.size<1||file.size>2*1024*1024)throw new Error('Custom sound must be between 1 byte and 2 MB.');
+    return file;
+  }
+
+  function setNotificationSoundFile(file) {
+    try{pendingNotificationSoundFile=validateNotificationSoundFile(file)}catch(error){pendingNotificationSoundFile=null;const input=document.querySelector('#nSoundFile');if(input)input.value='';toast(error.message,'error')}
+    updateNotificationSoundUi();
+  }
+
+  function bindNotificationSoundDrop() {
+    const drop=document.querySelector('#nSoundDrop'),input=document.querySelector('#nSoundFile');
+    if(!drop||!input||drop.dataset.bound==='1')return;
+    drop.dataset.bound='1';
+    drop.addEventListener('click',()=>input.click());
+    for(const eventName of ['dragenter','dragover'])drop.addEventListener(eventName,event=>{event.preventDefault();event.stopPropagation();drop.classList.add('dragover')});
+    for(const eventName of ['dragleave','drop'])drop.addEventListener(eventName,event=>{event.preventDefault();event.stopPropagation();drop.classList.remove('dragover')});
+    drop.addEventListener('drop',event=>{const file=[...(event.dataTransfer?.files||[])].find(item=>NOTIFICATION_SOUND_EXTENSIONS.has(notificationSoundExtension(item)));if(file)setNotificationSoundFile(file);else toast('Drop a WAV, MP3, or OGG sound file.','error')});
+  }
+
+  function notificationVolumePercent() {
+    const raw=Number(document.querySelector('#nSoundVolume')?.value ?? 72);
+    return Math.round(Math.max(0,Math.min(100,Number.isFinite(raw)?raw:72)));
+  }
+
+  function updateNotificationVolumeUi() {
+    const value=notificationVolumePercent(),input=document.querySelector('#nSoundVolume'),output=document.querySelector('#nSoundVolumeValue');
+    if(input&&Number(input.value)!==value)input.value=String(value);
+    if(output)output.textContent=`${value}%`;
+  }
+
   function updateNotificationSoundUi() {
     const mode = document.querySelector('#nSoundMode')?.value || 'default';
     const wrap = document.querySelector('#nCustomSoundWrap');
     if (wrap) wrap.classList.toggle('hidden', mode !== 'custom');
-    const file = document.querySelector('#nSoundFile')?.files?.[0];
+    const file = pendingNotificationSoundFile || document.querySelector('#nSoundFile')?.files?.[0] || null;
     const name = document.querySelector('#nCustomSoundName');
+    const drop = document.querySelector('#nSoundDrop');
     if (name && file) name.textContent = file.name;
+    if (drop) drop.classList.toggle('has-file', !!file);
   }
 
   async function uploadNotificationSoundIfNeeded() {
     const mode = document.querySelector('#nSoundMode')?.value || 'default';
-    const input = document.querySelector('#nSoundFile');
-    const file = input?.files?.[0];
+    const file = pendingNotificationSoundFile || document.querySelector('#nSoundFile')?.files?.[0] || null;
     if (mode !== 'custom' || !file) return null;
+    validateNotificationSoundFile(file);
     const form = new FormData();
     form.append('sound', file, file.name);
     const response = await fetch('/api/notification-sound', {method:'POST', headers:{'X-CSRF-Token':state.csrf}, body:form});
@@ -294,26 +345,30 @@ window.TDSettings = (() => {
       return;
     }
     const mode = document.querySelector('#nSoundMode')?.value || 'default';
-    const file = document.querySelector('#nSoundFile')?.files?.[0];
+    const file = pendingNotificationSoundFile || document.querySelector('#nSoundFile')?.files?.[0] || null;
     let soundUrl = '';
     let revoke = false;
     if (soundEnabled) {
-      if (mode === 'custom' && file) { soundUrl=URL.createObjectURL(file); revoke=true; }
+      if (mode === 'custom' && file) { validateNotificationSoundFile(file); soundUrl=URL.createObjectURL(file); revoke=true; }
       else if (mode === 'custom') soundUrl=`/api/notification-sound?ts=${Date.now()}`;
-      else soundUrl=`/static/default-completion.wav?v=${encodeURIComponent(state.me?.version || '')}`;
+      else soundUrl=`/static/notification-default.wav?v=${encodeURIComponent(state.me?.version || '')}`;
     }
     try {
       if (status) { status.className='test-result muted'; status.textContent='Testing notification…'; }
       const tested=[];
       if (browserEnabled) {
-        if (!('Notification' in window)) throw new Error('Browser notifications are not supported by this browser.');
+        if (!('Notification' in window)) throw new Error('This browser does not support system notifications.');
         let permission=Notification.permission;
         if (permission==='default') permission=await Notification.requestPermission();
         if (permission!=='granted') throw new Error(permission==='denied' ? "Browser notification permission is blocked. Enable it in this site's browser permissions." : 'Browser notification permission was not granted.');
         await showBrowserNotification(state.settings?.dashboard?.title || 'Torrent Dashboard',{body:'This is a test notification from Torrent Dashboard.',tag:'torrent-dashboard-test'});
         tested.push('browser notification');
       }
-      if (soundEnabled) { await playSoundUrl(soundUrl); tested.push('completion sound'); }
+      if (soundEnabled) {
+        try{await playSoundUrl(soundUrl,notificationVolumePercent())}
+        catch(error){if(error?.name==='NotSupportedError')throw new Error('This browser could not decode the selected audio file. Try a standard MP3, WAV, or OGG file.');throw error}
+        tested.push('completion sound');
+      }
       if (status) { status.className='test-result ok'; status.textContent=`Test successful: ${tested.join(' and ')}.`; }
     } catch(e) {
       if (status) { status.className='test-result bad'; status.textContent=e.message || 'Notification test failed.'; }

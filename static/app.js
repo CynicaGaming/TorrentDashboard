@@ -1,5 +1,5 @@
 'use strict';
-const FRONTEND_BUILD='0.5.125';
+const FRONTEND_BUILD='0.5.126';
 const HTML_BUILD=document.querySelector('meta[name="torrent-dashboard-build"]')?.content||'';
 const RECOVERY_KEY=`td-frontend-recovery-${FRONTEND_BUILD}`;
 async function recoverFrontendBuild(reason){
@@ -243,12 +243,13 @@ function when(ts){if(!ts)return'—';const d=new Date(Number(ts)*1000);return d.
 function rel(ts){if(!ts)return'—';let s=Math.max(0,Date.now()/1000-ts);if(s<60)return`${Math.floor(s)}s ago`;if(s<3600)return`${Math.floor(s/60)}m ago`;if(s<86400)return`${Math.floor(s/3600)}h ago`;return`${Math.floor(s/86400)}d ago`}
 function toast(msg,type=''){const el=document.createElement('div');el.className='toast '+type;el.textContent=displayUiText(msg);$('#toasts').append(el);setTimeout(()=>el.remove(),3800)}
 let notificationAudio=null;
-async function playSoundUrl(src){
+function notificationVolume(value=state.settings?.notifications?.volume){const raw=Number(value);const percent=Number.isFinite(raw)?raw:72;return Math.max(0,Math.min(100,percent))/100}
+async function playSoundUrl(src,volumePercent=null){
   if(notificationAudio){try{notificationAudio.pause()}catch{}}
-  const audio=new Audio(src);audio.preload='auto';audio.volume=.72;notificationAudio=audio;await audio.play();return audio
+  const audio=new Audio(src);audio.preload='auto';audio.volume=volumePercent==null?notificationVolume():notificationVolume(volumePercent);notificationAudio=audio;await audio.play();return audio
 }
-function configuredCompletionSoundUrl(){const n=state.settings?.notifications||{};return n.sound_mode==='custom'&&n.custom_sound_file?`/api/notification-sound?ts=${Date.now()}`:`/static/default-completion.wav?v=${encodeURIComponent(state.me?.version||'')}`}
-async function playCompletionSound(){if(!state.settings?.notifications?.sound)return;const n=state.settings.notifications||{};try{return await playSoundUrl(configuredCompletionSoundUrl())}catch(e){if(n.sound_mode==='custom')return playSoundUrl(`/static/default-completion.wav?v=${encodeURIComponent(state.me?.version||'')}`);throw e}}
+function configuredCompletionSoundUrl(){const n=state.settings?.notifications||{};return n.sound_mode==='custom'&&n.custom_sound_file?`/api/notification-sound?ts=${Date.now()}`:`/static/notification-default.wav?v=${encodeURIComponent(state.me?.version||'')}`}
+async function playCompletionSound(){if(!state.settings?.notifications?.sound)return;const n=state.settings.notifications||{};try{return await playSoundUrl(configuredCompletionSoundUrl())}catch(e){if(n.sound_mode==='custom')return playSoundUrl(`/static/notification-default.wav?v=${encodeURIComponent(state.me?.version||'')}`);throw e}}
 async function showBrowserNotification(title,options={}){if(!('Notification'in window))throw new Error('Browser notifications are not supported');if(Notification.permission!=='granted')throw new Error('Browser notification permission is not granted');if('serviceWorker'in navigator){try{const reg=await navigator.serviceWorker.ready;if(reg?.showNotification){await reg.showNotification(title,options);return}}catch{}}new Notification(title,options)}
 async function api(url,opt={}){opt.headers={...(opt.headers||{})};if(opt.method&&opt.method!=='GET'&&opt.method!=='HEAD'&&state.csrf)opt.headers['X-CSRF-Token']=state.csrf;const r=await fetch(url,opt);let data;const ct=r.headers.get('content-type')||'';data=ct.includes('json')?await r.json():await r.text();if(r.status===401){showLogin();throw new Error(data.error||'Authentication required')}if(!r.ok)throw new Error(data.error||`HTTP ${r.status}`);return data}
 async function post(url,obj){return api(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(obj)})}

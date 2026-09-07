@@ -100,9 +100,10 @@ UPDATE_DIR = DATA_DIR / "updates"
 UPDATE_STATE_PATH = DATA_DIR / "update-status.json"
 RELEASE_INFO_PATH = APP_DIR / "release-info.json"
 RELEASE_INTEGRITY_CACHE_PATH = DATA_DIR / "release-integrity.json"
-CUSTOM_SOUND_BASENAME = "custom-notification-sound"
+CUSTOM_SOUND_BASENAME = "notification-custom"
+LEGACY_CUSTOM_SOUND_BASENAME = "custom-notification-sound"
 MAX_CUSTOM_SOUND_BYTES = 2 * 1024 * 1024
-VERSION = "0.5.125"
+VERSION = "0.5.126"
 STATUS_REFRESH_SECONDS = 1.0
 
 RELEASE_PROVENANCE = ReleaseProvenance(
@@ -1428,11 +1429,12 @@ def store_custom_notification_sound(cfg, filename, content):
     if ext == ".mp3" and not (content.startswith(b"ID3") or (len(content) > 1 and content[0] == 0xFF and (content[1] & 0xE0) == 0xE0)):
         raise RuntimeError("The selected MP3 file is not valid")
     DATA_DIR.mkdir(parents=True, exist_ok=True)
-    for old_ext in SOUND_MIME_TYPES:
-        old = DATA_DIR / f"{CUSTOM_SOUND_BASENAME}{old_ext}"
-        if old.exists():
-            try: old.unlink()
-            except Exception: pass
+    for basename in (CUSTOM_SOUND_BASENAME, LEGACY_CUSTOM_SOUND_BASENAME):
+        for old_ext in SOUND_MIME_TYPES:
+            old = DATA_DIR / f"{basename}{old_ext}"
+            if old.exists():
+                try: old.unlink()
+                except Exception: pass
     dest = DATA_DIR / f"{CUSTOM_SOUND_BASENAME}{ext}"
     dest.write_bytes(content)
     out = json.loads(json.dumps(cfg))
@@ -1446,7 +1448,8 @@ def store_custom_notification_sound(cfg, filename, content):
 def configured_notification_sound(cfg):
     n = cfg.get("notifications", {})
     name = Path(str(n.get("custom_sound_file") or "")).name
-    if not name.startswith(CUSTOM_SOUND_BASENAME):
+    sound_name = Path(name)
+    if sound_name.stem not in (CUSTOM_SOUND_BASENAME, LEGACY_CUSTOM_SOUND_BASENAME) or sound_name.suffix.lower() not in SOUND_MIME_TYPES:
         return None, None
     path = DATA_DIR / name
     if not path.exists() or not path.is_file():
@@ -1798,7 +1801,7 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("Referrer-Policy", "same-origin")
         self.send_header("X-Frame-Options", "DENY")
-        self.send_header("Content-Security-Policy", "default-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; script-src 'self'; connect-src 'self'; img-src 'self' data:; manifest-src 'self'; worker-src 'self'; object-src 'none'; frame-ancestors 'none'")
+        self.send_header("Content-Security-Policy", "default-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; script-src 'self'; connect-src 'self'; img-src 'self' data:; media-src 'self' blob:; manifest-src 'self'; worker-src 'self'; object-src 'none'; frame-ancestors 'none'")
         if cookie_token:
             secure = "; Secure" if load_config()["dashboard"].get("https_enabled") else ""
             self.send_header("Set-Cookie", f"td_session={cookie_token}; Path=/; HttpOnly; SameSite=Lax{secure}")

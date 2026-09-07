@@ -82,6 +82,12 @@ class ConfigModuleTests(unittest.TestCase):
             self.assertEqual(saved["updates"], {"repository": "example/fork"})
             self.assertEqual(saved["integrations"], [])
 
+    def test_notification_volume_is_defaulted_and_clamped(self):
+        self.assertEqual(normalize_config({})["notifications"]["volume"], 72)
+        self.assertEqual(normalize_config({"notifications": {"volume": 150}})["notifications"]["volume"], 100)
+        self.assertEqual(normalize_config({"notifications": {"volume": -5}})["notifications"]["volume"], 0)
+        self.assertEqual(normalize_config({"notifications": {"volume": "invalid"}})["notifications"]["volume"], 72)
+
     def test_public_config_redacts_browser_secrets(self):
         cfg = json.loads(json.dumps(DEFAULT_CONFIG))
         cfg["auth"].update({"username": "admin", "password_hash": "hash"})

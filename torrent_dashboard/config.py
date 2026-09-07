@@ -42,6 +42,7 @@ DEFAULT_CONFIG = {
         "browser": True,
         "sound": False,
         "sound_mode": "default",
+        "volume": 72,
         "custom_sound_file": "",
         "custom_sound_name": "",
         "custom_sound_mime": "",
@@ -241,6 +242,13 @@ def normalize_config(raw, detect_lan_network: Callable[[], dict] | None = None):
     merged["integrations"] = [
         item for item in merged.get("integrations", []) if item.get("type") != "github"
     ]
+
+    notifications = merged.setdefault("notifications", {})
+    try:
+        notification_volume = int(round(float(notifications.get("volume", 72))))
+    except (TypeError, ValueError):
+        notification_volume = 72
+    notifications["volume"] = max(0, min(100, notification_volume))
 
     sync_legacy_auth(merged)
     return merged

@@ -187,3 +187,11 @@
 .integration-item>.accordion-summary>.accordion-chevron .material-symbol-icon{width:18px;height:18px;fill:currentColor}
 .integration-item>.accordion-summary[aria-expanded="true"]>.accordion-chevron{transform:rotate(90deg)}
 @media(prefers-reduced-motion:reduce){.integration-item>.accordion-summary>.accordion-chevron{transition:none}}
+
+/* 0.5.126 notification sound upload and volume controls. */
+.notification-sound-drop{width:100%;min-height:126px;display:grid;place-items:center;align-content:center;gap:5px;padding:16px;border:1px dashed color-mix(in srgb,var(--border) 90%,var(--muted));border-radius:12px;background:color-mix(in srgb,var(--panel2) 78%,transparent);color:var(--muted);text-align:center;transition:border-color .15s ease,background .15s ease,box-shadow .15s ease}
+.notification-sound-drop:hover,.notification-sound-drop:focus-visible,.notification-sound-drop.dragover{border-color:color-mix(in srgb,var(--accent) 72%,var(--border));background:color-mix(in srgb,var(--accent) 8%,var(--panel2));box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 18%,transparent)}
+.notification-sound-drop.has-file{border-style:solid}.notification-sound-drop-icon{width:27px;height:27px;color:var(--accent)}.notification-sound-drop strong{font-size:11.5px;color:var(--text)}.notification-sound-drop>span{font-size:9.5px}.notification-sound-drop .configured-sound{display:block;margin-top:3px;max-width:100%;font-size:9px;color:var(--muted);overflow-wrap:anywhere}
+.notification-volume-row{display:grid;grid-template-columns:auto minmax(180px,1fr);align-items:center;gap:14px;padding:4px 0}.notification-volume-row>label{margin:0;color:var(--muted);font-size:10px}.notification-volume-control{display:grid;grid-template-columns:minmax(0,1fr) 44px;align-items:center;gap:10px}.notification-volume-control input[type=range]{width:100%;accent-color:var(--accent)}.notification-volume-control output{font-variant-numeric:tabular-nums;text-align:right;color:var(--text);font-size:10px}
+@media(max-width:560px){.notification-volume-row{grid-template-columns:1fr;gap:7px}.notification-sound-drop{min-height:116px}}
+

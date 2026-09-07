@@ -6,12 +6,12 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.125** (prerelease)
+- Latest documented build: **v0.5.126** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 
 ### Latest release summary
 
-Fixes the Integrations accordion disclosure indicator so its Material-style chevron visibly follows the expanded and collapsed state.
+Fixes custom notification sound previews and adds a torrent-style drag-and-drop uploader plus a persisted notification volume control.
 
 ## Development principles
 
@@ -23,6 +23,14 @@ Fixes the Integrations accordion disclosure indicator so its Material-style chev
 - Keep public development continuity portable across forks; label canonical repository/branch/PR references as upstream context rather than local identity.
 
 ## Recent work
+
+### v0.5.126 — Notification sound upload and volume controls
+
+Fixes custom notification sound previews and adds a torrent-style drag-and-drop uploader plus a persisted notification volume control.
+
+- Adds a drag-and-drop custom sound target that mirrors the .torrent file picker and still supports click-to-browse.
+- Adds a 0–100 notification volume slider used by test playback and normal completion notifications.
+- Uses notification-default.wav for the bundled sound and notification-custom.<ext> for newly uploaded custom sounds.
 
 ### v0.5.125 — Integration accordion chevron fix
 
@@ -55,14 +63,6 @@ Turns the Jellyfin integration into an operational service surface with live ser
 - Saved Jellyfin integrations now show whether the server is reachable plus its reported server name, version, operating system, and restart-pending state.
 - The Integrations page lists Jellyfin virtual-folder libraries with collection type, media locations, and refresh status/progress when Jellyfin reports them.
 - Administrators can request Jellyfin's normal global library scan with Refresh libraries without leaving Torrent Dashboard.
-
-### v0.5.121 — Mobile Add Torrent action dock
-
-Keeps the Add Torrent action footer continuously reachable on phones by sizing the modal to the actual visual viewport while metadata/options scroll independently.
-
-- Add Torrent now follows the mobile browser visual viewport instead of relying on static vh sizing.
-- Save .torrent file, Cancel, and Add torrent remain docked outside the scrolling metadata/options body.
-- The mobile action footer reserves safe-area clearance and retains full touch targets when browser chrome or the software keyboard reduces usable space.
 
 ## What to do next
 

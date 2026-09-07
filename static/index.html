@@ -4,11 +4,11 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#0b0d10" name="theme-color"/>
-<meta content="0.5.125" name="torrent-dashboard-build"/>
+<meta content="0.5.126" name="torrent-dashboard-build"/>
 <link href="/manifest.webmanifest" rel="manifest"/>
 <link href="/static/favicon.svg" rel="icon" type="image/svg+xml"/>
-<link href="/static/app.css?v=0.5.125" rel="stylesheet"/>
-<link href="/static/settings.css?v=0.5.125" rel="stylesheet"/>
+<link href="/static/app.css?v=0.5.126" rel="stylesheet"/>
+<link href="/static/settings.css?v=0.5.126" rel="stylesheet"/>
 <title>Torrent Dashboard</title>
 </head>
 <body>
@@ -234,10 +234,11 @@
 <div class="notification-sound-config" id="notificationSoundConfig">
 <label>Sound<select id="nSoundMode"><option value="default">Default</option><option value="custom">Custom</option></select></label>
 <div class="custom-sound-wrap hidden" id="nCustomSoundWrap">
-<label>Custom sound file<input accept="audio/wav,audio/mpeg,audio/ogg,.wav,.mp3,.ogg" id="nSoundFile" type="file"/></label>
-<div class="configured-sound" id="nCustomSoundName">No custom sound uploaded</div>
-<div class="field-help">WAV, MP3, or OGG · Maximum 2 MB. Custom sounds are stored in the data directory and preserved during updates.</div>
+<button class="notification-sound-drop" id="nSoundDrop" type="button"><svg class="material-symbol-icon notification-sound-drop-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M5 20h14v-2H5v2Zm7-17-7 7h4v5h6v-5h4l-7-7Z"/></svg><strong>Drop an audio file here</strong><span>or click to browse</span><small class="configured-sound" id="nCustomSoundName">No custom sound uploaded</small></button>
+<input accept="audio/wav,audio/mpeg,audio/ogg,.wav,.mp3,.ogg" class="hidden" id="nSoundFile" type="file"/>
+<div class="field-help">WAV, MP3, or OGG · Maximum 2 MB.</div>
 </div>
+<div class="notification-volume-row"><label for="nSoundVolume">Volume</label><div class="notification-volume-control"><input aria-label="Notification volume" id="nSoundVolume" max="100" min="0" step="1" type="range" value="72"/><output id="nSoundVolumeValue" for="nSoundVolume">72%</output></div></div>
 <div class="settings-inline-actions notification-actions"><button class="secondary" id="testNotification" type="button">Test notification</button></div>
 <div class="test-result muted" id="soundStatus">Test browser notifications and completion audio. Browser permission is requested during the test when needed.</div>
 </div>
@@ -267,7 +268,7 @@
 <div class="menu account-menu hidden" id="accountMenu" role="menu"><div class="account-menu-head"><span class="profile-avatar profile-avatar-menu"><img alt="" class="hidden" data-avatar-image/><span class="avatar-default" data-avatar-default aria-hidden="true"></span></span><div><strong id="accountMenuName">Account</strong><small id="accountMenuGroup">User</small></div></div><div class="menu-separator" role="separator"></div><button id="accountSettingsBtn" type="button">Account settings</button><button class="hidden" id="installPwa" type="button">Install app</button><div class="menu-separator" role="separator"></div><button id="logoutBtn" type="button">Sign out</button></div>
 <div class="menu hidden" id="contextMenu"></div>
 <div class="toasts" id="toasts"></div>
-<script src="/static/settings.js?v=0.5.125"></script>
-<script src="/static/app.js?v=0.5.125"></script>
+<script src="/static/settings.js?v=0.5.126"></script>
+<script src="/static/app.js?v=0.5.126"></script>
 </body>
 </html>

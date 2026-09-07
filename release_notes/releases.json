@@ -4906,6 +4906,30 @@
       "architecture": [],
       "decisions": [],
       "next_steps": []
+    },
+    {
+      "version": "0.5.126",
+      "date": "2026-09-06",
+      "status": "prerelease",
+      "title": "Notification sound upload and volume controls",
+      "summary": "Fixes custom notification sound previews and adds a torrent-style drag-and-drop uploader plus a persisted notification volume control.",
+      "highlights": [
+        "Adds a drag-and-drop custom sound target that mirrors the .torrent file picker and still supports click-to-browse.",
+        "Adds a 0\u2013100 notification volume slider used by test playback and normal completion notifications.",
+        "Uses notification-default.wav for the bundled sound and notification-custom.<ext> for newly uploaded custom sounds."
+      ],
+      "fixes": [
+        "Allows blob: media only through the media-src CSP directive so local custom-sound previews are no longer rejected by the browser.",
+        "Removes the internal storage-directory note from the Notifications settings UI."
+      ],
+      "technical": [
+        "Existing custom-notification-sound files remain readable for migration compatibility; replacement uploads use the notification-custom basename.",
+        "Notification volume is normalized to an integer from 0 through 100 and defaults to 72 for existing configurations."
+      ],
+      "validation": [
+        "Source validation, unit tests, UI-string validation, JavaScript syntax checks, renamed default-sound verification, and CSP assertions run before publication."
+      ],
+      "known_issues": []
     }
   ]
 }

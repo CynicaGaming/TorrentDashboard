@@ -7,11 +7,11 @@
 This handoff is intentionally portable across public forks. Verify the current checkout's Git remote, branch, and open work before using upstream references as instructions.
 
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
-- Last documented upstream build: **v0.5.125** (prerelease)
+- Last documented upstream build: **v0.5.126** (prerelease)
 
 ## Last known-good state
 
-Fixes the Integrations accordion disclosure indicator so its Material-style chevron visibly follows the expanded and collapsed state.
+Fixes custom notification sound previews and adds a torrent-style drag-and-drop uploader plus a persisted notification volume control.
 
 The released-state details and recent history are in `PROJECT_STATE.md`; architectural constraints are in `ARCHITECTURE.md`.
 
