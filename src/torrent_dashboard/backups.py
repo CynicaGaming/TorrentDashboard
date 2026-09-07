@@ -121,6 +121,8 @@ def create_backup(app_dir: Path, version: str, config: dict, *, kind: str = "man
                         shutil.copy2(source, destination)
 
             files = _payload_files(staging)
+            if sum(int(item.get("size") or 0) for item in files) > MAX_BACKUP_BYTES:
+                raise RuntimeError("Backup payload exceeds the 512 MB safety limit")
             manifest = {
                 "schema": BACKUP_SCHEMA,
                 "application": APPLICATION_ID,
@@ -138,6 +140,9 @@ def create_backup(app_dir: Path, version: str, config: dict, *, kind: str = "man
                 archive.write(staging / "backup-manifest.json", "backup-manifest.json")
                 for item in files:
                     archive.write(staging / item["path"], item["path"])
+            if destination.stat().st_size > MAX_BACKUP_BYTES:
+                destination.unlink(missing_ok=True)
+                raise RuntimeError("Backup archive exceeds the 512 MB safety limit")
 
     return backup_metadata(destination, validate=True)
 
@@ -372,6 +377,7 @@ def restore_backup(
     current_version: str,
     current_config: dict,
     history_lock=None,
+    validator=None,
 ) -> dict:
     """Restore a validated backup transactionally, retaining a pre-restore safety backup."""
     app_dir = Path(app_dir).resolve()
@@ -386,6 +392,8 @@ def restore_backup(
             manifest = _extract_validated_backup(source, extracted, current_version=current_version)
             try:
                 _apply_payload(app_dir, extracted / "payload")
+                if validator is not None:
+                    validator()
             except Exception as exc:
                 rollback_dir = Path(temp_name) / "rollback"
                 rollback_dir.mkdir(parents=True, exist_ok=True)

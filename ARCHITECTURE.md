@@ -160,3 +160,8 @@ The next useful boundaries are:
 4. **Frontend feature modules** — reduce the responsibility of `static/app.js` after backend boundaries stabilize.
 
 Extraction should remain incremental. A refactor should not simultaneously redesign unrelated user-facing behavior unless the behavior change is independently required and tested.
+
+## Portable backup boundary
+
+`src/torrent_dashboard/backups.py` owns portable dashboard-state archives. Backup payloads contain configuration and persistent files under `data/`, use a manifest with per-file SHA-256 digests, and deliberately exclude application code/binaries, updater staging, release caches, nested backup libraries, and qBitTorrent-owned data. The dashboard holds the history-store lock while snapshotting or restoring SQLite state. Restores preserve the local backup and recovery-backup libraries and create a pre-restore safety archive before replacing state.
+

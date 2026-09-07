@@ -6,21 +6,22 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.146** (prerelease)
+- Latest documented build: **v0.5.147** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 
 ### Latest release summary
 
-Moves all maintained Torrent Dashboard application Python code into src/torrent_dashboard and makes that one package the source for editable, recovery, updater, and compiled Windows builds.
+Adds a dedicated in-app backup manager for creating, viewing, restoring, importing, and exporting portable Torrent Dashboard state backups.
 
 ## Architecture state
 
-- src/torrent_dashboard is now the canonical application boundary; repository-root Python files are reserved for release/development tooling rather than runtime application modules.
+- Backup archives are state-only portability artifacts. Application code/binaries remain owned by the release/updater system and qBitTorrent-owned data remains outside Torrent Dashboard backups.
 
 ## Current engineering decisions
 
-- Use the conventional src/torrent_dashboard layout rather than making src itself the Python package.
-- Keep static assets, config.json, and data external to compiled executables and managed separately from application Python.
+- Place backup management in its own Settings category because backup lifecycle is independent from software update lifecycle.
+- Preserve the local backup library and legacy recovery config backups across restores so a failed or unwanted migration retains a local escape path.
+- Do not add backup encryption, scheduling, or remote destinations in the first portable-backup release.
 
 ## Development principles
 
@@ -32,6 +33,15 @@ Moves all maintained Torrent Dashboard application Python code into src/torrent_
 - Keep public development continuity portable across forks; label canonical repository/branch/PR references as upstream context rather than local identity.
 
 ## Recent work
+
+### v0.5.147 — Portable backup management
+
+Adds a dedicated in-app backup manager for creating, viewing, restoring, importing, and exporting portable Torrent Dashboard state backups.
+
+- Adds Settings → Backups as a dedicated administrator maintenance area instead of coupling backup lifecycle to software updates.
+- Creates portable .tdbackup archives containing configuration, users, saved credentials, integrations, dashboard history, profile pictures, and notification assets while excluding application binaries and qBitTorrent data.
+- Existing backups can be exported to another installation, imported into its local backup library, and restored from the browser.
+- Every restore creates a pre-restore safety backup first and signs out active sessions after the restored identity and access configuration becomes active.
 
 ### v0.5.146 — Canonical src package layout
 
@@ -67,22 +77,13 @@ Adds the first Windows executable packaging layer for Dashboard.exe, Recovery.ex
 - Keeps static HTML/CSS/JavaScript, config.json, data, logs, certificates, sounds, and release metadata external to the compiled executables.
 - Updates recovery.cmd to prefer Recovery.exe when present while preserving the Python fallback for source installations.
 
-### v0.5.142 — Local recovery tool
-
-Adds a key-gated local recovery program that can repair and update Torrent Dashboard without starting the HTTP service.
-
-- Adds recovery_tool.py, which authenticates only with the setup-generated dashboard recovery key and never starts a listening server.
-- Adds commands to select the GitHub update repository, check releases, install or reinstall the latest verified release, and start Torrent Dashboard after repair.
-- Adds config validation, automatic config backups, backup restore, network bind/HTTPS reset, stuck-update cleanup, and recovery/update log viewing.
-- Adds recovery.cmd so Windows installations can launch local recovery without remembering the Python command.
-
 ## What to do next
 
-1. **Exercise executable updates** — Run multiple Windows prerelease upgrades and rollback scenarios before removing preview labeling or adding code signing.
+1. **Exercise cross-install restore** — Create and export a backup from one compiled Windows installation, import and restore it on a second same-or-newer build, then use the generated safety backup to return the destination to its prior state.
 
 ## Known issues
 
-- Windows executables are not code-signed yet; code signing remains deferred until compiled update behavior has been exercised across multiple releases.
+- Portable backup archives are not encrypted and contain saved credentials and recovery data; exported .tdbackup files must be stored securely.
 
 ## Handoff instructions for a new development session
 
