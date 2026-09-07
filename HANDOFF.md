@@ -7,40 +7,38 @@
 This handoff is intentionally portable across public forks. Verify the current checkout's Git remote, branch, and open work before using upstream references as instructions.
 
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
-- Last documented upstream build: **v0.5.136** (prerelease)
+- Last documented upstream build: **v0.5.137** (prerelease)
 
 ## Last known-good state
 
-Adds persistent drag-handle ordering to Jellyfin scheduled-task favorites for faster access to frequently run tasks.
+Removes redundant library scan controls and scan-state text now that Jellyfin's Scan Media Library task is available through Favorites and Scheduled tasks.
 
 The released-state details and recent history are in `PROJECT_STATE.md`; architectural constraints are in `ARCHITECTURE.md`.
 
 ## Active development intent
 
 - Status: **ready**
-- Objective: **Validate Jellyfin scheduled tasks and integration disclosure behavior**
-- Why: v0.5.125 corrects the parent integration chevron while preserving the v0.5.124 dynamic Jellyfin scheduled-task controls.
+- Objective: **Validate the simplified Jellyfin library presentation and favorite scheduled-task workflow**
+- Why: v0.5.137 removes duplicate library scan controls so Jellyfin task execution is centralized in Favorites and Scheduled tasks.
 
 ### Acceptance criteria
 
-- Integration chevrons point right when collapsed and down when expanded.
-- Jellyfin Scheduled tasks continues to enumerate dynamic categories and tasks and can start/stop tasks.
-- No accordion interaction regresses on desktop or mobile.
+- The Libraries heading has no scan or refresh action.
+- Library rows show only library identity/type and configured locations, with no Scan or Idle field.
+- Scan Media Library remains runnable from Favorites or Scheduled tasks and reports progress there.
+- The Jellyfin server-status refresh control still works on desktop and mobile.
 
 ### Decisions already made
 
-- Discover scheduled tasks dynamically from Jellyfin instead of hard-coding a task catalog.
-- Keep scheduled-task controls nested under the existing Jellyfin integration rather than creating a separate page.
-- Keep task trigger/schedule editing out of the first increment.
-- Use compact locally embedded Material-style SVG controls for disclosure, task state, play, and stop actions.
+- Treat Jellyfin scheduled tasks as the single task-execution surface for maintenance operations.
+- Keep the Libraries section informational rather than duplicating scheduled-task controls.
+- Persist favorite task ordering with the Jellyfin integration configuration.
 
 ### Expected areas of change
 
-- `torrent_dashboard/jellyfin.py`
-- `dashboard.py`
 - `static/settings.js`
 - `static/settings.css`
-- `tests/test_jellyfin.py`
+- `dashboard.py`
 - `release_notes/releases.json`
 
 ### Blockers
@@ -50,13 +48,12 @@ None currently recorded.
 ### Explicitly out of scope
 
 - Editing Jellyfin scheduled-task trigger schedules.
-- Automatically running Jellyfin tasks on torrent completion.
+- Changing Jellyfin's scheduled-task API behavior.
 - Jellyfin media-item browsing or playback management.
-- Secret-at-rest changes.
 
 ## Exact next action
 
-Smoke-test the Jellyfin integration accordion and Scheduled tasks controls against the maintainer's live Jellyfin server.
+Smoke-test the Jellyfin Libraries, Favorites, and Scheduled tasks sections against the maintainer's live Jellyfin server.
 
 ## Resume checklist
 

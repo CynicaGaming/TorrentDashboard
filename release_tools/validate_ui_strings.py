@@ -895,7 +895,8 @@ def main():
     assert '/System/Info' in jellyfin_py and '/Library/VirtualFolders' in jellyfin_py and '/ScheduledTasks?isHidden=false' in jellyfin_py
     assert 'function jellyfinServiceMarkup' in settings_js
     assert 'function renderJellyfinOverview' in settings_js and 'function loadJellyfinOverview' in settings_js
-    assert 'function refreshJellyfinLibraries' in settings_js and 'Refresh libraries' in settings_js
+    assert 'function refreshJellyfinLibraries' not in settings_js and 'jellyfin-refresh-libraries' not in settings_js
+    assert 'Refresh libraries' not in settings_js and 'jellyfin-library-scan' not in settings_js
     assert '0.5.122 Jellyfin service integration runtime' in settings_css
     assert '## Jellyfin service integrations' in design_language
     assert '### Jellyfin service integration' in testing_md

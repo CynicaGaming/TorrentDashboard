@@ -6,12 +6,12 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.136** (prerelease)
+- Latest documented build: **v0.5.137** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 
 ### Latest release summary
 
-Adds persistent drag-handle ordering to Jellyfin scheduled-task favorites for faster access to frequently run tasks.
+Removes redundant library scan controls and scan-state text now that Jellyfin's Scan Media Library task is available through Favorites and Scheduled tasks.
 
 ## Development principles
 
@@ -23,6 +23,14 @@ Adds persistent drag-handle ordering to Jellyfin scheduled-task favorites for fa
 - Keep public development continuity portable across forks; label canonical repository/branch/PR references as upstream context rather than local identity.
 
 ## Recent work
+
+### v0.5.137 — Simplified Jellyfin libraries
+
+Removes redundant library scan controls and scan-state text now that Jellyfin's Scan Media Library task is available through Favorites and Scheduled tasks.
+
+- Removes the cycle/refresh control beside the Jellyfin Libraries heading.
+- Removes the per-library Scan / Idle status column from library cards.
+- Keeps library names, media types, locations, and server status visible while task execution stays centralized in Favorites and Scheduled tasks.
 
 ### v0.5.136 — Reorderable Jellyfin task favorites
 
@@ -56,14 +64,6 @@ Drives the Libraries scan indicator from Jellyfin's real Scan Media Library sche
 - Starts Jellyfin's actual Scan Media Library scheduled task when the Libraries cycle control is pressed.
 - Uses that task's CurrentProgressPercentage and running state for the compact Libraries progress row.
 - Reuses the existing Scheduled tasks refresh loop instead of running a separate library-overview polling loop.
-
-### v0.5.132 — Jellyfin library scan progress
-
-Shows active Jellyfin library rescans using the same compact running-task presentation as Scheduled tasks.
-
-- Shows an inline Scan media library task row while a Jellyfin library refresh is running.
-- Displays Jellyfin-reported scan status and percentage using the existing scheduled-task visual language.
-- Polls the Jellyfin overview every two seconds only while a library scan is active.
 
 ## What to do next
 

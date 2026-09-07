@@ -12,6 +12,31 @@
   },
   "releases": [
     {
+      "version": "0.5.137",
+      "date": "2026-09-07",
+      "status": "prerelease",
+      "title": "Simplified Jellyfin libraries",
+      "summary": "Removes redundant library scan controls and scan-state text now that Jellyfin's Scan Media Library task is available through Favorites and Scheduled tasks.",
+      "highlights": [
+        "Removes the cycle/refresh control beside the Jellyfin Libraries heading.",
+        "Removes the per-library Scan / Idle status column from library cards.",
+        "Keeps library names, media types, locations, and server status visible while task execution stays centralized in Favorites and Scheduled tasks."
+      ],
+      "fixes": [],
+      "technical": [
+        "Removes the dedicated browser-side library refresh handler and click binding; the existing scheduled-task start/stop flow remains the single task-control surface.",
+        "Changes the desktop Jellyfin library row from three columns to two while preserving the existing single-column mobile layout.",
+        "Leaves the Jellyfin server-status refresh control unchanged."
+      ],
+      "validation": [
+        "Source validation, unit tests, UI-string validation, JavaScript syntax checks, and generated release-note checks run before publication."
+      ],
+      "known_issues": [],
+      "architecture": [],
+      "decisions": [],
+      "next_steps": []
+    },
+    {
       "version": "0.5.136",
       "date": "2026-09-07",
       "status": "prerelease",
