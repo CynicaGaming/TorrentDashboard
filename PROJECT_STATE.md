@@ -6,12 +6,12 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.131** (prerelease)
+- Latest documented build: **v0.5.132** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 
 ### Latest release summary
 
-Uses a cycle-style Material glyph for the inline Jellyfin status and library refresh controls.
+Shows active Jellyfin library rescans using the same compact running-task presentation as Scheduled tasks.
 
 ## Development principles
 
@@ -23,6 +23,14 @@ Uses a cycle-style Material glyph for the inline Jellyfin status and library ref
 - Keep public development continuity portable across forks; label canonical repository/branch/PR references as upstream context rather than local identity.
 
 ## Recent work
+
+### v0.5.132 — Jellyfin library scan progress
+
+Shows active Jellyfin library rescans using the same compact running-task presentation as Scheduled tasks.
+
+- Shows an inline Scan media library task row while a Jellyfin library refresh is running.
+- Displays Jellyfin-reported scan status and percentage using the existing scheduled-task visual language.
+- Polls the Jellyfin overview every two seconds only while a library scan is active.
 
 ### v0.5.131 — Jellyfin cycle refresh glyph
 
@@ -54,13 +62,6 @@ Simplifies the Clients authentication UI by putting the qBitTorrent 5.2+ require
 
 - The Clients authentication selector now reads API key (qBitTorrent 5.2+).
 - Removes the separate qBitTorrent 5.2+ · Bearer authentication line beneath the API key field.
-
-### v0.5.127 — Notification sound save and selector fixes
-
-Fixes custom notification sound uploads that tested successfully but failed on save, and replaces the platform-native sound selector with a consistently highlighted full-width dropdown.
-
-- Custom WAV, MP3, and OGG filenames are now parsed correctly from browser multipart uploads.
-- The Sound control now uses a keyboard-accessible custom dropdown whose selected row fills the full control width.
 
 ## What to do next
 

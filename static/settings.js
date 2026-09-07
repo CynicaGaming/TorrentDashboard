@@ -532,13 +532,55 @@ window.TDSettings = (() => {
 
   function jellyfinServiceMarkup(item) {
     if (item.type !== 'jellyfin' || !item.id || item._new) return '';
-    return `<section class="integration-service jellyfin-service" data-jellyfin-service><div class="integration-service-head"><div class="integration-service-heading"><span class="eyebrow">Jellyfin server</span><div class="jellyfin-server-line"><span class="service-status-badge checking" data-jellyfin-status>Checking…</span><strong data-jellyfin-name>Jellyfin</strong><button class="jellyfin-inline-refresh jellyfin-reload" type="button" aria-label="Refresh status" title="Refresh status">${jellyfinTaskIcon('cycle')}</button></div><small data-jellyfin-meta>Loading server status…</small></div></div><div class="jellyfin-library-head"><div><span class="jellyfin-library-title"><strong>Libraries</strong><button class="jellyfin-inline-refresh jellyfin-refresh-libraries" type="button" aria-label="Refresh libraries" title="Refresh libraries">${jellyfinTaskIcon('cycle')}</button></span><small data-jellyfin-library-count>Loading…</small></div></div><div class="jellyfin-library-list" data-jellyfin-libraries><div class="integration-service-empty">Loading libraries…</div></div><section class="jellyfin-task-section"><button class="jellyfin-task-summary" type="button" aria-expanded="false"><span class="jellyfin-task-summary-main"><span class="jellyfin-task-chevron">${jellyfinTaskIcon('chevron')}</span><span><strong>Scheduled tasks</strong><small data-jellyfin-task-count>Loading…</small></span></span></button><div class="jellyfin-task-body hidden" data-jellyfin-task-body><div class="jellyfin-task-list" data-jellyfin-tasks><div class="integration-service-empty">Loading scheduled tasks…</div></div></div></section></section>`;
+    return `<section class="integration-service jellyfin-service" data-jellyfin-service><div class="integration-service-head"><div class="integration-service-heading"><span class="eyebrow">Jellyfin server</span><div class="jellyfin-server-line"><span class="service-status-badge checking" data-jellyfin-status>Checking…</span><strong data-jellyfin-name>Jellyfin</strong><button class="jellyfin-inline-refresh jellyfin-reload" type="button" aria-label="Refresh status" title="Refresh status">${jellyfinTaskIcon('cycle')}</button></div><small data-jellyfin-meta>Loading server status…</small></div></div><div class="jellyfin-library-head"><div><span class="jellyfin-library-title"><strong>Libraries</strong><button class="jellyfin-inline-refresh jellyfin-refresh-libraries" type="button" aria-label="Refresh libraries" title="Refresh libraries">${jellyfinTaskIcon('cycle')}</button></span><small data-jellyfin-library-count>Loading…</small></div></div><div class="jellyfin-library-progress hidden" data-jellyfin-library-progress></div><div class="jellyfin-library-list" data-jellyfin-libraries><div class="integration-service-empty">Loading libraries…</div></div><section class="jellyfin-task-section"><button class="jellyfin-task-summary" type="button" aria-expanded="false"><span class="jellyfin-task-summary-main"><span class="jellyfin-task-chevron">${jellyfinTaskIcon('chevron')}</span><span><strong>Scheduled tasks</strong><small data-jellyfin-task-count>Loading…</small></span></span></button><div class="jellyfin-task-body hidden" data-jellyfin-task-body><div class="jellyfin-task-list" data-jellyfin-tasks><div class="integration-service-empty">Loading scheduled tasks…</div></div></div></section></section>`;
   }
 
   function jellyfinLibraryType(value='') {
     const raw=String(value||'').toLowerCase();
     const labels={movies:'Movies',tvshows:'TV shows',music:'Music',books:'Books',photos:'Photos',musicvideos:'Music videos',homevideos:'Home videos',boxsets:'Collections',mixed:'Mixed content'};
     return labels[raw] || (raw ? uiText(raw) : 'Library');
+  }
+
+  function jellyfinLibraryScanState(libraries) {
+    const active=[];
+    for(const library of (Array.isArray(libraries)?libraries:[])){
+      const raw=library?.refresh_progress;
+      const progress=(raw===null||raw===undefined||raw==='')?null:Number(raw);
+      const bounded=Number.isFinite(progress)?Math.max(0,Math.min(100,progress)):null;
+      const status=String(library?.refresh_status||'').trim();
+      const normalized=status.toLowerCase();
+      const statusActive=!!normalized&&!['idle','completed','complete','success','succeeded'].includes(normalized);
+      if(statusActive||(bounded!==null&&bounded>0&&bounded<100))active.push({progress:bounded,status});
+    }
+    if(!active.length)return null;
+    const values=active.map(item=>item.progress).filter(Number.isFinite);
+    const progress=values.length?values.reduce((sum,value)=>sum+value,0)/values.length:null;
+    const status=active.map(item=>item.status).find(Boolean)||'Scanning';
+    return {progress,status};
+  }
+
+  function renderJellyfinLibraryProgress(card,libraries) {
+    const host=card.querySelector('[data-jellyfin-library-progress]');
+    const runtime=card.querySelector('[data-jellyfin-service]');
+    const scan=jellyfinLibraryScanState(libraries);
+    if(runtime)runtime.dataset.libraryScanning=scan?'1':'0';
+    if(!host)return;
+    if(!scan){host.classList.add('hidden');host.innerHTML='';return}
+    const progress=Number.isFinite(scan.progress)?Math.max(0,Math.min(100,scan.progress)):null;
+    const percentage=progress===null?'':`${progress.toFixed(progress%1?1:0)}%`;
+    const detail=[uiText(scan.status||'Scanning'),percentage].filter(Boolean).join(' · ');
+    host.classList.remove('hidden');
+    host.innerHTML=`<article class="jellyfin-task-row running"><span class="jellyfin-task-clock">${jellyfinTaskIcon('cycle')}</span><div class="jellyfin-task-copy"><strong>Scan media library</strong><span>${esc(detail||'Running')}</span></div><strong class="jellyfin-library-progress-value">${esc(percentage||'…')}</strong></article>`;
+  }
+
+  function scheduleJellyfinLibraryPoll(card,force=false) {
+    if(card._jellyfinLibraryTimer)clearTimeout(card._jellyfinLibraryTimer);
+    const runtime=card.querySelector('[data-jellyfin-service]');
+    if(!force&&runtime?.dataset.libraryScanning!=='1')return;
+    card._jellyfinLibraryTimer=setTimeout(()=>{
+      if(!card.isConnected||card.querySelector('.accordion-body')?.classList.contains('hidden'))return;
+      loadJellyfinOverview(card);
+    },2000);
   }
 
   function renderJellyfinOverview(card, data) {
@@ -549,9 +591,10 @@ window.TDSettings = (() => {
     const meta=card.querySelector('[data-jellyfin-meta]');
     if(meta){const parts=[];if(server.version)parts.push(`Jellyfin ${server.version}`);if(server.operating_system)parts.push(server.operating_system);meta.textContent=parts.join(' · ')||'Connected'}
     const count=card.querySelector('[data-jellyfin-library-count]');if(count)count.textContent=`${libraries.length} ${libraries.length===1?'library':'libraries'}`;
+    renderJellyfinLibraryProgress(card,libraries);
     const list=card.querySelector('[data-jellyfin-libraries]');if(!list)return;
     if(!libraries.length){list.innerHTML='<div class="integration-service-empty">No libraries reported</div>';return}
-    list.innerHTML=libraries.map(library=>{const locations=(library.locations||[]).map(value=>String(value||'').trim()).filter(Boolean);const statusText=String(library.refresh_status||'').trim();const progress=Number(library.refresh_progress);const scan=Number.isFinite(progress)?`${Math.max(0,Math.min(100,progress)).toFixed(progress%1?1:0)}%${statusText?` · ${esc(uiText(statusText))}`:''}`:(statusText?esc(uiText(statusText)):'Idle');return `<article class="jellyfin-library-row"><div class="jellyfin-library-copy"><strong>${esc(library.name||'Library')}</strong><span>${esc(jellyfinLibraryType(library.collection_type))}</span></div><div class="jellyfin-library-paths">${locations.length?locations.map(value=>`<code>${esc(value)}</code>`).join(''):'<span>Location not reported</span>'}</div><div class="jellyfin-library-scan"><span>Scan</span><strong>${scan}</strong></div></article>`;}).join('');
+    list.innerHTML=libraries.map(library=>{const locations=(library.locations||[]).map(value=>String(value||'').trim()).filter(Boolean);const statusText=String(library.refresh_status||'').trim();const rawProgress=library.refresh_progress;const progress=(rawProgress===null||rawProgress===undefined||rawProgress==='')?null:Number(rawProgress);const scan=Number.isFinite(progress)?`${Math.max(0,Math.min(100,progress)).toFixed(progress%1?1:0)}%${statusText?` · ${esc(uiText(statusText))}`:''}`:(statusText?esc(uiText(statusText)):'Idle');return `<article class="jellyfin-library-row"><div class="jellyfin-library-copy"><strong>${esc(library.name||'Library')}</strong><span>${esc(jellyfinLibraryType(library.collection_type))}</span></div><div class="jellyfin-library-paths">${locations.length?locations.map(value=>`<code>${esc(value)}</code>`).join(''):'<span>Location not reported</span>'}</div><div class="jellyfin-library-scan"><span>Scan</span><strong>${scan}</strong></div></article>`;}).join('');
   }
 
   function jellyfinTaskRelative(value) {
@@ -616,13 +659,13 @@ window.TDSettings = (() => {
     if(!card?.dataset.id||card.dataset.type!=='jellyfin')return;
     const runtime=card.querySelector('[data-jellyfin-service]');if(!runtime||runtime.dataset.loading==='1')return;
     runtime.dataset.loading='1';const reload=card.querySelector('.jellyfin-reload');if(reload)reload.disabled=true;const status=card.querySelector('[data-jellyfin-status]');if(status){status.className='service-status-badge checking';status.textContent='Checking…'}
-    try{const data=await api(`/api/integrations/jellyfin/status?id=${encodeURIComponent(card.dataset.id)}`);runtime.dataset.loaded='1';renderJellyfinOverview(card,data)}catch(error){if(status){status.className='service-status-badge offline';status.textContent='Offline'}const meta=card.querySelector('[data-jellyfin-meta]');if(meta)meta.textContent=error.message||'Could not load Jellyfin status';const count=card.querySelector('[data-jellyfin-library-count]');if(count)count.textContent='Unavailable';const list=card.querySelector('[data-jellyfin-libraries]');if(list)list.innerHTML='<div class="integration-service-empty">Libraries unavailable</div>'}finally{delete runtime.dataset.loading;if(reload)reload.disabled=false}
+    try{const data=await api(`/api/integrations/jellyfin/status?id=${encodeURIComponent(card.dataset.id)}`);runtime.dataset.loaded='1';renderJellyfinOverview(card,data);if(runtime.dataset.libraryScanning==='1')scheduleJellyfinLibraryPoll(card)}catch(error){if(status){status.className='service-status-badge offline';status.textContent='Offline'}const meta=card.querySelector('[data-jellyfin-meta]');if(meta)meta.textContent=error.message||'Could not load Jellyfin status';const count=card.querySelector('[data-jellyfin-library-count]');if(count)count.textContent='Unavailable';const list=card.querySelector('[data-jellyfin-libraries]');if(list)list.innerHTML='<div class="integration-service-empty">Libraries unavailable</div>'}finally{delete runtime.dataset.loading;if(reload)reload.disabled=false}
   }
 
   async function refreshJellyfinLibraries(card) {
     if(!card?.dataset.id)return;
     const button=card.querySelector('.jellyfin-refresh-libraries');if(button)button.disabled=true;
-    try{const result=await post('/api/integrations/jellyfin/refresh',{id:card.dataset.id});toast(result.message||'Jellyfin library refresh requested');await new Promise(resolve=>setTimeout(resolve,700));await loadJellyfinOverview(card)}catch(error){toast(error.message||'Could not refresh Jellyfin libraries','error')}finally{if(button)button.disabled=false}
+    try{const result=await post('/api/integrations/jellyfin/refresh',{id:card.dataset.id});toast(result.message||'Jellyfin library refresh requested');scheduleJellyfinLibraryPoll(card,true);await new Promise(resolve=>setTimeout(resolve,500));await loadJellyfinOverview(card)}catch(error){toast(error.message||'Could not refresh Jellyfin libraries','error')}finally{if(button)button.disabled=false}
   }
 
   function renderIntegrations() {
