@@ -1,0 +1,49 @@
+name: Apply desktop and mobile legibility pass
+
+on:
+  push:
+    branches:
+      - feature/legibility-pass
+
+permissions:
+  contents: write
+
+jobs:
+  apply-and-validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+
+      - name: Apply legibility pass
+        run: python release_tools/apply_legibility_pass.py
+
+      - name: Validate
+        run: |
+          python release_tools/validate_source.py
+          python release_tools/validate_ui_strings.py
+          python -m unittest discover -s tests -p 'test_*.py'
+          node --check static/app.js
+          node --check static/settings.js
+          python release_tools/generate_release_notes.py --version 0.5.129 --check
+          grep -q '0.5.129 desktop and mobile legibility pass' static/app.css
+          grep -q '0.5.129 settings and integration legibility pass' static/settings.css
+          grep -q "torrent-dashboard-v05129" static/sw.js
+
+      - name: Commit validated source
+        shell: bash
+        run: |
+          rm -f release_tools/apply_legibility_pass.py .github/workflows/apply-legibility-pass.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git diff --cached --quiet && exit 0
+          git commit -m 'Improve desktop and mobile legibility'
+          git push
