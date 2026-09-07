@@ -12,6 +12,31 @@
   },
   "releases": [
     {
+      "version": "0.5.130",
+      "date": "2026-09-07",
+      "status": "prerelease",
+      "title": "Jellyfin inline refresh controls",
+      "summary": "Replaces the Jellyfin status and library refresh text buttons with compact Material refresh icons positioned directly beside the information they refresh.",
+      "highlights": [
+        "Adds a Material refresh icon beside the Jellyfin connection status.",
+        "Adds a Material refresh icon beside the Libraries heading.",
+        "Preserves the existing status reload and library refresh actions with accessible labels and tooltips."
+      ],
+      "fixes": [
+        "Reduces visual weight in the Jellyfin integration by removing redundant refresh button text."
+      ],
+      "technical": [
+        "Refresh controls disable while their request is active and show a rotating refresh glyph when motion is allowed."
+      ],
+      "validation": [
+        "Source validation, unit tests, UI-string validation, JavaScript syntax checks, and release-note checks run before publication."
+      ],
+      "known_issues": [],
+      "architecture": [],
+      "decisions": [],
+      "next_steps": []
+    },
+    {
       "version": "0.5.129",
       "date": "2026-09-07",
       "status": "prerelease",

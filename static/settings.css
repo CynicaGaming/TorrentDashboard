@@ -232,3 +232,16 @@
   .notification-sound-mode-field,.notification-volume-row>label,.notification-volume-control output{font-size:11.5px}.notification-sound-drop strong{font-size:13px}.notification-sound-drop>span,.notification-sound-drop .configured-sound{font-size:11px}.notification-sound-option,.notification-sound-select-button{font-size:12px}
 }
 
+/* 0.5.130 Jellyfin inline refresh controls. */
+.jellyfin-server-line,.jellyfin-library-title{display:flex;align-items:center;gap:8px;min-width:0}
+.jellyfin-library-title{gap:6px}
+.jellyfin-inline-refresh{display:inline-grid;place-items:center;flex:0 0 30px;width:30px;height:30px;min-width:30px;padding:0;border:0;border-radius:8px;background:transparent;color:var(--muted)}
+.jellyfin-inline-refresh:hover,.jellyfin-inline-refresh:focus-visible{background:var(--panel3);color:var(--accent);outline:none}
+.jellyfin-inline-refresh:focus-visible{box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 14%,transparent)}
+.jellyfin-inline-refresh:disabled{opacity:.55;cursor:wait}
+.jellyfin-inline-refresh .material-symbol-icon{width:19px;height:19px;fill:currentColor}
+.jellyfin-inline-refresh:disabled .material-symbol-icon{animation:jellyfin-refresh-spin .8s linear infinite}
+@keyframes jellyfin-refresh-spin{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.jellyfin-inline-refresh:disabled .material-symbol-icon{animation:none}}
+@media(max-width:700px){.jellyfin-inline-refresh{flex-basis:34px;width:34px;height:34px;min-width:34px}.jellyfin-inline-refresh .material-symbol-icon{width:20px;height:20px}}
+

@@ -7,11 +7,11 @@
 This handoff is intentionally portable across public forks. Verify the current checkout's Git remote, branch, and open work before using upstream references as instructions.
 
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
-- Last documented upstream build: **v0.5.129** (prerelease)
+- Last documented upstream build: **v0.5.130** (prerelease)
 
 ## Last known-good state
 
-Raises undersized secondary and compact text across the dashboard and settings UI while preserving the existing information density and responsive layout.
+Replaces the Jellyfin status and library refresh text buttons with compact Material refresh icons positioned directly beside the information they refresh.
 
 The released-state details and recent history are in `PROJECT_STATE.md`; architectural constraints are in `ARCHITECTURE.md`.
 

@@ -6,12 +6,12 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.129** (prerelease)
+- Latest documented build: **v0.5.130** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 
 ### Latest release summary
 
-Raises undersized secondary and compact text across the dashboard and settings UI while preserving the existing information density and responsive layout.
+Replaces the Jellyfin status and library refresh text buttons with compact Material refresh icons positioned directly beside the information they refresh.
 
 ## Development principles
 
@@ -23,6 +23,14 @@ Raises undersized secondary and compact text across the dashboard and settings U
 - Keep public development continuity portable across forks; label canonical repository/branch/PR references as upstream context rather than local identity.
 
 ## Recent work
+
+### v0.5.130 — Jellyfin inline refresh controls
+
+Replaces the Jellyfin status and library refresh text buttons with compact Material refresh icons positioned directly beside the information they refresh.
+
+- Adds a Material refresh icon beside the Jellyfin connection status.
+- Adds a Material refresh icon beside the Libraries heading.
+- Preserves the existing status reload and library refresh actions with accessible labels and tooltips.
 
 ### v0.5.129 — Desktop and mobile legibility pass
 
@@ -53,13 +61,6 @@ Fixes custom notification sound previews and adds a torrent-style drag-and-drop 
 - Adds a drag-and-drop custom sound target that mirrors the .torrent file picker and still supports click-to-browse.
 - Adds a 0–100 notification volume slider used by test playback and normal completion notifications.
 - Uses notification-default.wav for the bundled sound and notification-custom.<ext> for newly uploaded custom sounds.
-
-### v0.5.125 — Integration accordion chevron fix
-
-Fixes the Integrations accordion disclosure indicator so its Material-style chevron visibly follows the expanded and collapsed state.
-
-- Replaces the static integration dropdown glyph with the same locally embedded Material-style chevron used by Jellyfin scheduled tasks.
-- Rotates the integration chevron from right when collapsed to down when expanded, including the initially open integration.
 
 ## What to do next
 
