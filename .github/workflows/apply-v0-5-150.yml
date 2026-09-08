@@ -1,0 +1,50 @@
+name: Prepare v0.5.150 login profile polish
+
+on:
+  push:
+    branches:
+      - release/v0.5.150-login-profile-polish
+
+permissions:
+  contents: write
+
+jobs:
+  apply-and-validate:
+    runs-on: ubuntu-latest
+    env:
+      PYTHONPATH: src
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: '3.13'
+      - name: Apply v0.5.150 changes
+        shell: bash
+        run: |
+          python release_tools/apply_v0_5_150.py
+          python release_tools/generate_release_notes.py --version 0.5.150
+      - name: Validate release candidate
+        shell: bash
+        run: |
+          python release_tools/validate_source.py
+          python release_tools/validate_ui_strings.py
+          python -m unittest discover -s tests -p 'test_*.py'
+          node --check static/app.js
+          node --check static/settings.js
+          python release_tools/generate_release_notes.py --version 0.5.150 --check
+          python release_tools/validate_public_repo.py
+      - name: Commit validated release candidate
+        shell: bash
+        run: |
+          git config user.name "Cynica"
+          git config user.email "47292146+CynicaGaming@users.noreply.github.com"
+          git add -A
+          git reset .github/workflows/apply-v0-5-150.yml release_tools/apply_v0_5_150.py
+          if git diff --cached --quiet; then
+            echo "No generated changes to commit"
+            exit 0
+          fi
+          git commit -m "Prepare v0.5.150 login profile polish"
+          git push origin HEAD:release/v0.5.150-login-profile-polish
