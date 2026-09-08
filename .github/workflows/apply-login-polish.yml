@@ -1,0 +1,93 @@
+name: Apply login polish
+
+on:
+  push:
+    branches:
+      - feature/src-package-layout
+    paths:
+      - .github/workflows/apply-login-polish.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+      - name: Apply login glow and account menu cleanup
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('static/index.html')
+          text = path.read_text(encoding='utf-8')
+
+          marker = '<title>Torrent Dashboard</title>'
+          polish = '''<style>
+          .login-card{
+            border-color:color-mix(in srgb,var(--accent) 34%,var(--border));
+            animation:login-accent-glow 5.5s ease-in-out infinite;
+          }
+          @keyframes login-accent-glow{
+            0%,100%{box-shadow:var(--shadow),0 0 0 1px color-mix(in srgb,var(--accent) 14%,transparent),0 0 20px color-mix(in srgb,var(--accent) 12%,transparent)}
+            50%{box-shadow:var(--shadow),0 0 0 1px color-mix(in srgb,var(--accent) 34%,transparent),0 0 36px color-mix(in srgb,var(--accent) 24%,transparent)}
+          }
+          @media (prefers-reduced-motion:reduce){
+            .login-card{animation:none;box-shadow:var(--shadow),0 0 0 1px color-mix(in srgb,var(--accent) 20%,transparent),0 0 24px color-mix(in srgb,var(--accent) 16%,transparent)}
+          }
+          </style>
+          <script>
+          try{
+            const savedAccent=localStorage.getItem('tdAccent');
+            if(/^#[0-9a-f]{6}$/i.test(savedAccent||''))document.documentElement.style.setProperty('--accent',savedAccent);
+          }catch{}
+          </script>'''
+
+          if 'login-accent-glow' not in text:
+              if marker not in text:
+                  raise SystemExit('Could not locate document title marker')
+              text = text.replace(marker, polish + '\n' + marker, 1)
+
+          console_button = '<button id="accountConsoleBtn" type="button">Console</button>'
+          text = text.replace(console_button, '', 1)
+
+          if 'login-accent-glow' not in text:
+              raise SystemExit('Login accent glow was not added')
+          if "localStorage.getItem('tdAccent')" not in text:
+              raise SystemExit('Saved accent bootstrap was not added')
+          if 'accountConsoleBtn' in text:
+              raise SystemExit('Profile-menu Console button is still present')
+          if '<button class="nav nav-root" data-view="console" type="button">Console</button>' not in text:
+              raise SystemExit('Sidebar Console navigation was removed unexpectedly')
+          if '<button data-view="console">Console</button>' not in text:
+              raise SystemExit('Mobile Console navigation was removed unexpectedly')
+
+          path.write_text(text, encoding='utf-8')
+          PY
+      - name: Validate frontend contract
+        shell: bash
+        env:
+          PYTHONPATH: src
+        run: |
+          python release_tools/validate_ui_strings.py
+          node --check static/app.js
+          node --check static/settings.js
+      - name: Commit change
+        shell: bash
+        run: |
+          git config user.name "Cynica"
+          git config user.email "47292146+CynicaGaming@users.noreply.github.com"
+          git add static/index.html
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          git commit -m "Polish login glow and account menu"
+          git push origin HEAD:feature/src-package-layout
