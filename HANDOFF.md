@@ -7,11 +7,11 @@
 This handoff is intentionally portable across public forks. Verify the current checkout's Git remote, branch, and open work before using upstream references as instructions.
 
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
-- Last documented upstream build: **v0.5.146** (prerelease)
+- Last documented upstream build: **v0.5.147** (prerelease)
 
 ## Last known-good state
 
-Moves all maintained Torrent Dashboard application Python code into src/torrent_dashboard and makes that one package the source for editable, recovery, updater, and compiled Windows builds.
+Adds explicit read-only list commands for actionable Recovery Console resources and refines the login page to use a flat background with a soft card glow.
 
 The released-state details and recent history are in `PROJECT_STATE.md`; architectural constraints are in `ARCHITECTURE.md`.
 

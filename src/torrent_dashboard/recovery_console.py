@@ -30,9 +30,10 @@ def recovery_help_text(is_admin=False):
 Available to your account:
   help
   status
-  clients
-  integrations
-  jellyfin tasks <integration-id>
+  client list
+  integration list
+  torrent list [client-id]
+  jellyfin list <integration-id>
   update status
   update check
   update repo

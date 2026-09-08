@@ -6,21 +6,22 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.146** (prerelease)
+- Latest documented build: **v0.5.147** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 
 ### Latest release summary
 
-Moves all maintained Torrent Dashboard application Python code into src/torrent_dashboard and makes that one package the source for editable, recovery, updater, and compiled Windows builds.
+Adds explicit read-only list commands for actionable Recovery Console resources and refines the login page to use a flat background with a soft card glow.
 
 ## Architecture state
 
-- src/torrent_dashboard is now the canonical application boundary; repository-root Python files are reserved for release/development tooling rather than runtime application modules.
+- Actionable Recovery Console resource families now expose an explicit list form: client, integration, torrent, and Jellyfin scheduled tasks.
 
 ## Current engineering decisions
 
-- Use the conventional src/torrent_dashboard layout rather than making src itself the Python package.
-- Keep static assets, config.json, and data external to compiled executables and managed separately from application Python.
+- Keep list commands read-only and preserve administrator gates on mutations.
+- Keep legacy plural and jellyfin tasks forms as compatibility aliases rather than removing established console syntax.
+- Use the existing torrent cache for console listing instead of introducing additional qBitTorrent polling from the command path.
 
 ## Development principles
 
@@ -32,6 +33,15 @@ Moves all maintained Torrent Dashboard application Python code into src/torrent_
 - Keep public development continuity portable across forks; label canonical repository/branch/PR references as upstream context rather than local identity.
 
 ## Recent work
+
+### v0.5.147 — Console list parity and login polish
+
+Adds explicit read-only list commands for actionable Recovery Console resources and refines the login page to use a flat background with a soft card glow.
+
+- Adds torrent list [client-id] so the console can enumerate actionable torrent hashes, client IDs, state, progress, and names.
+- Adds jellyfin list <integration-id> as the list counterpart to Jellyfin task start and stop actions while retaining jellyfin tasks as a compatibility alias.
+- Makes client list and integration list explicit in console help while retaining the existing clients and integrations aliases.
+- Removes the accent wash from the login-page background and keeps a subtle accent glow around the login card.
 
 ### v0.5.146 — Canonical src package layout
 
@@ -67,18 +77,9 @@ Adds the first Windows executable packaging layer for Dashboard.exe, Recovery.ex
 - Keeps static HTML/CSS/JavaScript, config.json, data, logs, certificates, sounds, and release metadata external to the compiled executables.
 - Updates recovery.cmd to prefer Recovery.exe when present while preserving the Python fallback for source installations.
 
-### v0.5.142 — Local recovery tool
-
-Adds a key-gated local recovery program that can repair and update Torrent Dashboard without starting the HTTP service.
-
-- Adds recovery_tool.py, which authenticates only with the setup-generated dashboard recovery key and never starts a listening server.
-- Adds commands to select the GitHub update repository, check releases, install or reinstall the latest verified release, and start Torrent Dashboard after repair.
-- Adds config validation, automatic config backups, backup restore, network bind/HTTPS reset, stuck-update cleanup, and recovery/update log viewing.
-- Adds recovery.cmd so Windows installations can launch local recovery without remembering the Python command.
-
 ## What to do next
 
-1. **Exercise executable updates** — Run multiple Windows prerelease upgrades and rollback scenarios before removing preview labeling or adding code signing.
+1. **Exercise executable updates** — Run v0.5.146 to v0.5.147 Windows prerelease upgrade, recovery reinstall, failed health-check, and rollback scenarios before removing preview labeling or adding code signing.
 
 ## Known issues
 

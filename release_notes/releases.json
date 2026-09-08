@@ -12,6 +12,48 @@
   },
   "releases": [
     {
+      "version": "0.5.147",
+      "date": "2026-09-08",
+      "status": "prerelease",
+      "title": "Console list parity and login polish",
+      "summary": "Adds explicit read-only list commands for actionable Recovery Console resources and refines the login page to use a flat background with a soft card glow.",
+      "highlights": [
+        "Adds torrent list [client-id] so the console can enumerate actionable torrent hashes, client IDs, state, progress, and names.",
+        "Adds jellyfin list <integration-id> as the list counterpart to Jellyfin task start and stop actions while retaining jellyfin tasks as a compatibility alias.",
+        "Makes client list and integration list explicit in console help while retaining the existing clients and integrations aliases.",
+        "Removes the accent wash from the login-page background and keeps a subtle accent glow around the login card."
+      ],
+      "fixes": [],
+      "technical": [
+        "Torrent listing reads the dashboard's current server-side torrent cache and does not expose stored download-client credentials.",
+        "Read-only list commands remain available to standard sessions; torrent and Jellyfin mutation commands remain administrator-gated.",
+        "The source and frontend build version advances to v0.5.147 so the login CSS change gets a fresh service-worker cache namespace."
+      ],
+      "validation": [
+        "Runs source validation, UI string auditing, JavaScript syntax checks, and the full unit-test suite.",
+        "Adds runtime coverage for torrent list output, per-client filtering, read-only authorization, and the jellyfin list alias.",
+        "Builds and validates the editable source release ZIP for v0.5.147."
+      ],
+      "known_issues": [
+        "Windows executables are not code-signed yet; code signing remains deferred until compiled update behavior has been exercised across multiple releases."
+      ],
+      "architecture": [
+        "Actionable Recovery Console resource families now expose an explicit list form: client, integration, torrent, and Jellyfin scheduled tasks."
+      ],
+      "decisions": [
+        "Keep list commands read-only and preserve administrator gates on mutations.",
+        "Keep legacy plural and jellyfin tasks forms as compatibility aliases rather than removing established console syntax.",
+        "Use the existing torrent cache for console listing instead of introducing additional qBitTorrent polling from the command path."
+      ],
+      "next_steps": [
+        {
+          "priority": 1,
+          "title": "Exercise executable updates",
+          "detail": "Run v0.5.146 to v0.5.147 Windows prerelease upgrade, recovery reinstall, failed health-check, and rollback scenarios before removing preview labeling or adding code signing."
+        }
+      ]
+    },
+    {
       "version": "0.5.146",
       "date": "2026-09-07",
       "status": "prerelease",

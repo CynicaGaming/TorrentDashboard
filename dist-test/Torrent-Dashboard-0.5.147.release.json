@@ -1,0 +1,11 @@
+{
+  "schema": 1,
+  "version": "0.5.147",
+  "package": "Torrent-Dashboard-0.5.147.zip",
+  "sha256": "9163d59ef1b111b61ae8f717861aab8f6c5ee26f32a8e4855072c08fc51d2c1d",
+  "repository": "CynicaGaming/TorrentDashboard",
+  "tag": "v0.5.147",
+  "commit": "d5e8130068a89cb6b7662fbd12e64b1023370cd0",
+  "distribution": "source",
+  "layout": "src"
+}
