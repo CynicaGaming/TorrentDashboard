@@ -6,17 +6,18 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.150** (prerelease)
+- Latest documented build: **v0.5.151** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 
 ### Latest release summary
 
-Refines the login accent treatment and simplifies the profile menu while restoring frontend build-version synchronization on main.
+Restores the backup-management surface, keeps Account settings in the profile menu, removes login-screen animation, and adds safer backup deletion and creation feedback.
 
 ## Current engineering decisions
 
-- Keep Console in primary navigation instead of duplicating it inside the profile menu.
-- Keep login animation isolated to a decorative pseudo-element with a reduced-motion fallback.
+- Keep login accent styling static rather than animated.
+- Treat backup creation progress as indeterminate until the synchronous server operation completes instead of reporting fabricated percentages.
+- Require confirmation for destructive backup deletion and constrain deletion to the local backup library.
 
 ## Development principles
 
@@ -28,6 +29,16 @@ Refines the login accent treatment and simplifies the profile menu while restori
 - Keep public development continuity portable across forks; label canonical repository/branch/PR references as upstream context rather than local identity.
 
 ## Recent work
+
+### v0.5.151 — Profile and backup lifecycle polish
+
+Restores the backup-management surface, keeps Account settings in the profile menu, removes login-screen animation, and adds safer backup deletion and creation feedback.
+
+- Keeps Account settings as an explicit profile-menu action and adds a UI contract check so it cannot disappear silently in a future merge.
+- Removes the animated login background and card glow while retaining a static accent treatment.
+- Restores Settings → Backups navigation and the backup manager that was dropped from the v0.5.150 HTML merge.
+- Adds a Delete action to every local backup row with confirmation before the archive is removed.
+- Shows an indeterminate progress bar while a backup is being created, then returns to the normal backup list when creation finishes.
 
 ### v0.5.150 — Login glow and profile menu polish
 
@@ -62,22 +73,13 @@ Adds a dedicated in-app backup manager for creating, viewing, restoring, importi
 - Existing backups can be exported to another installation, imported into its local backup library, and restored from the browser.
 - Every restore creates a pre-restore safety backup first and signs out active sessions after the restored identity and access configuration becomes active.
 
-### v0.5.146 — Canonical src package layout
-
-Moves all maintained Torrent Dashboard application Python code into src/torrent_dashboard and makes that one package the source for editable, recovery, updater, and compiled Windows builds.
-
-- All application Python now lives under src/torrent_dashboard; the legacy root dashboard.py, updater.py, recovery_tool.py, and torrent_dashboard directory are retired.
-- Adds pyproject.toml with dashboard, recovery, and updater console entry points backed by the same package.
-- The source release remains one extracted Torrent Dashboard folder, while the Windows package remains one folder containing Dashboard.exe, Recovery.exe, Updater.exe, external static assets, and runtime data.
-- Windows packages continue using standalone Recovery.exe and Updater.exe so recovery and executable replacement do not depend on Dashboard's bundled runtime.
-
 ## What to do next
 
-1. **Soak the login treatment** — Exercise the login screen across accent colors, reduced-motion mode, desktop, and mobile while continuing compiled Windows update testing.
+1. **Exercise backup lifecycle on Windows** — Create, export, delete, import, and restore portable backups on a compiled Windows installation and confirm the profile menu remains stable after update.
 
 ## Known issues
 
-- Portable backup archives still contain saved client and integration credentials in plaintext; store exported .tdbackup files securely.
+- Portable backup archives can contain saved client and integration credentials in plaintext; store exported .tdbackup files securely.
 
 ## Handoff instructions for a new development session
 
