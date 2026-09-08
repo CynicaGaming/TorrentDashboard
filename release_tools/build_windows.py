@@ -138,7 +138,7 @@ def main() -> int:
                 zipped.write(path, arcname=f"{package.name}/{path.relative_to(package)}")
 
     digest = sha256(archive)
-    info_path = output / f"TorrentDashboard-Windows-{version}-x64.release.json"
+    info_path = output / f"TorrentDashboard-Windows-{version}.release.json"
     info = dict(package_info)
     info.update({"package": archive.name, "sha256": digest})
     info_path.write_text(json.dumps(info, indent=2) + "\n", encoding="utf-8")
