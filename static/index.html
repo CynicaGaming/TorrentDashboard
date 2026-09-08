@@ -4,22 +4,37 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#0b0d10" name="theme-color"/>
-<meta content="0.5.146" name="torrent-dashboard-build"/>
+<meta content="0.5.150" name="torrent-dashboard-build"/>
 <link href="/manifest.webmanifest" rel="manifest"/>
 <link href="/static/favicon.svg" rel="icon" type="image/svg+xml"/>
-<link href="/static/app.css?v=0.5.146" rel="stylesheet"/>
-<link href="/static/settings.css?v=0.5.146" rel="stylesheet"/>
+<link href="/static/app.css?v=0.5.150" rel="stylesheet"/>
+<link href="/static/settings.css?v=0.5.150" rel="stylesheet"/>
 <style>
 .login-card{
-  border-color:color-mix(in srgb,var(--accent) 34%,var(--border));
-  animation:login-accent-glow 5.5s ease-in-out infinite;
+  position:relative;
+  isolation:isolate;
+  border-color:color-mix(in srgb,var(--accent) 24%,var(--border));
+  box-shadow:var(--shadow),0 0 0 1px color-mix(in srgb,var(--accent) 8%,transparent);
 }
-@keyframes login-accent-glow{
-  0%,100%{box-shadow:var(--shadow),0 0 0 1px color-mix(in srgb,var(--accent) 14%,transparent),0 0 20px color-mix(in srgb,var(--accent) 12%,transparent)}
-  50%{box-shadow:var(--shadow),0 0 0 1px color-mix(in srgb,var(--accent) 34%,transparent),0 0 36px color-mix(in srgb,var(--accent) 24%,transparent)}
+.login-card::before{
+  content:"";
+  position:absolute;
+  inset:-18px;
+  z-index:-1;
+  border-radius:30px;
+  background:radial-gradient(ellipse at center,color-mix(in srgb,var(--accent) 28%,transparent) 0%,color-mix(in srgb,var(--accent) 13%,transparent) 44%,transparent 74%);
+  filter:blur(17px);
+  opacity:.46;
+  transform:scale(.985);
+  pointer-events:none;
+  animation:login-radiant-glow 7s ease-in-out infinite;
+}
+@keyframes login-radiant-glow{
+  0%,100%{opacity:.38;transform:scale(.985)}
+  50%{opacity:.68;transform:scale(1.015)}
 }
 @media (prefers-reduced-motion:reduce){
-  .login-card{animation:none;box-shadow:var(--shadow),0 0 0 1px color-mix(in srgb,var(--accent) 20%,transparent),0 0 24px color-mix(in srgb,var(--accent) 16%,transparent)}
+  .login-card::before{animation:none;opacity:.52;transform:none}
 }
 </style>
 <script>
@@ -296,7 +311,7 @@ try{
 <div class="menu account-menu hidden" id="accountMenu" role="menu"><div class="account-menu-head"><span class="profile-avatar profile-avatar-menu"><img alt="" class="hidden" data-avatar-image/><span class="avatar-default" data-avatar-default aria-hidden="true"></span></span><div><strong id="accountMenuName">Account</strong><small id="accountMenuGroup">User</small></div></div><div class="menu-separator" role="separator"></div><button id="accountSettingsBtn" type="button">Account settings</button><button class="hidden" id="installPwa" type="button">Install app</button><div class="menu-separator" role="separator"></div><button id="logoutBtn" type="button">Sign out</button></div>
 <div class="menu hidden" id="contextMenu"></div>
 <div class="toasts" id="toasts"></div>
-<script src="/static/settings.js?v=0.5.146"></script>
-<script src="/static/app.js?v=0.5.146"></script>
+<script src="/static/settings.js?v=0.5.150"></script>
+<script src="/static/app.js?v=0.5.150"></script>
 </body>
 </html>

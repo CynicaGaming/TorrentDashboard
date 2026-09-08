@@ -322,3 +322,32 @@ Automated regression tests cover malformed HTTP framing, byte-preserving multipa
 - Complete first-run setup and confirm the recovery-key Continue button starts disabled at 10 seconds, counts down, and cannot continue before the countdown expires.
 - Create a portable backup and inspect `payload/config.json`: settings, integrations, and download clients remain present, while `users`, `recovery`, and legacy authentication credential fields are absent.
 - Restore both a new backup and a legacy backup that contains users, recovery data, and runtime files. Confirm the destination users and recovery key remain unchanged and destination runtime data is not replaced.
+
+### Desktop Torrent details content-fit sizing
+
+- Open General on desktop with a selected torrent and verify the detail pane fits its finite content without a large empty region.
+- Switch to Trackers, Peers, HTTP sources, and Content and verify long content remains internally scrollable without forcing the entire page to grow unexpectedly.
+- Resize through common desktop heights and confirm the torrent list yields enough space for the active detail pane while retaining the three-row minimum.
+
+### Desktop torrent workspace scroll stability
+
+- Record the torrent-list height, scroll the document without resizing, and allow several polling cycles; the list height must remain stable.
+- Change viewport height or density and verify the list height recomputes from the new geometry.
+- Confirm opening or switching detail tabs does not cause an automatic document scroll and that list/detail scrolling remain independent.
+
+### Bottom-anchored torrent dock
+
+- On desktop, confirm the normal Dashboard top-bar heading remains visible while the torrent list and Torrent details stay grouped below it.
+- Expand and collapse Torrent details and verify the list remains independently scrollable and the document does not jump automatically.
+- With no selection, verify the disclosure remains quiet; with a selection, verify the disclosure identifies the selected torrent without duplicating its identity in a second detail header.
+
+### Fixed desktop torrent list with natural General details
+
+- Open General on desktop and verify finite detail content uses natural height while the torrent list retains its computed viewport allocation.
+- Switch to a long detail tab and confirm its body becomes internally scrollable instead of growing the whole page without bound.
+- Recheck list/detail sizing after viewport and density changes.
+
+### Torrent sort chevrons
+
+- Sort text and numeric columns in both directions and verify each chevron stays immediately beside its label.
+- Confirm numeric headings remain right-aligned, text headings remain left-aligned, and the chevron does not move to the column boundary.

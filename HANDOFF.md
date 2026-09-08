@@ -7,11 +7,11 @@
 This handoff is intentionally portable across public forks. Verify the current checkout's Git remote, branch, and open work before using upstream references as instructions.
 
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
-- Last documented upstream build: **v0.5.149** (prerelease)
+- Last documented upstream build: **v0.5.150** (prerelease)
 
 ## Last known-good state
 
-Adds a slow login pulse and deliberate recovery-key acknowledgement while narrowing portable backup restore to configuration without moving user or recovery identity.
+Refines the login accent treatment and simplifies the profile menu while restoring frontend build-version synchronization on main.
 
 The released-state details and recent history are in `PROJECT_STATE.md`; architectural constraints are in `ARCHITECTURE.md`.
 

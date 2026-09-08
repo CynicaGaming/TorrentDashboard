@@ -222,3 +222,23 @@ Connection testing and runtime service state are separate concepts: **Test conne
 The login surface may use a slow ambient accent gradient behind the card, but the card itself stays stationary and readable. The animation uses a long ease-in-out pulse and must become static when `prefers-reduced-motion: reduce` is active.
 
 The first-run recovery-key modal deliberately holds the Continue action for ten seconds. The button shows the remaining seconds while disabled, then returns to the normal Continue label when the acknowledgement interval ends.
+
+## Content-fit desktop Torrent details
+
+Desktop Torrent details should size to the finite content of the active detail tab instead of reserving a fixed-height region that creates unnecessary dead space. General may use its natural content height within the existing clamp, while long tracker, peer, HTTP-source, and content views keep their bounded internal scrolling behavior. The torrent list remains independently scrollable and yields space to the detail pane when necessary.
+
+## Stable desktop torrent workspace height
+
+The desktop torrent workspace derives list height from viewport size, the workspace's stable document position, rendered row height, and the active detail pane's measured need. Normal document scrolling must not change the computed list height; only meaningful layout inputs such as viewport height, density, row geometry, or active detail content should trigger recomputation.
+
+## Client-style dashboard workspace
+
+The Dashboard keeps normal page hierarchy in the top bar while the torrent list and persistent Torrent details inspector form one client-style workspace beneath it. The list remains the primary independently scrollable surface; Torrent details is bottom-anchored within that workspace and expands without replacing the page header or automatically scrolling the document.
+
+## Fixed torrent list and natural-height desktop details
+
+On desktop, the torrent list uses the computed viewport allocation while a finite General detail view may take its natural content height. The list and details retain independent sizing responsibilities so finite content does not create dead space and long detail views can continue using bounded internal scrolling.
+
+### Torrent sort chevrons
+
+Torrent sort chevrons remain inline with their owning label, preserve the text/numeric alignment of the column, and do not float against a column edge or alter header geometry when sort direction changes.

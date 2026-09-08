@@ -6,21 +6,17 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.149** (prerelease)
+- Latest documented build: **v0.5.150** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 
 ### Latest release summary
 
-Adds a slow login pulse and deliberate recovery-key acknowledgement while narrowing portable backup restore to configuration without moving user or recovery identity.
-
-## Architecture state
-
-- Portable backups are configuration portability artifacts; local users, recovery identity, history, avatars, and other runtime data belong to the destination installation.
+Refines the login accent treatment and simplifies the profile menu while restoring frontend build-version synchronization on main.
 
 ## Current engineering decisions
 
-- Preserve authentication policy settings while excluding user identity material from backups.
-- Keep legacy archives importable, but never apply their users, recovery keys, or runtime data during restore.
+- Keep Console in primary navigation instead of duplicating it inside the profile menu.
+- Keep login animation isolated to a decorative pseudo-element with a reduced-motion fallback.
 
 ## Development principles
 
@@ -32,6 +28,14 @@ Adds a slow login pulse and deliberate recovery-key acknowledgement while narrow
 - Keep public development continuity portable across forks; label canonical repository/branch/PR references as upstream context rather than local identity.
 
 ## Recent work
+
+### v0.5.150 — Login glow and profile menu polish
+
+Refines the login accent treatment and simplifies the profile menu while restoring frontend build-version synchronization on main.
+
+- The login card now uses a softer radial accent glow around the card instead of animating the card shadow itself.
+- The glow pulses more slowly and keeps a static reduced-motion presentation for users who disable animation.
+- The profile menu keeps account settings, install-app, and sign-out actions without a stale duplicate Console binding.
 
 ### v0.5.149 — Login polish and identity-safe backups
 
@@ -67,22 +71,13 @@ Moves all maintained Torrent Dashboard application Python code into src/torrent_
 - The source release remains one extracted Torrent Dashboard folder, while the Windows package remains one folder containing Dashboard.exe, Recovery.exe, Updater.exe, external static assets, and runtime data.
 - Windows packages continue using standalone Recovery.exe and Updater.exe so recovery and executable replacement do not depend on Dashboard's bundled runtime.
 
-### v0.5.145 — Distribution-aware updater migration bridge
-
-Prepares Torrent Dashboard to cross from the legacy root Python layout to src/torrent_dashboard while enabling verified compiled Windows updates and rollback.
-
-- Update discovery now selects the source or Windows x64 release asset explicitly based on the installed distribution.
-- Updater.exe can install and roll back complete managed Windows packages while preserving config.json and data.
-- Recovery.exe and Updater.exe are built as standalone executables; Dashboard.exe remains an onedir application for fast startup and editable external assets.
-- Runtime path helpers now understand both the legacy root Python layout and the upcoming src/torrent_dashboard layout.
-
 ## What to do next
 
-1. **Exercise identity-safe cross-install restore** — Export a backup from one compiled Windows installation and restore it on another, confirming clients and integrations move while the destination users and recovery key remain unchanged.
+1. **Soak the login treatment** — Exercise the login screen across accent colors, reduced-motion mode, desktop, and mobile while continuing compiled Windows update testing.
 
 ## Known issues
 
-- Portable backups still contain saved client and integration credentials in plaintext inside the archive; store exported .tdbackup files securely.
+- Portable backup archives still contain saved client and integration credentials in plaintext; store exported .tdbackup files securely.
 
 ## Handoff instructions for a new development session
 
