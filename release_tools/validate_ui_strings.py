@@ -922,6 +922,11 @@ def main():
     assert 'SAFE_TORRENT_ACTIONS' in recovery_console_py and 'delete' not in recovery_console_py.split('SAFE_TORRENT_ACTIONS',1)[1].split(')',1)[0]
     assert 'id="setupRecoveryModal"' in html and 'id="setupRecoveryKeyValue"' in html
     assert '/api/recovery/initialize' not in dashboard_py and 'recovery_configured' not in dashboard_py and 'recovery_configured' not in app_js
+    # 0.5.149 makes recovery-key acknowledgement deliberate and gives login a low-motion pulse.
+    assert 'setupRecoveryReadyAt=0' in app_js and 'Date.now()+10000' in app_js
+    assert 'Continue in ${remaining}s' in app_js and 'Date.now()<setupRecoveryReadyAt' in app_js
+    assert '@keyframes login-gradient-pulse' in app_css and 'animation:login-gradient-pulse 9s ease-in-out infinite' in app_css
+    assert '@media (prefers-reduced-motion:reduce)' in app_css
     local_recovery = (ROOT / 'src' / 'torrent_dashboard' / 'recovery_tool.py').read_text(encoding='utf-8')
     assert 'Recovery key:' in local_recovery and 'recovery_update(APP_DIR' in local_recovery
     assert 'network-reset' in local_recovery and 'restore <backup-file>' in local_recovery and 'clear-update' in local_recovery

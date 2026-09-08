@@ -216,3 +216,9 @@ On narrow layouts the action pair may wrap below the summary as a unit; the two 
 A configured service integration should expose useful operational state in the same Settings accordion where it is configured instead of requiring a separate management destination. Jellyfin shows a compact server-health summary followed by its reported libraries. Library paths may wrap on narrow layouts, while server state, library names, collection types, and scan state remain visually distinct.
 
 Connection testing and runtime service state are separate concepts: **Test connection** validates credentials/configuration, while the Jellyfin runtime panel shows current server/library state. Destructive or metadata-editing Jellyfin actions are outside this baseline; **Refresh libraries** is an explicit administrator action and must never be triggered merely by opening Settings or by torrent completion.
+
+## Login pulse and recovery acknowledgement
+
+The login surface may use a slow ambient accent gradient behind the card, but the card itself stays stationary and readable. The animation uses a long ease-in-out pulse and must become static when `prefers-reduced-motion: reduce` is active.
+
+The first-run recovery-key modal deliberately holds the Continue action for ten seconds. The button shows the remaining seconds while disabled, then returns to the normal Continue label when the acknowledgement interval ends.

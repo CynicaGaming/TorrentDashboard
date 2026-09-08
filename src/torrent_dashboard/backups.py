@@ -30,6 +30,9 @@ BACKUP_DIR_NAME = "backups"
 PRESERVED_DATA_NAMES = {BACKUP_DIR_NAME, "recovery-backups"}
 EPHEMERAL_DATA_NAMES = {"updates", "update-runner", "update-status.json", "release-integrity.json", "update-restart.log"}
 EXCLUDED_DATA_NAMES = PRESERVED_DATA_NAMES | EPHEMERAL_DATA_NAMES
+IDENTITY_CONFIG_KEYS = {"users", "recovery"}
+LEGACY_AUTH_IDENTITY_KEYS = {"username", "password_hash"}
+PORTABLE_SCOPE = ["settings", "integrations", "clients"]
 
 
 def _utc_now() -> str:
@@ -127,10 +130,49 @@ def _payload_files(staging: Path) -> list[dict]:
     return files
 
 
+def _portable_config(config: dict) -> dict:
+    """Return portable settings while excluding user and recovery identity."""
+    if not isinstance(config, dict):
+        raise RuntimeError("Backup configuration must be a JSON object")
+    portable = json.loads(json.dumps(config))
+    for key in IDENTITY_CONFIG_KEYS:
+        portable.pop(key, None)
+    auth = portable.get("auth")
+    if isinstance(auth, dict):
+        for key in LEGACY_AUTH_IDENTITY_KEYS:
+            auth.pop(key, None)
+    return portable
+
+
+def _merge_restored_config(restored: dict, current: dict) -> dict:
+    """Apply portable settings while retaining destination identity and recovery state."""
+    if not isinstance(restored, dict) or not isinstance(current, dict):
+        raise RuntimeError("Backup restore configuration is invalid")
+    merged = json.loads(json.dumps(restored))
+    current_copy = json.loads(json.dumps(current))
+    for key in IDENTITY_CONFIG_KEYS:
+        if key in current_copy:
+            merged[key] = current_copy[key]
+        else:
+            merged.pop(key, None)
+    had_auth = isinstance(merged.get("auth"), dict) or isinstance(current_copy.get("auth"), dict)
+    auth = merged.get("auth") if isinstance(merged.get("auth"), dict) else {}
+    current_auth = current_copy.get("auth") if isinstance(current_copy.get("auth"), dict) else {}
+    for key in LEGACY_AUTH_IDENTITY_KEYS:
+        if key in current_auth:
+            auth[key] = current_auth[key]
+        else:
+            auth.pop(key, None)
+    if had_auth:
+        merged["auth"] = auth
+    else:
+        merged.pop("auth", None)
+    return merged
+
+
 def create_backup(app_dir: Path, version: str, config: dict, *, kind: str = "manual", history_lock=None) -> dict:
-    """Create a state-only portable backup and return its public metadata."""
+    """Create a portable configuration backup without users, recovery keys, or runtime data."""
     app_dir = Path(app_dir).resolve()
-    data_dir = app_dir / "data"
     directory = backup_directory(app_dir)
     lock = history_lock if history_lock is not None else nullcontext()
     with lock:
@@ -138,25 +180,8 @@ def create_backup(app_dir: Path, version: str, config: dict, *, kind: str = "man
             staging = Path(tmp_name)
             payload = staging / "payload"
             payload.mkdir(parents=True, exist_ok=True)
-            (payload / "config.json").write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
-
-            total = (payload / "config.json").stat().st_size
-            count = 1
-            if data_dir.exists():
-                for source in _state_files(data_dir):
-                    rel = source.relative_to(data_dir)
-                    _safe_member_name("payload/data/" + rel.as_posix())
-                    total += source.stat().st_size
-                    count += 1
-                    if total > MAX_BACKUP_BYTES or count >= MAX_BACKUP_MEMBERS:
-                        raise RuntimeError("Backup exceeds its file count or size safety limit")
-                    destination = payload / "data" / rel
-                    if rel.as_posix() == "torrent_desk.sqlite3":
-                        _copy_sqlite_snapshot(source, destination)
-                    else:
-                        destination.parent.mkdir(parents=True, exist_ok=True)
-                        shutil.copy2(source, destination)
-
+            portable = _portable_config(config)
+            (payload / "config.json").write_text(json.dumps(portable, indent=2) + "\n", encoding="utf-8")
             files = _payload_files(staging)
             if sum(int(item.get("size") or 0) for item in files) > MAX_BACKUP_BYTES:
                 raise RuntimeError("Backup payload exceeds the 512 MB safety limit")
@@ -167,11 +192,11 @@ def create_backup(app_dir: Path, version: str, config: dict, *, kind: str = "man
                 "source_version": str(version or "unknown"),
                 "kind": str(kind or "manual"),
                 "portable": True,
+                "scope": PORTABLE_SCOPE,
                 "contains_secrets": True,
                 "files": files,
             }
             (staging / "backup-manifest.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
-
             directory.mkdir(parents=True, exist_ok=True)
             with tempfile.NamedTemporaryFile(dir=directory, prefix=".creating-", suffix=".tmp", delete=False) as handle:
                 temporary = Path(handle.name)
@@ -184,10 +209,7 @@ def create_backup(app_dir: Path, version: str, config: dict, *, kind: str = "man
                 destination = _publish_backup(temporary, directory, _backup_filename(kind))
             finally:
                 temporary.unlink(missing_ok=True)
-
     return backup_metadata(destination)
-
-
 def _safe_member_name(name: str) -> str:
     if not isinstance(name, str) or not name:
         raise RuntimeError("Backup contains an unsafe path")
@@ -306,9 +328,15 @@ def validate_backup(path: Path, *, current_version: str | None = None) -> dict:
                 raise RuntimeError("Backup config.json must contain a JSON object")
             if not isinstance(config.get("setup"), dict) or config["setup"].get("complete") is not True:
                 raise RuntimeError("Backup does not contain a completed Torrent Dashboard configuration")
-            recovery = config.get("recovery") if isinstance(config.get("recovery"), dict) else {}
-            if not str(recovery.get("key_hash") or ""):
-                raise RuntimeError("Backup is missing the dashboard recovery key hash")
+            scope = manifest.get("scope")
+            if scope is not None:
+                if scope != PORTABLE_SCOPE:
+                    raise RuntimeError("Backup contains an unsupported portability scope")
+                if any(key in config for key in IDENTITY_CONFIG_KEYS):
+                    raise RuntimeError("Portable backup must not contain users or recovery keys")
+                auth = config.get("auth") if isinstance(config.get("auth"), dict) else {}
+                if any(key in auth for key in LEGACY_AUTH_IDENTITY_KEYS):
+                    raise RuntimeError("Portable backup must not contain user credential material")
 
             if current_version:
                 current_key = _version_key(current_version)
@@ -400,37 +428,16 @@ def _extract_validated_backup(path: Path, destination: Path, *, current_version:
     return manifest
 
 
-def _apply_payload(app_dir: Path, payload: Path) -> None:
+def _apply_payload(app_dir: Path, payload: Path, current_config: dict) -> None:
     config_source = payload / "config.json"
     if not config_source.is_file():
         raise RuntimeError("Backup payload is missing config.json")
-    data_dir = app_dir / "data"
-    data_dir.mkdir(parents=True, exist_ok=True)
-
-    for child in list(data_dir.iterdir()):
-        if child.name in PRESERVED_DATA_NAMES:
-            continue
-        if child.is_dir() and not child.is_symlink():
-            shutil.rmtree(child)
-        else:
-            child.unlink(missing_ok=True)
-
-    restored_data = payload / "data"
-    if restored_data.exists():
-        for source in sorted(restored_data.rglob("*")):
-            rel = source.relative_to(restored_data)
-            if not rel.parts or rel.parts[0] in EXCLUDED_DATA_NAMES:
-                continue
-            destination = data_dir / rel
-            if source.is_dir():
-                destination.mkdir(parents=True, exist_ok=True)
-            elif source.is_file():
-                destination.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copy2(source, destination)
-
-    atomic_write_bytes(app_dir / "config.json", config_source.read_bytes())
-
-
+    try:
+        restored = json.loads(config_source.read_text(encoding="utf-8"))
+    except Exception as exc:
+        raise RuntimeError("Backup payload config.json is invalid") from exc
+    merged = _merge_restored_config(restored, current_config)
+    atomic_write_bytes(app_dir / "config.json", (json.dumps(merged, indent=2) + "\n").encode("utf-8"))
 def restore_backup(
     app_dir: Path,
     name: str,
@@ -452,7 +459,7 @@ def restore_backup(
             extracted = Path(temp_name)
             manifest = _extract_validated_backup(source, extracted, current_version=current_version)
             try:
-                _apply_payload(app_dir, extracted / "payload")
+                _apply_payload(app_dir, extracted / "payload", current_config)
                 if validator is not None:
                     validator()
             except Exception as exc:
@@ -460,7 +467,7 @@ def restore_backup(
                 rollback_dir.mkdir(parents=True, exist_ok=True)
                 try:
                     _extract_validated_backup(safety_path, rollback_dir, current_version=current_version)
-                    _apply_payload(app_dir, rollback_dir / "payload")
+                    _apply_payload(app_dir, rollback_dir / "payload", current_config)
                 except Exception as rollback_exc:
                     raise RuntimeError(
                         f"Backup restore failed and automatic rollback also failed. "

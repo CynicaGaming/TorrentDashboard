@@ -315,3 +315,10 @@ Manual regression coverage:
 - Test unchanged responsive detail and table behavior at widths 700, 701, 820, and 821 px: detail docking and card layout currently use separate breakpoints.
 
 Automated regression tests cover malformed HTTP framing, byte-preserving multipart uploads, unsafe/colliding portable paths, archive limits, failed rollback reporting, parallel backup imports, connection closure, and maintenance isolation. Ordinary exception rollback is covered; interruption by process termination or power loss still requires recovery using the retained safety backup.
+
+### Login recovery acknowledgement and backup identity isolation
+
+- Open the sign-in screen and confirm the background gradient pulses slowly without moving the login card; with reduced-motion enabled, confirm the pulse is static.
+- Complete first-run setup and confirm the recovery-key Continue button starts disabled at 10 seconds, counts down, and cannot continue before the countdown expires.
+- Create a portable backup and inspect `payload/config.json`: settings, integrations, and download clients remain present, while `users`, `recovery`, and legacy authentication credential fields are absent.
+- Restore both a new backup and a legacy backup that contains users, recovery data, and runtime files. Confirm the destination users and recovery key remain unchanged and destination runtime data is not replaced.

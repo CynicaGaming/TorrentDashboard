@@ -60,53 +60,52 @@ class BackupManagerTests(unittest.TestCase):
     def tearDown(self):
         self.temp.cleanup()
 
-    def test_create_backup_contains_portable_state_and_excludes_ephemeral_files(self):
-        item = create_backup(self.app, "0.5.147", config(), history_lock=self.lock)
+    def test_create_backup_contains_configuration_only_and_excludes_identity(self):
+        source = config()
+        source["servers"] = [{"id": "client", "name": "Desktop", "url": "http://127.0.0.1:8080", "password": "client-secret"}]
+        source["integrations"] = [{"id": "sonarr", "type": "sonarr", "name": "Sonarr", "url": "http://sonarr", "api_key": "integration-secret"}]
+        source.setdefault("auth", {})["username"] = "admin"
+        source["auth"]["password_hash"] = "legacy-user-hash"
+        item = create_backup(self.app, "0.5.149", source, history_lock=self.lock)
         archive = backup_path(self.app, item["name"])
-        manifest = validate_backup(archive, current_version="0.5.147")
-        self.assertEqual(manifest["application"], "torrent-dashboard")
-        self.assertEqual(manifest["schema"], 1)
+        manifest = validate_backup(archive, current_version="0.5.149")
+        self.assertEqual(manifest["scope"], ["settings", "integrations", "clients"])
         with zipfile.ZipFile(archive) as zipped:
             names = set(zipped.namelist())
-        self.assertIn("payload/config.json", names)
-        self.assertIn("payload/data/torrent_desk.sqlite3", names)
-        self.assertIn("payload/data/avatars/admin.webp", names)
-        self.assertIn("payload/data/notification-custom.mp3", names)
-        self.assertFalse(any(name.startswith("payload/data/updates/") for name in names))
-        self.assertNotIn("payload/data/update-status.json", names)
-        self.assertNotIn("payload/data/release-integrity.json", names)
-        self.assertFalse(any(name.startswith("payload/data/backups/") for name in names))
-        self.assertFalse(any(name.startswith("payload/data/recovery-backups/") for name in names))
-
+            portable = json.loads(zipped.read("payload/config.json"))
+        self.assertEqual(names, {"backup-manifest.json", "payload/config.json"})
+        self.assertNotIn("users", portable)
+        self.assertNotIn("recovery", portable)
+        self.assertNotIn("username", portable.get("auth", {}))
+        self.assertNotIn("password_hash", portable.get("auth", {}))
+        self.assertEqual(portable["servers"][0]["password"], "client-secret")
+        self.assertEqual(portable["integrations"][0]["api_key"], "integration-secret")
     def test_import_and_restore_round_trip_preserves_backup_libraries(self):
-        original = create_backup(self.app, "0.5.147", config(), history_lock=self.lock)
+        original_config = config()
+        original_config["servers"] = [{"id": "original-client", "name": "Original", "url": "http://original"}]
+        original_config["integrations"] = [{"id": "original-integration", "type": "sonarr", "name": "Sonarr", "url": "http://original-sonarr"}]
+        original = create_backup(self.app, "0.5.149", original_config, history_lock=self.lock)
         original_path = backup_path(self.app, original["name"])
-
         destination = self.app / "destination"
         (destination / "data").mkdir(parents=True)
         imported = import_backup(destination, "moved.tdbackup", original_path.read_bytes())
         self.assertEqual(imported["name"], "moved.tdbackup")
-        self.assertEqual(len(list_backups(destination)), 1)
-
         changed = config("Changed")
+        changed["users"][0]["username"] = "destination-admin"
+        changed["users"][0]["password_hash"] = "destination-user-hash"
+        changed["recovery"] = {"key_hash": "destination-recovery-hash", "last4": "9876"}
         (self.app / "config.json").write_text(json.dumps(changed, indent=2) + "\n", encoding="utf-8")
-        (self.app / "data" / "stale-state.txt").write_text("remove me", encoding="utf-8")
-        result = restore_backup(
-            self.app,
-            original["name"],
-            current_version="0.5.147",
-            current_config=changed,
-            history_lock=self.lock,
-            validator=lambda: json.loads((self.app / "config.json").read_text(encoding="utf-8")),
-        )
+        (self.app / "data" / "stale-state.txt").write_text("preserve me", encoding="utf-8")
+        result = restore_backup(self.app, original["name"], current_version="0.5.149", current_config=changed, history_lock=self.lock, validator=lambda: json.loads((self.app / "config.json").read_text(encoding="utf-8")))
         restored = json.loads((self.app / "config.json").read_text(encoding="utf-8"))
         self.assertEqual(restored["dashboard"]["title"], "Original")
-        self.assertFalse((self.app / "data" / "stale-state.txt").exists())
+        self.assertEqual(restored["servers"], original_config["servers"])
+        self.assertEqual(restored["integrations"], original_config["integrations"])
+        self.assertEqual(restored["users"], changed["users"])
+        self.assertEqual(restored["recovery"], changed["recovery"])
+        self.assertTrue((self.app / "data" / "stale-state.txt").exists())
         self.assertTrue((self.app / "data" / "recovery-backups" / "config-old.json").exists())
-        self.assertTrue(backup_path(self.app, original["name"]).exists())
         self.assertEqual(result["safety_backup"]["kind"], "pre-restore")
-        self.assertGreaterEqual(len(list_backups(self.app)), 2)
-
     def test_integrity_failure_is_rejected(self):
         item = create_backup(self.app, "0.5.147", config(), history_lock=self.lock)
         source = backup_path(self.app, item["name"])
@@ -148,25 +147,17 @@ class BackupManagerTests(unittest.TestCase):
                 archive.writestr(*extra)
         return path
 
-    def test_temporary_updater_and_sqlite_sidecars_are_excluded(self):
-        runner = self.app / "data" / "update-runner" / "Updater-fixture.exe"
-        runner.parent.mkdir()
-        runner.write_bytes(b"inert test fixture")
-        for suffix in ("-wal", "-shm", "-journal"):
-            (self.app / "data" / ("torrent_desk.sqlite3" + suffix)).write_bytes(b"")
-        item = create_backup(self.app, "0.5.147", config())
+    def test_all_runtime_data_is_excluded_from_new_portable_backups(self):
+        item = create_backup(self.app, "0.5.149", config())
         with zipfile.ZipFile(backup_path(self.app, item["name"])) as archive:
-            self.assertFalse(any("update-runner" in name for name in archive.namelist()))
-            self.assertFalse(any(name.endswith(("-wal", "-shm", "-journal")) for name in archive.namelist()))
-
+            self.assertEqual(set(archive.namelist()), {"backup-manifest.json", "payload/config.json"})
     def test_invalid_creation_never_publishes_a_backup(self):
         invalid = config()
-        invalid["recovery"] = {}
-        with self.assertRaisesRegex(RuntimeError, "recovery"):
-            create_backup(self.app, "0.5.147", invalid)
+        invalid["setup"]["complete"] = False
+        with self.assertRaisesRegex(RuntimeError, "completed"):
+            create_backup(self.app, "0.5.149", invalid)
         self.assertEqual(list_backups(self.app), [])
         self.assertEqual(list((self.app / "data" / "backups").iterdir()), [])
-
     def test_unsafe_and_windows_ambiguous_archive_paths_are_rejected(self):
         for suffix in ("../escape", "C:/escape", "name:stream", "CON", "nul.txt", "COM¹.log",
                        "folder./file", "trailing ", "double//slash", "./file", "bad\\name", "line\nname"):
@@ -213,30 +204,53 @@ class BackupManagerTests(unittest.TestCase):
         for item in items:
             self.assertEqual(backup_path(self.app, item["name"]).read_bytes(), content)
 
-    def test_cross_install_restore_and_safety_backup_round_trip(self):
-        original = create_backup(self.app, "0.5.147", config())
+    def test_cross_install_restore_preserves_destination_identity_and_runtime_data(self):
+        source_config = config()
+        source_config["users"][0]["username"] = "source-admin"
+        source_config["recovery"] = {"key_hash": "source-recovery", "last4": "1111"}
+        source_config["servers"] = [{"id": "source-client", "name": "Source", "url": "http://source"}]
+        original = create_backup(self.app, "0.5.149", source_config)
         content = backup_path(self.app, original["name"]).read_bytes()
         with tempfile.TemporaryDirectory() as directory:
             destination = Path(directory)
             destination_config = config("Destination")
+            destination_config["users"][0]["username"] = "destination-admin"
+            destination_config["users"][0]["password_hash"] = "destination-user-hash"
+            destination_config["recovery"] = {"key_hash": "destination-recovery", "last4": "9999"}
             (destination / "config.json").write_text(json.dumps(destination_config))
             (destination / "data").mkdir()
-            (destination / "data" / "destination.txt").write_text("preserve via safety backup")
+            (destination / "data" / "destination.txt").write_text("must remain local")
             imported = import_backup(destination, "portable.tdbackup", content)
-            self.assertEqual(json.loads((destination / "config.json").read_text()), destination_config)
-            result = restore_backup(destination, imported["name"], current_version="0.5.147", current_config=destination_config)
+            result = restore_backup(destination, imported["name"], current_version="0.5.149", current_config=destination_config)
             restored = json.loads((destination / "config.json").read_text())
             self.assertEqual(restored["dashboard"]["title"], "Original")
-            self.assertEqual((destination / "data" / "avatars" / "admin.webp").read_bytes(), b"avatar")
-            connection = sqlite3.connect(destination / "data" / "torrent_desk.sqlite3")
-            try:
-                self.assertEqual(connection.execute("SELECT value FROM sample").fetchone()[0], "history")
-            finally:
-                connection.close()
-            restore_backup(destination, result["safety_backup"]["name"], current_version="0.5.147", current_config=restored)
-            self.assertEqual(json.loads((destination / "config.json").read_text()), destination_config)
+            self.assertEqual(restored["servers"], source_config["servers"])
+            self.assertEqual(restored["users"], destination_config["users"])
+            self.assertEqual(restored["recovery"], destination_config["recovery"])
             self.assertTrue((destination / "data" / "destination.txt").is_file())
-            self.assertFalse((destination / "data" / "avatars").exists())
+            restore_backup(destination, result["safety_backup"]["name"], current_version="0.5.149", current_config=restored)
+            rolled_back = json.loads((destination / "config.json").read_text())
+            self.assertEqual(rolled_back["dashboard"]["title"], "Destination")
+            self.assertEqual(rolled_back["users"], destination_config["users"])
+            self.assertEqual(rolled_back["recovery"], destination_config["recovery"])
+    def test_legacy_backup_identity_and_data_are_ignored_on_restore(self):
+        legacy = config("Legacy source")
+        legacy["users"][0]["username"] = "legacy-admin"
+        legacy["recovery"] = {"key_hash": "legacy-recovery", "last4": "1111"}
+        payload = {"payload/config.json": json.dumps(legacy).encode(), "payload/data/legacy-state.txt": b"legacy data"}
+        source = self.archive(payload=payload, version="0.5.149")
+        imported = import_backup(self.app, "legacy.tdbackup", source.read_bytes(), current_version="0.5.149")
+        current = config("Current destination")
+        current["users"][0]["username"] = "current-admin"
+        current["recovery"] = {"key_hash": "current-recovery", "last4": "2222"}
+        (self.app / "data" / "current-state.txt").write_text("keep", encoding="utf-8")
+        restore_backup(self.app, imported["name"], current_version="0.5.149", current_config=current)
+        restored = json.loads((self.app / "config.json").read_text())
+        self.assertEqual(restored["dashboard"]["title"], "Legacy source")
+        self.assertEqual(restored["users"], current["users"])
+        self.assertEqual(restored["recovery"], current["recovery"])
+        self.assertTrue((self.app / "data" / "current-state.txt").exists())
+        self.assertFalse((self.app / "data" / "legacy-state.txt").exists())
 
     def test_failed_restore_rolls_back_previous_state(self):
         item = create_backup(self.app, "0.5.147", config())

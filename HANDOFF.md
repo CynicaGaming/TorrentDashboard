@@ -7,46 +7,43 @@
 This handoff is intentionally portable across public forks. Verify the current checkout's Git remote, branch, and open work before using upstream references as instructions.
 
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
-- Last documented upstream build: **v0.5.148** (prerelease)
+- Last documented upstream build: **v0.5.149** (prerelease)
 
 ## Last known-good state
 
-Hardens live state restoration, backup validation, request parsing, and session revocation while adding cross-platform pull-request validation.
+Adds a slow login pulse and deliberate recovery-key acknowledgement while narrowing portable backup restore to configuration without moving user or recovery identity.
 
 The released-state details and recent history are in `PROJECT_STATE.md`; architectural constraints are in `ARCHITECTURE.md`.
 
 ## Active development intent
 
-- Status: **in_review**
-- Objective: **Review state/input hardening and validate compiled Windows migration under live activity**
-- Why: Reproducible state, archive, HTTP input, and session issues are addressed; operational Windows migration remains the principal validation gap.
+- Status: **ready**
+- Objective: **Validate identity-safe portable backup restore and the first-run recovery acknowledgement UX on compiled Windows**
+- Why: Portable configuration now excludes user and recovery identity, and the requested login/recovery UX is implemented; compiled cross-install behavior remains the operational validation step.
 
 ### Acceptance criteria
 
-- Source/unit, UI, syntax, generated-documentation, and hygiene checks pass on the hardening branch.
-- Pull-request validation passes on Linux/Windows with Python 3.13 and 3.14.
-- A compiled Windows installation exports a backup that a second same-or-newer installation can import and restore while browser sessions and polling are active.
-- Restored sessions are invalidated and the pre-restore safety backup returns the destination to its previous state.
-- Compiled update/rollback preserves runtime configuration and data.
+- Source/unit, UI, syntax, generated-documentation, and hygiene checks pass.
+- A new backup contains settings, integrations, and clients but no users, recovery key, legacy user hash, or runtime data.
+- Restoring a new or legacy archive leaves destination users, recovery key, and runtime data unchanged.
+- The setup recovery-key Continue action remains unavailable for ten seconds and the login pulse respects reduced-motion.
+- The prerelease source and Windows packages are published from the same validated main commit.
 
 ### Decisions already made
 
-- Use a state maintenance gate and explicit database connection cleanup; retain the standard-library runtime.
-- Publish only validated portable archives and retain safety backups even when rollback fails.
-- Keep the existing UI contract and consolidate superseded documentation.
-- Preserve the source-package pruning changes from merged PR #28 in the current main baseline.
+- Treat users and dashboard recovery identity as installation-local state, never portable backup state.
+- Retain compatibility with legacy archives but ignore their identity and runtime payload during restore.
+- Use an ambient nine-second login pulse and a ten-second recovery acknowledgement gate.
 
 ### Expected areas of change
 
 - `src/torrent_dashboard/backups.py`
-- `src/torrent_dashboard/dashboard.py`
-- `src/torrent_dashboard/history.py`
-- `src/torrent_dashboard/http_input.py`
-- `src/torrent_dashboard/state_gate.py`
-- `src/torrent_dashboard/persistence.py`
-- `tests/`
-- `.github/workflows/validate.yml`
-- `docs/HARDENING.md`
+- `static/app.js`
+- `static/app.css`
+- `tests/test_backups.py`
+- `release_tools/validate_ui_strings.py`
+- `TESTING.md`
+- `DESIGN_LANGUAGE.md`
 
 ### Blockers
 
@@ -54,11 +51,11 @@ None currently recorded.
 
 ### Explicitly out of scope
 
-- Framework migration, a broad UI redesign, encrypted backups, scheduling/retention, cloud destinations, code signing, and power-loss-atomic restore.
+- Backup encryption, scheduled backups, cloud destinations, code signing, and broader authentication redesign.
 
 ## Exact next action
 
-Review the hardening pull request and its cross-platform checks, then run the compiled Windows migration and safety-backup round trip described in TESTING.md before promoting the build beyond prerelease.
+Run a compiled Windows cross-install backup/restore using distinct destination users and recovery keys, then confirm update/rollback remains healthy.
 
 ## Resume checklist
 
