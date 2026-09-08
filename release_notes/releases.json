@@ -12,6 +12,45 @@
   },
   "releases": [
     {
+      "version": "0.5.150",
+      "date": "2026-09-07",
+      "status": "prerelease",
+      "title": "Login glow and profile menu polish",
+      "summary": "Refines the login accent treatment and simplifies the profile menu while restoring frontend build-version synchronization on main.",
+      "highlights": [
+        "The login card now uses a softer radial accent glow around the card instead of animating the card shadow itself.",
+        "The glow pulses more slowly and keeps a static reduced-motion presentation for users who disable animation.",
+        "The profile menu keeps account settings, install-app, and sign-out actions without a stale duplicate Console binding."
+      ],
+      "fixes": [
+        "Restores the HTML, JavaScript, and service-worker build identifiers to one release version after the prior branch merge left index.html on an older build marker.",
+        "Removes the obsolete accountConsoleBtn event binding now that Console is reached through primary navigation."
+      ],
+      "technical": [
+        "Moves the login glow to a ::before pseudo-element so the card border and primary shadow remain stable during the animation.",
+        "Synchronizes the frontend build marker, cache-busted asset URLs, JavaScript build constant, and service-worker cache key to v0.5.150."
+      ],
+      "validation": [
+        "Runs source validation, UI contract validation, the unit-test suite, JavaScript syntax checks, generated-documentation checks, and repository hygiene checks.",
+        "Runs the normal pull-request matrix on Linux and Windows with Python 3.13 and 3.14 before merge."
+      ],
+      "known_issues": [
+        "Portable backup archives still contain saved client and integration credentials in plaintext; store exported .tdbackup files securely."
+      ],
+      "architecture": [],
+      "decisions": [
+        "Keep Console in primary navigation instead of duplicating it inside the profile menu.",
+        "Keep login animation isolated to a decorative pseudo-element with a reduced-motion fallback."
+      ],
+      "next_steps": [
+        {
+          "priority": 1,
+          "title": "Soak the login treatment",
+          "detail": "Exercise the login screen across accent colors, reduced-motion mode, desktop, and mobile while continuing compiled Windows update testing."
+        }
+      ]
+    },
+    {
       "version": "0.5.149",
       "date": "2026-09-07",
       "status": "prerelease",
