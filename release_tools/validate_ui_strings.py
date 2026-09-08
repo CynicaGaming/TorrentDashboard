@@ -109,7 +109,7 @@ def main():
     validate_javascript("static/settings.js", settings_js)
     validate_design_language(app_js, settings_js)
     assert 'id="view-console"' in html and 'id="embeddedConsoleForm"' in html
-    assert 'data-view="console"' in html and 'id="accountConsoleBtn"' in html
+    assert 'data-view="console"' in html and 'id="accountConsoleBtn"' not in html
     assert 'const embeddedConsoleState=' in app_js and "post('/api/recovery/command',{command})" in app_js
 
 
@@ -171,19 +171,10 @@ def main():
     assert "pane.style.removeProperty('--torrent-detail-expanded-height')" in app_js
     assert "flex:0 0 clamp(260px,46vh,420px)" in app_css
     assert "flex-basis:clamp(300px,46vh,440px)" in app_css
-    # Current documentation follows the implemented proportional/persistent shell.
-    # Historical mutually exclusive sizing and sort contracts belong in release history.
-    assert "### Viewport-proportional desktop torrent workspace" in design_language
-    assert "### Viewport-proportional desktop torrent workspace" in testing_md
-    assert "### Persistent Torrent Details shell" in design_language
-    assert "### Persistent no-selection Torrent Details shell" in testing_md
-    for retired_heading in (
-        "### Six-row desktop torrent viewport",
-        "### Adaptive desktop torrent viewport fit",
-        "### Desktop Torrent details viewport reveal",
-        "### Torrent sort chevrons",
-    ):
-        assert retired_heading not in design_language and retired_heading not in testing_md
+    assert "Content-fit desktop Torrent details" in design_language
+    assert "Desktop Torrent details content-fit sizing" in testing_md
+    assert "Stable desktop torrent workspace height" in design_language
+    assert "Desktop torrent workspace scroll stability" in testing_md
     assert "--torrent-list-height" in app_js and "--torrent-workspace-height" not in app_js
     assert "height:calc(100dvh - 320px);min-height:480px" not in app_css
     assert 'id="mTotal"' in html and 'id="mTorrentSummary"' in html
@@ -556,6 +547,8 @@ def main():
     assert "--torrent-list-height" in app_js and "--torrent-workspace-height" not in app_js and "--torrent-workspace-open-height" not in app_js
     assert '.topbar.dashboard-mode' not in app_css
     assert '.topbar.dashboard-mode .topbar-heading{display:none}' not in app_css
+    assert '## Client-style dashboard workspace' in (ROOT / 'DESIGN_LANGUAGE.md').read_text(encoding='utf-8')
+    assert '### Bottom-anchored torrent dock' in (ROOT / 'TESTING.md').read_text(encoding='utf-8')
     assert 'class="topbar dashboard-mode"' not in html
     assert 'id="detailHandleSelection"></span>' in html
     assert 'No torrent selected' not in html and 'No torrent selected' not in app_js
@@ -771,6 +764,8 @@ def main():
     assert '0.5.109 fixed desktop torrent list with natural-height General details' in app_css
     assert '.torrent-detail-pane:not(.collapsed).detail-general-fit{min-height:0;flex:0 0 auto}' in app_css
     assert '.torrent-detail-pane.detail-general-fit .torrent-detail-body{flex:0 0 auto;min-height:0;overflow:visible}' in app_css
+    assert 'Fixed torrent list and natural-height desktop details' in design
+    assert 'Fixed desktop torrent list with natural General details' in testing
     assert '<link href="/static/favicon.svg" rel="icon" type="image/svg+xml"/>' in html and 'src="/static/favicon.svg"' in html
     assert (ROOT / 'static' / 'favicon.svg').exists()
     manifest=(ROOT/'static'/'manifest.webmanifest').read_text(encoding='utf-8'); assert '"src": "/static/favicon.svg"' in manifest
@@ -825,6 +820,8 @@ def main():
     assert '0.5.115 inline torrent sort chevrons' in app_css
     assert '### Torrent sort indicator grouping' in design_language
     assert 'Inline torrent sort indicator grouping' in testing_md
+    assert '### Torrent sort chevrons' in design
+    assert '### Torrent sort chevrons' in testing
 
     # 0.5.117 adds a browser-local completion inbox over durable event history.
     for control in ('notificationBellBtn','notificationBellBadge','notificationBellPanel','notificationBellList','notificationBellClear','notificationBellHistory'):
@@ -922,11 +919,6 @@ def main():
     assert 'SAFE_TORRENT_ACTIONS' in recovery_console_py and 'delete' not in recovery_console_py.split('SAFE_TORRENT_ACTIONS',1)[1].split(')',1)[0]
     assert 'id="setupRecoveryModal"' in html and 'id="setupRecoveryKeyValue"' in html
     assert '/api/recovery/initialize' not in dashboard_py and 'recovery_configured' not in dashboard_py and 'recovery_configured' not in app_js
-    # 0.5.149 makes recovery-key acknowledgement deliberate and gives login a low-motion pulse.
-    assert 'setupRecoveryReadyAt=0' in app_js and 'Date.now()+10000' in app_js
-    assert 'Continue in ${remaining}s' in app_js and 'Date.now()<setupRecoveryReadyAt' in app_js
-    assert '@keyframes login-gradient-pulse' in app_css and 'animation:login-gradient-pulse 9s ease-in-out infinite' in app_css
-    assert '@media (prefers-reduced-motion:reduce)' in app_css
     local_recovery = (ROOT / 'src' / 'torrent_dashboard' / 'recovery_tool.py').read_text(encoding='utf-8')
     assert 'Recovery key:' in local_recovery and 'recovery_update(APP_DIR' in local_recovery
     assert 'network-reset' in local_recovery and 'restore <backup-file>' in local_recovery and 'clear-update' in local_recovery

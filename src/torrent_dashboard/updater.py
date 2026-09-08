@@ -555,7 +555,7 @@ def recovery_update(
         validate_staged_source(source, version, distribution)
         write_staged_release_info(source, version, asset, actual_digest, repository, release)
 
-        backup_root = data_dir / "update-backups" / f"pre-{version}-{int(time.time())}"
+        backup_root = data_dir / "backups" / f"pre-{version}-{int(time.time())}"
         status_path.write_text(
             json.dumps({"state": "installingRecovery", "version": version, "distribution": distribution}),
             encoding="utf-8",
@@ -607,7 +607,7 @@ def normal_update(args):
     validate_staged_source(source, str(args.version), expected_distribution)
 
     data_dir = target / "data"
-    backup_root = data_dir / "update-backups" / f"pre-{args.version}-{int(time.time())}"
+    backup_root = data_dir / "backups" / f"pre-{args.version}-{int(time.time())}"
     status_path = data_dir / "update-status.json"
     data_dir.mkdir(parents=True, exist_ok=True)
 
