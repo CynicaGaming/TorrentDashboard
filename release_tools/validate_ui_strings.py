@@ -109,7 +109,7 @@ def main():
     validate_javascript("static/settings.js", settings_js)
     validate_design_language(app_js, settings_js)
     assert 'id="view-console"' in html and 'id="embeddedConsoleForm"' in html
-    assert 'data-view="console"' in html and 'id="accountConsoleBtn"' in html
+    assert 'data-view="console"' in html and 'id="accountConsoleBtn"' not in html
     assert 'const embeddedConsoleState=' in app_js and "post('/api/recovery/command',{command})" in app_js
 
 
