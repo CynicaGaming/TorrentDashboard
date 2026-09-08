@@ -1723,6 +1723,55 @@ def _recovery_console_integration(cfg, integration_id):
     return item
 
 
+def _recovery_console_torrent_list(cfg, server_id=None):
+    if server_id:
+        servers = [_recovery_console_server(cfg, server_id)]
+    else:
+        servers = list(cfg.get("servers", []))
+    if not servers:
+        return "No download clients are configured."
+
+    snapshots = {}
+    with CACHE_LOCK:
+        for server in servers:
+            sid = str(server.get("id") or "")
+            cached = CACHE.get(sid, {})
+            torrents = cached.get("torrents") if isinstance(cached, dict) else None
+            snapshots[sid] = {
+                "ok": bool(isinstance(cached, dict) and cached.get("ok")),
+                "torrents": list(torrents) if isinstance(torrents, list) else None,
+            }
+
+    rows = []
+    unavailable = []
+    for server in servers:
+        sid = str(server.get("id") or "")
+        snapshot = snapshots.get(sid, {})
+        torrents = snapshot.get("torrents")
+        if not snapshot.get("ok") or torrents is None:
+            unavailable.append(sid or "unknown")
+            continue
+        for torrent in torrents:
+            hash_value = str(torrent.get("hash") or "-").strip() or "-"
+            state = " ".join(str(torrent.get("state") or "unknown").split()) or "unknown"
+            name = " ".join(str(torrent.get("name") or "Unnamed torrent").split()) or "Unnamed torrent"
+            try:
+                progress = max(0.0, min(100.0, float(torrent.get("progress", 0) or 0) * 100.0))
+            except (TypeError, ValueError):
+                progress = 0.0
+            rows.append(f"{sid}  {hash_value}  {state}  {progress:5.1f}%  {name}")
+
+    lines = []
+    if rows:
+        lines.append("CLIENT  HASH  STATE  PROGRESS  NAME")
+        lines.extend(rows)
+    else:
+        lines.append("No torrents are currently available.")
+    if unavailable:
+        lines.append("Unavailable clients: " + ", ".join(unavailable))
+    return "\n".join(lines)
+
+
 def recovery_console_execute(handler, cfg, raw_command, sess=None):
     tokens = parse_recovery_command(raw_command)
     command = tokens[0].lower()
@@ -1784,10 +1833,10 @@ def recovery_console_execute(handler, cfg, raw_command, sess=None):
 
     if command == "jellyfin":
         if len(args) < 2:
-            raise RuntimeError("Usage: jellyfin tasks|start|stop <integration-id> [task-id]")
+            raise RuntimeError("Usage: jellyfin list|tasks|start|stop <integration-id> [task-id]")
         action, integration_id = args[0].lower(), args[1]
         item = find_jellyfin_integration(cfg, integration_id)
-        if action == "tasks":
+        if action in ("list", "tasks"):
             tasks = jellyfin_scheduled_tasks(item)
             if not tasks:
                 return {"output": "Jellyfin reported no visible scheduled tasks."}
@@ -1803,12 +1852,24 @@ def recovery_console_execute(handler, cfg, raw_command, sess=None):
                 raise RuntimeError(f"Usage: jellyfin {action} <integration-id> <task-id>")
             result = start_jellyfin_scheduled_task(item, args[2]) if action == "start" else stop_jellyfin_scheduled_task(item, args[2])
             return {"output": result.get("message") or f"Jellyfin task {action} requested"}
-        raise RuntimeError("Usage: jellyfin tasks|start|stop <integration-id> [task-id]")
+        raise RuntimeError("Usage: jellyfin list|tasks|start|stop <integration-id> [task-id]")
 
-    if command == "torrent":
+    if command in ("torrent", "torrents"):
+        sub = args[0].lower() if args else ""
+        if command == "torrents" or sub == "list":
+            if command == "torrents":
+                if args:
+                    raise RuntimeError("Usage: torrents")
+                server_id = None
+            else:
+                if len(args) > 2:
+                    raise RuntimeError("Usage: torrent list [client-id]")
+                server_id = args[1] if len(args) == 2 else None
+            return {"output": _recovery_console_torrent_list(cfg, server_id)}
+
         require_console_admin()
-        if len(args) < 4 or args[0].lower() != "action":
-            raise RuntimeError("Usage: torrent action <client-id> <start|stop|recheck|reannounce> <hash|all>")
+        if len(args) < 4 or sub != "action":
+            raise RuntimeError("Usage: torrent list [client-id] | torrent action <client-id> <start|stop|recheck|reannounce> <hash|all>")
         server_id, action, target = args[1], args[2].lower(), args[3]
         if action not in SAFE_TORRENT_ACTIONS:
             raise RuntimeError("Recovery console torrent actions are limited to start, stop, recheck, and reannounce")
