@@ -70,6 +70,16 @@ jobs:
               raise SystemExit('Mobile Console navigation was removed unexpectedly')
 
           path.write_text(text, encoding='utf-8')
+
+          validator = Path('release_tools/validate_ui_strings.py')
+          source = validator.read_text(encoding='utf-8')
+          old = "    assert 'data-view=\"console\"' in html and 'id=\"accountConsoleBtn\"' in html\n"
+          new = "    assert 'data-view=\"console\"' in html and 'id=\"accountConsoleBtn\"' not in html\n"
+          if old in source:
+              source = source.replace(old, new, 1)
+          elif new not in source:
+              raise SystemExit('Could not update Console menu validation contract')
+          validator.write_text(source, encoding='utf-8')
           PY
       - name: Validate frontend contract
         shell: bash
@@ -84,7 +94,7 @@ jobs:
         run: |
           git config user.name "Cynica"
           git config user.email "47292146+CynicaGaming@users.noreply.github.com"
-          git add static/index.html
+          git add static/index.html release_tools/validate_ui_strings.py
           if git diff --cached --quiet; then
             echo "No changes to commit"
             exit 0
