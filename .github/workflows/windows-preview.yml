@@ -85,7 +85,7 @@ jobs:
         shell: pwsh
         run: |
           $zip = "dist-windows\TorrentDashboard-Windows-${{ steps.version.outputs.version }}-x64.zip"
-          $info = "dist-windows\TorrentDashboard-Windows-${{ steps.version.outputs.version }}-x64.release.json"
+          $info = "dist-windows\TorrentDashboard-Windows-${{ steps.version.outputs.version }}.release.json"
           gh release upload "${{ steps.version.outputs.tag }}" $zip $info --clobber
 
       - name: Verify Windows Preview Asset
