@@ -466,8 +466,9 @@ window.TDSettings = (() => {
     backups.forEach(item=>{
       const row=document.createElement('article');row.className=`backup-item${item.valid===false?' invalid':''}`;
       const details=[backupKindLabel(item.kind),`v${item.source_version||'unknown'}`,formatBackupBytes(item.size),`${Number(item.files||0)} files`];
-      row.innerHTML=`<div class="backup-item-copy"><strong>${esc(item.name||'Backup')}</strong><span>${esc(formatBackupDate(item.created_at))} · ${esc(details.join(' · '))}</span>${item.valid===false?`<small>${esc(item.error||'Backup metadata is invalid')}</small>`:''}</div><div class="backup-item-actions"><button class="secondary backup-export" type="button">Export</button><button class="primary backup-restore" type="button" ${item.valid===false?'disabled':''}>Restore</button></div>`;
+      row.innerHTML=`<div class="backup-item-copy"><strong>${esc(item.name||'Backup')}</strong><span>${esc(formatBackupDate(item.created_at))} · ${esc(details.join(' · '))}</span>${item.valid===false?`<small>${esc(item.error||'Backup metadata is invalid')}</small>`:''}</div><div class="backup-item-actions"><button class="secondary backup-export" type="button">Export</button><button class="danger backup-delete" type="button">Delete</button><button class="primary backup-restore" type="button" ${item.valid===false?'disabled':''}>Restore</button></div>`;
       row.querySelector('.backup-export')?.addEventListener('click',()=>exportBackup(item.name));
+      row.querySelector('.backup-delete')?.addEventListener('click',()=>deleteBackup(item));
       row.querySelector('.backup-restore')?.addEventListener('click',()=>restoreBackup(item));
       list.appendChild(row);
     });
@@ -483,11 +484,12 @@ window.TDSettings = (() => {
   }
 
   async function createBackup() {
-    const button=document.querySelector('#backupCreate');if(button)button.disabled=true;
-    setBackupStatus('Creating a consistent backup of dashboard state…');
-    try{const data=await post('/api/backups/create',{});setBackupStatus(`Backup created: ${data.backup?.name||'complete'}`,'ok');toast('Backup created');await loadBackups()}
+    const button=document.querySelector('#backupCreate'),progress=document.querySelector('#backupProgress');if(button)button.disabled=true;
+    if(progress){progress.classList.remove('hidden');progress.removeAttribute('value');progress.setAttribute('aria-valuetext','Creating backup')}
+    setBackupStatus('Creating a consistent backup of portable dashboard settings…');
+    try{const data=await post('/api/backups/create',{});if(progress){progress.value=100;progress.setAttribute('aria-valuetext','Backup complete')}setBackupStatus(`Backup created: ${data.backup?.name||'complete'}`,'ok');toast('Backup created');await loadBackups()}
     catch(error){setBackupStatus(error.message||'Backup creation failed.','bad')}
-    finally{if(button)button.disabled=false}
+    finally{if(button)button.disabled=false;if(progress){progress.classList.add('hidden');progress.removeAttribute('value');progress.removeAttribute('aria-valuetext')}}
   }
 
   async function importBackupFile(file) {
@@ -511,9 +513,18 @@ window.TDSettings = (() => {
     const link=document.createElement('a');link.href=`/api/backups/export?name=${encodeURIComponent(name)}`;link.download=name;link.rel='noopener';document.body.appendChild(link);link.click();link.remove();
   }
 
+  async function deleteBackup(item) {
+    const name=String(item?.name||'');if(!name)return;
+    if(!confirm(`Delete ${name}?\n\nThis permanently removes the local backup archive. It does not change the currently running dashboard configuration.`))return;
+    const rowButtons=[...document.querySelectorAll('.backup-item-actions button')];rowButtons.forEach(button=>button.disabled=true);
+    setBackupStatus(`Deleting ${name}…`);
+    try{await post('/api/backups/delete',{name});setBackupStatus(`Backup deleted: ${name}`,'ok');toast('Backup deleted');await loadBackups()}
+    catch(error){setBackupStatus(error.message||'Backup deletion failed.','bad');renderBackups()}
+  }
+
   async function restoreBackup(item) {
     const name=String(item?.name||'');if(!name)return;
-    const warning=`Restore ${name}?\n\nTorrent Dashboard will first create a safety backup of the current state, then replace configuration and dashboard data with this backup. You will be signed out and must use the restored installation credentials. Application binaries and qBitTorrent data are not changed.`;
+    const warning=`Restore ${name}?\n\nTorrent Dashboard will first create a safety backup, then replace portable settings, integrations, and download clients with this backup. Local users, recovery identity, runtime data, application binaries, and qBitTorrent data are not changed. You will be signed out after the restore.`;
     if(!confirm(warning))return;
     setBackupStatus(`Restoring ${name}…`);
     document.querySelectorAll('.backup-item-actions button').forEach(button=>button.disabled=true);

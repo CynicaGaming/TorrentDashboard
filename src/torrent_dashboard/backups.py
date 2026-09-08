@@ -397,6 +397,17 @@ def backup_path(app_dir: Path, name: str) -> Path:
     return candidate
 
 
+def delete_backup(app_dir: Path, name: str) -> str:
+    """Delete one local portable backup archive and return its file name."""
+    supplied = str(name or "")
+    safe = _safe_filename(supplied)
+    if supplied != safe:
+        raise RuntimeError("Backup file was not found")
+    path = backup_path(app_dir, safe)
+    path.unlink()
+    return path.name
+
+
 def import_backup(app_dir: Path, filename: str, content: bytes, *, current_version: str | None = None) -> dict:
     if not content:
         raise RuntimeError("Choose a Torrent Dashboard backup file")

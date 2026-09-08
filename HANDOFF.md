@@ -7,43 +7,44 @@
 This handoff is intentionally portable across public forks. Verify the current checkout's Git remote, branch, and open work before using upstream references as instructions.
 
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
-- Last documented upstream build: **v0.5.150** (prerelease)
+- Last documented upstream build: **v0.5.151** (prerelease)
 
 ## Last known-good state
 
-Refines the login accent treatment and simplifies the profile menu while restoring frontend build-version synchronization on main.
+Restores the backup-management surface, keeps Account settings in the profile menu, removes login-screen animation, and adds safer backup deletion and creation feedback.
 
 The released-state details and recent history are in `PROJECT_STATE.md`; architectural constraints are in `ARCHITECTURE.md`.
 
 ## Active development intent
 
 - Status: **ready**
-- Objective: **Validate identity-safe portable backup restore and the first-run recovery acknowledgement UX on compiled Windows**
-- Why: Portable configuration now excludes user and recovery identity, and the requested login/recovery UX is implemented; compiled cross-install behavior remains the operational validation step.
+- Objective: **Validate the v0.5.151 profile and backup lifecycle fixes on compiled Windows**
+- Why: The backup UI regression and profile/login polish are corrected in source; the remaining step is operational validation through a real compiled backup lifecycle and update.
 
 ### Acceptance criteria
 
-- Source/unit, UI, syntax, generated-documentation, and hygiene checks pass.
-- A new backup contains settings, integrations, and clients but no users, recovery key, legacy user hash, or runtime data.
-- Restoring a new or legacy archive leaves destination users, recovery key, and runtime data unchanged.
-- The setup recovery-key Continue action remains unavailable for ten seconds and the login pulse respects reduced-motion.
-- The prerelease source and Windows packages are published from the same validated main commit.
+- Source/unit, UI, syntax, generated-documentation, hygiene, and source-package checks pass.
+- Account settings remains visible and functional from the profile menu after update and cache recovery.
+- The login screen retains a static accent treatment with no background or card animation.
+- Settings → Backups lists archives, shows progress during creation, and deletes only the explicitly confirmed local archive.
+- Portable backup restore continues preserving destination users, recovery identity, and runtime data.
 
 ### Decisions already made
 
-- Treat users and dashboard recovery identity as installation-local state, never portable backup state.
-- Retain compatibility with legacy archives but ignore their identity and runtime payload during restore.
-- Use an ambient nine-second login pulse and a ten-second recovery acknowledgement gate.
+- Keep login accent styling static rather than animated.
+- Use indeterminate progress for synchronous backup creation rather than fabricated percentages.
+- Keep destructive backup deletion administrator-only and constrained to data/backups.
 
 ### Expected areas of change
 
 - `src/torrent_dashboard/backups.py`
-- `static/app.js`
+- `src/torrent_dashboard/dashboard.py`
+- `static/index.html`
 - `static/app.css`
+- `static/settings.js`
+- `static/settings.css`
 - `tests/test_backups.py`
 - `release_tools/validate_ui_strings.py`
-- `TESTING.md`
-- `DESIGN_LANGUAGE.md`
 
 ### Blockers
 
@@ -51,11 +52,11 @@ None currently recorded.
 
 ### Explicitly out of scope
 
-- Backup encryption, scheduled backups, cloud destinations, code signing, and broader authentication redesign.
+- Backup encryption, scheduled backups, cloud destinations, streaming byte-level backup progress, code signing, and broader authentication redesign.
 
 ## Exact next action
 
-Run a compiled Windows cross-install backup/restore using distinct destination users and recovery keys, then confirm update/rollback remains healthy.
+Run create/delete/import/restore on a compiled Windows build, then verify Account settings and the static login treatment after an updater-driven install.
 
 ## Resume checklist
 

@@ -12,6 +12,50 @@
   },
   "releases": [
     {
+      "version": "0.5.151",
+      "date": "2026-09-08",
+      "status": "prerelease",
+      "title": "Profile and backup lifecycle polish",
+      "summary": "Restores the backup-management surface, keeps Account settings in the profile menu, removes login-screen animation, and adds safer backup deletion and creation feedback.",
+      "highlights": [
+        "Keeps Account settings as an explicit profile-menu action and adds a UI contract check so it cannot disappear silently in a future merge.",
+        "Removes the animated login background and card glow while retaining a static accent treatment.",
+        "Restores Settings \u2192 Backups navigation and the backup manager that was dropped from the v0.5.150 HTML merge.",
+        "Adds a Delete action to every local backup row with confirmation before the archive is removed.",
+        "Shows an indeterminate progress bar while a backup is being created, then returns to the normal backup list when creation finishes."
+      ],
+      "fixes": [
+        "Repairs the missing Backups Settings page and navigation while preserving the already-implemented backup backend and JavaScript lifecycle.",
+        "Synchronizes the next frontend build so stale cached profile-menu markup is replaced by the current Account settings contract."
+      ],
+      "technical": [
+        "Adds delete_backup() with strict local-backup filename validation plus an administrator-only /api/backups/delete endpoint and backup_deleted history event.",
+        "Uses the native indeterminate progress element for synchronous backup creation so the UI does not invent a file-by-file percentage that the server does not expose.",
+        "Updates backup copy to match the identity-safe portable scope: settings, integrations, and clients move; local users, recovery identity, and runtime data do not."
+      ],
+      "validation": [
+        "Adds backup deletion coverage that confirms only a named local archive can be removed and traversal-style names cannot delete outside data/backups.",
+        "Extends UI contract validation for Account settings, the restored Backups page, backup deletion, backup progress, and the absence of login animation.",
+        "Runs source validation, UI validation, unit tests, JavaScript syntax checks, generated documentation, repository hygiene, and source-package validation."
+      ],
+      "known_issues": [
+        "Portable backup archives can contain saved client and integration credentials in plaintext; store exported .tdbackup files securely."
+      ],
+      "architecture": [],
+      "decisions": [
+        "Keep login accent styling static rather than animated.",
+        "Treat backup creation progress as indeterminate until the synchronous server operation completes instead of reporting fabricated percentages.",
+        "Require confirmation for destructive backup deletion and constrain deletion to the local backup library."
+      ],
+      "next_steps": [
+        {
+          "priority": 1,
+          "title": "Exercise backup lifecycle on Windows",
+          "detail": "Create, export, delete, import, and restore portable backups on a compiled Windows installation and confirm the profile menu remains stable after update."
+        }
+      ]
+    },
+    {
       "version": "0.5.150",
       "date": "2026-09-07",
       "status": "prerelease",

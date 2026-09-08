@@ -56,6 +56,7 @@ from torrent_dashboard.backups import (
     MAX_BACKUP_BYTES,
     backup_path,
     create_backup,
+    delete_backup,
     import_backup,
     list_backups,
     restore_backup,
@@ -2338,6 +2339,11 @@ class Handler(BaseHTTPRequestHandler):
                     item=create_backup(APP_DIR,VERSION,current,history_lock=HISTORY.lock)
                 HISTORY.event("dashboard","backup_created",item.get("name", ""),"",{"client_ip":self.client_ip()})
                 return self.send_json(200,{"ok":True,"backup":item},new_cookie)
+            if path=="/api/backups/delete":
+                data=parse_json_body(self,12000)
+                name=delete_backup(APP_DIR,data.get("name"))
+                HISTORY.event("dashboard","backup_deleted",name,"",{"client_ip":self.client_ip()})
+                return self.send_json(200,{"ok":True,"name":name},new_cookie)
             if path=="/api/backups/import":
                 fields,files=parse_multipart(self,max_bytes=MAX_BACKUP_BYTES+256000)
                 if not files:

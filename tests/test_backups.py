@@ -16,6 +16,7 @@ from torrent_dashboard import backups
 from torrent_dashboard.backups import (
     backup_path,
     create_backup,
+    delete_backup,
     import_backup,
     list_backups,
     restore_backup,
@@ -59,6 +60,19 @@ class BackupManagerTests(unittest.TestCase):
 
     def tearDown(self):
         self.temp.cleanup()
+
+    def test_delete_backup_removes_only_named_local_archive(self):
+        item = create_backup(self.app, "0.5.151", config(), history_lock=self.lock)
+        path = backup_path(self.app, item["name"])
+        outside = self.app / "outside.tdbackup"
+        outside.write_bytes(b"outside")
+        self.assertEqual(delete_backup(self.app, item["name"]), item["name"])
+        self.assertFalse(path.exists())
+        self.assertTrue(outside.exists())
+        self.assertEqual(list_backups(self.app), [])
+        with self.assertRaisesRegex(RuntimeError, "not found"):
+            delete_backup(self.app, "../outside.tdbackup")
+        self.assertTrue(outside.exists())
 
     def test_create_backup_contains_configuration_only_and_excludes_identity(self):
         source = config()

@@ -110,6 +110,13 @@ def main():
     validate_design_language(app_js, settings_js)
     assert 'id="view-console"' in html and 'id="embeddedConsoleForm"' in html
     assert 'data-view="console"' in html and 'id="accountConsoleBtn"' not in html
+    assert 'id="accountSettingsBtn"' in html and '>Account settings</button>' in html
+    assert "$('#accountSettingsBtn').addEventListener('click'" in app_js
+    assert 'login-gradient-pulse' not in app_css and 'login-radiant-glow' not in html
+    assert 'data-settings-page="backups"' in html and 'data-settings-section="backups"' in html
+    assert 'id="backupProgress"' in html and 'class="backup-progress hidden"' in html
+    assert 'backup-delete' in settings_js and "post('/api/backups/delete',{name})" in settings_js
+    assert 'path=="/api/backups/delete"' in dashboard_py and 'backup_deleted' in dashboard_py
     assert 'const embeddedConsoleState=' in app_js and "post('/api/recovery/command',{command})" in app_js
 
 
