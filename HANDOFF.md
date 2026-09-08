@@ -7,44 +7,45 @@
 This handoff is intentionally portable across public forks. Verify the current checkout's Git remote, branch, and open work before using upstream references as instructions.
 
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
-- Last documented upstream build: **v0.5.151** (prerelease)
+- Last documented upstream build: **v0.5.152** (prerelease)
 
 ## Last known-good state
 
-Restores the backup-management surface, keeps Account settings in the profile menu, removes login-screen animation, and adds safer backup deletion and creation feedback.
+Adds explicit read-only list commands for actionable Recovery Console resources while preserving the v0.5.151 profile, login, backup, and update behavior.
 
 The released-state details and recent history are in `PROJECT_STATE.md`; architectural constraints are in `ARCHITECTURE.md`.
 
 ## Active development intent
 
 - Status: **ready**
-- Objective: **Validate the v0.5.151 profile and backup lifecycle fixes on compiled Windows**
-- Why: The backup UI regression and profile/login polish are corrected in source; the remaining step is operational validation through a real compiled backup lifecycle and update.
+- Objective: **Validate v0.5.152 auto-update, Recovery Console list parity, and the backup lifecycle on compiled Windows**
+- Why: The list-command parity work has been carried forward onto the current main baseline; the remaining risk is operational validation through the updater and compiled Windows package.
 
 ### Acceptance criteria
 
-- Source/unit, UI, syntax, generated-documentation, hygiene, and source-package checks pass.
-- Account settings remains visible and functional from the profile menu after update and cache recovery.
-- The login screen retains a static accent treatment with no background or card animation.
-- Settings → Backups lists archives, shows progress during creation, and deletes only the explicitly confirmed local archive.
-- Portable backup restore continues preserving destination users, recovery identity, and runtime data.
+- Source/unit, UI, syntax, generated-documentation, hygiene, source-package, and pull-request matrix checks pass.
+- The built-in updater detects and installs v0.5.152 from the GitHub prerelease without manual file replacement.
+- client list, integration list, torrent list [client-id], and jellyfin list <integration-id> expose actionable identifiers to read-only sessions.
+- Torrent and Jellyfin mutation commands remain administrator-only.
+- The static login treatment and Settings → Backups create/delete/import/restore behavior from v0.5.151 remain intact.
 
 ### Decisions already made
 
-- Keep login accent styling static rather than animated.
-- Use indeterminate progress for synchronous backup creation rather than fabricated percentages.
-- Keep destructive backup deletion administrator-only and constrained to data/backups.
+- Keep list commands read-only and preserve administrator gates on mutations.
+- Keep compatibility aliases for established Console syntax.
+- Use the existing torrent cache for Console listing rather than adding another qBitTorrent polling path.
+- Do not reintroduce superseded login animation while merging the Console parity work.
 
 ### Expected areas of change
 
-- `src/torrent_dashboard/backups.py`
 - `src/torrent_dashboard/dashboard.py`
+- `src/torrent_dashboard/recovery_console.py`
+- `tests/test_recovery_console.py`
+- `tests/test_recovery_console_runtime.py`
+- `release_notes/releases.json`
 - `static/index.html`
-- `static/app.css`
-- `static/settings.js`
-- `static/settings.css`
-- `tests/test_backups.py`
-- `release_tools/validate_ui_strings.py`
+- `static/app.js`
+- `static/sw.js`
 
 ### Blockers
 
@@ -52,11 +53,11 @@ None currently recorded.
 
 ### Explicitly out of scope
 
-- Backup encryption, scheduled backups, cloud destinations, streaming byte-level backup progress, code signing, and broader authentication redesign.
+- Backup encryption, scheduled backups, cloud destinations, code signing, broader authentication redesign, and new Console mutation capabilities.
 
 ## Exact next action
 
-Run create/delete/import/restore on a compiled Windows build, then verify Account settings and the static login treatment after an updater-driven install.
+Install v0.5.152 through the built-in updater on compiled Windows, verify the four list forms and admin mutation gates, then repeat the portable backup lifecycle.
 
 ## Resume checklist
 

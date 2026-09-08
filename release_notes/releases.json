@@ -12,6 +12,51 @@
   },
   "releases": [
     {
+      "version": "0.5.152",
+      "date": "2026-09-08",
+      "status": "prerelease",
+      "title": "Recovery Console list parity",
+      "summary": "Adds explicit read-only list commands for actionable Recovery Console resources while preserving the v0.5.151 profile, login, backup, and update behavior.",
+      "highlights": [
+        "Makes client list and integration list explicit in Console help while retaining the existing clients and integrations compatibility aliases.",
+        "Adds torrent list [client-id] so standard sessions can enumerate actionable torrent hashes, client IDs, states, progress, and names without mutation privileges.",
+        "Adds jellyfin list <integration-id> as the explicit list counterpart to Jellyfin task start and stop actions while retaining jellyfin tasks as an alias.",
+        "Carries the console parity work forward on top of the current main branch without reintroducing the superseded animated login treatment."
+      ],
+      "fixes": [
+        "Closes the Console discoverability gap where torrent and Jellyfin actions required identifiers that the Console did not provide an explicit list command to obtain."
+      ],
+      "technical": [
+        "Torrent listing snapshots the existing server-side torrent cache under CACHE_LOCK and does not perform additional qBitTorrent polling or expose stored client credentials.",
+        "Read-only list commands remain available to standard sessions; torrent and Jellyfin mutation commands remain administrator-gated.",
+        "Synchronizes the frontend build marker and service-worker cache namespace to v0.5.152 so auto-update clients receive a coherent application build."
+      ],
+      "validation": [
+        "Adds runtime coverage for torrent list output, per-client filtering, read-only authorization, and the jellyfin list alias.",
+        "Extends Console help tests for explicit client, integration, torrent, and Jellyfin list syntax.",
+        "Runs the cross-platform pull-request matrix on Linux and Windows with Python 3.13 and 3.14 plus source-package validation before publishing."
+      ],
+      "known_issues": [
+        "Portable backup archives can contain saved client and integration credentials in plaintext; store exported .tdbackup files securely.",
+        "Windows executables are not code-signed yet."
+      ],
+      "architecture": [
+        "Actionable Recovery Console resource families expose explicit read-only list forms while mutation commands remain separated behind administrator authorization."
+      ],
+      "decisions": [
+        "Keep existing plural and jellyfin tasks forms as compatibility aliases instead of removing established Console syntax.",
+        "Use the existing torrent cache for Console listing instead of introducing an extra qBitTorrent request path.",
+        "Preserve the static v0.5.151 login treatment and backup lifecycle behavior while carrying forward only the non-conflicting Console parity work."
+      ],
+      "next_steps": [
+        {
+          "priority": 1,
+          "title": "Exercise v0.5.152 on compiled Windows",
+          "detail": "Install v0.5.152 through the built-in updater, verify client/integration/torrent/Jellyfin list commands, and repeat the create/delete/import/restore backup lifecycle on the compiled package."
+        }
+      ]
+    },
+    {
       "version": "0.5.151",
       "date": "2026-09-08",
       "status": "prerelease",

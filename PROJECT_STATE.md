@@ -6,18 +6,22 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.151** (prerelease)
+- Latest documented build: **v0.5.152** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 
 ### Latest release summary
 
-Restores the backup-management surface, keeps Account settings in the profile menu, removes login-screen animation, and adds safer backup deletion and creation feedback.
+Adds explicit read-only list commands for actionable Recovery Console resources while preserving the v0.5.151 profile, login, backup, and update behavior.
+
+## Architecture state
+
+- Actionable Recovery Console resource families expose explicit read-only list forms while mutation commands remain separated behind administrator authorization.
 
 ## Current engineering decisions
 
-- Keep login accent styling static rather than animated.
-- Treat backup creation progress as indeterminate until the synchronous server operation completes instead of reporting fabricated percentages.
-- Require confirmation for destructive backup deletion and constrain deletion to the local backup library.
+- Keep existing plural and jellyfin tasks forms as compatibility aliases instead of removing established Console syntax.
+- Use the existing torrent cache for Console listing instead of introducing an extra qBitTorrent request path.
+- Preserve the static v0.5.151 login treatment and backup lifecycle behavior while carrying forward only the non-conflicting Console parity work.
 
 ## Development principles
 
@@ -29,6 +33,15 @@ Restores the backup-management surface, keeps Account settings in the profile me
 - Keep public development continuity portable across forks; label canonical repository/branch/PR references as upstream context rather than local identity.
 
 ## Recent work
+
+### v0.5.152 — Recovery Console list parity
+
+Adds explicit read-only list commands for actionable Recovery Console resources while preserving the v0.5.151 profile, login, backup, and update behavior.
+
+- Makes client list and integration list explicit in Console help while retaining the existing clients and integrations compatibility aliases.
+- Adds torrent list [client-id] so standard sessions can enumerate actionable torrent hashes, client IDs, states, progress, and names without mutation privileges.
+- Adds jellyfin list <integration-id> as the explicit list counterpart to Jellyfin task start and stop actions while retaining jellyfin tasks as an alias.
+- Carries the console parity work forward on top of the current main branch without reintroducing the superseded animated login treatment.
 
 ### v0.5.151 — Profile and backup lifecycle polish
 
@@ -64,22 +77,14 @@ Hardens live state restoration, backup validation, request parsing, and session 
 - Portable backups exclude temporary updater executables and SQLite sidecars, and appear in the backup library only after validation.
 - Authentication policy changes revoke outdated bypass access, including recovery-console access.
 
-### v0.5.147 — Portable backup management
-
-Adds a dedicated in-app backup manager for creating, viewing, restoring, importing, and exporting portable Torrent Dashboard state backups.
-
-- Adds Settings → Backups as a dedicated administrator maintenance area instead of coupling backup lifecycle to software updates.
-- Creates portable .tdbackup archives containing configuration, users, saved credentials, integrations, dashboard history, profile pictures, and notification assets while excluding application binaries and qBitTorrent data.
-- Existing backups can be exported to another installation, imported into its local backup library, and restored from the browser.
-- Every restore creates a pre-restore safety backup first and signs out active sessions after the restored identity and access configuration becomes active.
-
 ## What to do next
 
-1. **Exercise backup lifecycle on Windows** — Create, export, delete, import, and restore portable backups on a compiled Windows installation and confirm the profile menu remains stable after update.
+1. **Exercise v0.5.152 on compiled Windows** — Install v0.5.152 through the built-in updater, verify client/integration/torrent/Jellyfin list commands, and repeat the create/delete/import/restore backup lifecycle on the compiled package.
 
 ## Known issues
 
 - Portable backup archives can contain saved client and integration credentials in plaintext; store exported .tdbackup files securely.
+- Windows executables are not code-signed yet.
 
 ## Handoff instructions for a new development session
 
