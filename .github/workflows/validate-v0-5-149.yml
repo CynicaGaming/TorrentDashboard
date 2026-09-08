@@ -26,6 +26,7 @@ jobs:
         shell: bash
         run: |
           python release_tools/apply_v0_5_149.py
+          python release_tools/fix_v0_5_149.py
           python release_tools/generate_release_notes.py --version 0.5.149
       - name: Validate
         shell: bash
@@ -43,7 +44,7 @@ jobs:
           git config user.name "Cynica"
           git config user.email "47292146+CynicaGaming@users.noreply.github.com"
           git add -A
-          git reset .github/workflows/validate-v0-5-149.yml release_tools/apply_v0_5_149.py
+          git reset .github/workflows/validate-v0-5-149.yml release_tools/apply_v0_5_149.py release_tools/fix_v0_5_149.py
           if git diff --cached --quiet; then
             echo "No implementation changes to commit"
             exit 0
