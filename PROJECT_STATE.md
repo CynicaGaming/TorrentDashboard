@@ -6,23 +6,21 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.148** (prerelease)
+- Latest documented build: **v0.5.149** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 
 ### Latest release summary
 
-Hardens live state restoration, backup validation, request parsing, and session revocation while adding cross-platform pull-request validation.
+Adds a slow login pulse and deliberate recovery-key acknowledgement while narrowing portable backup restore to configuration without moving user or recovery identity.
 
 ## Architecture state
 
-- StateGate coordinates HTTP requests and collectors with exclusive maintenance; lock order is state gate, configuration, history, cache.
-- Normal configuration changes use ConfigStore.mutate(); backup/restore uses its exclusive fresh snapshot boundary.
+- Portable backups are configuration portability artifacts; local users, recovery identity, history, avatars, and other runtime data belong to the destination installation.
 
 ## Current engineering decisions
 
-- Preserve the standard-library runtime and existing product behavior while correcting reproduced defects.
-- Rebase onto the merged source-package pruning PR #28 and preserve its changes.
-- Record the current responsive layout contract rather than treating superseded historical instructions as simultaneous requirements.
+- Preserve authentication policy settings while excluding user identity material from backups.
+- Keep legacy archives importable, but never apply their users, recovery keys, or runtime data during restore.
 
 ## Development principles
 
@@ -34,6 +32,14 @@ Hardens live state restoration, backup validation, request parsing, and session 
 - Keep public development continuity portable across forks; label canonical repository/branch/PR references as upstream context rather than local identity.
 
 ## Recent work
+
+### v0.5.149 — Login polish and identity-safe backups
+
+Adds a slow login pulse and deliberate recovery-key acknowledgement while narrowing portable backup restore to configuration without moving user or recovery identity.
+
+- The login screen now has a slow, smooth ambient accent-gradient pulse with a reduced-motion fallback.
+- First-run recovery-key acknowledgement enforces a ten-second countdown before Continue becomes available.
+- New portable backups carry configuration for settings, integrations, and download clients without users, recovery keys, or runtime data.
 
 ### v0.5.148 — State restoration and input hardening
 
@@ -70,21 +76,13 @@ Prepares Torrent Dashboard to cross from the legacy root Python layout to src/to
 - Recovery.exe and Updater.exe are built as standalone executables; Dashboard.exe remains an onedir application for fast startup and editable external assets.
 - Runtime path helpers now understand both the legacy root Python layout and the upcoming src/torrent_dashboard layout.
 
-### v0.5.144 — Update source package selection hotfix
-
-Fixes update staging after the Windows executable preview introduced a second ZIP asset on each GitHub release.
-
-- Update discovery now selects the exact source archive Torrent-Dashboard-<version>.zip before considering fallback ZIP assets.
-- Windows preview packages use a distinct TorrentDashboard-Windows-<version>-x64.zip name so older source updaters do not mistake them for installable source releases.
-
 ## What to do next
 
-1. **Validate compiled migration under live activity** — Run Windows create/export/import/restore and safety-backup recovery with active browser sessions and qBitTorrent polling, then exercise compiled update/rollback.
+1. **Exercise identity-safe cross-install restore** — Export a backup from one compiled Windows installation and restore it on another, confirming clients and integrations move while the destination users and recovery key remain unchanged.
 
 ## Known issues
 
-- Live compiled Windows migration and update/rollback remain operational checks; source-level tests do not establish that coverage.
-- Portable archives still contain unencrypted secrets. A process termination or power loss during multi-file restore may require manual recovery from the retained safety backup.
+- Portable backups still contain saved client and integration credentials in plaintext inside the archive; store exported .tdbackup files securely.
 
 ## Handoff instructions for a new development session
 
