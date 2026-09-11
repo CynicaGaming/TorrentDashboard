@@ -2,8 +2,7 @@ name: Temporary Account Settings Menu Hotfix
 
 on:
   push:
-    branches:
-      - hotfix/account-settings-menu
+    branches: [hotfix/account-settings-menu]
 
 permissions:
   contents: write
@@ -30,12 +29,10 @@ jobs:
           root = Path('.')
           app_path = root / 'static/app.js'
           app = app_path.read_text(encoding='utf-8')
-
           old_bootstrap = "syncCurrentUserUi();$('#accountSettingsBtn')?.classList.toggle('hidden',!!state.me?.is_recovery_account);"
           if old_bootstrap not in app:
               raise SystemExit('recovery account menu hide guard not found')
           app = app.replace(old_bootstrap, 'syncCurrentUserUi();', 1)
-
           old_sync = "  const editable=!!state.me?.user_id;\n  for(const id of ['accountSettingsBtn']){const el=$('#'+id);if(el)el.disabled=!editable}\n"
           new_sync = """  const editable=!!state.me?.user_id&&!state.me?.is_recovery_account;\n  const accountSettingsBtn=$('#accountSettingsBtn');\n  if(accountSettingsBtn){\n    accountSettingsBtn.disabled=!editable;\n    accountSettingsBtn.title=editable?'':state.me?.is_recovery_account?'The built-in recovery account cannot be edited':'Sign in with a user account to edit account settings';\n  }\n"""
           if old_sync not in app:
@@ -44,12 +41,18 @@ jobs:
           app = app.replace("const FRONTEND_BUILD='0.5.153';", "const FRONTEND_BUILD='0.5.154';", 1)
           app_path.write_text(app, encoding='utf-8')
 
-          for relative in ('static/index.html', 'static/sw.js'):
-              path = root / relative
-              text = path.read_text(encoding='utf-8')
-              if '0.5.153' not in text:
-                  raise SystemExit(f'{relative}: v0.5.153 marker not found')
-              path.write_text(text.replace('0.5.153', '0.5.154'), encoding='utf-8')
+          index_path = root / 'static/index.html'
+          index = index_path.read_text(encoding='utf-8')
+          if '0.5.153' not in index:
+              raise SystemExit('index version marker not found')
+          index_path.write_text(index.replace('0.5.153', '0.5.154'), encoding='utf-8')
+
+          sw_path = root / 'static/sw.js'
+          sw = sw_path.read_text(encoding='utf-8')
+          if '0.5.153' not in sw or 'torrent-dashboard-v05153' not in sw:
+              raise SystemExit('service-worker version markers not found')
+          sw = sw.replace('0.5.153', '0.5.154').replace('torrent-dashboard-v05153', 'torrent-dashboard-v05154')
+          sw_path.write_text(sw, encoding='utf-8')
 
           init_path = root / 'src/torrent_dashboard/__init__.py'
           init_text = init_path.read_text(encoding='utf-8')
@@ -106,13 +109,11 @@ jobs:
                   'Keep Account settings discoverable in the profile menu for every authenticated session.',
                   'Do not create a persistent profile or password for the built-in recovery principal.'
               ],
-              'next_steps': [
-                  {
-                      'priority': 1,
-                      'title': 'Verify account menu on Windows',
-                      'detail': 'Confirm Account settings is visible for normal and recovery sessions, editable for normal accounts, and disabled with explanatory text for the built-in recovery account.'
-                  }
-              ]
+              'next_steps': [{
+                  'priority': 1,
+                  'title': 'Verify account menu on Windows',
+                  'detail': 'Confirm Account settings is visible for normal and recovery sessions, editable for normal accounts, and disabled with explanatory text for the built-in recovery account.'
+              }]
           })
           releases_path.write_text(json.dumps(releases, indent=2) + '\n', encoding='utf-8')
 
@@ -135,12 +136,9 @@ jobs:
                   'Do not reintroduce browser command execution or the removed Recovery Console.'
               ],
               'files': [
-                  'static/app.js',
-                  'static/index.html',
-                  'static/sw.js',
+                  'static/app.js', 'static/index.html', 'static/sw.js',
                   'release_tools/validate_ui_strings.py',
-                  'src/torrent_dashboard/__init__.py',
-                  'release_notes/releases.json'
+                  'src/torrent_dashboard/__init__.py', 'release_notes/releases.json'
               ],
               'blockers': [],
               'out_of_scope': [
