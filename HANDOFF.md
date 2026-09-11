@@ -26,6 +26,7 @@ The released-state details and recent history are in `PROJECT_STATE.md`; archite
 - Source/unit, UI, syntax, generated-documentation, hygiene, source-package, and pull-request matrix checks pass.
 - The dashboard exposes no Console navigation/view and no /api/recovery/command endpoint, while browser recovery-key sign-in still works as an authentication-recovery path.
 - Recovery.exe lists and tests configured clients/integrations, lists live torrents and Jellyfin tasks, and shows redacted config/users/events after recovery-key authentication.
+- Recovery.exe preserves staged update download/install behavior: update download retains a verified package, update install consumes only a revalidated stage, and update apply performs both steps.
 - Recovery.exe torrent mutations remain limited to start, stop, recheck, and reannounce.
 - The built-in updater installs the compiled v0.5.153 package and the existing portable backup lifecycle remains intact.
 
@@ -49,6 +50,7 @@ The released-state details and recent history are in `PROJECT_STATE.md`; archite
 - `static/app.css`
 - `release_tools/validate_ui_strings.py`
 - `release_notes/releases.json`
+- `src/torrent_dashboard/recovery_update_staging.py`
 
 ### Blockers
 

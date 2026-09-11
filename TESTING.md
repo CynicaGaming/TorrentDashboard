@@ -96,6 +96,7 @@ Use only a test installation or an environment where restart/rollback is accepta
 - `Recovery.exe` accepts the setup recovery key, lists configured clients/integrations/users/events, and can fetch live torrent identifiers directly from qBittorrent.
 - `Recovery.exe` client/integration tests and Jellyfin task listing work without importing or starting the dashboard HTTP application.
 - Recovery torrent mutations accept only start, stop, recheck, and reannounce; destructive torrent deletion is rejected.
+- Recovery update download retains a verified package without installing it; update install revalidates that retained package before replacement, and update apply performs both steps.
 
 ### Responsive interface
 

@@ -22,13 +22,14 @@ Removes the embedded dashboard Console and moves its diagnostic and safe operati
 
 - Adds recovery_operations.py as a dashboard-independent local operations boundary with direct qBittorrent authentication, client testing, live torrent listing, and a start/stop/recheck/reannounce allowlist.
 - Deletes recovery_console.py and its dashboard runtime cache coupling; Recovery.exe remains a non-listening process and does not import the dashboard composition root.
-- Recovery update install/apply now uses the existing standalone verified updater path; a separate staged-download command is intentionally not retained in Recovery.exe.
+- Preserves the former Console update download/install split through recovery_update_staging.py: Recovery.exe can retain a SHA-256-verified package, revalidate the retained package before install, or download-and-apply in one operation.
 
 ### Validation
 
 - Adds unit coverage for secret redaction, client identifiers, live torrent normalization, the safe torrent action allowlist, Jellyfin task lookup, and local history event reads.
 - Changes the HTTP security contract to assert /api/recovery/command is absent while preserving /api/recovery/login.
 - Changes UI contract validation to fail if Console navigation, embeddedConsole JavaScript/CSS, or the removed recovery command endpoint reappears.
+- Adds staged-update coverage for retained package verification, up-to-date behavior, digest failures, tamper rechecks, and requested-version matching.
 
 ### Known issues
 

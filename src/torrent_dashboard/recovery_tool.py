@@ -42,6 +42,7 @@ from torrent_dashboard.recovery_operations import (
     test_integration,
     torrent_action,
 )
+from torrent_dashboard.recovery_update_staging import read_staged_update, stage_latest_update
 
 APP_DIR = app_dir()
 CONFIG_PATH = APP_DIR / "config.json"
@@ -293,6 +294,43 @@ def install_update(cfg: dict, force: bool = False) -> None:
     upd.recovery_update(APP_DIR, repo, force=force)
 
 
+def stage_update_download(cfg: dict) -> dict:
+    upd = updater_module()
+    state = stage_latest_update(APP_DIR, configured_repository(cfg), upd)
+    if state.get("state") == "upToDate":
+        print(f"Torrent Dashboard {state.get('currentVersion') or current_version()} is already current.")
+    else:
+        print(f"Verified update {state.get('version')} downloaded and retained for installation.")
+        print(f"Package: {state.get('package')}")
+    return state
+
+
+def install_staged_update(requested_version: str | None = None) -> None:
+    upd = updater_module()
+    if upd.dashboard_instance_running():
+        raise RuntimeError("Stop Torrent Dashboard before installing a staged update from local recovery")
+    state = read_staged_update(APP_DIR, upd, requested_version)
+    command = updater_command(APP_DIR, detached=True)
+    command += [
+        "--pid", str(os.getpid()),
+        "--source", state["source"],
+        "--target", str(APP_DIR),
+        "--version", state["version"],
+    ]
+    kwargs = {
+        "cwd": str(APP_DIR),
+        "stdin": subprocess.DEVNULL,
+        "stdout": None,
+        "stderr": None,
+        "env": source_python_env(APP_DIR),
+    }
+    if os.name == "nt":
+        kwargs["creationflags"] = getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
+    subprocess.Popen(command, **kwargs)
+    print(f"Installing verified staged update {state['version']}. Recovery will close so managed files can be replaced safely.")
+    raise SystemExit(0)
+
+
 def network_reset(cfg: dict) -> None:
     backup_config()
     dashboard = cfg.setdefault("dashboard", {})
@@ -392,8 +430,10 @@ Commands:
   update status                               Show local update state
   update check                                Check for a release
   update repo [owner/repository|default]      Show or change the update repository
-  update install|apply                        Download, verify, and install the latest release
-  update reinstall                            Reinstall the latest verified release
+  update download                             Download, verify, and retain the latest update
+  update install [version]                    Install the retained verified update
+  update apply                                Download, verify, and install the latest update
+  update reinstall                            Reinstall the latest release directly from GitHub
   update clear                                Clear stuck staged update files/status
   backup                                      Back up config.json
   backups                                     List local config backups
@@ -543,22 +583,34 @@ def execute(command: str, cfg: dict) -> dict:
                 print(f"Update repository set to {value}.")
             else:
                 raise RuntimeError("Usage: update repo [owner/repository|default]")
-        elif sub in ("install", "apply", "reinstall") and len(parts) == 2:
-            force = sub == "reinstall"
-            action = "reinstall" if force else "install"
-            if not confirm(f"This will {action} Torrent Dashboard from {configured_repository(cfg)}."):
+        elif sub == "download" and len(parts) == 2:
+            stage_update_download(cfg)
+        elif sub == "install" and len(parts) in (2, 3):
+            requested_version = parts[2] if len(parts) == 3 else None
+            label = f" {requested_version}" if requested_version else ""
+            if not confirm(f"Install the retained verified update{label}?"):
                 print("Cancelled.")
             else:
-                install_update(cfg, force=force)
-        elif sub == "download" and len(parts) == 2:
-            raise RuntimeError("Recovery.exe does not keep a separate staged download; use update install to download, verify, and apply in one operation")
+                install_staged_update(requested_version)
+        elif sub == "apply" and len(parts) == 2:
+            if not confirm(f"Download, verify, and install the latest Torrent Dashboard release from {configured_repository(cfg)}?"):
+                print("Cancelled.")
+            else:
+                staged = stage_update_download(cfg)
+                if staged.get("state") != "upToDate":
+                    install_staged_update(str(staged.get("version") or ""))
+        elif sub == "reinstall" and len(parts) == 2:
+            if not confirm(f"Reinstall Torrent Dashboard from {configured_repository(cfg)}?"):
+                print("Cancelled.")
+            else:
+                install_update(cfg, force=True)
         elif sub == "clear" and len(parts) == 2:
             if confirm("Delete staged update files and update-status.json?"):
                 clear_update_state()
             else:
                 print("Cancelled.")
         else:
-            raise RuntimeError("Usage: update status|check|repo|install|apply|reinstall|clear")
+            raise RuntimeError("Usage: update status|check|repo|download|install [version]|apply|reinstall|clear")
     elif op == "backup":
         print(f"Config backup created: {backup_config()}")
     elif op == "backups":

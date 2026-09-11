@@ -75,6 +75,8 @@ Runtime paths, the running version, and the default upstream repository are inje
 
 Own the out-of-band, recovery-key-gated command surface. `recovery_tool.py` handles local authentication, config backup/restore, update orchestration, command parsing, and terminal interaction. `recovery_operations.py` owns direct diagnostic/service operations needed outside the running dashboard, including redacted configuration/account inspection, qBittorrent client tests and safe torrent actions, integration tests, Jellyfin scheduled-task operations, and local history reads. Neither module imports the dashboard composition root or starts a listening server.
 
+`recovery_update_staging.py` owns the retained-package boundary for local recovery updates. It downloads only GitHub release assets with SHA-256 metadata, validates the extracted distribution/version, records a `readyToInstall` state under `data/updates/`, and rehashes the retained ZIP before handing the extracted source to the standalone updater.
+
 The browser application intentionally has no embedded command console and no `/api/recovery/command` execution endpoint. Browser recovery-key sign-in remains an authentication-recovery path rather than a general command channel.
 
 ### `src/torrent_dashboard/updater.py`
