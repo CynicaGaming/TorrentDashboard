@@ -1,6 +1,7 @@
 """Verified update staging used by the local recovery command surface."""
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 import shutil
@@ -115,7 +116,7 @@ def stage_latest_update(target: Path, repository: str, updater, *, force: bool =
 
 
 def read_staged_update(target: Path, updater, requested_version: str | None = None) -> dict:
-    """Load and revalidate the retained staged release before handing it to Updater.exe."""
+    """Load and revalidate the retained staged release before handing it to the updater."""
     target = Path(target).resolve()
     path = _status_path(target)
     if not path.is_file():
@@ -150,11 +151,6 @@ def read_staged_update(target: Path, updater, requested_version: str | None = No
     package = Path(str(state.get("package") or "")).resolve()
     if package == updates_root or updates_root not in package.parents or not package.is_file():
         raise RuntimeError("The staged update package is missing")
-    if updater.download_file.__module__:
-        # Keep the updater dependency explicit without re-downloading. The package digest is
-        # checked locally below so a retained stage cannot be replaced unnoticed.
-        pass
-    import hashlib
 
     actual = hashlib.sha256()
     with package.open("rb") as handle:
