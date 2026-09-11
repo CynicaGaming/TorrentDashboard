@@ -108,8 +108,8 @@ def main():
     validate_javascript("static/app.js", app_js)
     validate_javascript("static/settings.js", settings_js)
     validate_design_language(app_js, settings_js)
-    assert 'id="view-console"' in html and 'id="embeddedConsoleForm"' in html
-    assert 'data-view="console"' in html and 'id="accountConsoleBtn"' not in html
+    assert 'id="view-console"' not in html and 'id="embeddedConsoleForm"' not in html
+    assert 'data-view="console"' not in html and 'id="accountConsoleBtn"' not in html
     assert 'id="accountSettingsBtn"' in html and '>Account settings</button>' in html
     assert "$('#accountSettingsBtn').addEventListener('click'" in app_js
     assert 'login-gradient-pulse' not in app_css and 'login-radiant-glow' not in html
@@ -117,7 +117,9 @@ def main():
     assert 'id="backupProgress"' in html and 'class="backup-progress hidden"' in html
     assert 'backup-delete' in settings_js and "post('/api/backups/delete',{name})" in settings_js
     assert 'path=="/api/backups/delete"' in dashboard_py and 'backup_deleted' in dashboard_py
-    assert 'const embeddedConsoleState=' in app_js and "post('/api/recovery/command',{command})" in app_js
+    assert 'embeddedConsole' not in app_js and '/api/recovery/command' not in app_js
+    assert '/api/recovery/command' not in dashboard_py and 'recovery_console_execute' not in dashboard_py
+    assert 'Recovery.exe' in html
 
 
     assert 'placeholder="Search torrents…"' in html
@@ -914,16 +916,16 @@ def main():
 
     # 0.5.141 replaces the pre-login Console with dashboard-wide Recovery.
     recovery_py = (ROOT / "src" / "torrent_dashboard" / "recovery.py").read_text(encoding="utf-8")
-    recovery_console_py = (ROOT / "src" / "torrent_dashboard" / "recovery_console.py").read_text(encoding="utf-8")
+    recovery_operations_py = (ROOT / "src" / "torrent_dashboard" / "recovery_operations.py").read_text(encoding="utf-8")
     assert 'id="loginRecoveryTab"' in html and 'id="recoveryLoginForm"' in html and 'id="recoveryKey"' in html
     assert html.count('id="recoveryKey"') == 1
     assert 'href="/console"' not in html and not (ROOT / "static" / "recovery-console.html").exists()
-    assert '/api/recovery/login' in dashboard_py and '/api/recovery/command' in dashboard_py
+    assert '/api/recovery/login' in dashboard_py and '/api/recovery/command' not in dashboard_py
     assert '/api/recovery/unlock' not in dashboard_py and 'RECOVERY_SESSIONS' not in dashboard_py and 'RECOVERY_CODE_RAW' not in dashboard_py
     assert 'RECOVERY_ACCOUNT_USERNAME = "Administrator"' in recovery_py and 'RECOVERY_KEY_BYTES = 32' in recovery_py
     assert 'verify_dashboard_recovery_key' in recovery_py and 'recovery_key_record' in recovery_py
     assert 'recovery_key_hash' not in users_py and 'regenerate_user_recovery_key' not in users_py
-    assert 'SAFE_TORRENT_ACTIONS' in recovery_console_py and 'delete' not in recovery_console_py.split('SAFE_TORRENT_ACTIONS',1)[1].split(')',1)[0]
+    assert 'SAFE_TORRENT_ACTIONS' in recovery_operations_py and 'delete' not in recovery_operations_py.split('SAFE_TORRENT_ACTIONS',1)[1].split(')',1)[0]
     assert 'id="setupRecoveryModal"' in html and 'id="setupRecoveryKeyValue"' in html
     assert '/api/recovery/initialize' not in dashboard_py and 'recovery_configured' not in dashboard_py and 'recovery_configured' not in app_js
     local_recovery = (ROOT / 'src' / 'torrent_dashboard' / 'recovery_tool.py').read_text(encoding='utf-8')

@@ -12,6 +12,53 @@
   },
   "releases": [
     {
+      "version": "0.5.153",
+      "date": "2026-09-11",
+      "status": "prerelease",
+      "title": "Local recovery command migration",
+      "summary": "Removes the embedded dashboard Console and moves its diagnostic and safe operational command surface into the recovery-key-gated local Recovery tool.",
+      "highlights": [
+        "Removes Console from desktop/mobile navigation, deletes the embedded terminal UI, and removes the authenticated /api/recovery/command endpoint.",
+        "Expands Recovery.exe with redacted config, client, integration, torrent, Jellyfin, users, events, and update diagnostics while retaining existing config backup/restore and network recovery commands.",
+        "Fetches torrent identifiers and state directly from qBittorrent in local recovery instead of depending on the running dashboard cache.",
+        "Keeps browser recovery-key sign-in as a separate account-recovery path without exposing command execution through the dashboard."
+      ],
+      "fixes": [
+        "Narrows the dashboard HTTP attack surface by removing the general allowlisted recovery-command dispatcher from the web application.",
+        "Keeps safe torrent and Jellyfin operational recovery available when the dashboard UI is unavailable by moving those operations to the local executable."
+      ],
+      "technical": [
+        "Adds recovery_operations.py as a dashboard-independent local operations boundary with direct qBittorrent authentication, client testing, live torrent listing, and a start/stop/recheck/reannounce allowlist.",
+        "Deletes recovery_console.py and its dashboard runtime cache coupling; Recovery.exe remains a non-listening process and does not import the dashboard composition root.",
+        "Preserves the former Console update download/install split through recovery_update_staging.py: Recovery.exe can retain a SHA-256-verified package, revalidate the retained package before install, or download-and-apply in one operation."
+      ],
+      "validation": [
+        "Adds unit coverage for secret redaction, client identifiers, live torrent normalization, the safe torrent action allowlist, Jellyfin task lookup, and local history event reads.",
+        "Changes the HTTP security contract to assert /api/recovery/command is absent while preserving /api/recovery/login.",
+        "Changes UI contract validation to fail if Console navigation, embeddedConsole JavaScript/CSS, or the removed recovery command endpoint reappears.",
+        "Adds staged-update coverage for retained package verification, up-to-date behavior, digest failures, tamper rechecks, and requested-version matching."
+      ],
+      "known_issues": [
+        "Portable backup archives can contain saved client and integration credentials in plaintext; store exported .tdbackup files securely.",
+        "Windows executables are not code-signed yet."
+      ],
+      "architecture": [
+        "Operational recovery commands belong to the local recovery executable rather than the browser/HTTP composition root."
+      ],
+      "decisions": [
+        "Keep browser recovery-key sign-in as a separate authentication recovery path while removing browser command execution.",
+        "Keep Recovery.exe non-listening and dashboard-independent; service diagnostics connect directly to configured endpoints.",
+        "Limit Recovery.exe torrent mutations to the former safe action allowlist and do not add delete or other destructive torrent operations."
+      ],
+      "next_steps": [
+        {
+          "priority": 1,
+          "title": "Exercise Recovery.exe migration on compiled Windows",
+          "detail": "Install v0.5.153 through the built-in updater, confirm Console is absent from the dashboard, then validate Recovery.exe client/integration/torrent/Jellyfin/users/events commands plus update and backup recovery flows."
+        }
+      ]
+    },
+    {
       "version": "0.5.152",
       "date": "2026-09-08",
       "status": "prerelease",

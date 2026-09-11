@@ -7,45 +7,50 @@
 This handoff is intentionally portable across public forks. Verify the current checkout's Git remote, branch, and open work before using upstream references as instructions.
 
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
-- Last documented upstream build: **v0.5.152** (prerelease)
+- Last documented upstream build: **v0.5.153** (prerelease)
 
 ## Last known-good state
 
-Adds explicit read-only list commands for actionable Recovery Console resources while preserving the v0.5.151 profile, login, backup, and update behavior.
+Removes the embedded dashboard Console and moves its diagnostic and safe operational command surface into the recovery-key-gated local Recovery tool.
 
 The released-state details and recent history are in `PROJECT_STATE.md`; architectural constraints are in `ARCHITECTURE.md`.
 
 ## Active development intent
 
 - Status: **ready**
-- Objective: **Validate v0.5.152 auto-update, Recovery Console list parity, and the backup lifecycle on compiled Windows**
-- Why: The list-command parity work has been carried forward onto the current main baseline; the remaining risk is operational validation through the updater and compiled Windows package.
+- Objective: **Validate v0.5.153 local Recovery.exe command migration on compiled Windows**
+- Why: The embedded dashboard Console and its HTTP command endpoint have been removed; the remaining risk is compiled-Windows validation of the expanded out-of-band recovery surface and updater flow.
 
 ### Acceptance criteria
 
 - Source/unit, UI, syntax, generated-documentation, hygiene, source-package, and pull-request matrix checks pass.
-- The built-in updater detects and installs v0.5.152 from the GitHub prerelease without manual file replacement.
-- client list, integration list, torrent list [client-id], and jellyfin list <integration-id> expose actionable identifiers to read-only sessions.
-- Torrent and Jellyfin mutation commands remain administrator-only.
-- The static login treatment and Settings → Backups create/delete/import/restore behavior from v0.5.151 remain intact.
+- The dashboard exposes no Console navigation/view and no /api/recovery/command endpoint, while browser recovery-key sign-in still works as an authentication-recovery path.
+- Recovery.exe lists and tests configured clients/integrations, lists live torrents and Jellyfin tasks, and shows redacted config/users/events after recovery-key authentication.
+- Recovery.exe preserves staged update download/install behavior: update download retains a verified package, update install consumes only a revalidated stage, and update apply performs both steps.
+- Recovery.exe torrent mutations remain limited to start, stop, recheck, and reannounce.
+- The built-in updater installs the compiled v0.5.153 package and the existing portable backup lifecycle remains intact.
 
 ### Decisions already made
 
-- Keep list commands read-only and preserve administrator gates on mutations.
-- Keep compatibility aliases for established Console syntax.
-- Use the existing torrent cache for Console listing rather than adding another qBitTorrent polling path.
-- Do not reintroduce superseded login animation while merging the Console parity work.
+- Keep command execution out of the dashboard HTTP surface.
+- Keep browser recovery-key sign-in separate from the local command surface.
+- Use direct service connections from Recovery.exe instead of importing dashboard.py or depending on its in-memory torrent cache.
+- Do not add destructive torrent mutations to local recovery.
 
 ### Expected areas of change
 
+- `src/torrent_dashboard/recovery_tool.py`
+- `src/torrent_dashboard/recovery_operations.py`
 - `src/torrent_dashboard/dashboard.py`
-- `src/torrent_dashboard/recovery_console.py`
-- `tests/test_recovery_console.py`
-- `tests/test_recovery_console_runtime.py`
-- `release_notes/releases.json`
+- `tests/test_recovery_operations.py`
+- `tests/test_local_recovery.py`
+- `tests/test_http_security.py`
 - `static/index.html`
 - `static/app.js`
-- `static/sw.js`
+- `static/app.css`
+- `release_tools/validate_ui_strings.py`
+- `release_notes/releases.json`
+- `src/torrent_dashboard/recovery_update_staging.py`
 
 ### Blockers
 
@@ -53,11 +58,11 @@ None currently recorded.
 
 ### Explicitly out of scope
 
-- Backup encryption, scheduled backups, cloud destinations, code signing, broader authentication redesign, and new Console mutation capabilities.
+- Removing browser recovery-key sign-in, backup encryption, scheduled backups, cloud destinations, code signing, broader authentication redesign, and destructive Recovery.exe torrent actions.
 
 ## Exact next action
 
-Install v0.5.152 through the built-in updater on compiled Windows, verify the four list forms and admin mutation gates, then repeat the portable backup lifecycle.
+Install v0.5.153 on compiled Windows, verify the dashboard has no Console surface, then exercise Recovery.exe diagnostics/actions and repeat updater plus portable-backup recovery flows.
 
 ## Resume checklist
 

@@ -86,13 +86,13 @@ class HttpSecurityTests(unittest.TestCase):
             future.result(timeout=2)
         self.assertEqual(request.send_json.call_args.args[0], 401)
 
-    def test_recovery_console_rechecks_bypass_authorization(self):
-        token, session = self.sessions.create("Guest", 24, "disabled")
+    def test_recovery_console_endpoint_is_removed(self):
+        token, session = self.sessions.create("admin", 24, "password", group="administrator")
         request = self.request("/api/recovery/command", token, session["csrf"])
-        with patch.object(dashboard, "recovery_console_execute") as execute:
-            request.do_POST()
-            execute.assert_not_called()
-        self.assertEqual(request.send_json.call_args.args[0], 401)
+        request.do_POST()
+        self.assertEqual(request.send_json.call_args.args[0], 404)
+        self.assertFalse(hasattr(dashboard, "recovery_console_execute"))
+
 
     def test_restore_cannot_overlap_a_launched_updater(self):
         token, session = self.sessions.create("admin", 24, "password")

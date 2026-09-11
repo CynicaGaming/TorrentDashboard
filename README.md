@@ -78,6 +78,12 @@ No GitHub access token is required or supported by the default updater. Torrent 
 
 Release automation publishes `Torrent-Dashboard-X.Y.Z.zip` plus a generated `Torrent-Dashboard-X.Y.Z.release.json` provenance sidecar. The updater trusts the GitHub asset digest; the sidecar exists for release provenance and external inspection rather than as a second independently authored checksum source.
 
+## Local recovery
+
+The dashboard does not expose an embedded command console. Administrative diagnostics and recovery commands run locally through `Recovery.exe` on Windows or `torrent-dashboard-recovery` from the source package. The local recovery tool requires the setup-generated recovery key and never starts a listening recovery server. It can inspect redacted configuration, clients, integrations, users, history events, live qBittorrent torrent state, and Jellyfin tasks; its torrent mutations are limited to start, stop, recheck, and reannounce.
+
+The browser recovery-key sign-in remains a separate account-recovery path; it does not expose the local command surface.
+
 ## Security and Privacy
 
 Keep qBitTorrent itself on localhost or another protected interface whenever possible and expose only Torrent Dashboard to trusted clients.

@@ -52,6 +52,19 @@ class LocalRecoveryToolTests(unittest.TestCase):
         for forbidden in ("BaseHTTPRequestHandler", "ThreadingHTTPServer", "socketserver", "http.server"):
             self.assertNotIn(forbidden, text)
 
+    def test_recovery_command_parser_supports_quoted_identifiers(self):
+        self.assertEqual(rt.parse_command('client test "desktop one"'), ["client", "test", "desktop one"])
+        with self.assertRaisesRegex(RuntimeError, "one recovery command"):
+            rt.parse_command("status\nhelp")
+
+    def test_local_help_contains_migrated_console_operations(self):
+        with mock.patch("builtins.print") as output:
+            rt.print_help()
+        rendered = "\n".join(str(call.args[0]) for call in output.call_args_list if call.args)
+        for command in ("client list", "integration list", "torrent list", "jellyfin list", "users", "events"):
+            self.assertIn(command, rendered)
+        self.assertIn("does not expose", rendered)
+
 
 if __name__ == "__main__":
     unittest.main()

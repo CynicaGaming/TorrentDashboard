@@ -17,6 +17,7 @@ import os
 import subprocess
 import re
 import shutil
+import shlex
 import sys
 import time
 from pathlib import Path
@@ -27,10 +28,26 @@ if __package__ in (None, ""):
         sys.path.insert(0, str(_src))
 
 from torrent_dashboard.runtime_paths import app_dir, is_frozen, source_python_env, updater_command
+from torrent_dashboard.recovery_operations import (
+    SAFE_TORRENT_ACTIONS,
+    history_events,
+    jellyfin_task_action,
+    list_clients,
+    list_integrations,
+    list_jellyfin_tasks,
+    list_torrents,
+    list_users,
+    redacted_configuration,
+    test_client,
+    test_integration,
+    torrent_action,
+)
+from torrent_dashboard.recovery_update_staging import read_staged_update, stage_latest_update
 
 APP_DIR = app_dir()
 CONFIG_PATH = APP_DIR / "config.json"
 DATA_DIR = APP_DIR / "data"
+DB_PATH = DATA_DIR / "torrent_desk.sqlite3"
 BACKUP_DIR = DATA_DIR / "recovery-backups"
 UPDATE_STATE_PATH = DATA_DIR / "update-status.json"
 UPDATES_DIR = DATA_DIR / "updates"
@@ -277,6 +294,43 @@ def install_update(cfg: dict, force: bool = False) -> None:
     upd.recovery_update(APP_DIR, repo, force=force)
 
 
+def stage_update_download(cfg: dict) -> dict:
+    upd = updater_module()
+    state = stage_latest_update(APP_DIR, configured_repository(cfg), upd)
+    if state.get("state") == "upToDate":
+        print(f"Torrent Dashboard {state.get('currentVersion') or current_version()} is already current.")
+    else:
+        print(f"Verified update {state.get('version')} downloaded and retained for installation.")
+        print(f"Package: {state.get('package')}")
+    return state
+
+
+def install_staged_update(requested_version: str | None = None) -> None:
+    upd = updater_module()
+    if upd.dashboard_instance_running():
+        raise RuntimeError("Stop Torrent Dashboard before installing a staged update from local recovery")
+    state = read_staged_update(APP_DIR, upd, requested_version)
+    command = updater_command(APP_DIR, detached=True)
+    command += [
+        "--pid", str(os.getpid()),
+        "--source", state["source"],
+        "--target", str(APP_DIR),
+        "--version", state["version"],
+    ]
+    kwargs = {
+        "cwd": str(APP_DIR),
+        "stdin": subprocess.DEVNULL,
+        "stdout": None,
+        "stderr": None,
+        "env": source_python_env(APP_DIR),
+    }
+    if os.name == "nt":
+        kwargs["creationflags"] = getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
+    subprocess.Popen(command, **kwargs)
+    print(f"Installing verified staged update {state['version']}. Recovery will close so managed files can be replaced safely.")
+    raise SystemExit(0)
+
+
 def network_reset(cfg: dict) -> None:
     backup_config()
     dashboard = cfg.setdefault("dashboard", {})
@@ -321,32 +375,84 @@ def confirm(prompt: str, token: str = "YES") -> bool:
     return input(f"{prompt} Type {token} to continue: ").strip() == token
 
 
+def parse_command(command: str) -> list[str]:
+    raw = str(command or "").strip()
+    if not raw:
+        return []
+    if len(raw) > 4096:
+        raise RuntimeError("Recovery command is too long")
+    if "\n" in raw or "\r" in raw:
+        raise RuntimeError("Run one recovery command at a time")
+    try:
+        return shlex.split(raw, posix=True)
+    except ValueError as exc:
+        raise RuntimeError(f"Invalid recovery command: {exc}") from exc
+
+
+def print_json(value) -> None:
+    print(json.dumps(value, indent=2, sort_keys=True, default=str))
+
+
+def print_update_status() -> None:
+    if not UPDATE_STATE_PATH.exists():
+        print_json({"state": "idle", "currentVersion": current_version()})
+        return
+    try:
+        value = json.loads(UPDATE_STATE_PATH.read_text(encoding="utf-8"))
+    except Exception as exc:
+        raise RuntimeError(f"Update status is unreadable: {exc}") from exc
+    print_json(value if isinstance(value, dict) else {"state": "unknown"})
+
+
 def print_help() -> None:
     print("""
 Commands:
-  status                     Show local installation and recovery state
-  validate                   Validate config and critical Python files
-  repo                       Show the configured GitHub repository
-  repo <owner/repository>    Back up config and change the update repository
-  check                      Check the configured repository for releases
-  install                    Install the latest newer verified release
-  reinstall                  Reinstall the latest verified release
-  backup                     Back up config.json
-  backups                    List local config backups
-  restore <backup-file>      Restore a recovery config backup
-  network-reset              Reset bind to 0.0.0.0:8765 and disable HTTPS
-  clear-update               Clear a stuck staged update and update status
-  start                      Start Torrent Dashboard without opening a browser
-  log [lines]                Show the recovery/update restart log
-  help                       Show this help
-  exit                       Exit local recovery
+  status                                      Show local installation and recovery state
+  validate                                    Validate config and critical application files
+  config show                                 Show redacted dashboard configuration
+  client list                                 List configured qBittorrent clients
+  client test <client-id>                     Test one qBittorrent client directly
+  integration list                            List configured integrations with secrets redacted
+  integration test <integration-id>           Test one integration directly
+  torrent list [client-id]                    Fetch live torrent identifiers and state from qBittorrent
+  torrent action <client-id> <action> <hash|all>
+                                              Run start, stop, recheck, or reannounce only
+  jellyfin list <integration-id>              List Jellyfin scheduled tasks
+  jellyfin start <integration-id> <task-id>   Start a Jellyfin scheduled task
+  jellyfin stop <integration-id> <task-id>    Stop a Jellyfin scheduled task
+  users                                       Show redacted local user/account records
+  events [limit]                              Show recent local dashboard history events
+  repo                                        Show the configured GitHub repository
+  repo <owner/repository|default>             Back up config and change the update repository
+  check                                       Check the configured repository for releases
+  install                                     Download, verify, and install the latest newer release
+  reinstall                                   Reinstall the latest verified release
+  update status                               Show local update state
+  update check                                Check for a release
+  update repo [owner/repository|default]      Show or change the update repository
+  update download                             Download, verify, and retain the latest update
+  update install [version]                    Install the retained verified update
+  update apply                                Download, verify, and install the latest update
+  update reinstall                            Reinstall the latest release directly from GitHub
+  update clear                                Clear stuck staged update files/status
+  backup                                      Back up config.json
+  backups                                     List local config backups
+  restore <backup-file>                       Restore a recovery config backup
+  network-reset                               Reset bind to 0.0.0.0:8765 and disable HTTPS
+  clear-update                                Clear a stuck staged update and update status
+  start                                       Start Torrent Dashboard without opening a browser
+  log [lines]                                 Show the recovery/update restart log
+  help                                        Show this help
+  exit                                        Exit local recovery
 
-This is not an operating-system shell. No command starts a listening server.
+Recovery.exe is the command and diagnostic recovery surface. The dashboard does not expose
+an embedded command console. This is not an operating-system shell and no command starts a
+listening recovery server.
 """.strip())
 
 
 def execute(command: str, cfg: dict) -> dict:
-    parts = str(command or "").strip().split()
+    parts = parse_command(command)
     if not parts:
         return cfg
     op = parts[0].lower()
@@ -362,15 +468,97 @@ def execute(command: str, cfg: dict) -> dict:
             print(f"{'OK' if ok else 'FAIL':4}  {name}: {detail}")
         if not all(row[1] for row in rows):
             print("One or more recovery checks failed.")
+    elif op == "config":
+        if len(parts) > 2 or (len(parts) == 2 and parts[1].lower() != "show"):
+            raise RuntimeError("Usage: config show")
+        print_json(redacted_configuration(cfg))
+    elif op in ("clients", "client"):
+        if op == "clients" or len(parts) == 1 or parts[1].lower() == "list":
+            rows = list_clients(cfg)
+            if not rows:
+                print("No download clients are configured.")
+            for item in rows:
+                print(f"{item['id']}  {item['name']}  {'enabled' if item['enabled'] else 'disabled'}  {item['base_url']}")
+        elif parts[1].lower() == "test" and len(parts) == 3:
+            print_json(test_client(cfg, parts[2]))
+        else:
+            raise RuntimeError("Usage: client list | client test <client-id>")
+    elif op in ("integrations", "integration"):
+        if op == "integrations" or len(parts) == 1 or parts[1].lower() == "list":
+            rows = list_integrations(cfg)
+            if not rows:
+                print("No integrations are configured.")
+            for item in rows:
+                print(f"{item.get('id','')}  {item.get('type','')}  {item.get('name') or item.get('type') or 'Integration'}  {'enabled' if item.get('enabled', True) else 'disabled'}")
+        elif parts[1].lower() == "test" and len(parts) == 3:
+            print_json(test_integration(cfg, parts[2]))
+        else:
+            raise RuntimeError("Usage: integration list | integration test <integration-id>")
+    elif op in ("torrents", "torrent"):
+        if op == "torrents":
+            if len(parts) != 1:
+                raise RuntimeError("Usage: torrents")
+            client_id = None
+            rows = list_torrents(cfg)
+        elif len(parts) >= 2 and parts[1].lower() == "list":
+            if len(parts) > 3:
+                raise RuntimeError("Usage: torrent list [client-id]")
+            client_id = parts[2] if len(parts) == 3 else None
+            rows = list_torrents(cfg, client_id)
+        elif len(parts) == 5 and parts[1].lower() == "action":
+            action = parts[3].lower()
+            if action not in SAFE_TORRENT_ACTIONS:
+                raise RuntimeError("Recovery torrent actions are limited to start, stop, recheck, and reannounce")
+            result = torrent_action(cfg, parts[2], action, parts[4])
+            print(f"Torrent action {action} sent to {result['client_id']} (status {result['status']}).")
+            return cfg
+        else:
+            raise RuntimeError("Usage: torrent list [client-id] | torrent action <client-id> <start|stop|recheck|reannounce> <hash|all>")
+        if not rows:
+            print("No torrents are currently available.")
+        else:
+            print("CLIENT  HASH  STATE  PROGRESS  NAME")
+            for item in rows:
+                print(f"{item['client_id']}  {item['hash'] or '-'}  {item['state']}  {item['progress']:5.1f}%  {item['name']}")
+    elif op == "jellyfin":
+        if len(parts) < 3:
+            raise RuntimeError("Usage: jellyfin list|tasks|start|stop <integration-id> [task-id]")
+        action, integration_id = parts[1].lower(), parts[2]
+        if action in ("list", "tasks"):
+            tasks = list_jellyfin_tasks(cfg, integration_id)
+            if not tasks:
+                print("Jellyfin reported no visible scheduled tasks.")
+            for task in tasks:
+                progress = task.get("progress")
+                suffix = f" {progress:.0f}%" if isinstance(progress, (int, float)) else ""
+                print(f"{task.get('id','')}  [{task.get('category','Other')}] {task.get('name','Scheduled task')}  {task.get('state','Idle')}{suffix}")
+        elif action in ("start", "stop") and len(parts) == 4:
+            result = jellyfin_task_action(cfg, integration_id, action, parts[3])
+            print(result.get("message") or f"Jellyfin task {action} requested.")
+        else:
+            raise RuntimeError("Usage: jellyfin list|tasks|start|stop <integration-id> [task-id]")
+    elif op == "users":
+        if len(parts) != 1:
+            raise RuntimeError("Usage: users")
+        print_json(list_users(cfg))
+    elif op == "events":
+        if len(parts) > 2:
+            raise RuntimeError("Usage: events [limit]")
+        try:
+            limit = int(parts[1]) if len(parts) == 2 else 50
+        except ValueError as exc:
+            raise RuntimeError("Events limit must be a number from 1 to 200") from exc
+        print_json(history_events(DB_PATH, max(1, min(200, limit))))
     elif op == "repo":
         if len(parts) == 1:
             print(configured_repository(cfg))
         elif len(parts) == 2:
-            value = set_repository(cfg, parts[1])
+            requested = DEFAULT_REPOSITORY if parts[1].lower() == "default" else parts[1]
+            value = set_repository(cfg, requested)
             cfg = load_config()
             print(f"Update repository set to {value}.")
         else:
-            raise RuntimeError("Usage: repo [owner/repository]")
+            raise RuntimeError("Usage: repo [owner/repository|default]")
     elif op == "check":
         check_update(cfg)
     elif op in ("install", "reinstall"):
@@ -379,6 +567,50 @@ def execute(command: str, cfg: dict) -> dict:
             print("Cancelled.")
         else:
             install_update(cfg, force=op == "reinstall")
+    elif op == "update":
+        sub = parts[1].lower() if len(parts) > 1 else "status"
+        if sub == "status" and len(parts) == 2:
+            print_update_status()
+        elif sub == "check" and len(parts) == 2:
+            check_update(cfg)
+        elif sub == "repo":
+            if len(parts) == 2:
+                print(configured_repository(cfg))
+            elif len(parts) == 3:
+                requested = DEFAULT_REPOSITORY if parts[2].lower() == "default" else parts[2]
+                value = set_repository(cfg, requested)
+                cfg = load_config()
+                print(f"Update repository set to {value}.")
+            else:
+                raise RuntimeError("Usage: update repo [owner/repository|default]")
+        elif sub == "download" and len(parts) == 2:
+            stage_update_download(cfg)
+        elif sub == "install" and len(parts) in (2, 3):
+            requested_version = parts[2] if len(parts) == 3 else None
+            label = f" {requested_version}" if requested_version else ""
+            if not confirm(f"Install the retained verified update{label}?"):
+                print("Cancelled.")
+            else:
+                install_staged_update(requested_version)
+        elif sub == "apply" and len(parts) == 2:
+            if not confirm(f"Download, verify, and install the latest Torrent Dashboard release from {configured_repository(cfg)}?"):
+                print("Cancelled.")
+            else:
+                staged = stage_update_download(cfg)
+                if staged.get("state") != "upToDate":
+                    install_staged_update(str(staged.get("version") or ""))
+        elif sub == "reinstall" and len(parts) == 2:
+            if not confirm(f"Reinstall Torrent Dashboard from {configured_repository(cfg)}?"):
+                print("Cancelled.")
+            else:
+                install_update(cfg, force=True)
+        elif sub == "clear" and len(parts) == 2:
+            if confirm("Delete staged update files and update-status.json?"):
+                clear_update_state()
+            else:
+                print("Cancelled.")
+        else:
+            raise RuntimeError("Usage: update status|check|repo|download|install [version]|apply|reinstall|clear")
     elif op == "backup":
         print(f"Config backup created: {backup_config()}")
     elif op == "backups":
@@ -410,7 +642,13 @@ def execute(command: str, cfg: dict) -> dict:
     elif op == "start":
         start_dashboard()
     elif op == "log":
-        tail_log(int(parts[1]) if len(parts) > 1 else 80)
+        if len(parts) > 2:
+            raise RuntimeError("Usage: log [lines]")
+        try:
+            lines = int(parts[1]) if len(parts) == 2 else 80
+        except ValueError as exc:
+            raise RuntimeError("Log line count must be a number") from exc
+        tail_log(lines)
     else:
         raise RuntimeError("Unknown recovery command. Type help.")
     return cfg
