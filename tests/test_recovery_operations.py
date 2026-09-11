@@ -19,7 +19,7 @@ class RecoveryOperationsTests(unittest.TestCase):
                 "auth_method": "password",
                 "username": "admin",
                 "password": "secret",
-                "api_key": "qbt_abcdefghijklmnopqrstuvwxyz12",
+                "api_key": "not-a-real-api-key",
             }],
             "users": [],
             "integrations": [],
