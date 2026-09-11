@@ -1,5 +1,6 @@
 name: Temporary Recovery Console Migration
 
+# Branch-only one-shot migration; remove after the migration commit is produced.
 on:
   push:
     branches:
