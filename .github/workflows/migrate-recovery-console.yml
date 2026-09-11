@@ -39,6 +39,19 @@ jobs:
           PY
       - name: Apply migration
         run: python release_tools/migrate_recovery_console.py
+      - name: Synchronize service-worker cache namespace
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('static/sw.js')
+          text = path.read_text(encoding='utf-8')
+          old = 'torrent-dashboard-v05152'
+          new = 'torrent-dashboard-v05153'
+          if old not in text:
+              raise SystemExit('old service-worker cache namespace was not found')
+          path.write_text(text.replace(old, new, 1), encoding='utf-8')
+          PY
       - name: Generate release documentation
         run: python release_tools/generate_release_notes.py --version 0.5.153
       - name: Validate migrated source
