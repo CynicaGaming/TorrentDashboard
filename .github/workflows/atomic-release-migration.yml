@@ -1,0 +1,365 @@
+name: Temporary Atomic Updater Release Migration
+
+on:
+  push:
+    branches:
+      - fix/atomic-updater-release
+
+permissions:
+  contents: write
+
+jobs:
+  migrate-and-validate:
+    runs-on: ubuntu-24.04
+    env:
+      PYTHONPATH: src
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.13'
+
+      - name: Apply atomic release publication changes
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          root = Path('.')
+          version = '0.5.155'
+          previous = '0.5.154'
+
+          # Keep application/frontend/service-worker version markers synchronized.
+          init_path = root / 'src/torrent_dashboard/__init__.py'
+          text = init_path.read_text(encoding='utf-8')
+          old = f'__version__ = "{previous}"'
+          if old not in text:
+              raise SystemExit('package version marker not found')
+          init_path.write_text(text.replace(old, f'__version__ = "{version}"', 1), encoding='utf-8')
+
+          app_path = root / 'static/app.js'
+          text = app_path.read_text(encoding='utf-8')
+          old = f"const FRONTEND_BUILD='{previous}';"
+          if old not in text:
+              raise SystemExit('frontend build marker not found')
+          app_path.write_text(text.replace(old, f"const FRONTEND_BUILD='{version}';", 1), encoding='utf-8')
+
+          index_path = root / 'static/index.html'
+          text = index_path.read_text(encoding='utf-8')
+          if previous not in text:
+              raise SystemExit('index version marker not found')
+          index_path.write_text(text.replace(previous, version), encoding='utf-8')
+
+          sw_path = root / 'static/sw.js'
+          text = sw_path.read_text(encoding='utf-8')
+          if 'torrent-dashboard-v05154' not in text or previous not in text:
+              raise SystemExit('service-worker version marker not found')
+          text = text.replace('torrent-dashboard-v05154', 'torrent-dashboard-v05155', 1).replace(previous, version)
+          sw_path.write_text(text, encoding='utf-8')
+
+          # Stage source packages in a draft. A new release must not become
+          # updater-visible until the compiled Windows package is also present.
+          release_path = root / '.github/workflows/release.yml'
+          release = release_path.read_text(encoding='utf-8')
+          marker = '      - name: Publish Or Refresh GitHub Pre-Release\n'
+          start = release.find(marker)
+          if start < 0:
+              raise SystemExit('source release publication step not found')
+          release_tail = r'''      - name: Stage Draft GitHub Pre-Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          ZIP="dist/Torrent-Dashboard-${{ steps.version.outputs.version }}.zip"
+          INFO="dist/Torrent-Dashboard-${{ steps.version.outputs.version }}.release.json"
+          RELEASE_ID=$(gh api "repos/${{ github.repository }}/releases?per_page=100" --jq ".[] | select(.tag_name == \"$TAG\") | .id" | head -n 1)
+          if [ -n "$RELEASE_ID" ]; then
+            gh release upload "$TAG" "$ZIP" "$INFO" --clobber
+            gh release edit "$TAG" \
+              --title "Torrent Dashboard $TAG Pre-Release" \
+              --notes-file dist/release-notes.md \
+              --prerelease
+          else
+            gh release create "$TAG" \
+              "$ZIP" "$INFO" \
+              --target "$GITHUB_SHA" \
+              --title "Torrent Dashboard $TAG Pre-Release" \
+              --notes-file dist/release-notes.md \
+              --prerelease \
+              --draft
+          fi
+
+      - name: Verify Staged Source Asset
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          RELEASE_ID=$(gh api "repos/${{ github.repository }}/releases?per_page=100" --jq ".[] | select(.tag_name == \"$TAG\") | .id" | head -n 1)
+          test -n "$RELEASE_ID"
+          gh api "repos/${{ github.repository }}/releases/$RELEASE_ID" --jq '
+            .assets[]
+            | select(.name == "Torrent-Dashboard-${{ steps.version.outputs.version }}.zip")
+            | select(.digest | startswith("sha256:"))
+            | .id
+          ' | grep -Eq '^[0-9]+$'
+'''
+          release_path.write_text(release[:start] + release_tail, encoding='utf-8')
+
+          # The Windows workflow completes the staged release, verifies both
+          # distributions, publishes atomically, then retires the prior release.
+          windows_path = root / '.github/workflows/windows-preview.yml'
+          windows = windows_path.read_text(encoding='utf-8')
+          marker = '      - name: Wait For Source Pre-Release\n'
+          start = windows.find(marker)
+          if start < 0:
+              raise SystemExit('Windows release wait step not found')
+          windows_tail = r'''      - name: Wait For Staged Source Release
+        if: github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          $tag = "${{ steps.version.outputs.tag }}"
+          $found = $false
+          for ($i = 0; $i -lt 60; $i++) {
+            $releases = gh api "repos/${{ github.repository }}/releases?per_page=100" | ConvertFrom-Json
+            $release = $releases | Where-Object { $_.tag_name -eq $tag } | Select-Object -First 1
+            if ($release) { $found = $true; break }
+            Start-Sleep -Seconds 2
+          }
+          if (-not $found) { throw "Staged source release $tag was not created in time" }
+
+      - name: Publish Windows Preview Assets
+        if: github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          $zip = "dist-windows\TorrentDashboard-Windows-${{ steps.version.outputs.version }}-x64.zip"
+          $info = "dist-windows\TorrentDashboard-Windows-${{ steps.version.outputs.version }}-x64.release.json"
+          gh release upload "${{ steps.version.outputs.tag }}" $zip $info --clobber
+
+      - name: Verify Complete Staged Assets
+        if: github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          $tag = "${{ steps.version.outputs.tag }}"
+          $releases = gh api "repos/${{ github.repository }}/releases?per_page=100" | ConvertFrom-Json
+          $release = $releases | Where-Object { $_.tag_name -eq $tag } | Select-Object -First 1
+          if (-not $release) { throw "Staged release $tag was not found" }
+          $expected = @(
+            "Torrent-Dashboard-${{ steps.version.outputs.version }}.zip",
+            "TorrentDashboard-Windows-${{ steps.version.outputs.version }}-x64.zip"
+          )
+          foreach ($name in $expected) {
+            $asset = $release.assets | Where-Object { $_.name -eq $name } | Select-Object -First 1
+            if (-not $asset -or -not [string]$asset.digest -or -not ([string]$asset.digest).StartsWith('sha256:')) {
+              throw "Updater asset $name is missing or does not have a SHA-256 digest"
+            }
+          }
+
+      - name: Publish Complete Pre-Release
+        if: github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          $tag = "${{ steps.version.outputs.tag }}"
+          $releases = gh api "repos/${{ github.repository }}/releases?per_page=100" | ConvertFrom-Json
+          $release = $releases | Where-Object { $_.tag_name -eq $tag } | Select-Object -First 1
+          if (-not $release) { throw "Staged release $tag was not found" }
+          if ($release.draft) {
+            gh api --method PATCH "repos/${{ github.repository }}/releases/$($release.id)" -F draft=false -F prerelease=true | Out-Null
+          }
+
+      - name: Verify Updater-Visible Complete Pre-Release
+        if: github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          $tag = "${{ steps.version.outputs.tag }}"
+          $release = gh api "repos/${{ github.repository }}/releases/tags/$tag" | ConvertFrom-Json
+          if ($release.draft -or -not $release.prerelease) { throw "Release $tag is not an updater-visible prerelease" }
+          $expected = @(
+            "Torrent-Dashboard-${{ steps.version.outputs.version }}.zip",
+            "TorrentDashboard-Windows-${{ steps.version.outputs.version }}-x64.zip"
+          )
+          foreach ($name in $expected) {
+            $asset = $release.assets | Where-Object { $_.name -eq $name } | Select-Object -First 1
+            if (-not $asset -or -not [string]$asset.digest -or -not ([string]$asset.digest).StartsWith('sha256:')) {
+              throw "Updater-visible asset $name is missing or does not have a SHA-256 digest"
+            }
+          }
+
+      - name: Remove Superseded Pre-Releases
+        if: github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          $tag = "${{ steps.version.outputs.tag }}"
+          $releases = gh api "repos/${{ github.repository }}/releases?per_page=100" | ConvertFrom-Json
+          foreach ($release in $releases) {
+            if (-not $release.draft -and $release.prerelease -and $release.tag_name -ne $tag) {
+              gh release delete $release.tag_name --cleanup-tag --yes
+            }
+          }
+'''
+          windows_path.write_text(windows[:start] + windows_tail, encoding='utf-8')
+
+          # Regression coverage for the publication ordering itself.
+          test_path = root / 'tests/test_release_workflows.py'
+          test_path.write_text(r'''import unittest
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+class ReleaseWorkflowContractTests(unittest.TestCase):
+    def setUp(self):
+        self.source = (ROOT / ".github/workflows/release.yml").read_text(encoding="utf-8")
+        self.windows = (ROOT / ".github/workflows/windows-preview.yml").read_text(encoding="utf-8")
+
+    def test_new_source_release_is_created_as_draft(self):
+        self.assertIn("Stage Draft GitHub Pre-Release", self.source)
+        self.assertIn("--prerelease \\\n              --draft", self.source)
+        self.assertNotIn("Remove Superseded Pre-Releases", self.source)
+        self.assertNotIn("Verify Updater-Visible Pre-Release", self.source)
+
+    def test_windows_finalizes_only_after_both_packages_are_verified(self):
+        staged = self.windows.index("Verify Complete Staged Assets")
+        publish = self.windows.index("Publish Complete Pre-Release")
+        visible = self.windows.index("Verify Updater-Visible Complete Pre-Release")
+        cleanup = self.windows.index("Remove Superseded Pre-Releases")
+        self.assertLess(staged, publish)
+        self.assertLess(publish, visible)
+        self.assertLess(visible, cleanup)
+        self.assertIn("Torrent-Dashboard-${{ steps.version.outputs.version }}.zip", self.windows)
+        self.assertIn("TorrentDashboard-Windows-${{ steps.version.outputs.version }}-x64.zip", self.windows)
+        self.assertIn("-F draft=false -F prerelease=true", self.windows)
+
+
+if __name__ == "__main__":
+    unittest.main()
+''', encoding='utf-8')
+
+          releases_path = root / 'release_notes/releases.json'
+          releases = json.loads(releases_path.read_text(encoding='utf-8'))
+          if any(item.get('version') == version for item in releases.get('releases', [])):
+              raise SystemExit(f'v{version} release metadata already exists')
+          releases['releases'].insert(0, {
+              'version': version,
+              'date': '2026-09-11',
+              'status': 'prerelease',
+              'title': 'Atomic updater-ready release publication',
+              'summary': 'Publishes a new prerelease to auto-update clients only after both source and Windows packages are built and SHA-256 verified.',
+              'highlights': [
+                  'Stages the source release as a GitHub draft so an incomplete new version is never selected by the updater.',
+                  'Attaches and verifies the compiled Windows package before the draft becomes an updater-visible prerelease.',
+                  'Keeps the previous prerelease available until the replacement release is complete and verified.'
+              ],
+              'fixes': [
+                  'Eliminates the publication window where the newest GitHub release existed before its Windows auto-update package was attached.',
+                  'Moves superseded-prerelease cleanup until after the replacement release passes complete updater-asset verification.'
+              ],
+              'technical': [
+                  'The source workflow creates new releases with --draft and validates the staged source ZIP digest.',
+                  'The Windows workflow verifies both canonical ZIP names and SHA-256 digests, publishes the draft through the GitHub Releases API, verifies public visibility, then removes older prereleases.',
+                  'Adds a unit-level workflow contract test so publication ordering cannot silently regress.'
+              ],
+              'validation': [
+                  'Runs source/unit validation, workflow-contract tests, UI contract audit, JavaScript syntax checks, generated documentation checks, repository hygiene checks, and the cross-platform pull-request matrix.'
+              ],
+              'known_issues': [
+                  'Portable backup archives can contain saved client and integration credentials in plaintext; store exported .tdbackup files securely.',
+                  'Windows executables are not code-signed yet.'
+              ],
+              'architecture': [
+                  'A release is updater-visible only after every supported auto-update distribution for that version is present and integrity-verified.'
+              ],
+              'decisions': [
+                  'Treat updater visibility as the final publication step rather than the start of release assembly.',
+                  'Retain the last known-good prerelease until its replacement is fully updater-ready.'
+              ],
+              'next_steps': [
+                  {
+                      'priority': 1,
+                      'title': 'Verify atomic v0.5.155 publication',
+                      'detail': 'Confirm v0.5.154 remains updater-visible while v0.5.155 is staged, then verify v0.5.155 appears only after both source and Windows assets are present with SHA-256 digests.'
+                  }
+              ]
+          })
+          releases_path.write_text(json.dumps(releases, indent=2) + '\n', encoding='utf-8')
+
+          current_path = root / 'development/current.json'
+          current = json.loads(current_path.read_text(encoding='utf-8'))
+          current.update({
+              'status': 'ready',
+              'objective': 'Validate v0.5.155 atomic updater-ready release publication',
+              'why': 'v0.5.154 was published before its Windows package finished, briefly making the newest release unusable by compiled Windows auto-update. Publication now waits until all updater packages are present and verified.',
+              'acceptance_criteria': [
+                  'Source/unit, UI, syntax, generated-documentation, hygiene, source-package, and pull-request matrix checks pass.',
+                  'A newly created release remains draft while source and Windows updater assets are assembled.',
+                  'Both canonical updater ZIPs have GitHub SHA-256 digests before the release becomes public.',
+                  'The previous prerelease remains available until the replacement prerelease is updater-visible and verified.',
+                  'The v0.5.154 Account settings fix and v0.5.153 Recovery.exe migration remain intact.'
+              ],
+              'decisions': [
+                  'Treat public prerelease visibility as an atomic updater-readiness boundary.',
+                  'Publish only after both source and Windows packages pass integrity checks.',
+                  'Delete superseded prereleases only after the replacement is publicly verified.'
+              ],
+              'files': [
+                  '.github/workflows/release.yml',
+                  '.github/workflows/windows-preview.yml',
+                  'tests/test_release_workflows.py',
+                  'src/torrent_dashboard/__init__.py',
+                  'static/app.js',
+                  'static/index.html',
+                  'static/sw.js',
+                  'release_notes/releases.json'
+              ],
+              'blockers': [],
+              'out_of_scope': [
+                  'Code signing, changing supported updater distributions, or changing the GitHub-based update source.'
+              ],
+              'next_action': 'Publish v0.5.155 and confirm it remains hidden until both updater packages are present, then verify auto-update sees v0.5.155.'
+          })
+          current_path.write_text(json.dumps(current, indent=2) + '\n', encoding='utf-8')
+          PY
+
+      - name: Generate release documentation
+        run: python release_tools/generate_release_notes.py --version 0.5.155
+
+      - name: Validate atomic release changes
+        shell: bash
+        run: |
+          python release_tools/validate_source.py
+          python release_tools/validate_ui_strings.py
+          python -m unittest discover -s tests -p 'test_*.py'
+          node --check static/app.js
+          node --check static/settings.js
+          python release_tools/generate_release_notes.py --version 0.5.155 --check
+          python release_tools/validate_public_repo.py
+          git diff --check
+
+      - name: Commit validated release changes
+        shell: bash
+        run: |
+          rm -f .github/workflows/atomic-release-migration.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Release v0.5.155 — Make updater publication atomic"
+          git push origin HEAD:fix/atomic-updater-release
