@@ -6,22 +6,22 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.152** (prerelease)
+- Latest documented build: **v0.5.153** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 
 ### Latest release summary
 
-Adds explicit read-only list commands for actionable Recovery Console resources while preserving the v0.5.151 profile, login, backup, and update behavior.
+Removes the embedded dashboard Console and moves its diagnostic and safe operational command surface into the recovery-key-gated local Recovery tool.
 
 ## Architecture state
 
-- Actionable Recovery Console resource families expose explicit read-only list forms while mutation commands remain separated behind administrator authorization.
+- Operational recovery commands belong to the local recovery executable rather than the browser/HTTP composition root.
 
 ## Current engineering decisions
 
-- Keep existing plural and jellyfin tasks forms as compatibility aliases instead of removing established Console syntax.
-- Use the existing torrent cache for Console listing instead of introducing an extra qBitTorrent request path.
-- Preserve the static v0.5.151 login treatment and backup lifecycle behavior while carrying forward only the non-conflicting Console parity work.
+- Keep browser recovery-key sign-in as a separate authentication recovery path while removing browser command execution.
+- Keep Recovery.exe non-listening and dashboard-independent; service diagnostics connect directly to configured endpoints.
+- Limit Recovery.exe torrent mutations to the former safe action allowlist and do not add delete or other destructive torrent operations.
 
 ## Development principles
 
@@ -33,6 +33,15 @@ Adds explicit read-only list commands for actionable Recovery Console resources 
 - Keep public development continuity portable across forks; label canonical repository/branch/PR references as upstream context rather than local identity.
 
 ## Recent work
+
+### v0.5.153 — Local recovery command migration
+
+Removes the embedded dashboard Console and moves its diagnostic and safe operational command surface into the recovery-key-gated local Recovery tool.
+
+- Removes Console from desktop/mobile navigation, deletes the embedded terminal UI, and removes the authenticated /api/recovery/command endpoint.
+- Expands Recovery.exe with redacted config, client, integration, torrent, Jellyfin, users, events, and update diagnostics while retaining existing config backup/restore and network recovery commands.
+- Fetches torrent identifiers and state directly from qBittorrent in local recovery instead of depending on the running dashboard cache.
+- Keeps browser recovery-key sign-in as a separate account-recovery path without exposing command execution through the dashboard.
 
 ### v0.5.152 — Recovery Console list parity
 
@@ -69,17 +78,9 @@ Adds a slow login pulse and deliberate recovery-key acknowledgement while narrow
 - First-run recovery-key acknowledgement enforces a ten-second countdown before Continue becomes available.
 - New portable backups carry configuration for settings, integrations, and download clients without users, recovery keys, or runtime data.
 
-### v0.5.148 — State restoration and input hardening
-
-Hardens live state restoration, backup validation, request parsing, and session revocation while adding cross-platform pull-request validation.
-
-- Backup restore waits for active requests and collection to finish, then replaces state before new requests authenticate.
-- Portable backups exclude temporary updater executables and SQLite sidecars, and appear in the backup library only after validation.
-- Authentication policy changes revoke outdated bypass access, including recovery-console access.
-
 ## What to do next
 
-1. **Exercise v0.5.152 on compiled Windows** — Install v0.5.152 through the built-in updater, verify client/integration/torrent/Jellyfin list commands, and repeat the create/delete/import/restore backup lifecycle on the compiled package.
+1. **Exercise Recovery.exe migration on compiled Windows** — Install v0.5.153 through the built-in updater, confirm Console is absent from the dashboard, then validate Recovery.exe client/integration/torrent/Jellyfin/users/events commands plus update and backup recovery flows.
 
 ## Known issues
 

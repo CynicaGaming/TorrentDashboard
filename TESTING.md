@@ -92,6 +92,10 @@ Use only a test installation or an environment where restart/rollback is accepta
 - Successful update restarts into the expected version.
 - Runtime `config.json` and `data/` survive the update.
 - A deliberately invalid test build rolls back rather than leaving the installation unusable.
+- The authenticated dashboard has no Console navigation/view and `/api/recovery/command` is not exposed.
+- `Recovery.exe` accepts the setup recovery key, lists configured clients/integrations/users/events, and can fetch live torrent identifiers directly from qBittorrent.
+- `Recovery.exe` client/integration tests and Jellyfin task listing work without importing or starting the dashboard HTTP application.
+- Recovery torrent mutations accept only start, stop, recheck, and reannounce; destructive torrent deletion is rejected.
 
 ### Responsive interface
 

@@ -88,11 +88,6 @@ from torrent_dashboard.jellyfin import (
     start_jellyfin_scheduled_task,
     stop_jellyfin_scheduled_task,
 )
-from torrent_dashboard.recovery_console import (
-    SAFE_TORRENT_ACTIONS,
-    parse_recovery_command,
-    recovery_help_text,
-)
 from torrent_dashboard.recovery import (
     RECOVERY_ACCOUNT_ID,
     RECOVERY_ACCOUNT_USERNAME,
@@ -1703,253 +1698,6 @@ def frontend_recovery_script(version):
     return script.replace("__BUILD__", build).encode("utf-8")
 
 
-def _recovery_console_json(value):
-    return json.dumps(value, indent=2, sort_keys=True, default=str)
-
-
-def _recovery_console_server(cfg, server_id):
-    server_id = str(server_id or "").strip()
-    item = next((entry for entry in cfg.get("servers", []) if str(entry.get("id") or "") == server_id), None)
-    if not item:
-        raise RuntimeError("Download client was not found")
-    return item
-
-
-def _recovery_console_integration(cfg, integration_id):
-    integration_id = str(integration_id or "").strip()
-    item = next((entry for entry in cfg.get("integrations", []) if str(entry.get("id") or "") == integration_id), None)
-    if not item:
-        raise RuntimeError("Integration was not found")
-    return item
-
-
-def _recovery_console_torrent_list(cfg, server_id=None):
-    if server_id:
-        servers = [_recovery_console_server(cfg, server_id)]
-    else:
-        servers = list(cfg.get("servers", []))
-    if not servers:
-        return "No download clients are configured."
-
-    snapshots = {}
-    with CACHE_LOCK:
-        for server in servers:
-            sid = str(server.get("id") or "")
-            cached = CACHE.get(sid, {})
-            torrents = cached.get("torrents") if isinstance(cached, dict) else None
-            snapshots[sid] = {
-                "ok": bool(isinstance(cached, dict) and cached.get("ok")),
-                "torrents": list(torrents) if isinstance(torrents, list) else None,
-            }
-
-    rows = []
-    unavailable = []
-    for server in servers:
-        sid = str(server.get("id") or "")
-        snapshot = snapshots.get(sid, {})
-        torrents = snapshot.get("torrents")
-        if not snapshot.get("ok") or torrents is None:
-            unavailable.append(sid or "unknown")
-            continue
-        for torrent in torrents:
-            hash_value = str(torrent.get("hash") or "-").strip() or "-"
-            state = " ".join(str(torrent.get("state") or "unknown").split()) or "unknown"
-            name = " ".join(str(torrent.get("name") or "Unnamed torrent").split()) or "Unnamed torrent"
-            try:
-                progress = max(0.0, min(100.0, float(torrent.get("progress", 0) or 0) * 100.0))
-            except (TypeError, ValueError):
-                progress = 0.0
-            rows.append(f"{sid}  {hash_value}  {state}  {progress:5.1f}%  {name}")
-
-    lines = []
-    if rows:
-        lines.append("CLIENT  HASH  STATE  PROGRESS  NAME")
-        lines.extend(rows)
-    else:
-        lines.append("No torrents are currently available.")
-    if unavailable:
-        lines.append("Unavailable clients: " + ", ".join(unavailable))
-    return "\n".join(lines)
-
-
-def recovery_console_execute(handler, cfg, raw_command, sess=None):
-    tokens = parse_recovery_command(raw_command)
-    command = tokens[0].lower()
-    args = tokens[1:]
-    is_admin = session_is_admin(sess)
-
-    def require_console_admin():
-        if not is_admin:
-            raise RuntimeError("Administrator access is required for this console command")
-
-    if command in ("help", "?"):
-        return {"output": recovery_help_text(is_admin)}
-
-    if command in ("status", "health"):
-        update = update_state()
-        lines = [
-            f"Torrent Dashboard {VERSION}",
-            f"Process ID: {os.getpid()}",
-            f"Application: {APP_DIR}",
-            f"Python: {sys.executable}",
-            f"Authentication mode: {cfg.get('auth', {}).get('mode', 'unknown')}",
-            f"Download clients: {len(cfg.get('servers', []))}",
-            f"Integrations: {len(cfg.get('integrations', []))}",
-            f"Users: {len(cfg.get('users', []))}",
-            f"Update state: {update.get('state', 'idle')}",
-        ]
-        if update.get("version"):
-            lines.append(f"Staged version: {update.get('version')}")
-        return {"output": "\n".join(lines)}
-
-    if command == "config" and (not args or args[0].lower() == "show"):
-        require_console_admin()
-        return {"output": _recovery_console_json(redacted_config(cfg))}
-
-    if command in ("clients", "client"):
-        if command == "clients" or not args or args[0].lower() == "list":
-            clients = cfg.get("servers", [])
-            if not clients:
-                return {"output": "No download clients are configured."}
-            return {"output": "\n".join(f"{item.get('id','')}  {item.get('name') or item.get('id') or 'qBitTorrent'}  {'enabled' if item.get('enabled', True) else 'disabled'}" for item in clients)}
-        if args[0].lower() == "test" and len(args) >= 2:
-            require_console_admin()
-            server = _recovery_console_server(cfg, args[1])
-            result = test_server_connection(server)
-            return {"output": _recovery_console_json(result)}
-        raise RuntimeError("Usage: client test <client-id>")
-
-    if command in ("integrations", "integration"):
-        if command == "integrations" or not args or args[0].lower() == "list":
-            items = redacted_integrations(cfg)
-            if not items:
-                return {"output": "No integrations are configured."}
-            return {"output": "\n".join(f"{item.get('id','')}  {item.get('type','')}  {item.get('name') or item.get('type') or 'Integration'}  {'enabled' if item.get('enabled', True) else 'disabled'}" for item in items)}
-        if args[0].lower() == "test" and len(args) >= 2:
-            require_console_admin()
-            item = _recovery_console_integration(cfg, args[1])
-            return {"output": _recovery_console_json(test_integration_connection(item))}
-        raise RuntimeError("Usage: integration test <integration-id>")
-
-    if command == "jellyfin":
-        if len(args) < 2:
-            raise RuntimeError("Usage: jellyfin list|tasks|start|stop <integration-id> [task-id]")
-        action, integration_id = args[0].lower(), args[1]
-        item = find_jellyfin_integration(cfg, integration_id)
-        if action in ("list", "tasks"):
-            tasks = jellyfin_scheduled_tasks(item)
-            if not tasks:
-                return {"output": "Jellyfin reported no visible scheduled tasks."}
-            lines = []
-            for task in tasks:
-                progress = task.get("progress")
-                suffix = f" {progress:.0f}%" if isinstance(progress, (int, float)) else ""
-                lines.append(f"{task.get('id','')}  [{task.get('category','Other')}] {task.get('name','Scheduled task')}  {task.get('state','Idle')}{suffix}")
-            return {"output": "\n".join(lines)}
-        if action in ("start", "stop"):
-            require_console_admin()
-            if len(args) < 3:
-                raise RuntimeError(f"Usage: jellyfin {action} <integration-id> <task-id>")
-            result = start_jellyfin_scheduled_task(item, args[2]) if action == "start" else stop_jellyfin_scheduled_task(item, args[2])
-            return {"output": result.get("message") or f"Jellyfin task {action} requested"}
-        raise RuntimeError("Usage: jellyfin list|tasks|start|stop <integration-id> [task-id]")
-
-    if command in ("torrent", "torrents"):
-        sub = args[0].lower() if args else ""
-        if command == "torrents" or sub == "list":
-            if command == "torrents":
-                if args:
-                    raise RuntimeError("Usage: torrents")
-                server_id = None
-            else:
-                if len(args) > 2:
-                    raise RuntimeError("Usage: torrent list [client-id]")
-                server_id = args[1] if len(args) == 2 else None
-            return {"output": _recovery_console_torrent_list(cfg, server_id)}
-
-        require_console_admin()
-        if len(args) < 4 or sub != "action":
-            raise RuntimeError("Usage: torrent list [client-id] | torrent action <client-id> <start|stop|recheck|reannounce> <hash|all>")
-        server_id, action, target = args[1], args[2].lower(), args[3]
-        if action not in SAFE_TORRENT_ACTIONS:
-            raise RuntimeError("Recovery console torrent actions are limited to start, stop, recheck, and reannounce")
-        result = get_client(cfg, server_id).action(action, {"hashes": [target]})
-        HISTORY.event(server_id, "recovery_action:" + action, "Recovery Console", target, {"client_ip": handler.client_ip()})
-        status = result[0] if isinstance(result, tuple) else 200
-        return {"output": f"Torrent action {action} sent (status {status})."}
-
-    if command == "users":
-        require_console_admin()
-        return {"output": _recovery_console_json([public_user(user) for user in cfg.get("users", [])])}
-
-    if command == "events":
-        require_console_admin()
-        limit = 50
-        if args:
-            try:
-                limit = max(1, min(200, int(args[0])))
-            except ValueError as exc:
-                raise RuntimeError("Events limit must be a number from 1 to 200") from exc
-        return {"output": _recovery_console_json(HISTORY.events(limit))}
-
-    if command == "update":
-        sub = args[0].lower() if args else "status"
-        if sub == "status":
-            return {"output": _recovery_console_json(update_state())}
-        if sub == "check":
-            manifest = fetch_update_manifest(cfg)
-            lines = [
-                f"Repository: {update_repository(cfg)}",
-                f"Current version: {VERSION}",
-                f"Latest version: {manifest.get('version') or 'unknown'}",
-                f"Update available: {'yes' if manifest.get('updateAvailable') else 'no'}",
-            ]
-            if manifest.get("releaseUrl"):
-                lines.append(f"Release: {manifest.get('releaseUrl')}")
-            return {"output": "\n".join(lines)}
-        if sub == "repo":
-            if len(args) == 1:
-                return {"output": update_repository(cfg)}
-            require_console_admin()
-            requested = DEFAULT_UPDATE_REPOSITORY if args[1].lower() == "default" else args[1]
-            previous = update_repository(cfg)
-            def mutate_source(current):
-                updated, repo = save_update_source(current, requested)
-                return updated, repo
-            _, repo = mutate_config(mutate_source)
-            if repo != previous:
-                UPDATE_STATE_PATH.unlink(missing_ok=True)
-                if UPDATE_DIR.exists():
-                    shutil.rmtree(UPDATE_DIR, ignore_errors=True)
-            HISTORY.event("dashboard", "recovery_update_source_changed", repo, "", {"client_ip": handler.client_ip()})
-            return {"output": f"Update repository: {repo}"}
-        if sub == "download":
-            require_console_admin()
-            result = stage_update(cfg)
-            if result.get("state") == "upToDate":
-                return {"output": f"Torrent Dashboard {VERSION} is up to date."}
-            return {"output": f"Verified update {result.get('version')} downloaded and staged."}
-        if sub == "install":
-            require_console_admin()
-            if "--confirm" not in args:
-                raise RuntimeError("Update installation requires --confirm")
-            requested_version = next((value for value in args[1:] if not value.startswith("--")), None)
-            result = launch_update_installer(handler, cfg, requested_version)
-            return {"output": f"Installing verified update {result.get('version')}.", **result}
-        if sub == "apply":
-            require_console_admin()
-            if "--confirm" not in args:
-                raise RuntimeError("Update apply requires --confirm")
-            staged = stage_update(cfg)
-            if staged.get("state") == "upToDate":
-                return {"output": f"Torrent Dashboard {VERSION} is already up to date."}
-            result = launch_update_installer(handler, cfg, staged.get("version"))
-            return {"output": f"Verified update {result.get('version')} downloaded; installation is starting.", **result}
-        raise RuntimeError("Usage: update status|check|repo|download|install|apply")
-
-    raise RuntimeError("Unknown recovery console command. Type help for available commands.")
-
-
 class Handler(BaseHTTPRequestHandler):
     server_version = "TorrentDashboard/0"
     timeout = 30
@@ -1970,9 +1718,6 @@ class Handler(BaseHTTPRequestHandler):
 
     def cookie_token(self):
         return self.cookie_value("td_session")
-
-    def recovery_cookie_token(self):
-        return self.cookie_value("td_recovery")
 
     def auth(self, create_bypass=True):
         cfg=load_config(); a=cfg["auth"]; mode=a.get("mode","lan_bypass")
@@ -2049,22 +1794,6 @@ class Handler(BaseHTTPRequestHandler):
 
 
 
-    def recovery_auth(self):
-        cfg,token,sess,_=self.auth(create_bypass=False)
-        if not sess:
-            return cfg,None,None
-        return cfg,("dashboard administrator" if session_is_admin(sess) else "dashboard user"),sess
-
-    def require_recovery_auth(self, mutation=False):
-        cfg,kind,sess=self.recovery_auth()
-        if not sess:
-            self.send_json(401,{"error":"Console authentication required"})
-            return None
-        if mutation and not self.csrf_ok(sess):
-            self.send_json(403,{"error":"Console CSRF token missing or invalid"})
-            return None
-        return cfg,kind,sess
-
     def recovery_login_route(self):
         ip=self.client_ip(); now=time.time(); limit=10
         with RECOVERY_LOCK:
@@ -2088,19 +1817,6 @@ class Handler(BaseHTTPRequestHandler):
         token,sess=SESSIONS.create(RECOVERY_ACCOUNT_USERNAME,cfg["auth"].get("session_hours",24),"recovery_key",group="administrator",user_id=RECOVERY_ACCOUNT_ID,display_name=RECOVERY_ACCOUNT_USERNAME)
         HISTORY.event("dashboard","recovery_login_success",RECOVERY_ACCOUNT_USERNAME,"",{"client_ip":ip})
         return self.send_json(200,{"ok":True,"csrf":sess["csrf"],"group":"administrator","recovery":True},token)
-    def recovery_command_route(self):
-        ctx=self.require_recovery_auth(True)
-        if not ctx: return
-        cfg,kind,sess=ctx
-        try:
-            data=parse_json_body(self,12000)
-            command=str(data.get("command") or "")
-            result=recovery_console_execute(self,cfg,command,sess)
-            HISTORY.event("dashboard","recovery_console_command",command.split(" ",1)[0][:64],"",{"client_ip":self.client_ip(),"auth_kind":kind})
-            return self.send_json(200,{"ok":True,**result})
-        except Exception as exc:
-            return self.send_json(400,{"error":str(exc)})
-
     def do_GET(self):
         with STATE_GATE.activity():
             return self._do_GET()
@@ -2273,7 +1989,6 @@ class Handler(BaseHTTPRequestHandler):
         if path=="/api/setup/complete": return self.setup_complete()
         if path=="/api/login": return self.login_route()
         if path=="/api/recovery/login": return self.recovery_login_route()
-        if path=="/api/recovery/command": return self.recovery_command_route()
         if path=="/api/logout":
             token=self.cookie_token(); SESSIONS.remove(token)
             return self.send_json(200,{"ok":True},None)
