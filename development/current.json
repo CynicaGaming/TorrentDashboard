@@ -1,39 +1,31 @@
 {
   "schema": 1,
   "status": "ready",
-  "objective": "Validate v0.5.153 local Recovery.exe command migration on compiled Windows",
-  "why": "The embedded dashboard Console and its HTTP command endpoint have been removed; the remaining risk is compiled-Windows validation of the expanded out-of-band recovery surface and updater flow.",
+  "objective": "Validate v0.5.154 Account settings profile-menu hotfix on compiled Windows",
+  "why": "The profile menu hid Account settings for the built-in recovery account even though the item should remain discoverable; the hotfix keeps it visible while preserving the non-editable recovery-principal boundary.",
   "acceptance_criteria": [
     "Source/unit, UI, syntax, generated-documentation, hygiene, source-package, and pull-request matrix checks pass.",
-    "The dashboard exposes no Console navigation/view and no /api/recovery/command endpoint, while browser recovery-key sign-in still works as an authentication-recovery path.",
-    "Recovery.exe lists and tests configured clients/integrations, lists live torrents and Jellyfin tasks, and shows redacted config/users/events after recovery-key authentication.",
-    "Recovery.exe preserves staged update download/install behavior: update download retains a verified package, update install consumes only a revalidated stage, and update apply performs both steps.",
-    "Recovery.exe torrent mutations remain limited to start, stop, recheck, and reannounce.",
-    "The built-in updater installs the compiled v0.5.153 package and the existing portable backup lifecycle remains intact."
+    "Account settings remains visible in the profile menu for normal and recovery-account sessions.",
+    "Normal user accounts can open and use the existing Account settings modal.",
+    "The built-in recovery account shows Account settings disabled with an explicit explanation and remains non-editable server-side.",
+    "The v0.5.153 Recovery.exe migration and removed in-app Console behavior remain intact."
   ],
   "decisions": [
-    "Keep command execution out of the dashboard HTTP surface.",
-    "Keep browser recovery-key sign-in separate from the local command surface.",
-    "Use direct service connections from Recovery.exe instead of importing dashboard.py or depending on its in-memory torrent cache.",
-    "Do not add destructive torrent mutations to local recovery."
+    "Keep Account settings discoverable for every authenticated session.",
+    "Keep the built-in recovery account non-persistent and non-editable.",
+    "Do not reintroduce browser command execution or the removed Recovery Console."
   ],
   "files": [
-    "src/torrent_dashboard/recovery_tool.py",
-    "src/torrent_dashboard/recovery_operations.py",
-    "src/torrent_dashboard/dashboard.py",
-    "tests/test_recovery_operations.py",
-    "tests/test_local_recovery.py",
-    "tests/test_http_security.py",
-    "static/index.html",
     "static/app.js",
-    "static/app.css",
+    "static/index.html",
+    "static/sw.js",
     "release_tools/validate_ui_strings.py",
-    "release_notes/releases.json",
-    "src/torrent_dashboard/recovery_update_staging.py"
+    "src/torrent_dashboard/__init__.py",
+    "release_notes/releases.json"
   ],
   "blockers": [],
   "out_of_scope": [
-    "Removing browser recovery-key sign-in, backup encryption, scheduled backups, cloud destinations, code signing, broader authentication redesign, and destructive Recovery.exe torrent actions."
+    "Making the built-in recovery principal a persistent editable user account, authentication redesign, or reintroducing the browser Recovery Console."
   ],
-  "next_action": "Install v0.5.153 on compiled Windows, verify the dashboard has no Console surface, then exercise Recovery.exe diagnostics/actions and repeat updater plus portable-backup recovery flows."
+  "next_action": "Install v0.5.154 on compiled Windows and verify profile-menu Account settings behavior for both normal and recovery-account sessions."
 }

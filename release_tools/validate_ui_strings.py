@@ -112,6 +112,9 @@ def main():
     assert 'data-view="console"' not in html and 'id="accountConsoleBtn"' not in html
     assert 'id="accountSettingsBtn"' in html and '>Account settings</button>' in html
     assert "$('#accountSettingsBtn').addEventListener('click'" in app_js
+    assert "classList.toggle('hidden',!!state.me?.is_recovery_account)" not in app_js
+    assert "accountSettingsBtn.disabled=!editable" in app_js
+    assert "The built-in recovery account cannot be edited" in app_js
     assert 'login-gradient-pulse' not in app_css and 'login-radiant-glow' not in html
     assert 'data-settings-page="backups"' in html and 'data-settings-section="backups"' in html
     assert 'id="backupProgress"' in html and 'class="backup-progress hidden"' in html

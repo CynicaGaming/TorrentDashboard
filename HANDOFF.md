@@ -7,50 +7,42 @@
 This handoff is intentionally portable across public forks. Verify the current checkout's Git remote, branch, and open work before using upstream references as instructions.
 
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
-- Last documented upstream build: **v0.5.153** (prerelease)
+- Last documented upstream build: **v0.5.154** (prerelease)
 
 ## Last known-good state
 
-Removes the embedded dashboard Console and moves its diagnostic and safe operational command surface into the recovery-key-gated local Recovery tool.
+Restores the Account settings entry to the profile menu for recovery-account sessions without making the built-in recovery principal editable.
 
 The released-state details and recent history are in `PROJECT_STATE.md`; architectural constraints are in `ARCHITECTURE.md`.
 
 ## Active development intent
 
 - Status: **ready**
-- Objective: **Validate v0.5.153 local Recovery.exe command migration on compiled Windows**
-- Why: The embedded dashboard Console and its HTTP command endpoint have been removed; the remaining risk is compiled-Windows validation of the expanded out-of-band recovery surface and updater flow.
+- Objective: **Validate v0.5.154 Account settings profile-menu hotfix on compiled Windows**
+- Why: The profile menu hid Account settings for the built-in recovery account even though the item should remain discoverable; the hotfix keeps it visible while preserving the non-editable recovery-principal boundary.
 
 ### Acceptance criteria
 
 - Source/unit, UI, syntax, generated-documentation, hygiene, source-package, and pull-request matrix checks pass.
-- The dashboard exposes no Console navigation/view and no /api/recovery/command endpoint, while browser recovery-key sign-in still works as an authentication-recovery path.
-- Recovery.exe lists and tests configured clients/integrations, lists live torrents and Jellyfin tasks, and shows redacted config/users/events after recovery-key authentication.
-- Recovery.exe preserves staged update download/install behavior: update download retains a verified package, update install consumes only a revalidated stage, and update apply performs both steps.
-- Recovery.exe torrent mutations remain limited to start, stop, recheck, and reannounce.
-- The built-in updater installs the compiled v0.5.153 package and the existing portable backup lifecycle remains intact.
+- Account settings remains visible in the profile menu for normal and recovery-account sessions.
+- Normal user accounts can open and use the existing Account settings modal.
+- The built-in recovery account shows Account settings disabled with an explicit explanation and remains non-editable server-side.
+- The v0.5.153 Recovery.exe migration and removed in-app Console behavior remain intact.
 
 ### Decisions already made
 
-- Keep command execution out of the dashboard HTTP surface.
-- Keep browser recovery-key sign-in separate from the local command surface.
-- Use direct service connections from Recovery.exe instead of importing dashboard.py or depending on its in-memory torrent cache.
-- Do not add destructive torrent mutations to local recovery.
+- Keep Account settings discoverable for every authenticated session.
+- Keep the built-in recovery account non-persistent and non-editable.
+- Do not reintroduce browser command execution or the removed Recovery Console.
 
 ### Expected areas of change
 
-- `src/torrent_dashboard/recovery_tool.py`
-- `src/torrent_dashboard/recovery_operations.py`
-- `src/torrent_dashboard/dashboard.py`
-- `tests/test_recovery_operations.py`
-- `tests/test_local_recovery.py`
-- `tests/test_http_security.py`
-- `static/index.html`
 - `static/app.js`
-- `static/app.css`
+- `static/index.html`
+- `static/sw.js`
 - `release_tools/validate_ui_strings.py`
+- `src/torrent_dashboard/__init__.py`
 - `release_notes/releases.json`
-- `src/torrent_dashboard/recovery_update_staging.py`
 
 ### Blockers
 
@@ -58,11 +50,11 @@ None currently recorded.
 
 ### Explicitly out of scope
 
-- Removing browser recovery-key sign-in, backup encryption, scheduled backups, cloud destinations, code signing, broader authentication redesign, and destructive Recovery.exe torrent actions.
+- Making the built-in recovery principal a persistent editable user account, authentication redesign, or reintroducing the browser Recovery Console.
 
 ## Exact next action
 
-Install v0.5.153 on compiled Windows, verify the dashboard has no Console surface, then exercise Recovery.exe diagnostics/actions and repeat updater plus portable-backup recovery flows.
+Install v0.5.154 on compiled Windows and verify profile-menu Account settings behavior for both normal and recovery-account sessions.
 
 ## Resume checklist
 
