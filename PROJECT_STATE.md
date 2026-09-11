@@ -6,22 +6,21 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.153** (prerelease)
+- Latest documented build: **v0.5.154** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 
 ### Latest release summary
 
-Removes the embedded dashboard Console and moves its diagnostic and safe operational command surface into the recovery-key-gated local Recovery tool.
+Restores the Account settings entry to the profile menu for recovery-account sessions without making the built-in recovery principal editable.
 
 ## Architecture state
 
-- Operational recovery commands belong to the local recovery executable rather than the browser/HTTP composition root.
+- The built-in recovery account remains non-persistent and non-editable; UI visibility no longer implies editability.
 
 ## Current engineering decisions
 
-- Keep browser recovery-key sign-in as a separate authentication recovery path while removing browser command execution.
-- Keep Recovery.exe non-listening and dashboard-independent; service diagnostics connect directly to configured endpoints.
-- Limit Recovery.exe torrent mutations to the former safe action allowlist and do not add delete or other destructive torrent operations.
+- Keep Account settings discoverable in the profile menu for every authenticated session.
+- Do not create a persistent profile or password for the built-in recovery principal.
 
 ## Development principles
 
@@ -33,6 +32,14 @@ Removes the embedded dashboard Console and moves its diagnostic and safe operati
 - Keep public development continuity portable across forks; label canonical repository/branch/PR references as upstream context rather than local identity.
 
 ## Recent work
+
+### v0.5.154 — Account settings menu visibility hotfix
+
+Restores the Account settings entry to the profile menu for recovery-account sessions without making the built-in recovery principal editable.
+
+- Keeps Account settings visible in the profile menu for normal users and the built-in recovery account.
+- Normal user accounts continue to open the existing self-service profile, password, and avatar modal.
+- Recovery-account sessions now show Account settings as disabled with an explicit explanation instead of silently removing it.
 
 ### v0.5.153 — Local recovery command migration
 
@@ -70,17 +77,9 @@ Refines the login accent treatment and simplifies the profile menu while restori
 - The glow pulses more slowly and keeps a static reduced-motion presentation for users who disable animation.
 - The profile menu keeps account settings, install-app, and sign-out actions without a stale duplicate Console binding.
 
-### v0.5.149 — Login polish and identity-safe backups
-
-Adds a slow login pulse and deliberate recovery-key acknowledgement while narrowing portable backup restore to configuration without moving user or recovery identity.
-
-- The login screen now has a slow, smooth ambient accent-gradient pulse with a reduced-motion fallback.
-- First-run recovery-key acknowledgement enforces a ten-second countdown before Continue becomes available.
-- New portable backups carry configuration for settings, integrations, and download clients without users, recovery keys, or runtime data.
-
 ## What to do next
 
-1. **Exercise Recovery.exe migration on compiled Windows** — Install v0.5.153 through the built-in updater, confirm Console is absent from the dashboard, then validate Recovery.exe client/integration/torrent/Jellyfin/users/events commands plus update and backup recovery flows.
+1. **Verify account menu on Windows** — Confirm Account settings is visible for normal and recovery sessions, editable for normal accounts, and disabled with explanatory text for the built-in recovery account.
 
 ## Known issues
 

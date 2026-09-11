@@ -12,6 +12,47 @@
   },
   "releases": [
     {
+      "version": "0.5.154",
+      "date": "2026-09-11",
+      "status": "prerelease",
+      "title": "Account settings menu visibility hotfix",
+      "summary": "Restores the Account settings entry to the profile menu for recovery-account sessions without making the built-in recovery principal editable.",
+      "highlights": [
+        "Keeps Account settings visible in the profile menu for normal users and the built-in recovery account.",
+        "Normal user accounts continue to open the existing self-service profile, password, and avatar modal.",
+        "Recovery-account sessions now show Account settings as disabled with an explicit explanation instead of silently removing it."
+      ],
+      "fixes": [
+        "Removes the frontend rule that hid Account settings whenever the active session was the built-in recovery account.",
+        "Preserves the server-side restriction that the built-in recovery principal cannot be edited as a persistent user account."
+      ],
+      "technical": [
+        "Moves recovery-account handling into the existing account-menu editability state instead of using hidden visibility state.",
+        "Adds a UI contract that prevents the recovery-account hide guard from being reintroduced."
+      ],
+      "validation": [
+        "Runs the full source/unit validation suite, UI contract audit, JavaScript syntax checks, generated release documentation check, public repository hygiene check, and git diff check."
+      ],
+      "known_issues": [
+        "Portable backup archives can contain saved client and integration credentials in plaintext; store exported .tdbackup files securely.",
+        "Windows executables are not code-signed yet."
+      ],
+      "architecture": [
+        "The built-in recovery account remains non-persistent and non-editable; UI visibility no longer implies editability."
+      ],
+      "decisions": [
+        "Keep Account settings discoverable in the profile menu for every authenticated session.",
+        "Do not create a persistent profile or password for the built-in recovery principal."
+      ],
+      "next_steps": [
+        {
+          "priority": 1,
+          "title": "Verify account menu on Windows",
+          "detail": "Confirm Account settings is visible for normal and recovery sessions, editable for normal accounts, and disabled with explanatory text for the built-in recovery account."
+        }
+      ]
+    },
+    {
       "version": "0.5.153",
       "date": "2026-09-11",
       "status": "prerelease",

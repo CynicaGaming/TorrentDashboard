@@ -1,5 +1,5 @@
 'use strict';
-const FRONTEND_BUILD='0.5.153';
+const FRONTEND_BUILD='0.5.154';
 const HTML_BUILD=document.querySelector('meta[name="torrent-dashboard-build"]')?.content||'';
 const RECOVERY_KEY=`td-frontend-recovery-${FRONTEND_BUILD}`;
 async function recoverFrontendBuild(reason){
@@ -687,7 +687,7 @@ async function bootstrap(){
     document.body.classList.toggle('standard-user',!state.me.can_manage);
     $('#brandTitle').textContent=state.me.title;$('#brandAddress').textContent=state.me.lan_ip||'Local';document.title=state.me.title;$('#version').textContent=`v${state.me.version}`;
     if(state.me.user_id){try{const account=await api('/api/account');applyAccountUser(account.user)}catch{}}
-    syncCurrentUserUi();$('#accountSettingsBtn')?.classList.toggle('hidden',!!state.me?.is_recovery_account);
+    syncCurrentUserUi();
     if(state.me.can_manage){await loadSettings()}else{state.settings={dashboard:{low_disk_gb:20},notifications:{browser:false,sound:false}}}
     await loadServers();bindUI();applyPrefs();if(state.server!=='all')await loadMeta();await refreshStatus();await loadNotifications(true);scheduleRefresh();scheduleNotificationRefresh();registerPwa();
   }
@@ -1227,8 +1227,12 @@ function syncCurrentUserUi(){
   if($('#profileButtonGroup'))$('#profileButtonGroup').textContent=group;
   if($('#accountMenuName'))$('#accountMenuName').textContent=display;
   if($('#accountMenuGroup'))$('#accountMenuGroup').textContent=group;
-  const editable=!!state.me?.user_id;
-  for(const id of ['accountSettingsBtn']){const el=$('#'+id);if(el)el.disabled=!editable}
+  const editable=!!state.me?.user_id&&!state.me?.is_recovery_account;
+  const accountSettingsBtn=$('#accountSettingsBtn');
+  if(accountSettingsBtn){
+    accountSettingsBtn.disabled=!editable;
+    accountSettingsBtn.title=editable?'':state.me?.is_recovery_account?'The built-in recovery account cannot be edited':'Sign in with a user account to edit account settings';
+  }
   if($('#accountRemoveAvatar'))$('#accountRemoveAvatar').disabled=!editable||!state.me?.avatar_configured;
   syncAvatarUi();
 }
