@@ -52,6 +52,33 @@ jobs:
               raise SystemExit('old service-worker cache namespace was not found')
           path.write_text(text.replace(old, new, 1), encoding='utf-8')
           PY
+      - name: Update recovery validation contract
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('release_tools/validate_ui_strings.py')
+          text = path.read_text(encoding='utf-8')
+          changes = (
+              (
+                  '    recovery_console_py = (ROOT / "src" / "torrent_dashboard" / "recovery_console.py").read_text(encoding="utf-8")',
+                  '    recovery_operations_py = (ROOT / "src" / "torrent_dashboard" / "recovery_operations.py").read_text(encoding="utf-8")',
+              ),
+              (
+                  "    assert '/api/recovery/login' in dashboard_py and '/api/recovery/command' in dashboard_py",
+                  "    assert '/api/recovery/login' in dashboard_py and '/api/recovery/command' not in dashboard_py",
+              ),
+              (
+                  "    assert 'SAFE_TORRENT_ACTIONS' in recovery_console_py and 'delete' not in recovery_console_py.split('SAFE_TORRENT_ACTIONS',1)[1].split(')',1)[0]",
+                  "    assert 'SAFE_TORRENT_ACTIONS' in recovery_operations_py and 'delete' not in recovery_operations_py.split('SAFE_TORRENT_ACTIONS',1)[1].split(')',1)[0]",
+              ),
+          )
+          for old, new in changes:
+              if old not in text:
+                  raise SystemExit(f'stale recovery validation marker not found: {old}')
+              text = text.replace(old, new, 1)
+          path.write_text(text, encoding='utf-8')
+          PY
       - name: Generate release documentation
         run: python release_tools/generate_release_notes.py --version 0.5.153
       - name: Validate migrated source
