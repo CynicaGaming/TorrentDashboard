@@ -3,7 +3,7 @@
 The historical dashboard module remains the HTTP composition root. This adapter
 installs narrowly scoped operational extensions before starting it: updater-ready
 release selection, encrypted portable backups, maintenance scheduling, retention,
-security-audit APIs, and the consolidated system-health surface.
+security-audit APIs, and operational settings adapters.
 """
 from __future__ import annotations
 
@@ -20,14 +20,12 @@ from torrent_dashboard.ops_config import apply_operations_update, public_operati
 from torrent_dashboard.operations import (
     MaintenanceStateStore,
     automatic_update_due,
-    build_system_health,
     retention_due,
     run_retention,
     scheduled_backup_due,
 )
 from torrent_dashboard.release_selection import select_updater_ready_release
 
-STARTED_AT = time.time()
 MAINTENANCE_STATE = MaintenanceStateStore(core.DATA_DIR / "maintenance-state.json")
 _ORIGINAL_APPLY_SETTINGS_UPDATE = core.apply_settings_update
 _ORIGINAL_REDACTED_CONFIG = core.redacted_config
@@ -132,44 +130,6 @@ def _fetch_update_release(config):
             pass
     return data
 
-
-def _client_health_rows(config: dict):
-    rows = []
-    with core.CACHE_LOCK:
-        cache = {key: dict(value) for key, value in core.CACHE.items()}
-    for server in config.get("servers", []):
-        if not server.get("enabled", True):
-            continue
-        sid = str(server.get("id") or "")
-        item = cache.get(sid) or {}
-        rows.append({
-            "id": sid,
-            "name": str(server.get("name") or sid),
-            "healthy": bool(item.get("ok")),
-            "error": str(item.get("error") or ""),
-            "checked_at": int(item.get("ts") or 0),
-        })
-    return rows
-
-
-def _health_payload(config: dict):
-    password = _backup_password(config)
-    try:
-        integrations = core.integration_health_statuses(config)
-    except Exception as exc:
-        integrations = [{"id": "integration-health", "health": {"state": "issue", "message": str(exc)}}]
-    return build_system_health(
-        app_dir=core.APP_DIR,
-        version=core.VERSION,
-        started_at=STARTED_AT,
-        config=config,
-        update_state=core.update_state(),
-        maintenance_state=MAINTENANCE_STATE.load(),
-        backups=backup_service.list_backups(core.APP_DIR, password=password),
-        audit_summary=core.HISTORY.audit.summary(),
-        client_rows=_client_health_rows(config),
-        integration_rows=integrations,
-    )
 
 
 def _retention(config: dict):
@@ -282,15 +242,6 @@ class OperationsHandler(_ORIGINAL_HANDLER):
 
     def _do_GET(self):
         path, _, query = self.path.partition("?")
-        if path == "/api/system-health":
-            context = self._ops_context(False)
-            if not context:
-                return
-            config, _, _, new_cookie = context
-            try:
-                return self.send_json(200, _health_payload(config), new_cookie)
-            except Exception as exc:
-                return self.send_json(500, {"error": str(exc)}, new_cookie)
         if path == "/api/audit":
             context = self._ops_context(False)
             if not context:

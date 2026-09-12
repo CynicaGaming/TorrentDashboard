@@ -384,6 +384,9 @@ def main():
     assert "if (activePage === 'updates') {" in settings_js
     assert "saveUpdateSource({toastOnSuccess:false})" in settings_js
     assert "window.TDOps?.saveUpdateSettings" in settings_js
+    ops_js = (ROOT / 'static' / 'ops.js').read_text(encoding='utf-8')
+    assert 'System health' not in ops_js and '/api/system-health' not in ops_js
+    assert "'users','system'" not in settings_js
     assert '#updateSourceSave' not in settings_js
     assert 'data-settings-page="updates" type="button">Updates</button>' in html
     assert 'data-settings-page="access" type="button">Access</button>' in html

@@ -7,7 +7,6 @@ import unittest
 
 from torrent_dashboard.operations import (
     automatic_update_due,
-    build_system_health,
     prune_backups,
     prune_update_artifacts,
     scheduled_backup_due,
@@ -59,19 +58,6 @@ class OperationsTests(unittest.TestCase):
             self.assertIn("0.5.100", removed)
             self.assertFalse(old.exists())
             self.assertTrue(keep.exists())
-
-    def test_security_events_do_not_make_service_health_unhealthy(self):
-        with tempfile.TemporaryDirectory() as temp_name:
-            health = build_system_health(
-                app_dir=Path(temp_name), version="0.5.158", started_at=time.time()-60,
-                config={"dashboard":{"low_disk_gb":0},"backups":{}},
-                update_state={"state":"installed"}, maintenance_state={}, backups=[],
-                audit_summary={"failures_24h":2}, client_rows=[], integration_rows=[],
-            )
-        self.assertEqual(health["state"], "healthy")
-        self.assertNotIn("audit", [item["id"] for item in health["components"]])
-        updates = next(item for item in health["components"] if item["id"] == "updates")
-        self.assertEqual(updates["message"], "Update status: Installed")
 
 
 if __name__ == "__main__":

@@ -7,50 +7,50 @@
 This handoff is intentionally portable across public forks. Verify the current checkout's Git remote, branch, and open work before using upstream references as instructions.
 
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
-- Last documented upstream build: **v0.5.158** (prerelease)
+- Last documented upstream build: **v0.5.159** (prerelease)
 
 ## Last known-good state
 
-Moves backup and update policy controls into their existing settings areas, leaves System health as a diagnostics-only page, and replaces machine-oriented health labels with readable UI copy.
+Removes the standalone System health settings category and its dedicated API because it duplicates status already available in the settings areas where users can act on it.
 
 The released-state details and recent history are in `PROJECT_STATE.md`; architectural constraints are in `ARCHITECTURE.md`.
 
 ## Active development intent
 
 - Status: **release-candidate**
-- Objective: **Publish the v0.5.158 operational settings organization and System health copy cleanup**
-- Why: The initial System operations page grouped unrelated backup, update, retention, audit, and health concerns together, duplicated security activity already visible in Notifications, exposed machine-oriented labels, and lacked the normal spacing used across other settings pages.
+- Objective: **Publish v0.5.159 without the standalone System health settings surface**
+- Why: System health became a passive duplicate after operational controls were organized under Backups, Updates, Notifications, and Integrations.
 
 ### Acceptance criteria
 
-- Backup protection and Backup schedule are separate cards under Backups.
-- Retention is under Backups and Automatic updates is under Updates.
-- System health contains diagnostics only, with readable component and status labels.
-- Security audit is removed from the browser System page and audit failures do not mark overall service health unhealthy.
-- Adjacent settings cards have consistent spacing and Backups uses the shared Save action.
+- System health is absent from desktop and mobile Settings navigation.
+- No browser code requests /api/system-health.
+- The /api/system-health endpoint and health aggregation helpers are removed.
+- Backups, Updates, retention, audit persistence, and notification behavior remain unchanged.
 - Ubuntu/Windows Python 3.13/3.14 validation passes.
 - The source updater ZIP and compiled Windows package build successfully, and all three Windows executables pass smoke tests.
-- v0.5.158 is published with both source and Windows updater ZIPs and SHA-256 digests.
+- v0.5.159 is published with both source and Windows updater ZIPs and SHA-256 digests.
 
 ### Decisions already made
 
-- Organize settings by domain instead of collecting operational policy under a generic System page.
-- Keep the durable security audit backend but use Notifications as the user-facing security activity surface.
-- Keep System health focused on service/runtime health rather than historical security events.
+- Remove System health entirely rather than hide it while retaining dead browser/API code.
+- Keep durable audit logging and operational schedulers because they support real features outside the removed page.
 
 ### Expected areas of change
 
 - `static/ops.js`
 - `static/settings.js`
-- `static/settings.css`
+- `src/torrent_dashboard/runtime.py`
 - `src/torrent_dashboard/operations.py`
 - `tests/test_system_ops_ui.py`
 - `tests/test_operations.py`
+- `release_tools/validate_ui_strings.py`
 - `src/torrent_dashboard/__init__.py`
 - `static/index.html`
 - `static/app.js`
 - `static/sw.js`
 - `release_notes/releases.json`
+- `development/current.json`
 
 ### Blockers
 
@@ -58,11 +58,11 @@ None currently recorded.
 
 ### Explicitly out of scope
 
-- No changes to audit persistence, security-event generation, notification delivery semantics, backup archive format, updater verification, or retention execution semantics.
+- No changes to backup behavior, automatic-update behavior, retention execution, audit persistence, or notification delivery.
 
 ## Exact next action
 
-Run the full pull-request validation and Windows smoke build; if green, merge and verify the updater-visible v0.5.158 release.
+Run the full pull-request validation and Windows smoke build; if green, merge and verify the updater-visible v0.5.159 release.
 
 ## Resume checklist
 
