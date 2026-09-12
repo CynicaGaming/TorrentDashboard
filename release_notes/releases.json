@@ -12,6 +12,44 @@
   },
   "releases": [
     {
+      "version": "0.5.156",
+      "date": "2026-09-11",
+      "status": "prerelease",
+      "title": "System settings navigation hotfix",
+      "summary": "Fixes the v0.5.155 System settings navigation so the new operational settings page opens normally from desktop and mobile settings navigation.",
+      "highlights": [
+        "Makes System a first-class settings page in the main settings controller.",
+        "Keeps the v0.5.155 System health, encrypted-backup, scheduling, automatic-update, audit, and retention controls accessible through the normal settings navigation."
+      ],
+      "fixes": [
+        "Prevents the main settings router from immediately falling back to General after the System page is activated.",
+        "Adds a regression contract covering the shared settings-page allowlist so this integration failure is caught before release."
+      ],
+      "technical": [
+        "Extends TDSettings.activate() to recognize the dynamically registered system page while leaving the existing System module and administrator authorization model unchanged."
+      ],
+      "validation": [
+        "Runs source/unit validation, browser contract checks, JavaScript syntax checks, generated documentation validation, the real source updater package build, and the Windows PyInstaller smoke build."
+      ],
+      "known_issues": [
+        "Backup encryption remains opt-in; unencrypted portable backups can contain saved client and integration credentials and should be stored securely.",
+        "Windows executables are not code-signed yet."
+      ],
+      "architecture": [
+        "System remains an operations extension layered around the existing settings controller rather than duplicating the complete settings router."
+      ],
+      "decisions": [
+        "Register extension settings pages with the shared settings router instead of allowing competing navigation state machines."
+      ],
+      "next_steps": [
+        {
+          "priority": 1,
+          "title": "Verify System navigation after auto-update",
+          "detail": "Confirm an existing v0.5.155 installation detects v0.5.156 and that System opens from desktop and mobile Settings after the update."
+        }
+      ]
+    },
+    {
       "version": "0.5.155",
       "date": "2026-09-11",
       "status": "prerelease",
@@ -211,7 +249,7 @@
       "highlights": [
         "Keeps Account settings as an explicit profile-menu action and adds a UI contract check so it cannot disappear silently in a future merge.",
         "Removes the animated login background and card glow while retaining a static accent treatment.",
-        "Restores Settings \u2192 Backups navigation and the backup manager that was dropped from the v0.5.150 HTML merge.",
+        "Restores Settings → Backups navigation and the backup manager that was dropped from the v0.5.150 HTML merge.",
         "Adds a Delete action to every local backup row with confirmation before the archive is removed.",
         "Shows an indeterminate progress bar while a backup is being created, then returns to the normal backup list when creation finishes."
       ],
@@ -382,7 +420,7 @@
       "title": "Portable backup management",
       "summary": "Adds a dedicated in-app backup manager for creating, viewing, restoring, importing, and exporting portable Torrent Dashboard state backups.",
       "highlights": [
-        "Adds Settings \u2192 Backups as a dedicated administrator maintenance area instead of coupling backup lifecycle to software updates.",
+        "Adds Settings → Backups as a dedicated administrator maintenance area instead of coupling backup lifecycle to software updates.",
         "Creates portable .tdbackup archives containing configuration, users, saved credentials, integrations, dashboard history, profile pictures, and notification assets while excluding application binaries and qBitTorrent data.",
         "Existing backups can be exported to another installation, imported into its local backup library, and restored from the browser.",
         "Every restore creates a pre-restore safety backup first and signs out active sessions after the restored identity and access configuration becomes active."
@@ -971,7 +1009,7 @@
         "Improves Jellyfin integration, scheduled-task, notification-sound, and advanced qBitTorrent settings typography."
       ],
       "fixes": [
-        "Removes most remaining 8\u201310 px text from frequently read interface surfaces.",
+        "Removes most remaining 8–10 px text from frequently read interface surfaces.",
         "Improves line height for secondary copy so larger text remains readable without crowding controls."
       ],
       "technical": [
@@ -994,7 +1032,7 @@
       "summary": "Simplifies the Clients authentication UI by putting the qBitTorrent 5.2+ requirement directly on the API key option and removing redundant Bearer-authentication helper text.",
       "highlights": [
         "The Clients authentication selector now reads API key (qBitTorrent 5.2+).",
-        "Removes the separate qBitTorrent 5.2+ \u00b7 Bearer authentication line beneath the API key field."
+        "Removes the separate qBitTorrent 5.2+ · Bearer authentication line beneath the API key field."
       ],
       "fixes": [
         "Makes the regular Clients settings card consistent with the existing first-run qBitTorrent authentication selector."
@@ -1110,9 +1148,9 @@
       "date": "2026-09-02",
       "status": "prerelease",
       "title": "Collapsible revision patch notes",
-      "summary": "Expanded Settings \u2192 Updates from a single latest-release note block into a collapsible patch-note history for every documented Torrent Dashboard revision.",
+      "summary": "Expanded Settings → Updates from a single latest-release note block into a collapsible patch-note history for every documented Torrent Dashboard revision.",
       "highlights": [
-        "Settings \u2192 Updates now shows one collapsible patch-note entry per documented revision, ordered newest first.",
+        "Settings → Updates now shows one collapsible patch-note entry per documented revision, ordered newest first.",
         "Bundled release metadata is available immediately when the Updates page opens; a newly discovered GitHub release is merged into the history before it is installed.",
         "The newest revision opens by default and each older revision can be expanded independently.",
         "Future prerelease publication preserves older prereleases instead of deleting the complete prerelease history."
@@ -1169,9 +1207,9 @@
       "date": "2026-09-02",
       "status": "prerelease",
       "title": "Patch notes presentation cleanup",
-      "summary": "Simplified Settings \u2192 Updates to focus on the latest two releases while retaining the complete release history for changelog and project handoff purposes, with a cleaner release-card presentation.",
+      "summary": "Simplified Settings → Updates to focus on the latest two releases while retaining the complete release history for changelog and project handoff purposes, with a cleaner release-card presentation.",
       "highlights": [
-        "Settings \u2192 Updates now shows only the latest release and the immediately previous release instead of the complete historical list.",
+        "Settings → Updates now shows only the latest release and the immediately previous release instead of the complete historical list.",
         "Release cards now use a dedicated version badge, release-status badges, publication date, clearer typography, and improved spacing.",
         "The expanded release no longer repeats the version/title heading inside the patch-note body.",
         "The full structured release history remains preserved in release_notes/releases.json, CHANGELOG.md, and PROJECT_STATE.md."
@@ -1229,7 +1267,7 @@
       "title": "Installed package integrity metadata",
       "summary": "Persists the verified release-package SHA-256 with installed builds and surfaces the exact package digest alongside patch notes.",
       "highlights": [
-        "Settings \u2192 Updates shows Package SHA-256 for a release whenever authoritative package metadata is available, with a one-click Copy control.",
+        "Settings → Updates shows Package SHA-256 for a release whenever authoritative package metadata is available, with a one-click Copy control.",
         "The normal updater writes release-info.json into the staged application only after the downloaded ZIP matches GitHub's published SHA-256.",
         "Recovery updates persist the same release metadata after independently verifying the GitHub asset digest.",
         "The release build emits a Torrent-Dashboard-<version>.release.json sidecar containing the final ZIP digest, version, repository, tag, and commit."
@@ -1354,7 +1392,7 @@
       "highlights": [
         "Successful GitHub release lookups persist authoritative package digests to data/release-integrity.json.",
         "Normal Settings loads merge the persisted integrity cache into the two displayed patch-note revisions.",
-        "Opening Settings \u2192 Updates silently refreshes release metadata at most once per minute, so historical SHA-256 values self-populate without requiring a manual Check for updates click."
+        "Opening Settings → Updates silently refreshes release metadata at most once per minute, so historical SHA-256 values self-populate without requiring a manual Check for updates click."
       ],
       "fixes": [
         "The previous patch-note card no longer loses its SHA-256 when Settings is reloaded or opened in a new browser session after the remote metadata was fetched."
@@ -2194,7 +2232,7 @@
       "highlights": [
         "Dashboard / Live torrent activity is visible again because removing it did not materially improve usable workspace height and weakened page hierarchy.",
         "The collapsed Torrent details disclosure shows only Torrent details when no torrent is selected; selection-specific copy appears only for an actual selection.",
-        "Opening Settings \u2192 Updates no longer contacts GitHub automatically; Check for updates is the explicit freshness/network action.",
+        "Opening Settings → Updates no longer contacts GitHub automatically; Check for updates is the explicit freshness/network action.",
         "The bottom-anchored desktop/tablet torrent workspace and mobile disclosure behavior remain unchanged."
       ],
       "fixes": [
@@ -2803,7 +2841,7 @@
       "title": "Configurable torrent table columns",
       "summary": "Adds a persistent torrent-column organizer with visibility and ordering controls, expands the available table data, and makes Seeds, Peers, and Tags part of the default dashboard layout.",
       "highlights": [
-        "Settings \u2192 General now provides a Torrent columns organizer where optional columns can be shown, hidden, and moved up or down.",
+        "Settings → General now provides a Torrent columns organizer where optional columns can be shown, hidden, and moved up or down.",
         "Seeds, Peers, and Tags are visible by default, with Size, Category, Tracker, and Added available as optional columns.",
         "Name remains the required first data column while the selection checkbox and row-actions control remain fixed.",
         "Column visibility and order persist as a browser-local preference and survive live refreshes and reloads.",
@@ -2960,7 +2998,7 @@
         "Visible torrent data columns can be dragged horizontally to reorder them directly in the table header.",
         "Right-clicking the torrent header bar opens a Columns menu for showing or hiding optional columns and restoring defaults.",
         "Category remains visible by default alongside Seeds, Peers, and Tags.",
-        "The Settings \u2192 General torrent-column organizer has been removed so column management has one clear interaction surface."
+        "The Settings → General torrent-column organizer has been removed so column management has one clear interaction surface."
       ],
       "fixes": [
         "Removes the extra navigation round trip required to adjust a table layout while looking at the Dashboard.",
@@ -4518,7 +4556,7 @@
       "date": "2026-09-03",
       "status": "prerelease",
       "title": "Responsive tracker and peer details",
-      "summary": "Makes Torrent details \u2192 Trackers and Peers readable on mobile with purpose-built labeled records while preserving desktop tables and the existing General tab.",
+      "summary": "Makes Torrent details → Trackers and Peers readable on mobile with purpose-built labeled records while preserving desktop tables and the existing General tab.",
       "highlights": [
         "Peers on mobile now shows each address and client with labeled Progress, Download, and Upload metrics instead of an anonymous vertical value stack.",
         "Trackers on mobile now shows cleaned tracker names, human-readable status badges, Seeds and Peers counts, and an optional tracker message.",
@@ -4729,7 +4767,7 @@
       ],
       "fixes": [
         "Removes the v0.5.108 shared-workspace cap that still left General too shallow on shorter desktop viewports.",
-        "Preserves a stable 360\u2013560 px torrent-list region across page scrolling and detail expansion while long detail datasets retain their own scrolling."
+        "Preserves a stable 360–560 px torrent-list region across page scrolling and detail expansion while long detail datasets retain their own scrolling."
       ],
       "technical": [
         "syncTorrentWorkspaceLayout now writes a bounded --torrent-list-height derived from the workspace stable document position; the workspace itself uses natural document height.",
@@ -5912,7 +5950,7 @@
       "summary": "Fixes custom notification sound previews and adds a torrent-style drag-and-drop uploader plus a persisted notification volume control.",
       "highlights": [
         "Adds a drag-and-drop custom sound target that mirrors the .torrent file picker and still supports click-to-browse.",
-        "Adds a 0\u2013100 notification volume slider used by test playback and normal completion notifications.",
+        "Adds a 0–100 notification volume slider used by test playback and normal completion notifications.",
         "Uses notification-default.wav for the bundled sound and notification-custom.<ext> for newly uploaded custom sounds."
       ],
       "fixes": [

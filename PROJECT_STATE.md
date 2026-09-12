@@ -6,25 +6,20 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.155** (prerelease)
+- Latest documented build: **v0.5.156** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 
 ### Latest release summary
 
-Adds updater-ready release fallback, authenticated portable-backup encryption, scheduled maintenance, security auditing, system health, and centralized retention while keeping automation opt-in.
+Fixes the v0.5.155 System settings navigation so the new operational settings page opens normally from desktop and mobile settings navigation.
 
 ## Architecture state
 
-- Operational maintenance remains layered around dashboard.py rather than expanding the existing HTTP composition root.
-- Security audit data is stored separately from general history and redacts secret-looking detail fields before persistence.
-- Automatic update and scheduled backup policies default to disabled so upgrades do not silently change automation behavior.
+- System remains an operations extension layered around the existing settings controller rather than duplicating the complete settings router.
 
 ## Current engineering decisions
 
-- Prefer a standard maintained AEAD implementation over application-defined backup cryptography.
-- Treat a release as updater-ready only when the distribution-specific ZIP has a finalized SHA-256 digest.
-- Keep the previous complete prerelease available until the new source and Windows packages are both verified.
-- Keep the backup encryption password local to each installation and exclude it from portable state.
+- Register extension settings pages with the shared settings router instead of allowing competing navigation state machines.
 
 ## Development principles
 
@@ -36,6 +31,13 @@ Adds updater-ready release fallback, authenticated portable-backup encryption, s
 - Keep public development continuity portable across forks; label canonical repository/branch/PR references as upstream context rather than local identity.
 
 ## Recent work
+
+### v0.5.156 — System settings navigation hotfix
+
+Fixes the v0.5.155 System settings navigation so the new operational settings page opens normally from desktop and mobile settings navigation.
+
+- Makes System a first-class settings page in the main settings controller.
+- Keeps the v0.5.155 System health, encrypted-backup, scheduling, automatic-update, audit, and retention controls accessible through the normal settings navigation.
 
 ### v0.5.155 — Operations reliability, encrypted backups, and system health
 
@@ -73,24 +75,13 @@ Adds explicit read-only list commands for actionable Recovery Console resources 
 - Adds jellyfin list <integration-id> as the explicit list counterpart to Jellyfin task start and stop actions while retaining jellyfin tasks as an alias.
 - Carries the console parity work forward on top of the current main branch without reintroducing the superseded animated login treatment.
 
-### v0.5.151 — Profile and backup lifecycle polish
-
-Restores the backup-management surface, keeps Account settings in the profile menu, removes login-screen animation, and adds safer backup deletion and creation feedback.
-
-- Keeps Account settings as an explicit profile-menu action and adds a UI contract check so it cannot disappear silently in a future merge.
-- Removes the animated login background and card glow while retaining a static accent treatment.
-- Restores Settings → Backups navigation and the backup manager that was dropped from the v0.5.150 HTML merge.
-- Adds a Delete action to every local backup row with confirmation before the archive is removed.
-- Shows an indeterminate progress bar while a backup is being created, then returns to the normal backup list when creation finishes.
-
 ## What to do next
 
-1. **Verify updater-visible v0.5.155 release** — After merge, confirm both source and Windows v0.5.155 ZIPs are attached with SHA-256 digests before the previous prerelease is retired, then verify an existing installation detects the new release.
-2. **Exercise scheduled operations on a long-running install** — Confirm scheduled encrypted backups, maintenance-window automatic updates, retention, audit entries, and System health behave correctly across normal service restarts.
+1. **Verify System navigation after auto-update** — Confirm an existing v0.5.155 installation detects v0.5.156 and that System opens from desktop and mobile Settings after the update.
 
 ## Known issues
 
-- Backup encryption is opt-in; unencrypted portable backups can contain saved client and integration credentials and should be stored securely.
+- Backup encryption remains opt-in; unencrypted portable backups can contain saved client and integration credentials and should be stored securely.
 - Windows executables are not code-signed yet.
 
 ## Handoff instructions for a new development session

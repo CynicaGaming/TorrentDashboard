@@ -15,6 +15,11 @@ class SystemOperationsUiTests(unittest.TestCase):
         ):
             self.assertIn(marker, source)
 
+    def test_main_settings_controller_accepts_system_page(self):
+        source = (ROOT / "static" / "settings.js").read_text(encoding="utf-8")
+        self.assertIn("'users','system']", source)
+        self.assertIn("activate(btn.dataset.settingsPage)", source)
+
     def test_runtime_injects_ops_script_into_application_shell(self):
         source = (ROOT / "src" / "torrent_dashboard" / "runtime.py").read_text(encoding="utf-8")
         self.assertIn('/static/ops.js?v=', source)
