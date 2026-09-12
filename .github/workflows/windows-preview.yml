@@ -89,11 +89,29 @@ jobs:
           $info = "dist-windows\TorrentDashboard-Windows-${{ steps.version.outputs.version }}-x64.release.json"
           gh release upload "${{ steps.version.outputs.tag }}" $zip $info --clobber
 
-      - name: Verify Windows Preview Asset
+      - name: Verify Complete Auto-Update Release
         if: github.ref == 'refs/heads/main'
         env:
           GH_TOKEN: ${{ github.token }}
         shell: pwsh
         run: |
-          $asset = gh api "repos/${{ github.repository }}/releases/tags/${{ steps.version.outputs.tag }}" --jq '.assets[] | select(.name == "TorrentDashboard-Windows-${{ steps.version.outputs.version }}-x64.zip") | select(.digest | startswith("sha256:")) | .id'
-          if ($asset -notmatch '^[0-9]+$') { throw "Windows preview release asset was not published with a SHA-256 digest" }
+          $tag = "${{ steps.version.outputs.tag }}"
+          $source = gh api "repos/${{ github.repository }}/releases/tags/$tag" --jq '.assets[] | select(.name == "Torrent-Dashboard-${{ steps.version.outputs.version }}.zip") | select(.digest | startswith("sha256:")) | .id'
+          $windows = gh api "repos/${{ github.repository }}/releases/tags/$tag" --jq '.assets[] | select(.name == "TorrentDashboard-Windows-${{ steps.version.outputs.version }}-x64.zip") | select(.digest | startswith("sha256:")) | .id'
+          if ($source -notmatch '^[0-9]+$') { throw "Source release asset is missing or lacks a SHA-256 digest" }
+          if ($windows -notmatch '^[0-9]+$') { throw "Windows release asset is missing or lacks a SHA-256 digest" }
+
+      - name: Remove Superseded Pre-Releases
+        if: github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          $tag = "${{ steps.version.outputs.tag }}"
+          $oldTags = gh api "repos/${{ github.repository }}/releases?per_page=100" --jq '.[] | select(.prerelease == true) | .tag_name'
+          foreach ($oldTag in $oldTags) {
+            if ($oldTag -and $oldTag -ne $tag) {
+              gh release delete $oldTag --cleanup-tag --yes
+              if ($LASTEXITCODE -ne 0) { throw "Could not remove superseded prerelease $oldTag" }
+            }
+          }
