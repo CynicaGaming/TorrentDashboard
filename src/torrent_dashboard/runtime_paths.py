@@ -31,6 +31,7 @@ def source_root(target: Path | None = None) -> Path:
 def dashboard_source(target: Path | None = None) -> Path | None:
     target = (target or app_dir()).resolve()
     candidates = (
+        target / "src" / "torrent_dashboard" / "runtime.py",
         target / "src" / "torrent_dashboard" / "dashboard.py",
         target / "dashboard.py",
     )
