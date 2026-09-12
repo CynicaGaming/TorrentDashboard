@@ -126,6 +126,7 @@ def validate_layout() -> None:
         "pyproject.toml",
         "src/torrent_dashboard/__init__.py",
         "src/torrent_dashboard/dashboard.py",
+        "src/torrent_dashboard/runtime.py",
         "src/torrent_dashboard/updater.py",
         "src/torrent_dashboard/recovery_tool.py",
     )
@@ -137,7 +138,7 @@ def validate_layout() -> None:
             fail(f"Legacy application path must be removed: {retired}")
     pyproject = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
     for entry in (
-        'torrent-dashboard = "torrent_dashboard.dashboard:main"',
+        'torrent-dashboard = "torrent_dashboard.runtime:main"',
         'torrent-dashboard-recovery = "torrent_dashboard.recovery_tool:main"',
         'torrent-dashboard-updater = "torrent_dashboard.updater:main"',
     ):
@@ -177,7 +178,7 @@ def run_unit_tests() -> None:
 
 
 def print_metrics() -> None:
-    paths = [PACKAGE_DIR / "dashboard.py", ROOT / "static" / "app.js", ROOT / "static" / "settings.js", *python_modules()]
+    paths = [PACKAGE_DIR / "dashboard.py", PACKAGE_DIR / "runtime.py", ROOT / "static" / "app.js", ROOT / "static" / "settings.js", *python_modules()]
     seen = set()
     print("\nCode-health metrics")
     for path in paths:
@@ -193,7 +194,7 @@ def main() -> None:
     if not compileall.compile_dir(str(PACKAGE_DIR), quiet=1):
         fail("Python package compilation failed")
     for path in (
-        PACKAGE_DIR / "dashboard.py", PACKAGE_DIR / "updater.py", PACKAGE_DIR / "recovery_tool.py",
+        PACKAGE_DIR / "dashboard.py", PACKAGE_DIR / "runtime.py", PACKAGE_DIR / "updater.py", PACKAGE_DIR / "recovery_tool.py",
         ROOT / "release_tools" / "build_release.py", ROOT / "release_tools" / "build_windows.py",
         ROOT / "release_tools" / "generate_release_notes.py",
     ):
