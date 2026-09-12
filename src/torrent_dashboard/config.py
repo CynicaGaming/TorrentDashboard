@@ -9,6 +9,12 @@ from collections.abc import Callable
 from pathlib import Path
 
 from .integrations import INTEGRATION_TYPES, normalize_integration, redacted_integrations
+from .ops_config import (
+    DEFAULT_BACKUPS,
+    DEFAULT_MAINTENANCE,
+    normalize_operations_config,
+    public_operations_config,
+)
 from .users import normalize_user, public_user, sync_legacy_auth
 from .persistence import atomic_write_json
 
@@ -30,6 +36,8 @@ DEFAULT_CONFIG = {
         "https_key": "",
     },
     "updates": {"repository": DEFAULT_UPDATE_REPOSITORY},
+    "backups": dict(DEFAULT_BACKUPS),
+    "maintenance": {key: dict(value) for key, value in DEFAULT_MAINTENANCE.items()},
     "auth": {
         "mode": "lan_bypass",
         "trusted_interfaces": [],
@@ -260,13 +268,14 @@ def normalize_config(raw, detect_lan_network: Callable[[], dict] | None = None):
         recovery["created_at"] = 0
     recovery["last4"] = str(recovery.get("last4") or "")[-4:]
 
+    normalize_operations_config(merged)
     sync_legacy_auth(merged)
     return merged
 
 
 def public_config(cfg):
     """Return the configuration subset safe to expose to authenticated browsers."""
-    out = json.loads(json.dumps(cfg))
+    out = public_operations_config(cfg)
     out.setdefault("auth", {}).pop("password_hash", None)
     out.setdefault("auth", {}).pop("username", None)
     recovery = out.setdefault("recovery", {})
@@ -301,6 +310,7 @@ class ConfigRepository:
 
     def save(self, cfg):
         clean = json.loads(json.dumps(cfg))
+        normalize_operations_config(clean)
         clean["integrations"] = [
             item for item in clean.get("integrations", []) if item.get("type") != "github"
         ]
