@@ -7,47 +7,41 @@
 This handoff is intentionally portable across public forks. Verify the current checkout's Git remote, branch, and open work before using upstream references as instructions.
 
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
-- Last documented upstream build: **v0.5.155** (prerelease)
+- Last documented upstream build: **v0.5.156** (prerelease)
 
 ## Last known-good state
 
-Adds updater-ready release fallback, authenticated portable-backup encryption, scheduled maintenance, security auditing, system health, and centralized retention while keeping automation opt-in.
+Fixes the v0.5.155 System settings navigation so the new operational settings page opens normally from desktop and mobile settings navigation.
 
 The released-state details and recent history are in `PROJECT_STATE.md`; architectural constraints are in `ARCHITECTURE.md`.
 
 ## Active development intent
 
 - Status: **release-candidate**
-- Objective: **Merge and publish the v0.5.155 operations reliability milestone**
-- Why: TD-R001, TD-R002, TD-R003, TD-R004, TD-R008, TD-R016, and TD-R023 are implemented and need final versioned validation plus updater-visible release verification.
+- Objective: **Publish the v0.5.156 System settings navigation hotfix**
+- Why: v0.5.155 shipped the System operations page, but the shared settings router rejects the system page identifier and falls back to General when System is clicked.
 
 ### Acceptance criteria
 
-- Ubuntu/Windows Python 3.13/3.14 source validation passes with declared dependencies installed.
-- The pull-request source updater ZIP builds successfully.
-- The pull-request Windows package builds and Dashboard.exe, Recovery.exe, and Updater.exe pass smoke tests.
-- v0.5.155 frontend/service-worker build markers and generated documentation are synchronized.
-- After merge, both source and Windows updater ZIPs are published with GitHub SHA-256 digests before the previous complete prerelease is removed.
+- The shared settings controller accepts system as a valid settings page.
+- The System UI contract explicitly checks the shared router integration.
+- Ubuntu/Windows Python 3.13/3.14 validation passes.
+- The source updater ZIP and compiled Windows package build successfully, and all three Windows executables pass smoke tests.
+- v0.5.156 is published with both source and Windows updater ZIPs and SHA-256 digests.
 
 ### Decisions already made
 
-- Use AES-256-GCM from cryptography for portable-backup encryption.
-- Keep automatic updates and scheduled backups disabled by default.
-- Keep the previous complete prerelease available during new-release assembly.
-- Use runtime.py as the operations adapter while dashboard.py remains the HTTP composition root.
+- Fix the shared settings router rather than adding another independent navigation workaround.
+- Ship the correction as v0.5.156 so existing installations can receive it through auto-update.
 
 ### Expected areas of change
 
-- `src/torrent_dashboard/runtime.py`
-- `src/torrent_dashboard/backup_crypto.py`
-- `src/torrent_dashboard/backup_service.py`
-- `src/torrent_dashboard/audit.py`
-- `src/torrent_dashboard/operations.py`
-- `src/torrent_dashboard/ops_config.py`
-- `src/torrent_dashboard/release_selection.py`
-- `static/ops.js`
-- `.github/workflows/release.yml`
-- `.github/workflows/windows-preview.yml`
+- `static/settings.js`
+- `tests/test_system_ops_ui.py`
+- `src/torrent_dashboard/__init__.py`
+- `static/index.html`
+- `static/app.js`
+- `static/sw.js`
 - `release_notes/releases.json`
 
 ### Blockers
@@ -56,11 +50,11 @@ None currently recorded.
 
 ### Explicitly out of scope
 
-- Multi-factor authentication, granular permissions, API tokens, SSO, cross-client migration, and unrelated torrent-management enhancements.
+- No changes to System feature behavior, permissions, backup policy, audit storage, or update scheduling beyond the navigation defect.
 
 ## Exact next action
 
-Run the final v0.5.155 pull-request source matrix and compiled Windows smoke build; if green, mark PR #41 ready and merge, then verify both updater assets and digests are public.
+Run the full pull-request validation and Windows smoke build; if green, merge and verify the updater-visible v0.5.156 release.
 
 ## Resume checklist
 

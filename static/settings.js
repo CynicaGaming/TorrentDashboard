@@ -21,7 +21,7 @@ window.TDSettings = (() => {
 
   function activate(page) {
     page = page || localStorage.tdSettingsPage || 'general';
-    const allowed = ['general','access','clients','backups','updates','notifications','integrations','users'];
+    const allowed = ['general','access','clients','backups','updates','notifications','integrations','users','system'];
     if (!allowed.includes(page)) page = 'general';
     localStorage.tdSettingsPage = page;
     document.querySelectorAll('[data-settings-section]').forEach(el => el.classList.toggle('active', el.dataset.settingsSection === page));
