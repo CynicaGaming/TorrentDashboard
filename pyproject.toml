@@ -13,7 +13,7 @@ authors = [{name = "CynicaGaming"}]
 dependencies = []
 
 [project.scripts]
-torrent-dashboard = "torrent_dashboard.dashboard:main"
+torrent-dashboard = "torrent_dashboard.runtime:main"
 torrent-dashboard-recovery = "torrent_dashboard.recovery_tool:main"
 torrent-dashboard-updater = "torrent_dashboard.updater:main"
 
