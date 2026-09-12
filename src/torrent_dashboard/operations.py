@@ -1,8 +1,7 @@
-"""Operational scheduling, retention, and system-health helpers."""
+"""Operational scheduling and retention helpers."""
 from __future__ import annotations
 
 import json
-import re
 from pathlib import Path
 import shutil
 import time
@@ -155,101 +154,10 @@ def run_retention(*, app_dir: Path | str, update_dir: Path | str, history, audit
     }
 
 
-def _safe_disk_usage(path: Path):
-    try:
-        total, used, free = shutil.disk_usage(path)
-        return {"total": int(total), "used": int(used), "free": int(free)}
-    except OSError:
-        return {"total": 0, "used": 0, "free": 0}
-
-
-def _display_state(value: str) -> str:
-    raw = str(value or "unknown").strip()
-    if not raw:
-        return "Unknown"
-    text = re.sub(r"([a-z0-9])([A-Z])", r"\1 \2", raw)
-    text = re.sub(r"[_-]+", " ", text)
-    text = re.sub(r"\s+", " ", text).strip().lower()
-    return text[:1].upper() + text[1:]
-
-
-def _count_label(count: int, singular: str, plural: str | None = None) -> str:
-    count = int(count or 0)
-    return f"{count} {singular if count == 1 else (plural or singular + 's')}"
-
-
-def build_system_health(*, app_dir: Path | str, version: str, started_at: float, config: dict,
-                        update_state: dict, maintenance_state: dict, backups: list[dict],
-                        audit_summary: dict, client_rows: list[dict] | None = None,
-                        integration_rows: list[dict] | None = None):
-    app_dir = Path(app_dir)
-    now = int(time.time())
-    disk = _safe_disk_usage(app_dir)
-    low_disk_bytes = max(0, int(float((config.get("dashboard") or {}).get("low_disk_gb", 20)) * 1024 ** 3))
-    backup_policy = config.get("backups") or {}
-    latest_backup = backups[0] if backups else None
-    backup_issue = bool(backup_policy.get("schedule_enabled")) and not latest_backup
-    update_status = str((update_state or {}).get("state") or "idle")
-    update_issue = update_status.lower() in {"failed", "rollbackfailed", "recoveryfailed"}
-
-    clients = client_rows or []
-    integrations = integration_rows or []
-    disconnected_clients = sum(1 for item in clients if item.get("healthy") is False)
-    integration_issues = sum(
-        1 for item in integrations
-        if str((item.get("health") or {}).get("state") or "").lower() in {"issue", "disconnected"}
-    )
-
-    client_count = len(clients)
-    integration_count = len(integrations)
-    update_label = _display_state(update_status)
-
-    components = [
-        {"id": "dashboard", "state": "healthy", "message": f"Torrent Dashboard {version} is running"},
-        {
-            "id": "disk",
-            "state": "issue" if disk["free"] and disk["free"] < low_disk_bytes else "healthy",
-            "message": "Free disk space is below the configured threshold" if disk["free"] and disk["free"] < low_disk_bytes else "Disk space is within the configured threshold",
-        },
-        {
-            "id": "backups",
-            "state": "issue" if backup_issue else "healthy",
-            "message": "Scheduled backups are enabled but no backup is available" if backup_issue else ("Backup library is available" if latest_backup else "Backup scheduling is disabled or no manual backup has been created"),
-        },
-        {
-            "id": "updates",
-            "state": "issue" if update_issue else "healthy",
-            "message": str((update_state or {}).get("error") or f"Update status: {update_label}"),
-        },
-        {
-            "id": "clients",
-            "state": "issue" if disconnected_clients else "healthy",
-            "message": f"{_count_label(disconnected_clients, 'qBittorrent client')} unavailable" if disconnected_clients else f"{_count_label(client_count, 'qBittorrent client')} monitored",
-        },
-        {
-            "id": "integrations",
-            "state": "issue" if integration_issues else "healthy",
-            "message": f"{_count_label(integration_issues, 'integration')} need attention" if integration_issues else f"{_count_label(integration_count, 'integration')} monitored",
-        },
-    ]
-    overall = "issue" if any(item["state"] == "issue" for item in components) else "healthy"
-    return {
-        "state": overall,
-        "version": str(version),
-        "uptime_seconds": max(0, now - int(started_at)),
-        "disk": disk,
-        "latest_backup": latest_backup,
-        "update": update_state or {},
-        "maintenance": maintenance_state or {},
-        "audit": audit_summary or {},
-        "components": components,
-    }
-
 
 __all__ = [
     "MaintenanceStateStore",
     "automatic_update_due",
-    "build_system_health",
     "prune_backups",
     "prune_update_artifacts",
     "retention_due",

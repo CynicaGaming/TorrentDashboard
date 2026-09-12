@@ -6,21 +6,21 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.158** (prerelease)
+- Latest documented build: **v0.5.159** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 
 ### Latest release summary
 
-Moves backup and update policy controls into their existing settings areas, leaves System health as a diagnostics-only page, and replaces machine-oriented health labels with readable UI copy.
+Removes the standalone System health settings category and its dedicated API because it duplicates status already available in the settings areas where users can act on it.
 
 ## Architecture state
 
-- Operational policy is presented with the domain it configures instead of accumulating on a generic System settings page.
+- Operational status is surfaced through actionable domain pages and notifications rather than a standalone aggregate System health page.
 
 ## Current engineering decisions
 
-- Keep System health as a diagnostics-only view while retaining durable audit storage behind Notifications and operational APIs.
-- Use the shared settings save bar for Backup and Update policy changes.
+- Do not keep a separate System settings category solely for passive health summaries.
+- Remove the unused health API and aggregation helpers together with the UI to avoid dead maintenance surface.
 
 ## Development principles
 
@@ -32,6 +32,15 @@ Moves backup and update policy controls into their existing settings areas, leav
 - Keep public development continuity portable across forks; label canonical repository/branch/PR references as upstream context rather than local identity.
 
 ## Recent work
+
+### v0.5.159 — Remove the System health settings page
+
+Removes the standalone System health settings category and its dedicated API because it duplicates status already available in the settings areas where users can act on it.
+
+- Removes System health from desktop and mobile Settings navigation.
+- Removes the dynamic System health card and browser polling code.
+- Removes the dedicated /api/system-health endpoint and its unused health aggregation helpers.
+- Browsers that previously stored System as the active Settings page now fall back to General.
 
 ### v0.5.158 — Operational settings organization and health copy cleanup
 
@@ -67,17 +76,9 @@ Adds updater-ready release fallback, authenticated portable-backup encryption, s
 - Adds a dedicated redacted security audit database plus an administrator-only System settings page for health, audit review, backup scheduling, update policy, and retention.
 - Centralizes retention for history, stale torrent records, security-audit events, backup count, and staged update artifacts.
 
-### v0.5.154 — Account settings menu visibility hotfix
-
-Restores the Account settings entry to the profile menu for recovery-account sessions without making the built-in recovery principal editable.
-
-- Keeps Account settings visible in the profile menu for normal users and the built-in recovery account.
-- Normal user accounts continue to open the existing self-service profile, password, and avatar modal.
-- Recovery-account sessions now show Account settings as disabled with an explicit explanation instead of silently removing it.
-
 ## What to do next
 
-1. **Verify reorganized settings after auto-update** — Confirm v0.5.158 shows separate Backup protection, Backup schedule, and Retention cards under Backups; Automatic updates under Updates; and a diagnostics-only System health page with readable labels.
+1. **Verify Settings navigation after update** — Confirm System health no longer appears on desktop or mobile and that Backups and Updates retain their reorganized operational controls.
 
 ## Known issues
 

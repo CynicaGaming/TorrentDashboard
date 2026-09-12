@@ -1,20 +1,7 @@
 'use strict';
 (() => {
-  const pageId='system';
   let backupPasswordConfigured=false;
   let clearBackupPassword=false;
-  const COMPONENT_LABELS={
-    dashboard:'Torrent Dashboard',
-    disk:'Disk space',
-    backups:'Backups',
-    updates:'Updates',
-    clients:'qBittorrent clients',
-    integrations:'Integrations'
-  };
-
-  function escapeHtml(value='') {
-    return String(value??'').replace(/[&<>\"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[ch]));
-  }
   function notify(message,tone='') {
     if(typeof toast==='function')return toast(message,tone);
     console[tone==='error'?'error':'log'](message);
@@ -38,55 +25,10 @@
   function checked(id){return !!document.querySelector('#'+id)?.checked}
   function setValue(id,v){const el=document.querySelector('#'+id);if(el)el.value=String(v??'')}
   function setChecked(id,v){const el=document.querySelector('#'+id);if(el)el.checked=!!v}
-  function humanizeIdentifier(value='') {
-    const raw=String(value??'').trim();
-    if(!raw)return'';
-    const spaced=raw.replace(/[_-]+/g,' ').replace(/([a-z0-9])([A-Z])/g,'$1 $2').replace(/\s+/g,' ').trim().toLowerCase();
-    return spaced.charAt(0).toUpperCase()+spaced.slice(1);
-  }
-  function stateLabel(value='') {
-    const key=String(value??'').trim().toLowerCase();
-    const labels={healthy:'Healthy',issue:'Needs attention',warning:'Warning',disconnected:'Disconnected',success:'Success',failure:'Failed',denied:'Denied',info:'Info',unknown:'Unknown'};
-    return labels[key]||humanizeIdentifier(value)||'Unknown';
-  }
-  function componentLabel(value='') {return COMPONENT_LABELS[String(value||'')]||humanizeIdentifier(value)||'Component'}
-
-  function buildNavigation() {
-    const subnav=document.querySelector('#settingsSubnav');
-    if(subnav&&!subnav.querySelector('[data-settings-page="system"]')){
-      const button=document.createElement('button');
-      button.type='button';button.dataset.view='settings';button.dataset.settingsPage=pageId;button.textContent='System health';
-      button.addEventListener('click',()=>window.TDSettings?.activate?.(pageId));
-      subnav.appendChild(button);
-    }
-    const mobile=document.querySelector('#settingsMobilePage');
-    if(mobile&&!mobile.querySelector('option[value="system"]')){
-      const option=document.createElement('option');option.value='system';option.textContent='System health';mobile.appendChild(option);
-    }
-  }
-
   function addCard(sectionName,id,markup) {
     if(document.querySelector('#'+id))return;
     const section=document.querySelector(`[data-settings-section="${sectionName}"]`);
     if(section)section.insertAdjacentHTML('beforeend',markup);
-  }
-
-  function buildSystemPage() {
-    if(document.querySelector('[data-settings-section="system"]'))return;
-    const content=document.querySelector('.settings-content');
-    if(!content)return;
-    const section=document.createElement('section');
-    section.className='settings-page';section.dataset.settingsSection='system';
-    section.innerHTML=`
-      <div class="panel settings-card" id="opsSystemHealthCard">
-        <div class="panel-title">System health</div>
-        <p class="muted">Operational status for Torrent Dashboard, qBittorrent clients, integrations, backups, updates, and disk space.</p>
-        <div class="update-status" id="opsHealthSummary"><div><span>Overall</span><strong>Loading…</strong></div></div>
-        <div class="notification-list" id="opsHealthComponents"></div>
-        <div class="settings-inline-actions"><button class="secondary" id="opsRefreshHealth" type="button">Refresh health</button></div>
-      </div>`;
-    content.appendChild(section);
-    document.querySelector('#opsRefreshHealth')?.addEventListener('click',loadHealth);
   }
 
   function buildBackupCards() {
@@ -145,7 +87,7 @@
   }
 
   function buildSurfaces() {
-    buildNavigation();buildSystemPage();buildBackupCards();buildUpdateCard();
+    buildBackupCards();buildUpdateCard();
   }
 
   function fillPolicy(settings) {
@@ -193,17 +135,6 @@
     }catch(error){notify(error.message,'error');return false}
   }
 
-  async function loadHealth() {
-    buildSurfaces();
-    const summary=document.querySelector('#opsHealthSummary'),list=document.querySelector('#opsHealthComponents');
-    if(summary)summary.innerHTML='<div><span>Overall</span><strong>Checking…</strong></div>';
-    try{
-      const health=await getJson('/api/system-health');
-      if(summary)summary.innerHTML=`<div><span>Overall</span><strong>${escapeHtml(stateLabel(health.state||'unknown'))}</strong></div><div><span>Version</span><strong>${escapeHtml(health.version||'')}</strong></div><div><span>Uptime</span><strong>${Math.floor(Number(health.uptime_seconds||0)/60)} min</strong></div><div><span>Free disk</span><strong>${formatBytes(health.disk?.free||0)}</strong></div>`;
-      if(list)list.innerHTML=(health.components||[]).map(item=>{const state=String(item.state||'unknown').toLowerCase();const tone=state==='healthy'?'good':state==='warning'?'warn':'bad';return `<article class="notification-item ${tone}"><span class="notification-dot" aria-hidden="true"></span><div class="notification-copy"><div class="notification-title"><b>${escapeHtml(componentLabel(item.id))}</b><span>${escapeHtml(stateLabel(item.state))}</span></div><p>${escapeHtml(item.message||'')}</p></div></article>`}).join('')||'<div class="settings-empty"><b>No health data</b></div>';
-    }catch(error){if(summary)summary.innerHTML='<div><span>Overall</span><strong>Unavailable</strong></div>';if(list)list.innerHTML=`<div class="settings-empty"><b>Health check failed</b><span>${escapeHtml(error.message)}</span></div>`}
-  }
-  function formatBytes(value){let n=Number(value||0);if(!n)return'0 B';const units=['B','KB','MB','GB','TB'];let i=0;while(n>=1024&&i<units.length-1){n/=1024;i++}return`${n.toFixed(i?1:0)} ${units[i]}`}
 
   async function runRetention() {
     const status=document.querySelector('#opsRetentionStatus');if(status)status.textContent='Running retention…';
@@ -213,7 +144,6 @@
 
   function activate(page) {
     buildSurfaces();
-    if(page==='system')loadHealth();
     if(page==='backups'||page==='updates')loadPolicy();
   }
 
@@ -223,8 +153,7 @@
     if(!document.querySelector('#view-settings'))return;
     buildSurfaces();
     const current=localStorage.tdSettingsPage||'general';
-    if(current==='system')setTimeout(()=>window.TDSettings?.activate?.('system'),0);
-    else if(current==='backups'||current==='updates')activate(current);
+    if(current==='backups'||current==='updates')activate(current);
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initialize,{once:true});else initialize();
 })();

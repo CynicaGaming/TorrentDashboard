@@ -1,39 +1,39 @@
 {
   "schema": 1,
   "status": "release-candidate",
-  "objective": "Publish the v0.5.158 operational settings organization and System health copy cleanup",
-  "why": "The initial System operations page grouped unrelated backup, update, retention, audit, and health concerns together, duplicated security activity already visible in Notifications, exposed machine-oriented labels, and lacked the normal spacing used across other settings pages.",
+  "objective": "Publish v0.5.159 without the standalone System health settings surface",
+  "why": "System health became a passive duplicate after operational controls were organized under Backups, Updates, Notifications, and Integrations.",
   "acceptance_criteria": [
-    "Backup protection and Backup schedule are separate cards under Backups.",
-    "Retention is under Backups and Automatic updates is under Updates.",
-    "System health contains diagnostics only, with readable component and status labels.",
-    "Security audit is removed from the browser System page and audit failures do not mark overall service health unhealthy.",
-    "Adjacent settings cards have consistent spacing and Backups uses the shared Save action.",
+    "System health is absent from desktop and mobile Settings navigation.",
+    "No browser code requests /api/system-health.",
+    "The /api/system-health endpoint and health aggregation helpers are removed.",
+    "Backups, Updates, retention, audit persistence, and notification behavior remain unchanged.",
     "Ubuntu/Windows Python 3.13/3.14 validation passes.",
     "The source updater ZIP and compiled Windows package build successfully, and all three Windows executables pass smoke tests.",
-    "v0.5.158 is published with both source and Windows updater ZIPs and SHA-256 digests."
+    "v0.5.159 is published with both source and Windows updater ZIPs and SHA-256 digests."
   ],
   "decisions": [
-    "Organize settings by domain instead of collecting operational policy under a generic System page.",
-    "Keep the durable security audit backend but use Notifications as the user-facing security activity surface.",
-    "Keep System health focused on service/runtime health rather than historical security events."
+    "Remove System health entirely rather than hide it while retaining dead browser/API code.",
+    "Keep durable audit logging and operational schedulers because they support real features outside the removed page."
   ],
   "files": [
     "static/ops.js",
     "static/settings.js",
-    "static/settings.css",
+    "src/torrent_dashboard/runtime.py",
     "src/torrent_dashboard/operations.py",
     "tests/test_system_ops_ui.py",
     "tests/test_operations.py",
+    "release_tools/validate_ui_strings.py",
     "src/torrent_dashboard/__init__.py",
     "static/index.html",
     "static/app.js",
     "static/sw.js",
-    "release_notes/releases.json"
+    "release_notes/releases.json",
+    "development/current.json"
   ],
   "blockers": [],
   "out_of_scope": [
-    "No changes to audit persistence, security-event generation, notification delivery semantics, backup archive format, updater verification, or retention execution semantics."
+    "No changes to backup behavior, automatic-update behavior, retention execution, audit persistence, or notification delivery."
   ],
-  "next_action": "Run the full pull-request validation and Windows smoke build; if green, merge and verify the updater-visible v0.5.158 release."
+  "next_action": "Run the full pull-request validation and Windows smoke build; if green, merge and verify the updater-visible v0.5.159 release."
 }

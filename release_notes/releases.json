@@ -12,6 +12,47 @@
   },
   "releases": [
     {
+      "version": "0.5.159",
+      "date": "2026-09-11",
+      "status": "prerelease",
+      "title": "Remove the System health settings page",
+      "summary": "Removes the standalone System health settings category and its dedicated API because it duplicates status already available in the settings areas where users can act on it.",
+      "highlights": [
+        "Removes System health from desktop and mobile Settings navigation.",
+        "Removes the dynamic System health card and browser polling code.",
+        "Removes the dedicated /api/system-health endpoint and its unused health aggregation helpers.",
+        "Browsers that previously stored System as the active Settings page now fall back to General."
+      ],
+      "fixes": [
+        "Eliminates an irrelevant settings category after backup, update, notification, and integration controls were moved to their proper domains."
+      ],
+      "technical": [
+        "Keeps the durable audit API, retention scheduler, backup scheduler, automatic updater, and domain-specific settings cards unchanged.",
+        "Removes dead health formatting and aggregation code from the operations runtime instead of merely hiding the page."
+      ],
+      "validation": [
+        "Runs source/unit validation, browser contract checks, JavaScript syntax checks, generated documentation validation, the source updater package build, and the Windows PyInstaller smoke build."
+      ],
+      "known_issues": [
+        "Backup encryption remains opt-in; unencrypted portable backups can contain saved client and integration credentials and should be stored securely.",
+        "Windows executables are not code-signed yet."
+      ],
+      "architecture": [
+        "Operational status is surfaced through actionable domain pages and notifications rather than a standalone aggregate System health page."
+      ],
+      "decisions": [
+        "Do not keep a separate System settings category solely for passive health summaries.",
+        "Remove the unused health API and aggregation helpers together with the UI to avoid dead maintenance surface."
+      ],
+      "next_steps": [
+        {
+          "priority": 1,
+          "title": "Verify Settings navigation after update",
+          "detail": "Confirm System health no longer appears on desktop or mobile and that Backups and Updates retain their reorganized operational controls."
+        }
+      ]
+    },
+    {
       "version": "0.5.158",
       "date": "2026-09-11",
       "status": "prerelease",
