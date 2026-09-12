@@ -6,15 +6,24 @@ import os
 from pathlib import Path
 import struct
 
-from cryptography.exceptions import InvalidTag
-from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-
 MAGIC = b"TDBACKUP-AESGCM\x01"
 SALT_BYTES = 16
 NONCE_BYTES = 12
 TAG_BYTES = 16
 DEFAULT_ITERATIONS = 600_000
 _HEADER_STRUCT = struct.Struct(">I16s12s")
+
+
+def _crypto_primitives():
+    """Import cryptography lazily so source installs still boot before dependencies are refreshed."""
+    try:
+        from cryptography.exceptions import InvalidTag
+        from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+    except Exception as exc:
+        raise RuntimeError(
+            "Encrypted backups require cryptography 50.0.1. Install project dependencies and try again"
+        ) from exc
+    return InvalidTag, Cipher, algorithms, modes
 
 
 def _password_bytes(password: str) -> bytes:
@@ -43,6 +52,7 @@ def is_encrypted_backup(path: Path | str) -> bool:
 
 def encrypt_file(source: Path | str, destination: Path | str, password: str, *, iterations: int = DEFAULT_ITERATIONS):
     """Encrypt one file with streaming AES-256-GCM and authenticated metadata."""
+    _, Cipher, algorithms, modes = _crypto_primitives()
     source = Path(source)
     destination = Path(destination)
     salt = os.urandom(SALT_BYTES)
@@ -67,6 +77,7 @@ def encrypt_file(source: Path | str, destination: Path | str, password: str, *, 
 
 def decrypt_file(source: Path | str, destination: Path | str, password: str):
     """Authenticate and decrypt one backup envelope without exposing unauthenticated plaintext."""
+    InvalidTag, Cipher, algorithms, modes = _crypto_primitives()
     source = Path(source)
     destination = Path(destination)
     total = source.stat().st_size
