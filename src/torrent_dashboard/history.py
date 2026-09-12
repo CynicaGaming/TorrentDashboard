@@ -7,6 +7,14 @@ import sqlite3
 import threading
 import time
 
+from .audit import AuditStore
+
+_AUDIT_PREFIXES = (
+    "login_", "recovery_login_", "setup_", "account_", "user_", "settings_",
+    "client_settings_", "integration_", "jellyfin_", "backup_", "update_",
+    "notification_sound_",
+)
+
 
 class HistoryStore:
     def __init__(self, path):
@@ -15,6 +23,7 @@ class HistoryStore:
         self.lock = threading.RLock()
         self.last_sample = {}
         self.last_seen = {}
+        self.audit = AuditStore(self.path.with_name("security-audit.sqlite3"))
         self.initialize()
 
     def initialize(self):
@@ -83,9 +92,22 @@ class HistoryStore:
                         (server_id,h,t.get("name",""),t.get("category",""),int(t.get("added_on",0) or 0),int(t.get("completion_on",0) or 0),int(t.get("downloaded",0) or 0),int(t.get("uploaded",0) or 0),float(t.get("ratio",0) or 0),now))
 
     def event(self, server_id, event, name="", hash_="", data=None):
+        payload = data or {}
         with self._db() as db:
             db.execute("INSERT INTO events(ts,server_id,hash,name,event,data) VALUES(?,?,?,?,?,?)",
-                       (int(time.time()), server_id, hash_, name, event, json.dumps(data or {})))
+                       (int(time.time()), server_id, hash_, name, event, json.dumps(payload)))
+        if str(event or "").startswith(_AUDIT_PREFIXES):
+            outcome = "failure" if str(event).endswith("_failed") else "denied" if "denied" in str(event) else "success"
+            details = dict(payload) if isinstance(payload, dict) else {"value": payload}
+            client_ip = str(details.pop("client_ip", "") or "")
+            try:
+                self.audit.record(
+                    str(event), actor=str(name or ""), outcome=outcome, client_ip=client_ip,
+                    target=str(hash_ or server_id or ""), details=details,
+                )
+            except Exception:
+                # Audit failures must not break the user action already recorded in history.
+                pass
 
     def cleanup(self, days):
         cutoff = int(time.time()) - max(1, int(days)) * 86400
