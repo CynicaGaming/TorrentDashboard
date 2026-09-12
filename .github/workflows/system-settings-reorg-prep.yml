@@ -49,7 +49,7 @@ jobs:
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add static/ops.js static/settings.js static/settings.css src/torrent_dashboard/operations.py tests/test_system_ops_ui.py tests/test_operations.py src/torrent_dashboard/__init__.py static/index.html static/app.js static/sw.js release_notes/releases.json development/current.json CHANGELOG.md PROJECT_STATE.md HANDOFF.md
+          git add static/ops.js static/settings.js static/settings.css src/torrent_dashboard/operations.py tests/test_system_ops_ui.py tests/test_operations.py src/torrent_dashboard/__init__.py static/index.html static/app.js static/sw.js release_notes/releases.json development/current.json CHANGELOG.md PROJECT_STATE.md HANDOFF.md release_tools/validate_ui_strings.py
           git diff --cached --check
           git commit -m 'Release v0.5.158 — Reorganize operational settings'
           git push origin HEAD:hotfix/system-settings-reorg
