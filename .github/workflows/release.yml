@@ -30,6 +30,9 @@ jobs:
         with:
           python-version: '3.13'
 
+      - name: Install project dependencies
+        run: python -m pip install --disable-pip-version-check .
+
       - name: Validate Source
         shell: bash
         run: |
@@ -38,6 +41,7 @@ jobs:
           python -m unittest discover -s tests -p 'test_*.py'
           node --check static/app.js
           node --check static/settings.js
+          node --check static/ops.js
           node - <<'JS'
           global.window = {};
           const fs = require('fs');
@@ -92,22 +96,20 @@ jobs:
               names=[n for n in z.namelist() if not n.endswith('/')]
               required=(
                   '/src/torrent_dashboard/__init__.py','/src/torrent_dashboard/dashboard.py',
-                  '/src/torrent_dashboard/updater.py','/src/torrent_dashboard/recovery_tool.py',
-                  '/src/torrent_dashboard/users.py','/src/torrent_dashboard/config_store.py',
-                  '/src/torrent_dashboard/config.py','/src/torrent_dashboard/integrations.py',
-                  '/src/torrent_dashboard/jellyfin.py','/src/torrent_dashboard/release_provenance.py',
-                  '/pyproject.toml','/ARCHITECTURE.md','/PROJECT_STATE.md','/CHANGELOG.md',
-                  '/release_notes/releases.json','/static/index.html','/static/app.js',
-                  '/static/settings.js','/static/settings.css',
+                  '/src/torrent_dashboard/runtime.py','/src/torrent_dashboard/updater.py',
+                  '/src/torrent_dashboard/recovery_tool.py','/src/torrent_dashboard/users.py',
+                  '/src/torrent_dashboard/config_store.py','/src/torrent_dashboard/config.py',
+                  '/src/torrent_dashboard/integrations.py','/src/torrent_dashboard/jellyfin.py',
+                  '/src/torrent_dashboard/release_provenance.py','/src/torrent_dashboard/backup_crypto.py',
+                  '/src/torrent_dashboard/backup_service.py','/src/torrent_dashboard/operations.py',
+                  '/src/torrent_dashboard/ops_config.py','/src/torrent_dashboard/audit.py',
+                  '/src/torrent_dashboard/release_selection.py','/pyproject.toml','/ARCHITECTURE.md',
+                  '/PROJECT_STATE.md','/CHANGELOG.md','/release_notes/releases.json',
+                  '/static/index.html','/static/app.js','/static/settings.js','/static/settings.css','/static/ops.js',
               )
               for suffix in required:
                   assert any(n.endswith(suffix) for n in names), suffix
 
-              # 0.5.146 is the bridge into the canonical src layout. Older
-              # update staging validates dashboard.py at the extracted root,
-              # so the release ZIP carries tiny launchers that immediately
-              # delegate to src/torrent_dashboard. Maintained repository source
-              # remains src-only.
               compatibility=('dashboard.py','updater.py','recovery_tool.py')
               for name in compatibility:
                   member=f'{prefix}/{name}'
@@ -116,10 +118,8 @@ jobs:
                   compile(source, member, 'exec')
                   assert 'maintained code lives under src/' in source
               assert f'VERSION = "{version}"' in z.read(f'{prefix}/dashboard.py').decode('utf-8')
-              assert 'from torrent_dashboard.dashboard import main' in z.read(f'{prefix}/dashboard.py').decode('utf-8')
+              assert 'from torrent_dashboard.runtime import main' in z.read(f'{prefix}/dashboard.py').decode('utf-8')
 
-              # Emulate the legacy safe_extract_zip application check that
-              # produced "Update ZIP does not contain a valid Torrent Dashboard application".
               top={name.split('/',1)[0] for name in names}
               assert top == {prefix}, top
               assert f'{prefix}/dashboard.py' in names
