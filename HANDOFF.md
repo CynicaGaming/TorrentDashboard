@@ -7,36 +7,37 @@
 This handoff is intentionally portable across public forks. Verify the current checkout's Git remote, branch, and open work before using upstream references as instructions.
 
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
-- Last documented upstream build: **v0.5.156** (prerelease)
+- Last documented upstream build: **v0.5.157** (prerelease)
 
 ## Last known-good state
 
-Fixes the v0.5.155 System settings navigation so the new operational settings page opens normally from desktop and mobile settings navigation.
+Repairs the System health and security-audit row layout introduced with the operations page and shortens the System save action label.
 
 The released-state details and recent history are in `PROJECT_STATE.md`; architectural constraints are in `ARCHITECTURE.md`.
 
 ## Active development intent
 
 - Status: **release-candidate**
-- Objective: **Publish the v0.5.156 System settings navigation hotfix**
-- Why: v0.5.155 shipped the System operations page, but the shared settings router rejects the system page identifier and falls back to General when System is clicked.
+- Objective: **Publish the v0.5.157 System page layout hotfix**
+- Why: v0.5.156 made System navigation functional, but System health and audit entries use notification-item without the required notification-dot/content structure, collapsing descriptive text into the 9 px status-dot grid column.
 
 ### Acceptance criteria
 
-- The shared settings controller accepts system as a valid settings page.
-- The System UI contract explicitly checks the shared router integration.
+- System health rows use the shared notification row structure and remain compact at desktop and mobile widths.
+- Security audit rows use the same shared notification row structure.
+- The System settings save button reads Save.
 - Ubuntu/Windows Python 3.13/3.14 validation passes.
 - The source updater ZIP and compiled Windows package build successfully, and all three Windows executables pass smoke tests.
-- v0.5.156 is published with both source and Windows updater ZIPs and SHA-256 digests.
+- v0.5.157 is published with both source and Windows updater ZIPs and SHA-256 digests.
 
 ### Decisions already made
 
-- Fix the shared settings router rather than adding another independent navigation workaround.
-- Ship the correction as v0.5.156 so existing installations can receive it through auto-update.
+- Repair the markup to match the established notification component rather than masking the mismatch with System-specific CSS.
+- Ship the correction as v0.5.157 so existing v0.5.156 installations receive it through auto-update.
 
 ### Expected areas of change
 
-- `static/settings.js`
+- `static/ops.js`
 - `tests/test_system_ops_ui.py`
 - `src/torrent_dashboard/__init__.py`
 - `static/index.html`
@@ -50,11 +51,11 @@ None currently recorded.
 
 ### Explicitly out of scope
 
-- No changes to System feature behavior, permissions, backup policy, audit storage, or update scheduling beyond the navigation defect.
+- No changes to System operations behavior, permissions, API semantics, backup policy, audit persistence, retention, or update scheduling.
 
 ## Exact next action
 
-Run the full pull-request validation and Windows smoke build; if green, merge and verify the updater-visible v0.5.156 release.
+Run the full pull-request validation and Windows smoke build; if green, merge and verify the updater-visible v0.5.157 release.
 
 ## Resume checklist
 

@@ -20,6 +20,13 @@ class SystemOperationsUiTests(unittest.TestCase):
         self.assertIn("'users','system']", source)
         self.assertIn("activate(btn.dataset.settingsPage)", source)
 
+    def test_system_status_rows_follow_notification_layout_contract(self):
+        source = (ROOT / "static" / "ops.js").read_text(encoding="utf-8")
+        self.assertIn('class="notification-dot"', source)
+        self.assertIn('class="notification-copy"', source)
+        self.assertIn('id="opsSavePolicy" type="button">Save</button>', source)
+        self.assertNotIn('>Save system settings</button>', source)
+
     def test_runtime_injects_ops_script_into_application_shell(self):
         source = (ROOT / "src" / "torrent_dashboard" / "runtime.py").read_text(encoding="utf-8")
         self.assertIn('/static/ops.js?v=', source)
