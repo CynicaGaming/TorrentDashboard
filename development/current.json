@@ -1,31 +1,39 @@
 {
   "schema": 1,
-  "status": "ready",
-  "objective": "Validate v0.5.154 Account settings profile-menu hotfix on compiled Windows",
-  "why": "The profile menu hid Account settings for the built-in recovery account even though the item should remain discoverable; the hotfix keeps it visible while preserving the non-editable recovery-principal boundary.",
+  "status": "active",
+  "objective": "Implement TD-R001, TD-R002, TD-R003, TD-R004, TD-R008, TD-R016, and TD-R023",
+  "why": "Harden update readiness and add encrypted/scheduled backups, automatic maintenance, security auditing, consolidated health, and centralized retention without expanding the browser command surface.",
   "acceptance_criteria": [
-    "Source/unit, UI, syntax, generated-documentation, hygiene, source-package, and pull-request matrix checks pass.",
-    "Account settings remains visible in the profile menu for normal and recovery-account sessions.",
-    "Normal user accounts can open and use the existing Account settings modal.",
-    "The built-in recovery account shows Account settings disabled with an explicit explanation and remains non-editable server-side.",
-    "The v0.5.153 Recovery.exe migration and removed in-app Console behavior remain intact."
+    "Updater skips incomplete releases and selects the newest compatible package with a finalized SHA-256 digest.",
+    "Portable backups support password-based authenticated encryption and validate before publication or restore.",
+    "Administrators can configure scheduled backups with retention pruning.",
+    "Administrators can opt into automatic updates within a maintenance window with pre-update backup and existing rollback safeguards.",
+    "Security-sensitive history events are mirrored into a dedicated redacted audit store.",
+    "Administrators have a consolidated system-health view for dashboard, disk, backups, updates, clients, integrations, and audit status.",
+    "Retention centrally covers history, audit records, local backup count, and stale update artifacts.",
+    "Source/unit, UI/syntax, source-package, and Windows executable validation pass before release."
   ],
   "decisions": [
-    "Keep Account settings discoverable for every authenticated session.",
-    "Keep the built-in recovery account non-persistent and non-editable.",
-    "Do not reintroduce browser command execution or the removed Recovery Console."
+    "Keep dashboard.py stable and compose the milestone through a runtime process adapter.",
+    "Keep the in-app Recovery Console removed; new operational visibility is structured and administrator-only.",
+    "Automatic updates remain opt-in and run only inside an explicit local maintenance window.",
+    "Incomplete GitHub releases never displace the newest updater-ready release.",
+    "Audit payloads redact secret-looking fields before persistence."
   ],
   "files": [
-    "static/app.js",
-    "static/index.html",
-    "static/sw.js",
-    "release_tools/validate_ui_strings.py",
-    "src/torrent_dashboard/__init__.py",
-    "release_notes/releases.json"
+    "src/torrent_dashboard/runtime.py",
+    "src/torrent_dashboard/release_selection.py",
+    "src/torrent_dashboard/backup_crypto.py",
+    "src/torrent_dashboard/backup_service.py",
+    "src/torrent_dashboard/audit.py",
+    "src/torrent_dashboard/operations.py",
+    "src/torrent_dashboard/ops_config.py",
+    "static/ops.js",
+    "tests"
   ],
   "blockers": [],
   "out_of_scope": [
-    "Making the built-in recovery principal a persistent editable user account, authentication redesign, or reintroducing the browser Recovery Console."
+    "External backup destinations, MFA/SSO, API tokens, code signing, and destructive Recovery.exe actions."
   ],
-  "next_action": "Install v0.5.154 on compiled Windows and verify profile-menu Account settings behavior for both normal and recovery-account sessions."
+  "next_action": "Run the pull-request validation matrix, fix any integration failures, then prepare the next updater-visible prerelease."
 }
