@@ -8,18 +8,16 @@ security-audit APIs, and the consolidated system-health surface.
 from __future__ import annotations
 
 from datetime import datetime
-import json
 import logging
-from pathlib import Path
 import threading
 import time
 from types import SimpleNamespace
 import urllib.parse
 
-from . import backup_service
-from . import dashboard as core
-from .ops_config import apply_operations_update, public_operations_config
-from .operations import (
+from torrent_dashboard import backup_service
+from torrent_dashboard import dashboard as core
+from torrent_dashboard.ops_config import apply_operations_update, public_operations_config
+from torrent_dashboard.operations import (
     MaintenanceStateStore,
     automatic_update_due,
     build_system_health,
@@ -27,7 +25,7 @@ from .operations import (
     run_retention,
     scheduled_backup_due,
 )
-from .release_selection import select_updater_ready_release
+from torrent_dashboard.release_selection import select_updater_ready_release
 
 STARTED_AT = time.time()
 MAINTENANCE_STATE = MaintenanceStateStore(core.DATA_DIR / "maintenance-state.json")
