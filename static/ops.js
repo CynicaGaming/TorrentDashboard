@@ -100,7 +100,7 @@
         <div class="settings-inline-actions"><button class="secondary" id="opsRefreshAudit" type="button">Refresh audit log</button></div>
         <div class="notification-list" id="opsAuditList"></div>
       </div>
-      <div class="settings-savebar"><button class="primary" id="opsSavePolicy" type="button">Save system settings</button></div>`;
+      <div class="settings-savebar"><button class="primary" id="opsSavePolicy" type="button">Save</button></div>`;
     content.appendChild(section);
     document.querySelector('#opsRefreshHealth')?.addEventListener('click',loadHealth);
     document.querySelector('#opsRefreshAudit')?.addEventListener('click',loadAudit);
@@ -163,7 +163,7 @@
     try{
       const health=await getJson('/api/system-health');
       if(summary)summary.innerHTML=`<div><span>Overall</span><strong>${escapeHtml(health.state||'unknown')}</strong></div><div><span>Version</span><strong>${escapeHtml(health.version||'')}</strong></div><div><span>Uptime</span><strong>${Math.floor(Number(health.uptime_seconds||0)/60)} min</strong></div><div><span>Free disk</span><strong>${formatBytes(health.disk?.free||0)}</strong></div>`;
-      if(list)list.innerHTML=(health.components||[]).map(item=>`<article class="notification-item"><div><strong>${escapeHtml(item.id||'component')}</strong><span>${escapeHtml(item.message||'')}</span></div><span class="${item.state==='healthy'?'ok':'bad'}">${escapeHtml(item.state||'unknown')}</span></article>`).join('')||'<div class="settings-empty"><b>No health data</b></div>';
+      if(list)list.innerHTML=(health.components||[]).map(item=>`<article class="notification-item ${item.state==='healthy'?'good':item.state==='warning'?'warn':'bad'}"><span class="notification-dot" aria-hidden="true"></span><div class="notification-copy"><div class="notification-title"><b>${escapeHtml(item.id||'component')}</b><span>${escapeHtml(item.state||'unknown')}</span></div><p>${escapeHtml(item.message||'')}</p></div></article>`).join('')||'<div class="settings-empty"><b>No health data</b></div>';
     }catch(error){if(summary)summary.innerHTML=`<div><span>Overall</span><strong>Unavailable</strong></div>`;if(list)list.innerHTML=`<div class="settings-empty"><b>Health check failed</b><span>${escapeHtml(error.message)}</span></div>`}
   }
   function formatBytes(value){let n=Number(value||0);if(!n)return'0 B';const units=['B','KB','MB','GB','TB'];let i=0;while(n>=1024&&i<units.length-1){n/=1024;i++}return`${n.toFixed(i?1:0)} ${units[i]}`}
@@ -174,7 +174,7 @@
     const query=new URLSearchParams({limit:'150'});const action=value('opsAuditAction','').trim(),outcome=value('opsAuditOutcome','');if(action)query.set('action',action);if(outcome)query.set('outcome',outcome);
     try{
       const data=await getJson('/api/audit?'+query.toString());
-      if(list)list.innerHTML=(data.events||[]).map(event=>`<article class="notification-item"><div><strong>${escapeHtml(event.action||'event')}</strong><span>${escapeHtml(event.actor||'system')} · ${escapeHtml(event.client_ip||'local')} · ${formatTime(event.ts)}</span><small>${escapeHtml(event.target||'')}</small></div><span class="${event.outcome==='success'?'ok':'bad'}">${escapeHtml(event.outcome||'info')}</span></article>`).join('')||'<div class="settings-empty"><b>No matching audit events</b></div>';
+      if(list)list.innerHTML=(data.events||[]).map(event=>`<article class="notification-item ${event.outcome==='success'?'good':event.outcome==='failure'||event.outcome==='denied'?'bad':'warn'}"><span class="notification-dot" aria-hidden="true"></span><div class="notification-copy"><div class="notification-title"><b>${escapeHtml(event.action||'event')}</b><span>${escapeHtml(event.outcome||'info')}</span></div><p>${escapeHtml(event.actor||'system')} · ${escapeHtml(event.client_ip||'local')}${event.target?' · '+escapeHtml(event.target):''}</p></div><time>${formatTime(event.ts)}</time></article>`).join('')||'<div class="settings-empty"><b>No matching audit events</b></div>';
     }catch(error){if(list)list.innerHTML=`<div class="settings-empty"><b>Audit log unavailable</b><span>${escapeHtml(error.message)}</span></div>`}
   }
 

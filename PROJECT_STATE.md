@@ -6,20 +6,20 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.156** (prerelease)
+- Latest documented build: **v0.5.157** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 
 ### Latest release summary
 
-Fixes the v0.5.155 System settings navigation so the new operational settings page opens normally from desktop and mobile settings navigation.
+Repairs the System health and security-audit row layout introduced with the operations page and shortens the System save action label.
 
 ## Architecture state
 
-- System remains an operations extension layered around the existing settings controller rather than duplicating the complete settings router.
+- System status and audit presentation now conform to the shared notification-row component contract.
 
 ## Current engineering decisions
 
-- Register extension settings pages with the shared settings router instead of allowing competing navigation state machines.
+- Prefer existing shared presentation contracts over one-off CSS overrides for System operational lists.
 
 ## Development principles
 
@@ -31,6 +31,14 @@ Fixes the v0.5.155 System settings navigation so the new operational settings pa
 - Keep public development continuity portable across forks; label canonical repository/branch/PR references as upstream context rather than local identity.
 
 ## Recent work
+
+### v0.5.157 — System page layout hotfix
+
+Repairs the System health and security-audit row layout introduced with the operations page and shortens the System save action label.
+
+- System health components now use the notification row structure expected by the shared application styles instead of collapsing their text into the status-dot column.
+- Security audit rows use the same established status-dot, content, badge, and timestamp layout for consistent spacing on desktop and mobile.
+- The System settings save button now reads Save.
 
 ### v0.5.156 — System settings navigation hotfix
 
@@ -66,18 +74,9 @@ Removes the embedded dashboard Console and moves its diagnostic and safe operati
 - Fetches torrent identifiers and state directly from qBittorrent in local recovery instead of depending on the running dashboard cache.
 - Keeps browser recovery-key sign-in as a separate account-recovery path without exposing command execution through the dashboard.
 
-### v0.5.152 — Recovery Console list parity
-
-Adds explicit read-only list commands for actionable Recovery Console resources while preserving the v0.5.151 profile, login, backup, and update behavior.
-
-- Makes client list and integration list explicit in Console help while retaining the existing clients and integrations compatibility aliases.
-- Adds torrent list [client-id] so standard sessions can enumerate actionable torrent hashes, client IDs, states, progress, and names without mutation privileges.
-- Adds jellyfin list <integration-id> as the explicit list counterpart to Jellyfin task start and stop actions while retaining jellyfin tasks as an alias.
-- Carries the console parity work forward on top of the current main branch without reintroducing the superseded animated login treatment.
-
 ## What to do next
 
-1. **Verify System navigation after auto-update** — Confirm an existing v0.5.155 installation detects v0.5.156 and that System opens from desktop and mobile Settings after the update.
+1. **Verify System layout after auto-update** — Confirm v0.5.157 shows compact readable System health and audit rows and that the Save button uses the concise label on desktop and mobile.
 
 ## Known issues
 
