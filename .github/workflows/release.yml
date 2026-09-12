@@ -171,20 +171,7 @@ jobs:
               --prerelease
           fi
 
-      - name: Remove Superseded Pre-Releases
-        env:
-          GH_TOKEN: ${{ github.token }}
-          TAG: ${{ steps.version.outputs.tag }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          for old_tag in $(gh api "repos/${{ github.repository }}/releases?per_page=100" --jq '.[] | select(.prerelease == true) | .tag_name'); do
-            if [ "$old_tag" != "$TAG" ]; then
-              gh release delete "$old_tag" --cleanup-tag --yes
-            fi
-          done
-
-      - name: Verify Updater-Visible Pre-Release
+      - name: Verify Source Pre-Release Asset
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.version.outputs.tag }}
