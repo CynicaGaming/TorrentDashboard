@@ -43,6 +43,14 @@ jobs:
           node --check static/app.js
           node --check static/settings.js
           node --check static/ops.js
+      - name: Build source update package
+        if: ${{ matrix.os == 'ubuntu-latest' && matrix.python == '3.13' }}
+        shell: bash
+        run: |
+          VERSION=$(python -c "from torrent_dashboard import __version__; print(__version__)")
+          python release_tools/build_release.py --repo "${{ github.repository }}" --tag "v$VERSION" --output dist-pr
+          test -f "dist-pr/Torrent-Dashboard-$VERSION.zip"
+          test -f "dist-pr/Torrent-Dashboard-$VERSION.release.json"
       - name: Check generated documentation
         run: python -c "import subprocess, sys; from torrent_dashboard import __version__; subprocess.run([sys.executable, 'release_tools/generate_release_notes.py', '--version', __version__, '--check'], check=True)"
       - name: Check public repository hygiene
