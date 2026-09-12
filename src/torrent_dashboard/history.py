@@ -90,8 +90,14 @@ class HistoryStore:
     def cleanup(self, days):
         cutoff = int(time.time()) - max(1, int(days)) * 86400
         with self._db() as db:
-            db.execute("DELETE FROM snapshots WHERE ts < ?", (cutoff,))
-            db.execute("DELETE FROM events WHERE ts < ?", (cutoff,))
+            snapshots = db.execute("DELETE FROM snapshots WHERE ts < ?", (cutoff,)).rowcount
+            events = db.execute("DELETE FROM events WHERE ts < ?", (cutoff,)).rowcount
+            torrents = db.execute("DELETE FROM torrent_history WHERE last_seen < ?", (cutoff,)).rowcount
+        return {
+            "snapshots": max(0, int(snapshots or 0)),
+            "events": max(0, int(events or 0)),
+            "torrents": max(0, int(torrents or 0)),
+        }
 
     def history(self, server_id, minutes):
         cutoff = int(time.time()) - max(1, min(int(minutes), 43200)) * 60
