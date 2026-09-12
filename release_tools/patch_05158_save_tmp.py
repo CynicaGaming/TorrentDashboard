@@ -36,4 +36,14 @@ new_contract = "const corePages = new Set(['general','access','clients','backups
 if old_contract not in validation:
     raise SystemExit("Could not locate core Settings page validation contract")
 validation = validation.replace(old_contract, new_contract, 1)
+old_update_contract = "    assert \"if (activePage === 'updates') return saveUpdateSource();\" in settings_js\n"
+new_update_contract = """    assert \"if (activePage === 'backups') {\" in settings_js
+    assert \"window.TDOps.saveBackupSettings\" in settings_js
+    assert \"if (activePage === 'updates') {\" in settings_js
+    assert \"saveUpdateSource({toastOnSuccess:false})\" in settings_js
+    assert \"window.TDOps?.saveUpdateSettings\" in settings_js
+"""
+if old_update_contract not in validation:
+    raise SystemExit("Could not locate Updates save validation contract")
+validation = validation.replace(old_update_contract, new_update_contract, 1)
 validator.write_text(validation, encoding="utf-8")
