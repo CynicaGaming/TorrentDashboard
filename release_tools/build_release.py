@@ -73,9 +73,9 @@ def compatibility_launchers(version: str) -> dict[str, str]:
     """Return release-only root launchers accepted by pre-src update staging.
 
     These files are never written into the repository source tree. They exist in
-    the 0.5.146 source ZIP so an older dashboard that validates dashboard.py at
-    the archive root can stage the package, restart through the legacy path, and
-    immediately hand execution to the canonical src/torrent_dashboard package.
+    the source ZIP so an older dashboard that validates dashboard.py at the
+    archive root can stage the package, restart through the legacy path, and
+    immediately hand execution to the canonical runtime under src/torrent_dashboard.
     """
     common = (
         "from pathlib import Path\n"
@@ -90,7 +90,7 @@ def compatibility_launchers(version: str) -> dict[str, str]:
             "\"\"\"Legacy source-update compatibility launcher; maintained code lives under src/.\"\"\"\n"
             + common
             + f'VERSION = "{version}"\n'
-            + "from torrent_dashboard.dashboard import main\n\n"
+            + "from torrent_dashboard.runtime import main\n\n"
             + "if __name__ == \"__main__\":\n"
             + "    raise SystemExit(main())\n"
         ),

@@ -12,6 +12,64 @@
   },
   "releases": [
     {
+      "version": "0.5.155",
+      "date": "2026-09-11",
+      "status": "prerelease",
+      "title": "Operations reliability, encrypted backups, and system health",
+      "summary": "Adds updater-ready release fallback, authenticated portable-backup encryption, scheduled maintenance, security auditing, system health, and centralized retention while keeping automation opt-in.",
+      "highlights": [
+        "Keeps auto-update usable while a new release is still assembling by skipping incomplete distribution assets and retaining the previous complete prerelease until both source and Windows packages are verified.",
+        "Adds AES-256-GCM portable-backup encryption with password-derived keys, encrypted import/restore support, scheduled backups, and local-only handling of the backup encryption password.",
+        "Adds opt-in automatic updates with local maintenance windows, pre-update backups, and the existing verified staging/rollback path.",
+        "Adds a dedicated redacted security audit database plus an administrator-only System settings page for health, audit review, backup scheduling, update policy, and retention.",
+        "Centralizes retention for history, stale torrent records, security-audit events, backup count, and staged update artifacts."
+      ],
+      "fixes": [
+        "Prevents a partially published newest GitHub release from temporarily making updates unavailable to installations whose distribution asset has not finished uploading.",
+        "Moves superseded-prerelease cleanup until after the Windows workflow verifies both updater ZIPs and their GitHub SHA-256 digests.",
+        "Keeps backup-encryption credentials out of portable backup payloads and preserves the destination installation's local encryption secret across restores."
+      ],
+      "technical": [
+        "Uses cryptography 50.0.1 for streaming AES-256-GCM with PBKDF2-HMAC-SHA256 password derivation; cryptography is lazy-loaded so an existing source install can still start before dependencies are refreshed.",
+        "Adds runtime.py as a narrow operations adapter around the existing dashboard composition root; source launchers, source update restarts, the console entry point, and Dashboard.exe all route through this adapter.",
+        "Adds audit.py, backup_crypto.py, backup_service.py, operations.py, ops_config.py, release_selection.py, and static/ops.js as focused operational boundaries.",
+        "The Windows preview workflow now runs on pull requests without publishing release assets, providing a pre-merge PyInstaller build and Dashboard.exe/Recovery.exe/Updater.exe smoke test."
+      ],
+      "validation": [
+        "Runs source validation on Ubuntu and Windows with Python 3.13 and 3.14 after installing declared project dependencies.",
+        "Builds a real source updater ZIP during pull-request validation and validates generated documentation, browser contracts, JavaScript syntax, and public-repository hygiene.",
+        "Adds unit coverage for AES-GCM round trips, tamper and wrong-password rejection, encryption-password portability boundaries, security-audit redaction/mirroring, backup scheduling, maintenance windows, retention, and incomplete-release fallback.",
+        "Builds the compiled Windows package on the pull request and smoke-tests Dashboard.exe, Recovery.exe, and Updater.exe before merge."
+      ],
+      "known_issues": [
+        "Backup encryption is opt-in; unencrypted portable backups can contain saved client and integration credentials and should be stored securely.",
+        "Windows executables are not code-signed yet."
+      ],
+      "architecture": [
+        "Operational maintenance remains layered around dashboard.py rather than expanding the existing HTTP composition root.",
+        "Security audit data is stored separately from general history and redacts secret-looking detail fields before persistence.",
+        "Automatic update and scheduled backup policies default to disabled so upgrades do not silently change automation behavior."
+      ],
+      "decisions": [
+        "Prefer a standard maintained AEAD implementation over application-defined backup cryptography.",
+        "Treat a release as updater-ready only when the distribution-specific ZIP has a finalized SHA-256 digest.",
+        "Keep the previous complete prerelease available until the new source and Windows packages are both verified.",
+        "Keep the backup encryption password local to each installation and exclude it from portable state."
+      ],
+      "next_steps": [
+        {
+          "priority": 1,
+          "title": "Verify updater-visible v0.5.155 release",
+          "detail": "After merge, confirm both source and Windows v0.5.155 ZIPs are attached with SHA-256 digests before the previous prerelease is retired, then verify an existing installation detects the new release."
+        },
+        {
+          "priority": 2,
+          "title": "Exercise scheduled operations on a long-running install",
+          "detail": "Confirm scheduled encrypted backups, maintenance-window automatic updates, retention, audit entries, and System health behave correctly across normal service restarts."
+        }
+      ]
+    },
+    {
       "version": "0.5.154",
       "date": "2026-09-11",
       "status": "prerelease",

@@ -7,41 +7,47 @@
 This handoff is intentionally portable across public forks. Verify the current checkout's Git remote, branch, and open work before using upstream references as instructions.
 
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
-- Last documented upstream build: **v0.5.154** (prerelease)
+- Last documented upstream build: **v0.5.155** (prerelease)
 
 ## Last known-good state
 
-Restores the Account settings entry to the profile menu for recovery-account sessions without making the built-in recovery principal editable.
+Adds updater-ready release fallback, authenticated portable-backup encryption, scheduled maintenance, security auditing, system health, and centralized retention while keeping automation opt-in.
 
 The released-state details and recent history are in `PROJECT_STATE.md`; architectural constraints are in `ARCHITECTURE.md`.
 
 ## Active development intent
 
-- Status: **ready**
-- Objective: **Validate v0.5.154 Account settings profile-menu hotfix on compiled Windows**
-- Why: The profile menu hid Account settings for the built-in recovery account even though the item should remain discoverable; the hotfix keeps it visible while preserving the non-editable recovery-principal boundary.
+- Status: **release-candidate**
+- Objective: **Merge and publish the v0.5.155 operations reliability milestone**
+- Why: TD-R001, TD-R002, TD-R003, TD-R004, TD-R008, TD-R016, and TD-R023 are implemented and need final versioned validation plus updater-visible release verification.
 
 ### Acceptance criteria
 
-- Source/unit, UI, syntax, generated-documentation, hygiene, source-package, and pull-request matrix checks pass.
-- Account settings remains visible in the profile menu for normal and recovery-account sessions.
-- Normal user accounts can open and use the existing Account settings modal.
-- The built-in recovery account shows Account settings disabled with an explicit explanation and remains non-editable server-side.
-- The v0.5.153 Recovery.exe migration and removed in-app Console behavior remain intact.
+- Ubuntu/Windows Python 3.13/3.14 source validation passes with declared dependencies installed.
+- The pull-request source updater ZIP builds successfully.
+- The pull-request Windows package builds and Dashboard.exe, Recovery.exe, and Updater.exe pass smoke tests.
+- v0.5.155 frontend/service-worker build markers and generated documentation are synchronized.
+- After merge, both source and Windows updater ZIPs are published with GitHub SHA-256 digests before the previous complete prerelease is removed.
 
 ### Decisions already made
 
-- Keep Account settings discoverable for every authenticated session.
-- Keep the built-in recovery account non-persistent and non-editable.
-- Do not reintroduce browser command execution or the removed Recovery Console.
+- Use AES-256-GCM from cryptography for portable-backup encryption.
+- Keep automatic updates and scheduled backups disabled by default.
+- Keep the previous complete prerelease available during new-release assembly.
+- Use runtime.py as the operations adapter while dashboard.py remains the HTTP composition root.
 
 ### Expected areas of change
 
-- `static/app.js`
-- `static/index.html`
-- `static/sw.js`
-- `release_tools/validate_ui_strings.py`
-- `src/torrent_dashboard/__init__.py`
+- `src/torrent_dashboard/runtime.py`
+- `src/torrent_dashboard/backup_crypto.py`
+- `src/torrent_dashboard/backup_service.py`
+- `src/torrent_dashboard/audit.py`
+- `src/torrent_dashboard/operations.py`
+- `src/torrent_dashboard/ops_config.py`
+- `src/torrent_dashboard/release_selection.py`
+- `static/ops.js`
+- `.github/workflows/release.yml`
+- `.github/workflows/windows-preview.yml`
 - `release_notes/releases.json`
 
 ### Blockers
@@ -50,11 +56,11 @@ None currently recorded.
 
 ### Explicitly out of scope
 
-- Making the built-in recovery principal a persistent editable user account, authentication redesign, or reintroducing the browser Recovery Console.
+- Multi-factor authentication, granular permissions, API tokens, SSO, cross-client migration, and unrelated torrent-management enhancements.
 
 ## Exact next action
 
-Install v0.5.154 on compiled Windows and verify profile-menu Account settings behavior for both normal and recovery-account sessions.
+Run the final v0.5.155 pull-request source matrix and compiled Windows smoke build; if green, mark PR #41 ready and merge, then verify both updater assets and digests are public.
 
 ## Resume checklist
 

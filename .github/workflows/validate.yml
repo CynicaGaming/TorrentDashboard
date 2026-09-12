@@ -33,6 +33,8 @@ jobs:
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
         with:
           python-version: ${{ matrix.python }}
+      - name: Install project dependencies
+        run: python -m pip install --disable-pip-version-check .
       - name: Validate source and run unit tests
         run: python release_tools/validate_source.py
       - name: Validate browser contracts
@@ -40,6 +42,15 @@ jobs:
           python release_tools/validate_ui_strings.py
           node --check static/app.js
           node --check static/settings.js
+          node --check static/ops.js
+      - name: Build source update package
+        if: ${{ matrix.os == 'ubuntu-latest' && matrix.python == '3.13' }}
+        shell: bash
+        run: |
+          VERSION=$(python -c "from torrent_dashboard import __version__; print(__version__)")
+          python release_tools/build_release.py --repo "${{ github.repository }}" --tag "v$VERSION" --output dist-pr
+          test -f "dist-pr/Torrent-Dashboard-$VERSION.zip"
+          test -f "dist-pr/Torrent-Dashboard-$VERSION.release.json"
       - name: Check generated documentation
         run: python -c "import subprocess, sys; from torrent_dashboard import __version__; subprocess.run([sys.executable, 'release_tools/generate_release_notes.py', '--version', __version__, '--check'], check=True)"
       - name: Check public repository hygiene
