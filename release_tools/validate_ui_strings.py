@@ -378,8 +378,12 @@ def main():
     assert 'Notification.requestPermission()' in settings_js
     assert 'async function showBrowserNotification' in app_js
     assert 'CREATE_NO_WINDOW' in dashboard_py and '**_windows_background_process_kwargs()' in dashboard_py
-    assert "const corePages = new Set(['general','access','clients','updates','notifications']);" in settings_js
-    assert "if (activePage === 'updates') return saveUpdateSource();" in settings_js
+    assert "const corePages = new Set(['general','access','clients','backups','updates','notifications']);" in settings_js
+    assert "if (activePage === 'backups') {" in settings_js
+    assert "window.TDOps.saveBackupSettings" in settings_js
+    assert "if (activePage === 'updates') {" in settings_js
+    assert "saveUpdateSource({toastOnSuccess:false})" in settings_js
+    assert "window.TDOps?.saveUpdateSettings" in settings_js
     assert '#updateSourceSave' not in settings_js
     assert 'data-settings-page="updates" type="button">Updates</button>' in html
     assert 'data-settings-page="access" type="button">Access</button>' in html

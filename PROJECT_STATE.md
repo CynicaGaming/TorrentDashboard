@@ -6,20 +6,21 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.157** (prerelease)
+- Latest documented build: **v0.5.158** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 
 ### Latest release summary
 
-Repairs the System health and security-audit row layout introduced with the operations page and shortens the System save action label.
+Moves backup and update policy controls into their existing settings areas, leaves System health as a diagnostics-only page, and replaces machine-oriented health labels with readable UI copy.
 
 ## Architecture state
 
-- System status and audit presentation now conform to the shared notification-row component contract.
+- Operational policy is presented with the domain it configures instead of accumulating on a generic System settings page.
 
 ## Current engineering decisions
 
-- Prefer existing shared presentation contracts over one-off CSS overrides for System operational lists.
+- Keep System health as a diagnostics-only view while retaining durable audit storage behind Notifications and operational APIs.
+- Use the shared settings save bar for Backup and Update policy changes.
 
 ## Development principles
 
@@ -31,6 +32,15 @@ Repairs the System health and security-audit row layout introduced with the oper
 - Keep public development continuity portable across forks; label canonical repository/branch/PR references as upstream context rather than local identity.
 
 ## Recent work
+
+### v0.5.158 — Operational settings organization and health copy cleanup
+
+Moves backup and update policy controls into their existing settings areas, leaves System health as a diagnostics-only page, and replaces machine-oriented health labels with readable UI copy.
+
+- Backup protection and Backup schedule are now separate cards under Settings → Backups, with Retention alongside them.
+- Automatic updates now lives under Settings → Updates and saves with the existing update settings action.
+- System health is diagnostics-only and uses human-readable component names and status labels.
+- Security-audit storage remains available to the backend, but the duplicate audit UI is removed because security activity is already surfaced through Notifications.
 
 ### v0.5.157 — System page layout hotfix
 
@@ -65,18 +75,9 @@ Restores the Account settings entry to the profile menu for recovery-account ses
 - Normal user accounts continue to open the existing self-service profile, password, and avatar modal.
 - Recovery-account sessions now show Account settings as disabled with an explicit explanation instead of silently removing it.
 
-### v0.5.153 — Local recovery command migration
-
-Removes the embedded dashboard Console and moves its diagnostic and safe operational command surface into the recovery-key-gated local Recovery tool.
-
-- Removes Console from desktop/mobile navigation, deletes the embedded terminal UI, and removes the authenticated /api/recovery/command endpoint.
-- Expands Recovery.exe with redacted config, client, integration, torrent, Jellyfin, users, events, and update diagnostics while retaining existing config backup/restore and network recovery commands.
-- Fetches torrent identifiers and state directly from qBittorrent in local recovery instead of depending on the running dashboard cache.
-- Keeps browser recovery-key sign-in as a separate account-recovery path without exposing command execution through the dashboard.
-
 ## What to do next
 
-1. **Verify System layout after auto-update** — Confirm v0.5.157 shows compact readable System health and audit rows and that the Save button uses the concise label on desktop and mobile.
+1. **Verify reorganized settings after auto-update** — Confirm v0.5.158 shows separate Backup protection, Backup schedule, and Retention cards under Backups; Automatic updates under Updates; and a diagnostics-only System health page with readable labels.
 
 ## Known issues
 

@@ -12,7 +12,7 @@ window.TDSettings = (() => {
   let backups = [];
   let backupsLoading = false;
 
-  const corePages = new Set(['general','access','clients','updates','notifications']);
+  const corePages = new Set(['general','access','clients','backups','updates','notifications']);
   const SECRET_MASK = '••••••••••';
 
   function configuredSecret(input, configured, emptyPlaceholder='') {
@@ -31,6 +31,7 @@ window.TDSettings = (() => {
     const savebar = document.querySelector('#settingsSavebar');
     if (savebar) savebar.classList.toggle('hidden', !corePages.has(page));
     if (page === 'backups') loadBackups();
+    window.TDOps?.activate?.(page);
   }
 
   function bind() {
@@ -238,7 +239,21 @@ window.TDSettings = (() => {
   async function saveCore(e) {
     if (e?.preventDefault) e.preventDefault();
     const activePage = document.querySelector('.settings-page.active')?.dataset.settingsSection || 'general';
-    if (activePage === 'updates') return saveUpdateSource();
+    if (activePage === 'backups') {
+      if (!window.TDOps?.saveBackupSettings) return toast('Backup settings are unavailable','error');
+      await window.TDOps.saveBackupSettings();
+      return;
+    }
+    if (activePage === 'updates') {
+      const source = await saveUpdateSource({toastOnSuccess:false});
+      if (!source) return;
+      if (window.TDOps?.saveUpdateSettings) {
+        await window.TDOps.saveUpdateSettings();
+      } else {
+        toast(['Settings','saved'].join(' '));
+      }
+      return;
+    }
     const servers = [...document.querySelectorAll('.server-setting')].map(serverRowData);
     const payload = {
       dashboard: {
@@ -539,19 +554,20 @@ window.TDSettings = (() => {
     return document.querySelector('#uRepository')?.value.trim() || '';
   }
 
-  async function saveUpdateSource() {
+  async function saveUpdateSource({toastOnSuccess=true}={}) {
     const repository = updateSourceRepository();
-    if (!repository) return toast('Enter a GitHub repository','error');
+    if (!repository) { toast('Enter a GitHub repository','error'); return null; }
     try {
       const d = await post('/api/update-source', {repository});
       state.settings = d.settings;
       const input = document.querySelector('#uRepository');
       if (input) input.value = d.repository || repository;
       renderUpdateInfo({configured:true,repository:d.repository || repository,currentVersion:state.me?.version,state:d.settings?.runtime?.updateState||{}});
-      toast('Settings saved');
+      if (toastOnSuccess) toast('Settings saved');
       return d;
     } catch (e) {
       toast(e.message,'error');
+      return null;
     }
   }
 
