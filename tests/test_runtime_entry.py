@@ -10,7 +10,7 @@ class RuntimeEntryContractTests(unittest.TestCase):
         path = ROOT / "src" / "torrent_dashboard" / "runtime.py"
         source = path.read_text(encoding="utf-8")
         compile(source, str(path), "exec")
-        self.assertIn("from . import dashboard as core", source)
+        self.assertIn("from torrent_dashboard import dashboard as core", source)
         self.assertIn("def install_runtime_extensions", source)
         self.assertIn("core.fetch_update_release = _fetch_update_release", source)
         self.assertIn("core.create_backup = _create_backup", source)
