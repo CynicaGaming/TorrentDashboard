@@ -6,21 +6,25 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.154** (prerelease)
+- Latest documented build: **v0.5.155** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 
 ### Latest release summary
 
-Restores the Account settings entry to the profile menu for recovery-account sessions without making the built-in recovery principal editable.
+Adds updater-ready release fallback, authenticated portable-backup encryption, scheduled maintenance, security auditing, system health, and centralized retention while keeping automation opt-in.
 
 ## Architecture state
 
-- The built-in recovery account remains non-persistent and non-editable; UI visibility no longer implies editability.
+- Operational maintenance remains layered around dashboard.py rather than expanding the existing HTTP composition root.
+- Security audit data is stored separately from general history and redacts secret-looking detail fields before persistence.
+- Automatic update and scheduled backup policies default to disabled so upgrades do not silently change automation behavior.
 
 ## Current engineering decisions
 
-- Keep Account settings discoverable in the profile menu for every authenticated session.
-- Do not create a persistent profile or password for the built-in recovery principal.
+- Prefer a standard maintained AEAD implementation over application-defined backup cryptography.
+- Treat a release as updater-ready only when the distribution-specific ZIP has a finalized SHA-256 digest.
+- Keep the previous complete prerelease available until the new source and Windows packages are both verified.
+- Keep the backup encryption password local to each installation and exclude it from portable state.
 
 ## Development principles
 
@@ -32,6 +36,16 @@ Restores the Account settings entry to the profile menu for recovery-account ses
 - Keep public development continuity portable across forks; label canonical repository/branch/PR references as upstream context rather than local identity.
 
 ## Recent work
+
+### v0.5.155 — Operations reliability, encrypted backups, and system health
+
+Adds updater-ready release fallback, authenticated portable-backup encryption, scheduled maintenance, security auditing, system health, and centralized retention while keeping automation opt-in.
+
+- Keeps auto-update usable while a new release is still assembling by skipping incomplete distribution assets and retaining the previous complete prerelease until both source and Windows packages are verified.
+- Adds AES-256-GCM portable-backup encryption with password-derived keys, encrypted import/restore support, scheduled backups, and local-only handling of the backup encryption password.
+- Adds opt-in automatic updates with local maintenance windows, pre-update backups, and the existing verified staging/rollback path.
+- Adds a dedicated redacted security audit database plus an administrator-only System settings page for health, audit review, backup scheduling, update policy, and retention.
+- Centralizes retention for history, stale torrent records, security-audit events, backup count, and staged update artifacts.
 
 ### v0.5.154 — Account settings menu visibility hotfix
 
@@ -69,21 +83,14 @@ Restores the backup-management surface, keeps Account settings in the profile me
 - Adds a Delete action to every local backup row with confirmation before the archive is removed.
 - Shows an indeterminate progress bar while a backup is being created, then returns to the normal backup list when creation finishes.
 
-### v0.5.150 — Login glow and profile menu polish
-
-Refines the login accent treatment and simplifies the profile menu while restoring frontend build-version synchronization on main.
-
-- The login card now uses a softer radial accent glow around the card instead of animating the card shadow itself.
-- The glow pulses more slowly and keeps a static reduced-motion presentation for users who disable animation.
-- The profile menu keeps account settings, install-app, and sign-out actions without a stale duplicate Console binding.
-
 ## What to do next
 
-1. **Verify account menu on Windows** — Confirm Account settings is visible for normal and recovery sessions, editable for normal accounts, and disabled with explanatory text for the built-in recovery account.
+1. **Verify updater-visible v0.5.155 release** — After merge, confirm both source and Windows v0.5.155 ZIPs are attached with SHA-256 digests before the previous prerelease is retired, then verify an existing installation detects the new release.
+2. **Exercise scheduled operations on a long-running install** — Confirm scheduled encrypted backups, maintenance-window automatic updates, retention, audit entries, and System health behave correctly across normal service restarts.
 
 ## Known issues
 
-- Portable backup archives can contain saved client and integration credentials in plaintext; store exported .tdbackup files securely.
+- Backup encryption is opt-in; unencrypted portable backups can contain saved client and integration credentials and should be stored securely.
 - Windows executables are not code-signed yet.
 
 ## Handoff instructions for a new development session
