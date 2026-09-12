@@ -1,0 +1,181 @@
+name: Prepare System UI Layout Hotfix
+
+on:
+  push:
+    branches:
+      - hotfix/system-ui-layout
+
+permissions:
+  contents: write
+
+jobs:
+  prepare:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    env:
+      PYTHONPATH: src
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: hotfix/system-ui-layout
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Set Up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: '3.13'
+
+      - name: Install dependencies
+        run: python -m pip install --disable-pip-version-check .
+
+      - name: Apply System UI hotfix and prepare v0.5.157
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import json
+
+          root = Path('.')
+          ops = root / 'static' / 'ops.js'
+          text = ops.read_text(encoding='utf-8')
+
+          old_health = "if(list)list.innerHTML=(health.components||[]).map(item=>`<article class=\"notification-item\"><div><strong>${escapeHtml(item.id||'component')}</strong><span>${escapeHtml(item.message||'')}</span></div><span class=\"${item.state==='healthy'?'ok':'bad'}\">${escapeHtml(item.state||'unknown')}</span></article>`).join('')||'<div class=\"settings-empty\"><b>No health data</b></div>';"
+          new_health = "if(list)list.innerHTML=(health.components||[]).map(item=>`<article class=\"notification-item ${item.state==='healthy'?'good':item.state==='warning'?'warn':'bad'}\"><span class=\"notification-dot\" aria-hidden=\"true\"></span><div class=\"notification-copy\"><div class=\"notification-title\"><b>${escapeHtml(item.id||'component')}</b><span>${escapeHtml(item.state||'unknown')}</span></div><p>${escapeHtml(item.message||'')}</p></div></article>`).join('')||'<div class=\"settings-empty\"><b>No health data</b></div>';"
+          if old_health not in text:
+              raise SystemExit('Could not locate System health row renderer')
+          text = text.replace(old_health, new_health, 1)
+
+          old_audit = "if(list)list.innerHTML=(data.events||[]).map(event=>`<article class=\"notification-item\"><div><strong>${escapeHtml(event.action||'event')}</strong><span>${escapeHtml(event.actor||'system')} · ${escapeHtml(event.client_ip||'local')} · ${formatTime(event.ts)}</span><small>${escapeHtml(event.target||'')}</small></div><span class=\"${event.outcome==='success'?'ok':'bad'}\">${escapeHtml(event.outcome||'info')}</span></article>`).join('')||'<div class=\"settings-empty\"><b>No matching audit events</b></div>';"
+          new_audit = "if(list)list.innerHTML=(data.events||[]).map(event=>`<article class=\"notification-item ${event.outcome==='success'?'good':event.outcome==='failure'||event.outcome==='denied'?'bad':'warn'}\"><span class=\"notification-dot\" aria-hidden=\"true\"></span><div class=\"notification-copy\"><div class=\"notification-title\"><b>${escapeHtml(event.action||'event')}</b><span>${escapeHtml(event.outcome||'info')}</span></div><p>${escapeHtml(event.actor||'system')} · ${escapeHtml(event.client_ip||'local')}${event.target?' · '+escapeHtml(event.target):''}</p></div><time>${formatTime(event.ts)}</time></article>`).join('')||'<div class=\"settings-empty\"><b>No matching audit events</b></div>';"
+          if old_audit not in text:
+              raise SystemExit('Could not locate audit row renderer')
+          text = text.replace(old_audit, new_audit, 1)
+
+          old_save = 'id="opsSavePolicy" type="button">Save system settings</button>'
+          new_save = 'id="opsSavePolicy" type="button">Save</button>'
+          if old_save not in text:
+              raise SystemExit('Could not locate System save button')
+          text = text.replace(old_save, new_save, 1)
+          ops.write_text(text, encoding='utf-8')
+
+          tests = root / 'tests' / 'test_system_ops_ui.py'
+          source = tests.read_text(encoding='utf-8')
+          marker = '    def test_runtime_injects_ops_script_into_application_shell(self):\n'
+          addition = '''    def test_system_status_rows_follow_notification_layout_contract(self):\n        source = (ROOT / "static" / "ops.js").read_text(encoding="utf-8")\n        self.assertIn('class="notification-dot"', source)\n        self.assertIn('class="notification-copy"', source)\n        self.assertIn('id="opsSavePolicy" type="button">Save</button>', source)\n        self.assertNotIn('>Save system settings</button>', source)\n\n'''
+          if 'test_system_status_rows_follow_notification_layout_contract' not in source:
+              if marker not in source:
+                  raise SystemExit('Could not locate System UI test insertion point')
+              source = source.replace(marker, addition + marker, 1)
+          tests.write_text(source, encoding='utf-8')
+
+          init = root / 'src' / 'torrent_dashboard' / '__init__.py'
+          init_text = init.read_text(encoding='utf-8').replace('__version__ = "0.5.156"', '__version__ = "0.5.157"')
+          if '__version__ = "0.5.157"' not in init_text:
+              raise SystemExit('Version bump failed')
+          init.write_text(init_text, encoding='utf-8')
+
+          for path in [root / 'static' / 'index.html', root / 'static' / 'app.js']:
+              value = path.read_text(encoding='utf-8').replace('0.5.156', '0.5.157')
+              path.write_text(value, encoding='utf-8')
+
+          sw = root / 'static' / 'sw.js'
+          value = sw.read_text(encoding='utf-8').replace('torrent-dashboard-v05156', 'torrent-dashboard-v05157').replace('0.5.156', '0.5.157')
+          sw.write_text(value, encoding='utf-8')
+
+          catalog_path = root / 'release_notes' / 'releases.json'
+          catalog = json.loads(catalog_path.read_text(encoding='utf-8'))
+          if not any(str(item.get('version')) == '0.5.157' for item in catalog['releases']):
+              catalog['releases'].insert(0, {
+                  'version': '0.5.157',
+                  'date': '2026-09-11',
+                  'status': 'prerelease',
+                  'title': 'System page layout hotfix',
+                  'summary': 'Repairs the System health and security-audit row layout introduced with the operations page and shortens the System save action label.',
+                  'highlights': [
+                      'System health components now use the notification row structure expected by the shared application styles instead of collapsing their text into the status-dot column.',
+                      'Security audit rows use the same established status-dot, content, badge, and timestamp layout for consistent spacing on desktop and mobile.',
+                      'The System settings save button now reads Save.'
+                  ],
+                  'fixes': [
+                      'Prevents System health component descriptions from wrapping one word per line and expanding each row vertically.',
+                      'Prevents the malformed health list from pushing the remaining System settings cards far below the visible page.'
+                  ],
+                  'technical': [
+                      'Reuses the existing notification-item, notification-dot, notification-copy, notification-title, and time layout contract instead of adding another System-specific grid implementation.',
+                      'Adds a UI contract test for the System status row structure and concise Save label.'
+                  ],
+                  'validation': [
+                      'Runs source/unit validation, browser contract checks, JavaScript syntax checks, generated documentation validation, the source updater package build, and the Windows PyInstaller smoke build.'
+                  ],
+                  'known_issues': [
+                      'Backup encryption remains opt-in; unencrypted portable backups can contain saved client and integration credentials and should be stored securely.',
+                      'Windows executables are not code-signed yet.'
+                  ],
+                  'architecture': [
+                      'System status and audit presentation now conform to the shared notification-row component contract.'
+                  ],
+                  'decisions': [
+                      'Prefer existing shared presentation contracts over one-off CSS overrides for System operational lists.'
+                  ],
+                  'next_steps': [
+                      {'priority': 1, 'title': 'Verify System layout after auto-update', 'detail': 'Confirm v0.5.157 shows compact readable System health and audit rows and that the Save button uses the concise label on desktop and mobile.'}
+                  ]
+              })
+          catalog_path.write_text(json.dumps(catalog, indent=2) + '\n', encoding='utf-8')
+
+          current = {
+              'schema': 1,
+              'status': 'release-candidate',
+              'objective': 'Publish the v0.5.157 System page layout hotfix',
+              'why': 'v0.5.156 made System navigation functional, but System health and audit entries use notification-item without the required notification-dot/content structure, collapsing descriptive text into the 9 px status-dot grid column.',
+              'acceptance_criteria': [
+                  'System health rows use the shared notification row structure and remain compact at desktop and mobile widths.',
+                  'Security audit rows use the same shared notification row structure.',
+                  'The System settings save button reads Save.',
+                  'Ubuntu/Windows Python 3.13/3.14 validation passes.',
+                  'The source updater ZIP and compiled Windows package build successfully, and all three Windows executables pass smoke tests.',
+                  'v0.5.157 is published with both source and Windows updater ZIPs and SHA-256 digests.'
+              ],
+              'decisions': [
+                  'Repair the markup to match the established notification component rather than masking the mismatch with System-specific CSS.',
+                  'Ship the correction as v0.5.157 so existing v0.5.156 installations receive it through auto-update.'
+              ],
+              'files': [
+                  'static/ops.js',
+                  'tests/test_system_ops_ui.py',
+                  'src/torrent_dashboard/__init__.py',
+                  'static/index.html',
+                  'static/app.js',
+                  'static/sw.js',
+                  'release_notes/releases.json'
+              ],
+              'blockers': [],
+              'out_of_scope': ['No changes to System operations behavior, permissions, API semantics, backup policy, audit persistence, retention, or update scheduling.'],
+              'next_action': 'Run the full pull-request validation and Windows smoke build; if green, merge and verify the updater-visible v0.5.157 release.'
+          }
+          (root / 'development' / 'current.json').write_text(json.dumps(current, indent=2) + '\n', encoding='utf-8')
+          PY
+
+          python release_tools/generate_release_notes.py --version 0.5.157
+
+      - name: Validate hotfix
+        shell: bash
+        run: |
+          python release_tools/validate_source.py
+          python release_tools/validate_ui_strings.py
+          python -m unittest discover -s tests -p 'test_*.py'
+          node --check static/app.js
+          node --check static/settings.js
+          node --check static/ops.js
+
+      - name: Commit prepared hotfix
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add static/ops.js tests/test_system_ops_ui.py src/torrent_dashboard/__init__.py static/index.html static/app.js static/sw.js release_notes/releases.json development/current.json CHANGELOG.md PROJECT_STATE.md HANDOFF.md
+          git diff --cached --check
+          git commit -m 'Release v0.5.157 — Fix System page layout'
+          git push origin HEAD:hotfix/system-ui-layout
