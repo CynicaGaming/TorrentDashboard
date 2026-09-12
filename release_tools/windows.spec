@@ -26,7 +26,7 @@ def onefile_executable(a, name):
         disable_windowed_traceback=False, argv_emulation=False, target_arch=None,
         codesign_identity=None, entitlements_file=None)
 
-dashboard = analysis("dashboard.py")
+dashboard = analysis("runtime.py")
 recovery = analysis("recovery_tool.py")
 updater = analysis("updater.py")
 Dashboard = onedir_executable(dashboard, "Dashboard")
