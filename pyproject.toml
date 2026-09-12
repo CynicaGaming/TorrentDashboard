@@ -10,10 +10,10 @@ readme = "README.md"
 requires-python = ">=3.13"
 license = "MIT"
 authors = [{name = "CynicaGaming"}]
-dependencies = []
+dependencies = ["cryptography==50.0.1"]
 
 [project.scripts]
-torrent-dashboard = "torrent_dashboard.dashboard:main"
+torrent-dashboard = "torrent_dashboard.runtime:main"
 torrent-dashboard-recovery = "torrent_dashboard.recovery_tool:main"
 torrent-dashboard-updater = "torrent_dashboard.updater:main"
 
