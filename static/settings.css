@@ -272,3 +272,6 @@
 .backup-item-actions .backup-delete{min-width:78px}
 @media(max-width:640px){.backup-item-actions{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:420px){.backup-item-actions{grid-template-columns:1fr}}
+
+/* 0.5.158 consistent spacing for settings pages with multiple cards. */
+.settings-page>.settings-card+.settings-card{margin-top:12px}

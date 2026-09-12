@@ -3,9 +3,17 @@
   const pageId='system';
   let backupPasswordConfigured=false;
   let clearBackupPassword=false;
+  const COMPONENT_LABELS={
+    dashboard:'Torrent Dashboard',
+    disk:'Disk space',
+    backups:'Backups',
+    updates:'Updates',
+    clients:'qBittorrent clients',
+    integrations:'Integrations'
+  };
 
   function escapeHtml(value='') {
-    return String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+    return String(value??'').replace(/[&<>\"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[ch]));
   }
   function notify(message,tone='') {
     if(typeof toast==='function')return toast(message,tone);
@@ -30,164 +38,193 @@
   function checked(id){return !!document.querySelector('#'+id)?.checked}
   function setValue(id,v){const el=document.querySelector('#'+id);if(el)el.value=String(v??'')}
   function setChecked(id,v){const el=document.querySelector('#'+id);if(el)el.checked=!!v}
+  function humanizeIdentifier(value='') {
+    const raw=String(value??'').trim();
+    if(!raw)return'';
+    const spaced=raw.replace(/[_-]+/g,' ').replace(/([a-z0-9])([A-Z])/g,'$1 $2').replace(/\s+/g,' ').trim().toLowerCase();
+    return spaced.charAt(0).toUpperCase()+spaced.slice(1);
+  }
+  function stateLabel(value='') {
+    const key=String(value??'').trim().toLowerCase();
+    const labels={healthy:'Healthy',issue:'Needs attention',warning:'Warning',disconnected:'Disconnected',success:'Success',failure:'Failed',denied:'Denied',info:'Info',unknown:'Unknown'};
+    return labels[key]||humanizeIdentifier(value)||'Unknown';
+  }
+  function componentLabel(value='') {return COMPONENT_LABELS[String(value||'')]||humanizeIdentifier(value)||'Component'}
 
-  function buildPage() {
-    if(document.querySelector('[data-settings-section="system"]'))return;
+  function buildNavigation() {
     const subnav=document.querySelector('#settingsSubnav');
-    if(subnav){
+    if(subnav&&!subnav.querySelector('[data-settings-page="system"]')){
       const button=document.createElement('button');
-      button.type='button';button.dataset.view='settings';button.dataset.settingsPage=pageId;button.textContent='System';
-      button.addEventListener('click',activateSystem);
+      button.type='button';button.dataset.view='settings';button.dataset.settingsPage=pageId;button.textContent='System health';
+      button.addEventListener('click',()=>window.TDSettings?.activate?.(pageId));
       subnav.appendChild(button);
     }
     const mobile=document.querySelector('#settingsMobilePage');
     if(mobile&&!mobile.querySelector('option[value="system"]')){
-      const option=document.createElement('option');option.value='system';option.textContent='System';mobile.appendChild(option);
-      mobile.addEventListener('change',event=>{if(event.target.value==='system'){event.stopImmediatePropagation();activateSystem()}},{capture:true});
+      const option=document.createElement('option');option.value='system';option.textContent='System health';mobile.appendChild(option);
     }
+  }
+
+  function addCard(sectionName,id,markup) {
+    if(document.querySelector('#'+id))return;
+    const section=document.querySelector(`[data-settings-section="${sectionName}"]`);
+    if(section)section.insertAdjacentHTML('beforeend',markup);
+  }
+
+  function buildSystemPage() {
+    if(document.querySelector('[data-settings-section="system"]'))return;
     const content=document.querySelector('.settings-content');
     if(!content)return;
     const section=document.createElement('section');
     section.className='settings-page';section.dataset.settingsSection='system';
     section.innerHTML=`
-      <div class="panel settings-card">
+      <div class="panel settings-card" id="opsSystemHealthCard">
         <div class="panel-title">System health</div>
-        <p class="muted">Operational status for Torrent Dashboard, clients, integrations, backups, updates, disk space, and security auditing.</p>
+        <p class="muted">Operational status for Torrent Dashboard, qBittorrent clients, integrations, backups, updates, and disk space.</p>
         <div class="update-status" id="opsHealthSummary"><div><span>Overall</span><strong>Loading…</strong></div></div>
         <div class="notification-list" id="opsHealthComponents"></div>
         <div class="settings-inline-actions"><button class="secondary" id="opsRefreshHealth" type="button">Refresh health</button></div>
-      </div>
-      <div class="panel settings-card">
-        <div class="panel-title">Backup protection and schedule</div>
+      </div>`;
+    content.appendChild(section);
+    document.querySelector('#opsRefreshHealth')?.addEventListener('click',loadHealth);
+  }
+
+  function buildBackupCards() {
+    addCard('backups','opsBackupProtectionCard',`
+      <div class="panel settings-card" id="opsBackupProtectionCard">
+        <div class="panel-title">Backup protection</div>
+        <p class="muted">Protect portable backup archives with password-based authenticated encryption before they are stored locally or exported.</p>
         <label class="toggle"><input id="opsBackupEncrypt" type="checkbox"/><span>Encrypt portable backup archives</span></label>
-        <div class="field-help">Uses password-based authenticated encryption before a backup is published to the local backup library. Use at least 12 characters.</div>
         <label>Backup encryption password<input id="opsBackupPassword" type="password" autocomplete="new-password" placeholder="At least 12 characters"/></label>
+        <div class="field-help">The password stays local to this installation and is not written into portable backups.</div>
         <div class="settings-inline-actions"><button class="secondary" id="opsClearBackupPassword" type="button">Clear stored backup password</button></div>
+      </div>`);
+    addCard('backups','opsBackupScheduleCard',`
+      <div class="panel settings-card" id="opsBackupScheduleCard">
+        <div class="panel-title">Backup schedule</div>
+        <p class="muted">Create local backups automatically on the schedule you choose.</p>
         <label class="toggle"><input id="opsBackupSchedule" type="checkbox"/><span>Automatic backups</span></label>
         <div class="settings-form-grid two-col">
           <label>Frequency<select id="opsBackupFrequency"><option value="hourly">Hourly</option><option value="daily">Daily</option><option value="weekly">Weekly</option></select></label>
           <label>Run hour<input id="opsBackupHour" type="number" min="0" max="23" step="1"/></label>
           <label>Weekly day<select id="opsBackupWeekday"><option value="0">Monday</option><option value="1">Tuesday</option><option value="2">Wednesday</option><option value="3">Thursday</option><option value="4">Friday</option><option value="5">Saturday</option><option value="6">Sunday</option></select></label>
         </div>
-      </div>
-      <div class="panel settings-card">
-        <div class="panel-title">Automatic updates</div>
-        <label class="toggle"><input id="opsAutoUpdate" type="checkbox"/><span>Install updater-ready releases automatically</span></label>
-        <div class="field-help">Incomplete GitHub releases are skipped. Automatic installation occurs only inside the configured local maintenance window.</div>
-        <div class="settings-form-grid two-col">
-          <label>Window start<input id="opsUpdateStart" type="time" step="60"/></label>
-          <label>Window end<input id="opsUpdateEnd" type="time" step="60"/></label>
-        </div>
-        <label class="toggle"><input id="opsPreUpdateBackup" type="checkbox"/><span>Create a backup before automatic updates</span></label>
-      </div>
-      <div class="panel settings-card">
+      </div>`);
+    addCard('backups','opsRetentionCard',`
+      <div class="panel settings-card" id="opsRetentionCard">
         <div class="panel-title">Retention</div>
+        <p class="muted">Control how many backups are kept and how long local dashboard and staged-update history is retained.</p>
         <div class="settings-form-grid two-col">
-          <label>History retention (days)<input id="opsHistoryDays" type="number" min="1" max="3650"/></label>
-          <label>Audit retention (days)<input id="opsAuditDays" type="number" min="7" max="3650"/></label>
+          <label>Dashboard history (days)<input id="opsHistoryDays" type="number" min="1" max="3650"/></label>
           <label>Backups to retain<input id="opsBackupCount" type="number" min="1" max="365"/></label>
-          <label>Staged update retention (days)<input id="opsUpdateDays" type="number" min="1" max="365"/></label>
+          <label>Staged updates (days)<input id="opsUpdateDays" type="number" min="1" max="365"/></label>
         </div>
         <div class="settings-inline-actions"><button class="secondary" id="opsRunRetention" type="button">Run retention now</button></div>
         <div class="test-result muted" id="opsRetentionStatus"></div>
-      </div>
-      <div class="panel settings-card">
-        <div class="panel-title">Security audit</div>
-        <div class="settings-form-grid two-col">
-          <label>Action<input id="opsAuditAction" placeholder="All actions"/></label>
-          <label>Outcome<select id="opsAuditOutcome"><option value="">All outcomes</option><option value="success">Success</option><option value="failure">Failure</option><option value="denied">Denied</option><option value="info">Info</option></select></label>
-        </div>
-        <div class="settings-inline-actions"><button class="secondary" id="opsRefreshAudit" type="button">Refresh audit log</button></div>
-        <div class="notification-list" id="opsAuditList"></div>
-      </div>
-      <div class="settings-savebar"><button class="primary" id="opsSavePolicy" type="button">Save</button></div>`;
-    content.appendChild(section);
-    document.querySelector('#opsRefreshHealth')?.addEventListener('click',loadHealth);
-    document.querySelector('#opsRefreshAudit')?.addEventListener('click',loadAudit);
-    document.querySelector('#opsRunRetention')?.addEventListener('click',runRetention);
-    document.querySelector('#opsSavePolicy')?.addEventListener('click',savePolicy);
+      </div>`);
     document.querySelector('#opsClearBackupPassword')?.addEventListener('click',()=>{
       clearBackupPassword=true;backupPasswordConfigured=false;setValue('opsBackupPassword','');setChecked('opsBackupEncrypt',false);
-      notify('Stored backup password will be cleared when system settings are saved');
+      notify('Stored backup password will be cleared when backup settings are saved');
     });
+    document.querySelector('#opsRunRetention')?.addEventListener('click',runRetention);
   }
 
-  function activateSystem() {
-    buildPage();
-    localStorage.tdSettingsPage='system';
-    document.querySelectorAll('[data-settings-section]').forEach(el=>el.classList.toggle('active',el.dataset.settingsSection==='system'));
-    document.querySelectorAll('[data-settings-page]').forEach(el=>el.classList.toggle('active',el.dataset.settingsPage==='system'));
-    const mobile=document.querySelector('#settingsMobilePage');if(mobile)mobile.value='system';
-    document.querySelector('#settingsSavebar')?.classList.add('hidden');
-    loadPolicy();loadHealth();loadAudit();
+  function buildUpdateCard() {
+    addCard('updates','opsAutomaticUpdatesCard',`
+      <div class="panel settings-card" id="opsAutomaticUpdatesCard">
+        <div class="panel-title">Automatic updates</div>
+        <p class="muted">Install updater-ready releases automatically during a local maintenance window.</p>
+        <label class="toggle"><input id="opsAutoUpdate" type="checkbox"/><span>Install updates automatically</span></label>
+        <div class="field-help">Incomplete GitHub releases are skipped. The previous complete release remains available until the new source and Windows packages are verified.</div>
+        <div class="settings-form-grid two-col">
+          <label>Maintenance window start<input id="opsUpdateStart" type="time" step="60"/></label>
+          <label>Maintenance window end<input id="opsUpdateEnd" type="time" step="60"/></label>
+        </div>
+        <label class="toggle"><input id="opsPreUpdateBackup" type="checkbox"/><span>Create a backup before automatic updates</span></label>
+      </div>`);
+  }
+
+  function buildSurfaces() {
+    buildNavigation();buildSystemPage();buildBackupCards();buildUpdateCard();
+  }
+
+  function fillPolicy(settings) {
+    const backups=settings.backups||{},maintenance=settings.maintenance||{},auto=maintenance.auto_update||{},retention=maintenance.retention||{};
+    backupPasswordConfigured=!!backups.password_configured;clearBackupPassword=false;
+    setChecked('opsBackupEncrypt',backups.encrypt);setValue('opsBackupPassword','');
+    const password=document.querySelector('#opsBackupPassword');if(password)password.placeholder=backupPasswordConfigured?'Stored password configured':'At least 12 characters';
+    setChecked('opsBackupSchedule',backups.schedule_enabled);setValue('opsBackupFrequency',backups.schedule_frequency||'daily');setValue('opsBackupHour',backups.schedule_hour??3);setValue('opsBackupWeekday',backups.schedule_weekday??0);
+    setChecked('opsAutoUpdate',auto.enabled);setValue('opsUpdateStart',auto.window_start||'03:00');setValue('opsUpdateEnd',auto.window_end||'05:00');setChecked('opsPreUpdateBackup',auto.pre_backup!==false);
+    setValue('opsHistoryDays',retention.history_days??30);setValue('opsBackupCount',retention.backup_count??14);setValue('opsUpdateDays',retention.update_days??14);
   }
 
   async function loadPolicy() {
-    try{
-      const settings=await getJson('/api/settings');
-      const backups=settings.backups||{},maintenance=settings.maintenance||{},auto=maintenance.auto_update||{},retention=maintenance.retention||{};
-      backupPasswordConfigured=!!backups.password_configured;clearBackupPassword=false;
-      setChecked('opsBackupEncrypt',backups.encrypt);setValue('opsBackupPassword','');
-      const password=document.querySelector('#opsBackupPassword');if(password)password.placeholder=backupPasswordConfigured?'Stored password configured':'At least 12 characters';
-      setChecked('opsBackupSchedule',backups.schedule_enabled);setValue('opsBackupFrequency',backups.schedule_frequency||'daily');setValue('opsBackupHour',backups.schedule_hour??3);setValue('opsBackupWeekday',backups.schedule_weekday??0);
-      setChecked('opsAutoUpdate',auto.enabled);setValue('opsUpdateStart',auto.window_start||'03:00');setValue('opsUpdateEnd',auto.window_end||'05:00');setChecked('opsPreUpdateBackup',auto.pre_backup!==false);
-      setValue('opsHistoryDays',retention.history_days??30);setValue('opsAuditDays',retention.audit_days??90);setValue('opsBackupCount',retention.backup_count??14);setValue('opsUpdateDays',retention.update_days??14);
-    }catch(error){notify(error.message,'error')}
+    buildSurfaces();
+    try{fillPolicy(await getJson('/api/settings'))}catch(error){notify(error.message,'error')}
   }
 
-  async function savePolicy() {
+  async function saveBackupSettings({toastOnSuccess=true}={}) {
+    buildSurfaces();
     const entered=value('opsBackupPassword','');
     const payload={
       backups:{
         encrypt:checked('opsBackupEncrypt'),password:entered||(backupPasswordConfigured?'<configured>':''),clear_password:clearBackupPassword,
         schedule_enabled:checked('opsBackupSchedule'),schedule_frequency:value('opsBackupFrequency','daily'),schedule_hour:Number(value('opsBackupHour',3)),schedule_weekday:Number(value('opsBackupWeekday',0))
       },
-      maintenance:{
-        auto_update:{enabled:checked('opsAutoUpdate'),window_start:value('opsUpdateStart','03:00'),window_end:value('opsUpdateEnd','05:00'),pre_backup:checked('opsPreUpdateBackup')},
-        retention:{history_days:Number(value('opsHistoryDays',30)),audit_days:Number(value('opsAuditDays',90)),backup_count:Number(value('opsBackupCount',14)),update_days:Number(value('opsUpdateDays',14))}
-      }
+      maintenance:{retention:{history_days:Number(value('opsHistoryDays',30)),backup_count:Number(value('opsBackupCount',14)),update_days:Number(value('opsUpdateDays',14))}}
     };
     try{
       const result=await postJson('/api/settings',payload);
-      notify('System settings saved');
-      if(result.settings){
-        const backups=result.settings.backups||{};backupPasswordConfigured=!!backups.password_configured;clearBackupPassword=false;setValue('opsBackupPassword','');
-      }else await loadPolicy();
-      await loadHealth();
-    }catch(error){notify(error.message,'error')}
+      const backups=result.settings?.backups||{};backupPasswordConfigured=!!backups.password_configured;clearBackupPassword=false;setValue('opsBackupPassword','');
+      fillPolicy(result.settings||await getJson('/api/settings'));
+      if(toastOnSuccess)notify('Settings saved');
+      return result;
+    }catch(error){notify(error.message,'error');return false}
+  }
+
+  async function saveUpdateSettings({toastOnSuccess=true}={}) {
+    buildSurfaces();
+    const payload={maintenance:{auto_update:{enabled:checked('opsAutoUpdate'),window_start:value('opsUpdateStart','03:00'),window_end:value('opsUpdateEnd','05:00'),pre_backup:checked('opsPreUpdateBackup')}}};
+    try{
+      const result=await postJson('/api/settings',payload);
+      fillPolicy(result.settings||await getJson('/api/settings'));
+      if(toastOnSuccess)notify('Settings saved');
+      return result;
+    }catch(error){notify(error.message,'error');return false}
   }
 
   async function loadHealth() {
+    buildSurfaces();
     const summary=document.querySelector('#opsHealthSummary'),list=document.querySelector('#opsHealthComponents');
     if(summary)summary.innerHTML='<div><span>Overall</span><strong>Checking…</strong></div>';
     try{
       const health=await getJson('/api/system-health');
-      if(summary)summary.innerHTML=`<div><span>Overall</span><strong>${escapeHtml(health.state||'unknown')}</strong></div><div><span>Version</span><strong>${escapeHtml(health.version||'')}</strong></div><div><span>Uptime</span><strong>${Math.floor(Number(health.uptime_seconds||0)/60)} min</strong></div><div><span>Free disk</span><strong>${formatBytes(health.disk?.free||0)}</strong></div>`;
-      if(list)list.innerHTML=(health.components||[]).map(item=>`<article class="notification-item ${item.state==='healthy'?'good':item.state==='warning'?'warn':'bad'}"><span class="notification-dot" aria-hidden="true"></span><div class="notification-copy"><div class="notification-title"><b>${escapeHtml(item.id||'component')}</b><span>${escapeHtml(item.state||'unknown')}</span></div><p>${escapeHtml(item.message||'')}</p></div></article>`).join('')||'<div class="settings-empty"><b>No health data</b></div>';
-    }catch(error){if(summary)summary.innerHTML=`<div><span>Overall</span><strong>Unavailable</strong></div>`;if(list)list.innerHTML=`<div class="settings-empty"><b>Health check failed</b><span>${escapeHtml(error.message)}</span></div>`}
+      if(summary)summary.innerHTML=`<div><span>Overall</span><strong>${escapeHtml(stateLabel(health.state||'unknown'))}</strong></div><div><span>Version</span><strong>${escapeHtml(health.version||'')}</strong></div><div><span>Uptime</span><strong>${Math.floor(Number(health.uptime_seconds||0)/60)} min</strong></div><div><span>Free disk</span><strong>${formatBytes(health.disk?.free||0)}</strong></div>`;
+      if(list)list.innerHTML=(health.components||[]).map(item=>{const state=String(item.state||'unknown').toLowerCase();const tone=state==='healthy'?'good':state==='warning'?'warn':'bad';return `<article class="notification-item ${tone}"><span class="notification-dot" aria-hidden="true"></span><div class="notification-copy"><div class="notification-title"><b>${escapeHtml(componentLabel(item.id))}</b><span>${escapeHtml(stateLabel(item.state))}</span></div><p>${escapeHtml(item.message||'')}</p></div></article>`}).join('')||'<div class="settings-empty"><b>No health data</b></div>';
+    }catch(error){if(summary)summary.innerHTML='<div><span>Overall</span><strong>Unavailable</strong></div>';if(list)list.innerHTML=`<div class="settings-empty"><b>Health check failed</b><span>${escapeHtml(error.message)}</span></div>`}
   }
   function formatBytes(value){let n=Number(value||0);if(!n)return'0 B';const units=['B','KB','MB','GB','TB'];let i=0;while(n>=1024&&i<units.length-1){n/=1024;i++}return`${n.toFixed(i?1:0)} ${units[i]}`}
-  function formatTime(ts){const n=Number(ts||0);return n?new Date(n*1000).toLocaleString():'—'}
-
-  async function loadAudit() {
-    const list=document.querySelector('#opsAuditList');if(list)list.innerHTML='<div class="settings-empty"><b>Loading audit log…</b></div>';
-    const query=new URLSearchParams({limit:'150'});const action=value('opsAuditAction','').trim(),outcome=value('opsAuditOutcome','');if(action)query.set('action',action);if(outcome)query.set('outcome',outcome);
-    try{
-      const data=await getJson('/api/audit?'+query.toString());
-      if(list)list.innerHTML=(data.events||[]).map(event=>`<article class="notification-item ${event.outcome==='success'?'good':event.outcome==='failure'||event.outcome==='denied'?'bad':'warn'}"><span class="notification-dot" aria-hidden="true"></span><div class="notification-copy"><div class="notification-title"><b>${escapeHtml(event.action||'event')}</b><span>${escapeHtml(event.outcome||'info')}</span></div><p>${escapeHtml(event.actor||'system')} · ${escapeHtml(event.client_ip||'local')}${event.target?' · '+escapeHtml(event.target):''}</p></div><time>${formatTime(event.ts)}</time></article>`).join('')||'<div class="settings-empty"><b>No matching audit events</b></div>';
-    }catch(error){if(list)list.innerHTML=`<div class="settings-empty"><b>Audit log unavailable</b><span>${escapeHtml(error.message)}</span></div>`}
-  }
 
   async function runRetention() {
     const status=document.querySelector('#opsRetentionStatus');if(status)status.textContent='Running retention…';
-    try{const data=await postJson('/api/retention/run',{});if(status){status.className='test-result ok';status.textContent=`Retention complete · ${data.result?.backups_removed?.length||0} backup(s) and ${data.result?.updates_removed?.length||0} staged update artifact(s) removed.`}await loadHealth();await loadAudit()}
+    try{const data=await postJson('/api/retention/run',{});if(status){status.className='test-result ok';status.textContent=`Retention complete · ${data.result?.backups_removed?.length||0} backup(s) and ${data.result?.updates_removed?.length||0} staged update artifact(s) removed.`}await loadPolicy()}
     catch(error){if(status){status.className='test-result bad';status.textContent=error.message}}
   }
 
+  function activate(page) {
+    buildSurfaces();
+    if(page==='system')loadHealth();
+    if(page==='backups'||page==='updates')loadPolicy();
+  }
+
+  window.TDOps={activate,loadPolicy,saveBackupSettings,saveUpdateSettings};
+
   function initialize() {
     if(!document.querySelector('#view-settings'))return;
-    buildPage();
-    if(localStorage.tdSettingsPage==='system')setTimeout(activateSystem,0);
+    buildSurfaces();
+    const current=localStorage.tdSettingsPage||'general';
+    if(current==='system')setTimeout(()=>window.TDSettings?.activate?.('system'),0);
+    else if(current==='backups'||current==='updates')activate(current);
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initialize,{once:true});else initialize();
 })();

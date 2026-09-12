@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 import shutil
 import time
@@ -162,6 +163,21 @@ def _safe_disk_usage(path: Path):
         return {"total": 0, "used": 0, "free": 0}
 
 
+def _display_state(value: str) -> str:
+    raw = str(value or "unknown").strip()
+    if not raw:
+        return "Unknown"
+    text = re.sub(r"([a-z0-9])([A-Z])", r"\1 \2", raw)
+    text = re.sub(r"[_-]+", " ", text)
+    text = re.sub(r"\s+", " ", text).strip().lower()
+    return text[:1].upper() + text[1:]
+
+
+def _count_label(count: int, singular: str, plural: str | None = None) -> str:
+    count = int(count or 0)
+    return f"{count} {singular if count == 1 else (plural or singular + 's')}"
+
+
 def build_system_health(*, app_dir: Path | str, version: str, started_at: float, config: dict,
                         update_state: dict, maintenance_state: dict, backups: list[dict],
                         audit_summary: dict, client_rows: list[dict] | None = None,
@@ -184,6 +200,10 @@ def build_system_health(*, app_dir: Path | str, version: str, started_at: float,
         if str((item.get("health") or {}).get("state") or "").lower() in {"issue", "disconnected"}
     )
 
+    client_count = len(clients)
+    integration_count = len(integrations)
+    update_label = _display_state(update_status)
+
     components = [
         {"id": "dashboard", "state": "healthy", "message": f"Torrent Dashboard {version} is running"},
         {
@@ -199,22 +219,17 @@ def build_system_health(*, app_dir: Path | str, version: str, started_at: float,
         {
             "id": "updates",
             "state": "issue" if update_issue else "healthy",
-            "message": str((update_state or {}).get("error") or f"Update state: {update_status}"),
+            "message": str((update_state or {}).get("error") or f"Update status: {update_label}"),
         },
         {
             "id": "clients",
             "state": "issue" if disconnected_clients else "healthy",
-            "message": f"{disconnected_clients} qBitTorrent client(s) unavailable" if disconnected_clients else f"{len(clients)} qBitTorrent client(s) monitored",
+            "message": f"{_count_label(disconnected_clients, 'qBittorrent client')} unavailable" if disconnected_clients else f"{_count_label(client_count, 'qBittorrent client')} monitored",
         },
         {
             "id": "integrations",
             "state": "issue" if integration_issues else "healthy",
-            "message": f"{integration_issues} integration(s) need attention" if integration_issues else f"{len(integrations)} integration(s) monitored",
-        },
-        {
-            "id": "audit",
-            "state": "issue" if int((audit_summary or {}).get("failures_24h") or 0) else "healthy",
-            "message": f"{int((audit_summary or {}).get('failures_24h') or 0)} denied/failed security event(s) in 24h",
+            "message": f"{_count_label(integration_issues, 'integration')} need attention" if integration_issues else f"{_count_label(integration_count, 'integration')} monitored",
         },
     ]
     overall = "issue" if any(item["state"] == "issue" for item in components) else "healthy"
