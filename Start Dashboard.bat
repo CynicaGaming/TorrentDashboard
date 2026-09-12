@@ -22,7 +22,7 @@ echo Python 3 was not found. Install Python 3 and try again.
 exit /b 9009
 
 :start
-call :runpython -m torrent_dashboard.dashboard
+call :runpython -m torrent_dashboard.runtime
 if not %errorlevel%==0 pause
 goto :end
 
