@@ -31,7 +31,7 @@ USER_GROUPS = {
 }
 USER_STATUSES = {
     "active": "Active",
-    "pending": "Pending approval",
+    "pending": "Pending",
 }
 
 

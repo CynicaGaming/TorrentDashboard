@@ -1,30 +1,30 @@
 {
   "schema": 1,
   "status": "release-candidate",
-  "objective": "Publish v0.5.160 with self-registration and administrator approval",
-  "why": "Users need a way to request dashboard access without administrators manually creating every account, while administrators must retain final control over who can sign in.",
+  "objective": "Publish v0.5.161 with simplified account registration",
+  "why": "Registration should stay focused on credentials, while Pending status and the login entry point should be concise and familiar.",
   "acceptance_criteria": [
-    "The public login card offers Register, Sign in, and Recovery modes.",
-    "A registration creates a pending Standard user and never creates a session.",
-    "Valid credentials for a pending account return a clear pending-approval message.",
-    "Administrators can approve or reject requests under Settings → Users.",
-    "Approved users can sign in as Standard users; rejected usernames can register again.",
-    "Registration is rate-limited and duplicate usernames are rejected case-insensitively.",
+    "Create an account appears beneath the Sign in button instead of as a top-level Register tab.",
+    "Public registration collects only Username and Password.",
+    "New registrations remain Standard users with Pending status and cannot create sessions.",
+    "Valid credentials for a Pending account explain that administrator approval is required before sign-in.",
+    "Administrators can still approve or reject requests under Settings \u2192 Users.",
+    "Approved users can complete optional profile information after signing in.",
     "The full source matrix, source updater build, and compiled Windows smoke tests pass.",
-    "v0.5.160 publishes source and Windows updater packages with SHA-256 digests."
+    "v0.5.161 publishes source and Windows updater packages with SHA-256 digests."
   ],
   "decisions": [
-    "Approval always activates registrations as Standard users.",
-    "Pending status is returned only after correct credentials are verified.",
-    "Reject deletes the pending registration rather than preserving a rejected account record."
+    "Create an account is a secondary action beneath Sign in.",
+    "Pending is the canonical user-facing label for accounts awaiting administrator action.",
+    "Registration collects only username and password; optional profile details are completed after access is granted."
   ],
   "files": [
     "src/torrent_dashboard/users.py",
     "src/torrent_dashboard/dashboard.py",
     "static/index.html",
     "static/app.js",
+    "static/app.css",
     "static/settings.js",
-    "static/settings.css",
     "tests/test_user_registration.py",
     "tests/test_registration_ui.py",
     "release_tools/validate_ui_strings.py",
@@ -35,5 +35,5 @@
   "out_of_scope": [
     "No email verification, invitation codes, CAPTCHA, MFA, or automatic approval in this release."
   ],
-  "next_action": "Run full pull-request validation and Windows packaging; if green, merge and verify the complete updater-visible v0.5.160 release."
+  "next_action": "Run full pull-request validation and Windows packaging; if green, merge and verify the complete updater-visible v0.5.161 release."
 }

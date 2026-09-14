@@ -6,22 +6,22 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.160** (prerelease)
+- Latest documented build: **v0.5.161** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 
 ### Latest release summary
 
-Adds public account registration while keeping access administrator-controlled: new accounts remain pending until approved from Settings → Users.
+Refines self-registration with a simpler login entry point, a username-and-password-only registration form, and concise Pending status language.
 
 ## Architecture state
 
-- User lifecycle now distinguishes approved active accounts from public pending registrations while preserving the existing Administrator/Standard authorization model.
+- Registration captures only the credentials required to establish identity; optional profile data remains an authenticated account-setting concern.
 
 ## Current engineering decisions
 
-- Self-registration never grants Administrator access; approval always activates the account as a Standard user.
-- Pending status is revealed only after valid credentials are supplied, avoiding account-status disclosure to unauthenticated guesses.
-- Rejected registrations are removed rather than retained as long-lived rejected identities.
+- Create an account is a secondary action beneath Sign in rather than a peer access tab.
+- Pending is the canonical user-facing label for accounts awaiting administrator action.
+- Registration collects only username and password; profile details are deferred until after access is granted.
 
 ## Development principles
 
@@ -33,6 +33,15 @@ Adds public account registration while keeping access administrator-controlled: 
 - Keep public development continuity portable across forks; label canonical repository/branch/PR references as upstream context rather than local identity.
 
 ## Recent work
+
+### v0.5.161 — Simplify registration and Pending status
+
+Refines self-registration with a simpler login entry point, a username-and-password-only registration form, and concise Pending status language.
+
+- Moves Create an account beneath the Sign in button instead of presenting Register as a top-level access tab.
+- Simplifies registration to Username and Password; profile details can be completed after the account is approved and the user signs in.
+- Shortens the account state label from Pending approval to Pending.
+- Pending users are told that administrator approval is still required before sign-in.
 
 ### v0.5.160 — Self-registration with administrator approval
 
@@ -69,16 +78,9 @@ Repairs the System health and security-audit row layout introduced with the oper
 - Security audit rows use the same established status-dot, content, badge, and timestamp layout for consistent spacing on desktop and mobile.
 - The System settings save button now reads Save.
 
-### v0.5.156 — System settings navigation hotfix
-
-Fixes the v0.5.155 System settings navigation so the new operational settings page opens normally from desktop and mobile settings navigation.
-
-- Makes System a first-class settings page in the main settings controller.
-- Keeps the v0.5.155 System health, encrypted-backup, scheduling, automatic-update, audit, and retention controls accessible through the normal settings navigation.
-
 ## What to do next
 
-1. **Verify registration and approval** — Register a test account from the login page, confirm pending login messaging, approve it from Users, and verify Standard-user access.
+1. **Verify simplified registration** — Create a test account from the Sign in card, confirm the Pending login message, approve it, and complete the profile after signing in.
 
 ## Known issues
 

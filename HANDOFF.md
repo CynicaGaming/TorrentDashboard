@@ -7,36 +7,36 @@
 This handoff is intentionally portable across public forks. Verify the current checkout's Git remote, branch, and open work before using upstream references as instructions.
 
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
-- Last documented upstream build: **v0.5.160** (prerelease)
+- Last documented upstream build: **v0.5.161** (prerelease)
 
 ## Last known-good state
 
-Adds public account registration while keeping access administrator-controlled: new accounts remain pending until approved from Settings → Users.
+Refines self-registration with a simpler login entry point, a username-and-password-only registration form, and concise Pending status language.
 
 The released-state details and recent history are in `PROJECT_STATE.md`; architectural constraints are in `ARCHITECTURE.md`.
 
 ## Active development intent
 
 - Status: **release-candidate**
-- Objective: **Publish v0.5.160 with self-registration and administrator approval**
-- Why: Users need a way to request dashboard access without administrators manually creating every account, while administrators must retain final control over who can sign in.
+- Objective: **Publish v0.5.161 with simplified account registration**
+- Why: Registration should stay focused on credentials, while Pending status and the login entry point should be concise and familiar.
 
 ### Acceptance criteria
 
-- The public login card offers Register, Sign in, and Recovery modes.
-- A registration creates a pending Standard user and never creates a session.
-- Valid credentials for a pending account return a clear pending-approval message.
-- Administrators can approve or reject requests under Settings → Users.
-- Approved users can sign in as Standard users; rejected usernames can register again.
-- Registration is rate-limited and duplicate usernames are rejected case-insensitively.
+- Create an account appears beneath the Sign in button instead of as a top-level Register tab.
+- Public registration collects only Username and Password.
+- New registrations remain Standard users with Pending status and cannot create sessions.
+- Valid credentials for a Pending account explain that administrator approval is required before sign-in.
+- Administrators can still approve or reject requests under Settings → Users.
+- Approved users can complete optional profile information after signing in.
 - The full source matrix, source updater build, and compiled Windows smoke tests pass.
-- v0.5.160 publishes source and Windows updater packages with SHA-256 digests.
+- v0.5.161 publishes source and Windows updater packages with SHA-256 digests.
 
 ### Decisions already made
 
-- Approval always activates registrations as Standard users.
-- Pending status is returned only after correct credentials are verified.
-- Reject deletes the pending registration rather than preserving a rejected account record.
+- Create an account is a secondary action beneath Sign in.
+- Pending is the canonical user-facing label for accounts awaiting administrator action.
+- Registration collects only username and password; optional profile details are completed after access is granted.
 
 ### Expected areas of change
 
@@ -44,8 +44,8 @@ The released-state details and recent history are in `PROJECT_STATE.md`; archite
 - `src/torrent_dashboard/dashboard.py`
 - `static/index.html`
 - `static/app.js`
+- `static/app.css`
 - `static/settings.js`
-- `static/settings.css`
 - `tests/test_user_registration.py`
 - `tests/test_registration_ui.py`
 - `release_tools/validate_ui_strings.py`
@@ -62,7 +62,7 @@ None currently recorded.
 
 ## Exact next action
 
-Run full pull-request validation and Windows packaging; if green, merge and verify the complete updater-visible v0.5.160 release.
+Run full pull-request validation and Windows packaging; if green, merge and verify the complete updater-visible v0.5.161 release.
 
 ## Resume checklist
 
