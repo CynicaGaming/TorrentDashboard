@@ -25,11 +25,13 @@ jobs:
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
         with:
           python-version: '3.13'
+      - name: Patch preparation helper
+        run: python .github/scripts/patch_v05163_helper.py
       - name: Apply requested refinements
         run: python .github/scripts/apply_v05163.py
       - name: Remove temporary preparation files
         shell: bash
-        run: rm -f .github/scripts/apply_v05163.py .github/workflows/apply-v05163.yml
+        run: rm -f .github/scripts/apply_v05163.py .github/scripts/patch_v05163_helper.py .github/workflows/apply-v05163.yml
       - name: Install runtime dependency
         run: python -m pip install --disable-pip-version-check "cryptography==50.0.1"
       - name: Regenerate release and handoff documents
