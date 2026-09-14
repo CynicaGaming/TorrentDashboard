@@ -6,22 +6,22 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.162** (prerelease)
+- Latest documented build: **v0.5.163** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 
 ### Latest release summary
 
-Makes account creation visibly distinct from sign-in and manages Pending registrations in the normal Users list instead of a separate queue.
+Restores password confirmation during sign-up and gives administrators the full editable user form for Pending registrations before approval.
 
 ## Architecture state
 
-- Account lifecycle state is presented inside one Users management surface instead of splitting Pending registrations into a separate administrative queue.
+- Pending and active accounts share the same user-editing form; lifecycle state is controlled independently through explicit Approve and Reject actions.
 
 ## Current engineering decisions
 
-- The primary access tab reads Sign up whenever the public registration pane is active.
-- Pending registrations belong in the normal Users list and are distinguished with a Pending badge.
-- Approval and rejection remain explicit administrator actions on the Pending user entry.
+- Public registration remains limited to Username, Password, and Confirm password.
+- Administrators may complete profile fields, change group, or replace a Pending user's password before approval.
+- Clicking Approve first persists any edits currently entered in the Pending user's form.
 
 ## Development principles
 
@@ -33,6 +33,14 @@ Makes account creation visibly distinct from sign-in and manages Pending registr
 - Keep public development continuity portable across forks; label canonical repository/branch/PR references as upstream context rather than local identity.
 
 ## Recent work
+
+### v0.5.163 — Confirm sign-up passwords and complete Pending users
+
+Restores password confirmation during sign-up and gives administrators the full editable user form for Pending registrations before approval.
+
+- Adds Confirm password back to the public Sign up form and rejects mismatched passwords in both the browser and registration endpoint.
+- Gives Pending users the same Username, User group, First name, Last name, Email, Password, and Confirm password fields as active users.
+- Saves administrator edits automatically before approving a Pending user, while keeping approval and rejection explicit.
 
 ### v0.5.162 — Unify Pending users and distinguish Sign up
 
@@ -69,18 +77,9 @@ Removes the standalone System health settings category and its dedicated API bec
 - Removes the dedicated /api/system-health endpoint and its unused health aggregation helpers.
 - Browsers that previously stored System as the active Settings page now fall back to General.
 
-### v0.5.158 — Operational settings organization and health copy cleanup
-
-Moves backup and update policy controls into their existing settings areas, leaves System health as a diagnostics-only page, and replaces machine-oriented health labels with readable UI copy.
-
-- Backup protection and Backup schedule are now separate cards under Settings → Backups, with Retention alongside them.
-- Automatic updates now lives under Settings → Updates and saves with the existing update settings action.
-- System health is diagnostics-only and uses human-readable component names and status labels.
-- Security-audit storage remains available to the backend, but the duplicate audit UI is removed because security activity is already surfaced through Notifications.
-
 ## What to do next
 
-1. **Verify unified account flow** — Open Create an account, confirm the access tab reads Sign up, register a test user, then approve it from the normal Users list.
+1. **Verify pending-user completion flow** — Register a test account, edit its profile/group/password from Users, approve it, and confirm the edited credentials and profile are active.
 
 ## Known issues
 

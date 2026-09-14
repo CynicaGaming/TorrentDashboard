@@ -126,11 +126,15 @@ def main():
     assert 'id="loginRegisterLink"' in html and 'id="registerForm"' in html
     assert 'id="loginRegisterTab"' not in html and 'id="loginBackToSignIn"' in html
     assert 'id="registerUser"' in html and 'id="registerPass"' in html
-    assert all(f'id="{control}"' not in html for control in ('registerFirstName','registerLastName','registerEmail','registerPass2'))
+    assert all(f'id="{control}"' not in html for control in ('registerFirstName','registerLastName','registerEmail'))
+    assert 'id="registerPass2"' in html and "$('#registerPass2')" in app_js
+    assert 'data.get("password2")' in dashboard_py and 'Passwords do not match' in dashboard_py
     assert 'id="pendingUsersCard"' not in html and 'id="pendingUserList"' not in html
     assert 'id="userList"' in html
     assert "rawJson('/api/register'" in app_js
     assert "post('/api/users/approve'" in settings_js and "post('/api/users/reject'" in settings_js
+    assert all(f'data-user-field="{field}"' in settings_js for field in ('username','group','first_name','last_name','email','password','password2'))
+    assert "saveUser(card,{reload:false,notify:false})" in settings_js
     assert 'path=="/api/register"' in dashboard_py and 'Your account is Pending.' in dashboard_py
 
 
