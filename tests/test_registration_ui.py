@@ -4,7 +4,7 @@ import unittest
 ROOT=Path(__file__).resolve().parents[1]
 
 class RegistrationUiContractTests(unittest.TestCase):
-    def test_public_registration_link_and_pending_admin_queue_exist(self):
+    def test_public_registration_and_pending_users_share_existing_surfaces(self):
         html=(ROOT/"static"/"index.html").read_text(encoding="utf-8")
         app=(ROOT/"static"/"app.js").read_text(encoding="utf-8")
         settings=(ROOT/"static"/"settings.js").read_text(encoding="utf-8")
@@ -18,13 +18,19 @@ class RegistrationUiContractTests(unittest.TestCase):
         for removed in ('registerFirstName','registerLastName','registerEmail','registerPass2'):
             self.assertNotIn(f'id="{removed}"',html)
             self.assertNotIn(f"$('#{removed}')",app)
-        self.assertIn('id="pendingUserList"',html)
-        self.assertIn("rawJson('/api/register'",app)
-        self.assertIn("setLoginMode('register')",app)
+        self.assertIn("signInTab.textContent=register?'Sign up':'Sign in'",app)
+        self.assertIn("signInTab.classList.toggle('active',signin||register)",app)
+        self.assertNotIn('id="pendingUsersCard"',html)
+        self.assertNotIn('id="pendingUserList"',html)
+        self.assertIn('id="userList"',html)
+        self.assertIn("const pending=user.status==='pending'",settings)
+        self.assertIn('user-group-badge pending',settings)
         self.assertIn("post('/api/users/approve'",settings)
         self.assertIn("post('/api/users/reject'",settings)
         self.assertIn('>Pending</span>',settings)
         self.assertNotIn('Pending approval',settings)
+        self.assertIn("rawJson('/api/register'",app)
+        self.assertIn("setLoginMode('register')",app)
 
     def test_backend_marks_pending_login_and_exposes_approval_routes(self):
         source=(ROOT/"src"/"torrent_dashboard"/"dashboard.py").read_text(encoding="utf-8")

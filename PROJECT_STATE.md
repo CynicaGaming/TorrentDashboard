@@ -6,22 +6,22 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.161** (prerelease)
+- Latest documented build: **v0.5.162** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 
 ### Latest release summary
 
-Refines self-registration with a simpler login entry point, a username-and-password-only registration form, and concise Pending status language.
+Makes account creation visibly distinct from sign-in and manages Pending registrations in the normal Users list instead of a separate queue.
 
 ## Architecture state
 
-- Registration captures only the credentials required to establish identity; optional profile data remains an authenticated account-setting concern.
+- Account lifecycle state is presented inside one Users management surface instead of splitting Pending registrations into a separate administrative queue.
 
 ## Current engineering decisions
 
-- Create an account is a secondary action beneath Sign in rather than a peer access tab.
-- Pending is the canonical user-facing label for accounts awaiting administrator action.
-- Registration collects only username and password; profile details are deferred until after access is granted.
+- The primary access tab reads Sign up whenever the public registration pane is active.
+- Pending registrations belong in the normal Users list and are distinguished with a Pending badge.
+- Approval and rejection remain explicit administrator actions on the Pending user entry.
 
 ## Development principles
 
@@ -33,6 +33,14 @@ Refines self-registration with a simpler login entry point, a username-and-passw
 - Keep public development continuity portable across forks; label canonical repository/branch/PR references as upstream context rather than local identity.
 
 ## Recent work
+
+### v0.5.162 — Unify Pending users and distinguish Sign up
+
+Makes account creation visibly distinct from sign-in and manages Pending registrations in the normal Users list instead of a separate queue.
+
+- Shows Sign up in the access tab while the Create account pane is active, then restores Sign in when returning to login or Recovery.
+- Removes the separate Pending registrations settings card and shows Pending accounts directly in the normal Users accordion list.
+- Marks unapproved accounts with a Pending badge and keeps Approve and Reject actions inside that user entry.
 
 ### v0.5.161 — Simplify registration and Pending status
 
@@ -70,17 +78,9 @@ Moves backup and update policy controls into their existing settings areas, leav
 - System health is diagnostics-only and uses human-readable component names and status labels.
 - Security-audit storage remains available to the backend, but the duplicate audit UI is removed because security activity is already surfaced through Notifications.
 
-### v0.5.157 — System page layout hotfix
-
-Repairs the System health and security-audit row layout introduced with the operations page and shortens the System save action label.
-
-- System health components now use the notification row structure expected by the shared application styles instead of collapsing their text into the status-dot column.
-- Security audit rows use the same established status-dot, content, badge, and timestamp layout for consistent spacing on desktop and mobile.
-- The System settings save button now reads Save.
-
 ## What to do next
 
-1. **Verify simplified registration** — Create a test account from the Sign in card, confirm the Pending login message, approve it, and complete the profile after signing in.
+1. **Verify unified account flow** — Open Create an account, confirm the access tab reads Sign up, register a test user, then approve it from the normal Users list.
 
 ## Known issues
 

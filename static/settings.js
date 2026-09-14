@@ -946,48 +946,40 @@ window.TDSettings = (() => {
     return full || user.username || 'User';
   }
 
-  function renderPendingUsers() {
-    const list=document.querySelector('#pendingUserList');
-    if(!list)return;
-    const pending=users.filter(user=>user.status==='pending');
-    if(!pending.length){list.innerHTML='<div class="settings-empty"><b>No pending registrations</b><span>New registration requests will appear here for approval.</span></div>';return}
-    list.innerHTML='';
-    pending.forEach((user,index)=>{
-      const card=document.createElement('article');card.className='settings-accordion user-item';card.dataset.id=user.id||'';
-      const display=userName(user),username=user.username||'User',showUsername=display!==username;
-      card.innerHTML=`<button class="accordion-summary" type="button" aria-expanded="${index===0?'true':'false'}"><span><span class="user-name-line"><b>${esc(display)}</b></span>${showUsername?`<small>${esc(username)}</small>`:''}</span><span class="user-group-badge pending">Pending</span><span class="accordion-chevron">⌄</span></button><div class="accordion-body ${index===0?'':'hidden'}"><div class="settings-form-grid two-col"><label>Username<input value="${esc(user.username||'')}" readonly></label><label>Email<input value="${esc(user.email||'')}" readonly></label><label>First name<input value="${esc(user.first_name||'')}" readonly></label><label>Last name<input value="${esc(user.last_name||'')}" readonly></label></div><div class="settings-inline-actions"><button class="primary pending-user-approve" type="button">Approve</button><button class="danger pending-user-reject" type="button">Reject</button></div></div>`;
-      const summary=card.querySelector('.accordion-summary');summary.addEventListener('click',()=>{const body=card.querySelector('.accordion-body');const open=body.classList.contains('hidden');body.classList.toggle('hidden',!open);summary.setAttribute('aria-expanded',String(open))});
-      card.querySelector('.pending-user-approve').addEventListener('click',()=>approvePendingUser(user));
-      card.querySelector('.pending-user-reject').addEventListener('click',()=>rejectPendingUser(user));
-      list.appendChild(card);applySentenceCaseUi(card);
-    });
-  }
-
   function renderUsers() {
     const list = document.querySelector('#userList');
     if (!list) return;
-    const approvedUsers=users.filter(user=>user.status!=='pending');
-    if (!approvedUsers.length) {
+    if (!users.length) {
       list.innerHTML='<div class="settings-empty"><b>No users found</b><span>Add an administrator account to manage Torrent Dashboard.</span></div>';
       return;
     }
     list.innerHTML='';
-    approvedUsers.forEach((user,index) => {
+    users.forEach((user,index) => {
+      const pending=user.status==='pending';
       const card=document.createElement('article');
       card.className='settings-accordion user-item';
       card.dataset.id=user.id||'';
       const group=user.group==='administrator'?'Administrator':'Standard user';
-      const current=user.id && user.id===currentUserId;
+      const current=!pending && user.id && user.id===currentUserId;
       const display=userName(user);
       const username=user.username||'New user';
       const showUsername=!!user.username && display!==user.username;
-      card.innerHTML=`<button class="accordion-summary" type="button" aria-expanded="${index===0?'true':'false'}"><span><span class="user-name-line"><b>${esc(display)}</b>${current?'<span class="current-user-badge">Current user</span>':''}</span>${showUsername?`<small>${esc(username)}</small>`:''}</span><span class="user-group-badge ${user.group==='administrator'?'admin':'standard'}">${esc(group)}</span><span class="accordion-chevron">⌄</span></button><div class="accordion-body ${index===0?'':'hidden'}"><div class="settings-form-grid two-col"><label><span class="field-label">Username <span class="required-mark" aria-hidden="true">*</span></span><input data-user-field="username" value="${esc(user.username||'')}" maxlength="128" autocomplete="off" required></label><label><span class="field-label">User group <span class="required-mark" aria-hidden="true">*</span></span><select class="user-group-select" data-user-field="group" required><option value="administrator" ${user.group==='administrator'?'selected':''}>Administrator</option><option value="standard" ${user.group==='standard'?'selected':''}>Standard user</option></select></label><label>First name<input data-user-field="first_name" value="${esc(user.first_name||'')}" maxlength="128"></label><label>Last name<input data-user-field="last_name" value="${esc(user.last_name||'')}" maxlength="128"></label><label class="full-field">Email<input data-user-field="email" type="email" value="${esc(user.email||'')}" maxlength="254"></label><label><span class="field-label">Password <span class="required-mark" aria-hidden="true">*</span></span><input data-user-field="password" type="password" autocomplete="new-password" required ${user._new?'placeholder="Create password"':'class="secret-configured" data-configured-secret="1" value="'+SECRET_MASK+'"'}></label><label><span class="field-label">Confirm password <span class="required-mark" aria-hidden="true">*</span></span><input data-user-field="password2" type="password" autocomplete="new-password" required ${user._new?'placeholder="Confirm password"':'class="secret-configured" data-configured-secret="1" value="'+SECRET_MASK+'"'}></label></div><div class="settings-inline-actions"><button class="primary user-save" type="button">Save</button><button class="danger user-delete" type="button" ${current?'disabled':''}>Delete</button></div></div>`;
+      const badge=pending?'<span class="user-group-badge pending">Pending</span>':`<span class="user-group-badge ${user.group==='administrator'?'admin':'standard'}">${esc(group)}</span>`;
+      const body=pending
+        ? `<div class="accordion-body ${index===0?'':'hidden'}"><div class="settings-form-grid two-col"><label>Username<input value="${esc(user.username||'')}" readonly></label><label>Status<input value="Pending" readonly></label></div><div class="settings-inline-actions"><button class="primary pending-user-approve" type="button">Approve</button><button class="danger pending-user-reject" type="button">Reject</button></div></div>`
+        : `<div class="accordion-body ${index===0?'':'hidden'}"><div class="settings-form-grid two-col"><label><span class="field-label">Username <span class="required-mark" aria-hidden="true">*</span></span><input data-user-field="username" value="${esc(user.username||'')}" maxlength="128" autocomplete="off" required></label><label><span class="field-label">User group <span class="required-mark" aria-hidden="true">*</span></span><select class="user-group-select" data-user-field="group" required><option value="administrator" ${user.group==='administrator'?'selected':''}>Administrator</option><option value="standard" ${user.group==='standard'?'selected':''}>Standard user</option></select></label><label>First name<input data-user-field="first_name" value="${esc(user.first_name||'')}" maxlength="128"></label><label>Last name<input data-user-field="last_name" value="${esc(user.last_name||'')}" maxlength="128"></label><label class="full-field">Email<input data-user-field="email" type="email" value="${esc(user.email||'')}" maxlength="254"></label><label><span class="field-label">Password <span class="required-mark" aria-hidden="true">*</span></span><input data-user-field="password" type="password" autocomplete="new-password" required ${user._new?'placeholder="Create password"':'class="secret-configured" data-configured-secret="1" value="'+SECRET_MASK+'"'}></label><label><span class="field-label">Confirm password <span class="required-mark" aria-hidden="true">*</span></span><input data-user-field="password2" type="password" autocomplete="new-password" required ${user._new?'placeholder="Confirm password"':'class="secret-configured" data-configured-secret="1" value="'+SECRET_MASK+'"'}></label></div><div class="settings-inline-actions"><button class="primary user-save" type="button">Save</button><button class="danger user-delete" type="button" ${current?'disabled':''}>Delete</button></div></div>`;
+      card.innerHTML=`<button class="accordion-summary" type="button" aria-expanded="${index===0?'true':'false'}"><span><span class="user-name-line"><b>${esc(display)}</b>${current?'<span class="current-user-badge">Current user</span>':''}</span>${showUsername?`<small>${esc(username)}</small>`:''}</span>${badge}<span class="accordion-chevron">⌄</span></button>${body}`;
       const summary=card.querySelector('.accordion-summary');
       summary.addEventListener('click',()=>{const body=card.querySelector('.accordion-body');const open=body.classList.contains('hidden');body.classList.toggle('hidden',!open);summary.setAttribute('aria-expanded',String(open))});
-      card.querySelector('.user-save').addEventListener('click',()=>saveUser(card));
-      card.querySelector('.user-delete').addEventListener('click',()=>deleteUser(card,user));
+      if(pending){
+        card.querySelector('.pending-user-approve').addEventListener('click',()=>approvePendingUser(user));
+        card.querySelector('.pending-user-reject').addEventListener('click',()=>rejectPendingUser(user));
+      }else{
+        card.querySelector('.user-save').addEventListener('click',()=>saveUser(card));
+        card.querySelector('.user-delete').addEventListener('click',()=>deleteUser(card,user));
+        decorateSecretFields(card);
+      }
       list.appendChild(card);
-      decorateSecretFields(card);
       applySentenceCaseUi(card);
     });
   }
@@ -1000,7 +992,6 @@ window.TDSettings = (() => {
       const d = await api('/api/users');
       users = d.users || [];
       currentUserId = d.current_user_id || state.me?.user_id || '';
-      renderPendingUsers();
       renderUsers();
     } catch(e) {
       toast(e.message,'error');

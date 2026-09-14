@@ -1,0 +1,4 @@
+[console_scripts]
+torrent-dashboard = torrent_dashboard.runtime:main
+torrent-dashboard-recovery = torrent_dashboard.recovery_tool:main
+torrent-dashboard-updater = torrent_dashboard.updater:main

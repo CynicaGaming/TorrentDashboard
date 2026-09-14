@@ -12,6 +12,46 @@
   },
   "releases": [
     {
+      "version": "0.5.162",
+      "date": "2026-09-14",
+      "status": "prerelease",
+      "title": "Unify Pending users and distinguish Sign up",
+      "summary": "Makes account creation visibly distinct from sign-in and manages Pending registrations in the normal Users list instead of a separate queue.",
+      "highlights": [
+        "Shows Sign up in the access tab while the Create account pane is active, then restores Sign in when returning to login or Recovery.",
+        "Removes the separate Pending registrations settings card and shows Pending accounts directly in the normal Users accordion list.",
+        "Marks unapproved accounts with a Pending badge and keeps Approve and Reject actions inside that user entry."
+      ],
+      "fixes": [],
+      "technical": [
+        "Pending-account approval, rejection, Standard-user assignment, rate limits, and session blocking are unchanged.",
+        "The existing Users list now renders both active and Pending account states from the same /api/users response."
+      ],
+      "validation": [
+        "Adds registration UI contracts for the dynamic Sign up label and unified Pending-user list.",
+        "Runs the standard Ubuntu/Windows Python 3.13/3.14 matrix, source updater build, and Windows executable smoke tests."
+      ],
+      "known_issues": [
+        "Backup encryption remains opt-in; unencrypted portable backups can contain saved client and integration credentials and should be stored securely.",
+        "Windows executables are not code-signed yet."
+      ],
+      "architecture": [
+        "Account lifecycle state is presented inside one Users management surface instead of splitting Pending registrations into a separate administrative queue."
+      ],
+      "decisions": [
+        "The primary access tab reads Sign up whenever the public registration pane is active.",
+        "Pending registrations belong in the normal Users list and are distinguished with a Pending badge.",
+        "Approval and rejection remain explicit administrator actions on the Pending user entry."
+      ],
+      "next_steps": [
+        {
+          "priority": 1,
+          "title": "Verify unified account flow",
+          "detail": "Open Create an account, confirm the access tab reads Sign up, register a test user, then approve it from the normal Users list."
+        }
+      ]
+    },
+    {
       "version": "0.5.161",
       "date": "2026-09-14",
       "status": "prerelease",
