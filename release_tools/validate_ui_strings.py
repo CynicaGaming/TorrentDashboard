@@ -123,6 +123,11 @@ def main():
     assert 'embeddedConsole' not in app_js and '/api/recovery/command' not in app_js
     assert '/api/recovery/command' not in dashboard_py and 'recovery_console_execute' not in dashboard_py
     assert 'Recovery.exe' in html
+    assert 'id="loginRegisterTab"' in html and 'id="registerForm"' in html
+    assert 'id="pendingUserList"' in html
+    assert "rawJson('/api/register'" in app_js
+    assert "post('/api/users/approve'" in settings_js and "post('/api/users/reject'" in settings_js
+    assert 'path=="/api/register"' in dashboard_py and 'pending administrator approval' in dashboard_py
 
 
     assert 'placeholder="Search torrents…"' in html

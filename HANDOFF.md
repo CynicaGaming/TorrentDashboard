@@ -7,48 +7,48 @@
 This handoff is intentionally portable across public forks. Verify the current checkout's Git remote, branch, and open work before using upstream references as instructions.
 
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
-- Last documented upstream build: **v0.5.159** (prerelease)
+- Last documented upstream build: **v0.5.160** (prerelease)
 
 ## Last known-good state
 
-Removes the standalone System health settings category and its dedicated API because it duplicates status already available in the settings areas where users can act on it.
+Adds public account registration while keeping access administrator-controlled: new accounts remain pending until approved from Settings → Users.
 
 The released-state details and recent history are in `PROJECT_STATE.md`; architectural constraints are in `ARCHITECTURE.md`.
 
 ## Active development intent
 
 - Status: **release-candidate**
-- Objective: **Publish v0.5.159 without the standalone System health settings surface**
-- Why: System health became a passive duplicate after operational controls were organized under Backups, Updates, Notifications, and Integrations.
+- Objective: **Publish v0.5.160 with self-registration and administrator approval**
+- Why: Users need a way to request dashboard access without administrators manually creating every account, while administrators must retain final control over who can sign in.
 
 ### Acceptance criteria
 
-- System health is absent from desktop and mobile Settings navigation.
-- No browser code requests /api/system-health.
-- The /api/system-health endpoint and health aggregation helpers are removed.
-- Backups, Updates, retention, audit persistence, and notification behavior remain unchanged.
-- Ubuntu/Windows Python 3.13/3.14 validation passes.
-- The source updater ZIP and compiled Windows package build successfully, and all three Windows executables pass smoke tests.
-- v0.5.159 is published with both source and Windows updater ZIPs and SHA-256 digests.
+- The public login card offers Register, Sign in, and Recovery modes.
+- A registration creates a pending Standard user and never creates a session.
+- Valid credentials for a pending account return a clear pending-approval message.
+- Administrators can approve or reject requests under Settings → Users.
+- Approved users can sign in as Standard users; rejected usernames can register again.
+- Registration is rate-limited and duplicate usernames are rejected case-insensitively.
+- The full source matrix, source updater build, and compiled Windows smoke tests pass.
+- v0.5.160 publishes source and Windows updater packages with SHA-256 digests.
 
 ### Decisions already made
 
-- Remove System health entirely rather than hide it while retaining dead browser/API code.
-- Keep durable audit logging and operational schedulers because they support real features outside the removed page.
+- Approval always activates registrations as Standard users.
+- Pending status is returned only after correct credentials are verified.
+- Reject deletes the pending registration rather than preserving a rejected account record.
 
 ### Expected areas of change
 
-- `static/ops.js`
-- `static/settings.js`
-- `src/torrent_dashboard/runtime.py`
-- `src/torrent_dashboard/operations.py`
-- `tests/test_system_ops_ui.py`
-- `tests/test_operations.py`
-- `release_tools/validate_ui_strings.py`
-- `src/torrent_dashboard/__init__.py`
+- `src/torrent_dashboard/users.py`
+- `src/torrent_dashboard/dashboard.py`
 - `static/index.html`
 - `static/app.js`
-- `static/sw.js`
+- `static/settings.js`
+- `static/settings.css`
+- `tests/test_user_registration.py`
+- `tests/test_registration_ui.py`
+- `release_tools/validate_ui_strings.py`
 - `release_notes/releases.json`
 - `development/current.json`
 
@@ -58,11 +58,11 @@ None currently recorded.
 
 ### Explicitly out of scope
 
-- No changes to backup behavior, automatic-update behavior, retention execution, audit persistence, or notification delivery.
+- No email verification, invitation codes, CAPTCHA, MFA, or automatic approval in this release.
 
 ## Exact next action
 
-Run the full pull-request validation and Windows smoke build; if green, merge and verify the updater-visible v0.5.159 release.
+Run full pull-request validation and Windows packaging; if green, merge and verify the complete updater-visible v0.5.160 release.
 
 ## Resume checklist
 
