@@ -21,11 +21,14 @@ jobs:
         with:
           python-version: '3.13'
       - name: Apply requested refinements
-        run: python .github/scripts/apply_v05162.py
+        run: |
+          python .github/scripts/apply_v05162.py
+          python .github/scripts/patch_validator_v05162.py
       - name: Remove temporary preparation files
         shell: bash
         run: |
           rm .github/scripts/apply_v05162.py
+          rm .github/scripts/patch_validator_v05162.py
           rm .github/workflows/apply-v05162.yml
       - name: Install project dependencies
         run: python -m pip install --disable-pip-version-check .
