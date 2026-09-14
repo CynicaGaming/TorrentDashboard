@@ -19,6 +19,7 @@ class RegistrationUiContractTests(unittest.TestCase):
         for removed in ('registerFirstName','registerLastName','registerEmail'):
             self.assertNotIn(f'id="{removed}"',html)
         self.assertIn("$('#registerPass2')",app)
+        self.assertIn("const password=$('#registerPass')?.value||'',password2=$('#registerPass2')?.value||'';",app)
         self.assertIn('Passwords do not match',app)
         self.assertIn('password,password2',app)
         self.assertIn('data.get("password2")',source)
