@@ -22,7 +22,7 @@ class UserRegistrationTests(unittest.TestCase):
         self.assertEqual(user["status"],"pending")
         self.assertEqual(user["group"],"standard")
         self.assertTrue(user["password_hash"])
-        self.assertEqual(public_user(user)["status_label"],"Pending approval")
+        self.assertEqual(public_user(user)["status_label"],"Pending")
         self.assertEqual(user_by_username(cfg,"NEWUSER")["id"],user["id"])
 
     def test_duplicate_username_is_rejected_case_insensitively(self):

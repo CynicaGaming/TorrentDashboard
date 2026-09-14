@@ -2293,12 +2293,10 @@ class Handler(BaseHTTPRequestHandler):
             q.append(now)
         try: data=parse_json_body(self,20000)
         except Exception as e: return self.send_json(400,{"error":str(e)})
-        if str(data.get("password") or "") != str(data.get("password2") or ""):
-            return self.send_json(400,{"error":"Passwords do not match"})
         try:
             updated,user=mutate_config(lambda current: register_user(current,data))
             HISTORY.event("dashboard","user_registration_pending",user.get("username",""),"",{"client_ip":ip,"user_id":user.get("id","")})
-            return self.send_json(202,{"ok":True,"status":"pending","message":"Registration submitted. Your account is pending administrator approval."})
+            return self.send_json(202,{"ok":True,"status":"pending","message":"Registration submitted. Your account is Pending."})
         except Exception as e:
             return self.send_json(400,{"error":str(e)})
 
@@ -2319,7 +2317,7 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json(401,{"error":"Invalid username or password"})
         if user.get("status") == "pending":
             HISTORY.event("dashboard", "login_pending_approval", username[:128], "", {"client_ip": ip, "user_id": user.get("id", "")})
-            return self.send_json(403,{"error":"Your account is pending administrator approval."})
+            return self.send_json(403,{"error":"Your account is Pending. An administrator must approve it before you can sign in."})
         token,sess=SESSIONS.create(user["username"],a.get("session_hours",24),"password",group=user.get("group","standard"),user_id=user.get("id",""),display_name=user_display_name(user))
         HISTORY.event("dashboard", "login_success", user["username"], "", {"client_ip": ip,"group":user.get("group")})
         return self.send_json(200,{"ok":True,"csrf":sess["csrf"],"group":user.get("group")},token)
