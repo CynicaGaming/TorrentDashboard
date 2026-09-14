@@ -2293,6 +2293,8 @@ class Handler(BaseHTTPRequestHandler):
             q.append(now)
         try: data=parse_json_body(self,20000)
         except Exception as e: return self.send_json(400,{"error":str(e)})
+        if str(data.get("password") or "") != str(data.get("password2") or ""):
+            return self.send_json(400,{"error":"Passwords do not match"})
         try:
             updated,user=mutate_config(lambda current: register_user(current,data))
             HISTORY.event("dashboard","user_registration_pending",user.get("username",""),"",{"client_ip":ip,"user_id":user.get("id","")})

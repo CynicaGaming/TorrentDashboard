@@ -7,35 +7,35 @@
 This handoff is intentionally portable across public forks. Verify the current checkout's Git remote, branch, and open work before using upstream references as instructions.
 
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
-- Last documented upstream build: **v0.5.162** (prerelease)
+- Last documented upstream build: **v0.5.163** (prerelease)
 
 ## Last known-good state
 
-Makes account creation visibly distinct from sign-in and manages Pending registrations in the normal Users list instead of a separate queue.
+Restores password confirmation during sign-up and gives administrators the full editable user form for Pending registrations before approval.
 
 The released-state details and recent history are in `PROJECT_STATE.md`; architectural constraints are in `ARCHITECTURE.md`.
 
 ## Active development intent
 
 - Status: **release-candidate**
-- Objective: **Publish v0.5.162 with a clearer Sign up state and unified user management**
-- Why: Account creation should be visibly distinct from sign-in, while administrators should manage active and Pending accounts from one consistent Users list.
+- Objective: **Publish v0.5.163 with password confirmation and complete Pending-user administration**
+- Why: Sign-up should protect against password typos, and administrators should be able to complete or correct a Pending account before approving it.
 
 ### Acceptance criteria
 
-- The access tab reads Sign up while Create an account is active and returns to Sign in for normal login.
-- Pending registrations appear in the normal Users list rather than a separate Pending registrations card.
-- Pending accounts display a Pending badge and expose Approve and Reject from their accordion entry.
-- Approved users retain the existing editable user fields and group controls.
-- Registration approval, rejection, rate limiting, Standard-user assignment, and pending-session blocking remain unchanged.
+- Sign up requires Password and Confirm password and rejects mismatches server-side.
+- Pending accounts remain in the normal Users list with a Pending badge.
+- Pending users expose Username, User group, First name, Last name, Email, Password, and Confirm password fields.
+- Save preserves Pending status, while Approve persists edits and then activates the user.
+- Reject remains available for Pending users.
 - The full source matrix, source updater build, and compiled Windows smoke tests pass.
-- v0.5.162 publishes source and Windows updater packages with SHA-256 digests.
+- v0.5.163 publishes source and Windows updater packages with SHA-256 digests.
 
 ### Decisions already made
 
-- Sign up is the visible access-tab label only while the registration pane is active.
-- Pending registrations share the normal Users list and are distinguished with a Pending badge.
-- Pending user details remain read-only until an administrator approves the account.
+- Public registration asks only for Username, Password, and Confirm password.
+- Pending users use the same editable administration form as active users.
+- Approve saves form edits before changing lifecycle state to Active.
 
 ### Expected areas of change
 
@@ -43,6 +43,7 @@ The released-state details and recent history are in `PROJECT_STATE.md`; archite
 - `static/app.js`
 - `static/settings.js`
 - `static/sw.js`
+- `src/torrent_dashboard/dashboard.py`
 - `src/torrent_dashboard/__init__.py`
 - `tests/test_registration_ui.py`
 - `release_tools/validate_ui_strings.py`
@@ -55,11 +56,11 @@ None currently recorded.
 
 ### Explicitly out of scope
 
-- No changes to registration rate limits, approval authorization, account roles, or authentication/session policy in this release.
+- No changes to registration rate limits, approval authorization, session policy, or recovery behavior in this release.
 
 ## Exact next action
 
-Run full pull-request validation and Windows packaging; if green, merge and verify the complete updater-visible v0.5.162 release.
+Run full pull-request validation and Windows packaging; if green, merge and verify the complete updater-visible v0.5.163 release.
 
 ## Resume checklist
 

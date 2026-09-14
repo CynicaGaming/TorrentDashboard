@@ -965,20 +965,23 @@ window.TDSettings = (() => {
       const username=user.username||'New user';
       const showUsername=!!user.username && display!==user.username;
       const badge=pending?'<span class="user-group-badge pending">Pending</span>':`<span class="user-group-badge ${user.group==='administrator'?'admin':'standard'}">${esc(group)}</span>`;
-      const body=pending
-        ? `<div class="accordion-body ${index===0?'':'hidden'}"><div class="settings-form-grid two-col"><label>Username<input value="${esc(user.username||'')}" readonly></label><label>Status<input value="Pending" readonly></label></div><div class="settings-inline-actions"><button class="primary pending-user-approve" type="button">Approve</button><button class="danger pending-user-reject" type="button">Reject</button></div></div>`
-        : `<div class="accordion-body ${index===0?'':'hidden'}"><div class="settings-form-grid two-col"><label><span class="field-label">Username <span class="required-mark" aria-hidden="true">*</span></span><input data-user-field="username" value="${esc(user.username||'')}" maxlength="128" autocomplete="off" required></label><label><span class="field-label">User group <span class="required-mark" aria-hidden="true">*</span></span><select class="user-group-select" data-user-field="group" required><option value="administrator" ${user.group==='administrator'?'selected':''}>Administrator</option><option value="standard" ${user.group==='standard'?'selected':''}>Standard user</option></select></label><label>First name<input data-user-field="first_name" value="${esc(user.first_name||'')}" maxlength="128"></label><label>Last name<input data-user-field="last_name" value="${esc(user.last_name||'')}" maxlength="128"></label><label class="full-field">Email<input data-user-field="email" type="email" value="${esc(user.email||'')}" maxlength="254"></label><label><span class="field-label">Password <span class="required-mark" aria-hidden="true">*</span></span><input data-user-field="password" type="password" autocomplete="new-password" required ${user._new?'placeholder="Create password"':'class="secret-configured" data-configured-secret="1" value="'+SECRET_MASK+'"'}></label><label><span class="field-label">Confirm password <span class="required-mark" aria-hidden="true">*</span></span><input data-user-field="password2" type="password" autocomplete="new-password" required ${user._new?'placeholder="Confirm password"':'class="secret-configured" data-configured-secret="1" value="'+SECRET_MASK+'"'}></label></div><div class="settings-inline-actions"><button class="primary user-save" type="button">Save</button><button class="danger user-delete" type="button" ${current?'disabled':''}>Delete</button></div></div>`;
+      const passwordAttrs=user._new?'placeholder="Create password"':'class="secret-configured" data-configured-secret="1" value="'+SECRET_MASK+'"';
+      const confirmAttrs=user._new?'placeholder="Confirm password"':'class="secret-configured" data-configured-secret="1" value="'+SECRET_MASK+'"';
+      const actions=pending
+        ? '<button class="primary user-save" type="button">Save</button><button class="primary pending-user-approve" type="button">Approve</button><button class="danger pending-user-reject" type="button">Reject</button>'
+        : `<button class="primary user-save" type="button">Save</button><button class="danger user-delete" type="button" ${current?'disabled':''}>Delete</button>`;
+      const body=`<div class="accordion-body ${index===0?'':'hidden'}"><div class="settings-form-grid two-col"><label><span class="field-label">Username <span class="required-mark" aria-hidden="true">*</span></span><input data-user-field="username" value="${esc(user.username||'')}" maxlength="128" autocomplete="off" required></label><label><span class="field-label">User group <span class="required-mark" aria-hidden="true">*</span></span><select class="user-group-select" data-user-field="group" required><option value="administrator" ${user.group==='administrator'?'selected':''}>Administrator</option><option value="standard" ${user.group==='standard'?'selected':''}>Standard user</option></select></label><label>First name<input data-user-field="first_name" value="${esc(user.first_name||'')}" maxlength="128"></label><label>Last name<input data-user-field="last_name" value="${esc(user.last_name||'')}" maxlength="128"></label><label class="full-field">Email<input data-user-field="email" type="email" value="${esc(user.email||'')}" maxlength="254"></label><label><span class="field-label">Password <span class="required-mark" aria-hidden="true">*</span></span><input data-user-field="password" type="password" autocomplete="new-password" required ${passwordAttrs}></label><label><span class="field-label">Confirm password <span class="required-mark" aria-hidden="true">*</span></span><input data-user-field="password2" type="password" autocomplete="new-password" required ${confirmAttrs}></label></div><div class="settings-inline-actions">${actions}</div></div>`;
       card.innerHTML=`<button class="accordion-summary" type="button" aria-expanded="${index===0?'true':'false'}"><span><span class="user-name-line"><b>${esc(display)}</b>${current?'<span class="current-user-badge">Current user</span>':''}</span>${showUsername?`<small>${esc(username)}</small>`:''}</span>${badge}<span class="accordion-chevron">⌄</span></button>${body}`;
       const summary=card.querySelector('.accordion-summary');
       summary.addEventListener('click',()=>{const body=card.querySelector('.accordion-body');const open=body.classList.contains('hidden');body.classList.toggle('hidden',!open);summary.setAttribute('aria-expanded',String(open))});
+      card.querySelector('.user-save').addEventListener('click',()=>saveUser(card));
       if(pending){
-        card.querySelector('.pending-user-approve').addEventListener('click',()=>approvePendingUser(user));
+        card.querySelector('.pending-user-approve').addEventListener('click',async()=>{if(await saveUser(card,{reload:false,notify:false}))await approvePendingUser(user)});
         card.querySelector('.pending-user-reject').addEventListener('click',()=>rejectPendingUser(user));
       }else{
-        card.querySelector('.user-save').addEventListener('click',()=>saveUser(card));
         card.querySelector('.user-delete').addEventListener('click',()=>deleteUser(card,user));
-        decorateSecretFields(card);
       }
+      decorateSecretFields(card);
       list.appendChild(card);
       applySentenceCaseUi(card);
     });
@@ -1009,17 +1012,19 @@ window.TDSettings = (() => {
     return data;
   }
 
-  async function saveUser(card) {
+  async function saveUser(card,options={}) {
     const data=userData(card);
-    if (!data.username) return toast('Enter a username','error');
-    if (data.password !== data.password2) return toast('Passwords do not match','error');
+    if (!data.username) { toast('Enter a username','error'); return false; }
+    if (data.password !== data.password2) { toast('Passwords do not match','error'); return false; }
     delete data.password2;
     try {
       await post('/api/users',data);
-      toast('User saved');
-      await loadUsers();
+      if(options.notify!==false)toast('User saved');
+      if(options.reload!==false)await loadUsers();
+      return true;
     } catch(e) {
       toast(e.message,'error');
+      return false;
     }
   }
 

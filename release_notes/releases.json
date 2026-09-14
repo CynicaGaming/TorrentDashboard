@@ -12,6 +12,46 @@
   },
   "releases": [
     {
+      "version": "0.5.163",
+      "date": "2026-09-14",
+      "status": "prerelease",
+      "title": "Confirm sign-up passwords and complete Pending users",
+      "summary": "Restores password confirmation during sign-up and gives administrators the full editable user form for Pending registrations before approval.",
+      "highlights": [
+        "Adds Confirm password back to the public Sign up form and rejects mismatched passwords in both the browser and registration endpoint.",
+        "Gives Pending users the same Username, User group, First name, Last name, Email, Password, and Confirm password fields as active users.",
+        "Saves administrator edits automatically before approving a Pending user, while keeping approval and rejection explicit."
+      ],
+      "fixes": [],
+      "technical": [
+        "The /api/users save path continues to preserve Pending status until the explicit approve route is called.",
+        "Pending-account password fields retain the configured-secret mask and only replace the stored password when the administrator enters a new one."
+      ],
+      "validation": [
+        "Adds browser contracts for public password confirmation and editable Pending user fields.",
+        "Runs the standard Ubuntu/Windows Python 3.13/3.14 matrix, source updater build, and Windows executable smoke tests."
+      ],
+      "known_issues": [
+        "Backup encryption remains opt-in; unencrypted portable backups can contain saved client and integration credentials and should be stored securely.",
+        "Windows executables are not code-signed yet."
+      ],
+      "architecture": [
+        "Pending and active accounts share the same user-editing form; lifecycle state is controlled independently through explicit Approve and Reject actions."
+      ],
+      "decisions": [
+        "Public registration remains limited to Username, Password, and Confirm password.",
+        "Administrators may complete profile fields, change group, or replace a Pending user's password before approval.",
+        "Clicking Approve first persists any edits currently entered in the Pending user's form."
+      ],
+      "next_steps": [
+        {
+          "priority": 1,
+          "title": "Verify pending-user completion flow",
+          "detail": "Register a test account, edit its profile/group/password from Users, approve it, and confirm the edited credentials and profile are active."
+        }
+      ]
+    },
+    {
       "version": "0.5.162",
       "date": "2026-09-14",
       "status": "prerelease",
