@@ -127,7 +127,8 @@ def main():
     assert 'id="loginRegisterTab"' not in html and 'id="loginBackToSignIn"' in html
     assert 'id="registerUser"' in html and 'id="registerPass"' in html
     assert all(f'id="{control}"' not in html for control in ('registerFirstName','registerLastName','registerEmail','registerPass2'))
-    assert 'id="pendingUserList"' in html
+    assert 'id="pendingUsersCard"' not in html and 'id="pendingUserList"' not in html
+    assert 'id="userList"' in html
     assert "rawJson('/api/register'" in app_js
     assert "post('/api/users/approve'" in settings_js and "post('/api/users/reject'" in settings_js
     assert 'path=="/api/register"' in dashboard_py and 'Your account is Pending.' in dashboard_py
@@ -950,6 +951,15 @@ def main():
     assert 'Recovery key:' in local_recovery and 'recovery_update(APP_DIR' in local_recovery
     assert 'network-reset' in local_recovery and 'restore <backup-file>' in local_recovery and 'clear-update' in local_recovery
     assert all(token not in local_recovery for token in ('BaseHTTPRequestHandler','ThreadingHTTPServer','socketserver','http.server'))
+    # 0.5.162 keeps registration mode visually distinct and folds Pending accounts into the Users list.
+    assert "signInTab.textContent=register?'Sign up':'Sign in'" in app_js
+    assert "signInTab.classList.toggle('active',signin||register)" in app_js
+    assert 'id="pendingUsersCard"' not in html and 'id="pendingUserList"' not in html
+    assert 'id="userList"' in html
+    assert "const pending=user.status==='pending'" in settings_js
+    assert 'user-group-badge pending' in settings_js
+    assert "post('/api/users/approve'" in settings_js and "post('/api/users/reject'" in settings_js
+
     print("UI string audit passed")
 
 

@@ -1,3 +1,3 @@
 """Torrent Dashboard application package."""
 
-__version__ = "0.5.161"
+__version__ = "0.5.162"

@@ -4,11 +4,11 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
 <meta content="#0b0d10" name="theme-color"/>
-<meta content="0.5.161" name="torrent-dashboard-build"/>
+<meta content="0.5.162" name="torrent-dashboard-build"/>
 <link href="/manifest.webmanifest" rel="manifest"/>
 <link href="/static/favicon.svg" rel="icon" type="image/svg+xml"/>
-<link href="/static/app.css?v=0.5.161" rel="stylesheet"/>
-<link href="/static/settings.css?v=0.5.161" rel="stylesheet"/>
+<link href="/static/app.css?v=0.5.162" rel="stylesheet"/>
+<link href="/static/settings.css?v=0.5.162" rel="stylesheet"/>
 <style>
 .login-card{
   position:relative;
@@ -289,8 +289,7 @@ try{
 <div class="panel settings-card"><div class="panel-title">Integrations</div><p class="muted">Connect Torrent Dashboard to media services and notification destinations. Test each connection before saving it.</p><div class="integration-add-row"><select id="integrationTypeSelect"><option value="">Choose integration…</option></select><button class="primary" id="addIntegrationSetting" type="button">＋ Add integration</button></div><div id="integrationList"></div></div>
 </section>
 <section class="settings-page" data-settings-section="users">
-<div class="panel settings-card" id="pendingUsersCard"><div class="panel-title">Pending registrations</div><p class="muted">New registrations cannot sign in until an administrator approves them.</p><div id="pendingUserList"></div></div>
-<div class="panel settings-card"><div class="panel-title">Users</div><p class="muted user-management-intro">Administrators can manage approved dashboard users. Standard users have read-only dashboard access and can manage their own account.</p><div class="settings-inline-actions"><button class="primary" id="addUserSetting" type="button">＋ Add user</button></div><div id="userList"></div></div>
+<div class="panel settings-card"><div class="panel-title">Users</div><p class="muted user-management-intro">Administrators can manage dashboard users from one list. Pending registrations are marked Pending until approved or rejected. Standard users have read-only dashboard access and can manage their own account.</p><div class="settings-inline-actions"><button class="primary" id="addUserSetting" type="button">＋ Add user</button></div><div id="userList"></div></div>
 </section>
 </div>
 </div>
@@ -307,7 +306,7 @@ try{
 <div class="menu account-menu hidden" id="accountMenu" role="menu"><div class="account-menu-head"><span class="profile-avatar profile-avatar-menu"><img alt="" class="hidden" data-avatar-image/><span class="avatar-default" data-avatar-default aria-hidden="true"></span></span><div><strong id="accountMenuName">Account</strong><small id="accountMenuGroup">User</small></div></div><div class="menu-separator" role="separator"></div><button id="accountSettingsBtn" role="menuitem" type="button">Account settings</button><button class="hidden" id="installPwa" type="button">Install app</button><div class="menu-separator" role="separator"></div><button id="logoutBtn" type="button">Sign out</button></div>
 <div class="menu hidden" id="contextMenu"></div>
 <div class="toasts" id="toasts"></div>
-<script src="/static/settings.js?v=0.5.161"></script>
-<script src="/static/app.js?v=0.5.161"></script>
+<script src="/static/settings.js?v=0.5.162"></script>
+<script src="/static/app.js?v=0.5.162"></script>
 </body>
 </html>

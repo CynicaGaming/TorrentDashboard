@@ -7,46 +7,43 @@
 This handoff is intentionally portable across public forks. Verify the current checkout's Git remote, branch, and open work before using upstream references as instructions.
 
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
-- Last documented upstream build: **v0.5.161** (prerelease)
+- Last documented upstream build: **v0.5.162** (prerelease)
 
 ## Last known-good state
 
-Refines self-registration with a simpler login entry point, a username-and-password-only registration form, and concise Pending status language.
+Makes account creation visibly distinct from sign-in and manages Pending registrations in the normal Users list instead of a separate queue.
 
 The released-state details and recent history are in `PROJECT_STATE.md`; architectural constraints are in `ARCHITECTURE.md`.
 
 ## Active development intent
 
 - Status: **release-candidate**
-- Objective: **Publish v0.5.161 with simplified account registration**
-- Why: Registration should stay focused on credentials, while Pending status and the login entry point should be concise and familiar.
+- Objective: **Publish v0.5.162 with a clearer Sign up state and unified user management**
+- Why: Account creation should be visibly distinct from sign-in, while administrators should manage active and Pending accounts from one consistent Users list.
 
 ### Acceptance criteria
 
-- Create an account appears beneath the Sign in button instead of as a top-level Register tab.
-- Public registration collects only Username and Password.
-- New registrations remain Standard users with Pending status and cannot create sessions.
-- Valid credentials for a Pending account explain that administrator approval is required before sign-in.
-- Administrators can still approve or reject requests under Settings → Users.
-- Approved users can complete optional profile information after signing in.
+- The access tab reads Sign up while Create an account is active and returns to Sign in for normal login.
+- Pending registrations appear in the normal Users list rather than a separate Pending registrations card.
+- Pending accounts display a Pending badge and expose Approve and Reject from their accordion entry.
+- Approved users retain the existing editable user fields and group controls.
+- Registration approval, rejection, rate limiting, Standard-user assignment, and pending-session blocking remain unchanged.
 - The full source matrix, source updater build, and compiled Windows smoke tests pass.
-- v0.5.161 publishes source and Windows updater packages with SHA-256 digests.
+- v0.5.162 publishes source and Windows updater packages with SHA-256 digests.
 
 ### Decisions already made
 
-- Create an account is a secondary action beneath Sign in.
-- Pending is the canonical user-facing label for accounts awaiting administrator action.
-- Registration collects only username and password; optional profile details are completed after access is granted.
+- Sign up is the visible access-tab label only while the registration pane is active.
+- Pending registrations share the normal Users list and are distinguished with a Pending badge.
+- Pending user details remain read-only until an administrator approves the account.
 
 ### Expected areas of change
 
-- `src/torrent_dashboard/users.py`
-- `src/torrent_dashboard/dashboard.py`
 - `static/index.html`
 - `static/app.js`
-- `static/app.css`
 - `static/settings.js`
-- `tests/test_user_registration.py`
+- `static/sw.js`
+- `src/torrent_dashboard/__init__.py`
 - `tests/test_registration_ui.py`
 - `release_tools/validate_ui_strings.py`
 - `release_notes/releases.json`
@@ -58,11 +55,11 @@ None currently recorded.
 
 ### Explicitly out of scope
 
-- No email verification, invitation codes, CAPTCHA, MFA, or automatic approval in this release.
+- No changes to registration rate limits, approval authorization, account roles, or authentication/session policy in this release.
 
 ## Exact next action
 
-Run full pull-request validation and Windows packaging; if green, merge and verify the complete updater-visible v0.5.161 release.
+Run full pull-request validation and Windows packaging; if green, merge and verify the complete updater-visible v0.5.162 release.
 
 ## Resume checklist
 
