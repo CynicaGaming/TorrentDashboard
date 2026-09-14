@@ -8,6 +8,7 @@ import hmac
 import json
 import re
 import secrets
+import time
 import uuid
 from pathlib import Path
 
@@ -27,6 +28,10 @@ PROFILE_AVATAR_TYPES = {
 USER_GROUPS = {
     "administrator": "Administrator",
     "standard": "Standard user",
+}
+USER_STATUSES = {
+    "active": "Active",
+    "pending": "Pending approval",
 }
 
 
@@ -105,6 +110,12 @@ def normalize_user(data, existing=None, require_password=False):
         password_hash = hash_password(password)
     if require_password and not password_hash:
         raise RuntimeError("Password is required for a new user")
+    status_raw = str(data.get("status") if data.get("status") is not None else existing.get("status") or "active").strip().lower()
+    status = "pending" if status_raw == "pending" else "active"
+    try:
+        created_at = int(data.get("created_at") if data.get("created_at") is not None else existing.get("created_at") or 0)
+    except (TypeError, ValueError):
+        created_at = 0
     return {
         "id": uid,
         "username": username,
@@ -133,11 +144,14 @@ def normalize_user(data, existing=None, require_password=False):
             else existing.get("avatar_version") or ""
         )[:64],
         "group": group,
+        "status": status,
+        "created_at": created_at,
     }
 
 
 def public_user(user):
     avatar_path, _ = configured_user_avatar(user)
+    status = "pending" if user.get("status") == "pending" else "active"
     return {
         "id": str(user.get("id") or ""),
         "username": str(user.get("username") or ""),
@@ -150,6 +164,9 @@ def public_user(user):
         "avatar_configured": bool(avatar_path),
         "avatar_version": str(user.get("avatar_version") or ""),
         "password_configured": bool(user.get("password_hash")),
+        "status": status,
+        "status_label": USER_STATUSES[status],
+        "created_at": int(user.get("created_at") or 0),
     }
 
 
@@ -324,8 +341,9 @@ def session_is_admin(sess):
 
 def sync_legacy_auth(cfg):
     auth = cfg.setdefault("auth", {})
-    admins = [u for u in cfg.get("users", []) if u.get("group") == "administrator"]
-    chosen = admins[0] if admins else (cfg.get("users") or [None])[0]
+    active = [u for u in cfg.get("users", []) if u.get("status", "active") != "pending"]
+    admins = [u for u in active if u.get("group") == "administrator"]
+    chosen = admins[0] if admins else (active or [None])[0]
     if chosen:
         auth["username"] = chosen.get("username", "admin")
         auth["password_hash"] = chosen.get("password_hash", "")
@@ -344,7 +362,10 @@ def save_user(cfg, data):
         if user_id
         else None
     )
-    item = normalize_user(data, existing, require_password=existing is None)
+    payload = dict(data)
+    payload["status"] = str((existing or {}).get("status") or "active") if existing else "active"
+    payload["created_at"] = int((existing or {}).get("created_at") or time.time())
+    item = normalize_user(payload, existing, require_password=existing is None)
     duplicate = next(
         (
             u
@@ -364,6 +385,67 @@ def save_user(cfg, data):
         raise RuntimeError("At least one Administrator account is required")
     sync_legacy_auth(out)
     return out, item
+
+
+
+def register_user(cfg, data):
+    out = json.loads(json.dumps(cfg))
+    users = out.setdefault("users", [])
+    if sum(1 for user in users if user.get("status") == "pending") >= 50:
+        raise RuntimeError("Too many registrations are waiting for administrator review")
+    password = str(data.get("password") or "")
+    if len(password) < 8:
+        raise RuntimeError("Password must be at least 8 characters")
+    item = normalize_user(
+        {
+            "username": data.get("username"),
+            "password": password,
+            "first_name": data.get("first_name"),
+            "last_name": data.get("last_name"),
+            "email": data.get("email"),
+            "group": "standard",
+            "status": "pending",
+            "created_at": int(time.time()),
+        },
+        require_password=True,
+    )
+    duplicate = next(
+        (
+            user for user in users
+            if str(user.get("username") or "").casefold() == item["username"].casefold()
+        ),
+        None,
+    )
+    if duplicate:
+        raise RuntimeError("That username is already in use")
+    users.append(item)
+    sync_legacy_auth(out)
+    return out, item
+
+
+def approve_user(cfg, user_id):
+    out = json.loads(json.dumps(cfg))
+    user = user_by_id(out, user_id)
+    if not user:
+        raise RuntimeError("Registration was not found")
+    if user.get("status") != "pending":
+        raise RuntimeError("This user is not waiting for approval")
+    user["status"] = "active"
+    user["group"] = "standard"
+    sync_legacy_auth(out)
+    return out, user
+
+
+def reject_user(cfg, user_id):
+    out = json.loads(json.dumps(cfg))
+    user = user_by_id(out, user_id)
+    if not user:
+        raise RuntimeError("Registration was not found")
+    if user.get("status") != "pending":
+        raise RuntimeError("This user is not waiting for approval")
+    out["users"] = [item for item in out.get("users", []) if str(item.get("id") or "") != str(user_id or "")]
+    sync_legacy_auth(out)
+    return out, user
 
 
 def delete_user(cfg, user_id, current_user_id=""):
@@ -390,6 +472,8 @@ __all__ = [
     "MAX_AVATAR_BYTES",
     "PROFILE_AVATAR_TYPES",
     "USER_GROUPS",
+    "USER_STATUSES",
+    "approve_user",
     "change_current_user_password",
     "configured_user_avatar",
     "delete_user",
@@ -397,6 +481,8 @@ __all__ = [
     "hash_password",
     "normalize_user",
     "public_user",
+    "register_user",
+    "reject_user",
     "remove_user_avatar",
     "save_current_user_profile",
     "save_user",

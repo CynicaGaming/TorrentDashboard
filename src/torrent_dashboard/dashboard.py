@@ -107,6 +107,7 @@ from torrent_dashboard.users import (
     MAX_AVATAR_BYTES,
     PROFILE_AVATAR_TYPES,
     USER_GROUPS,
+    approve_user,
     change_current_user_password,
     configured_user_avatar,
     delete_user,
@@ -114,6 +115,8 @@ from torrent_dashboard.users import (
     hash_password,
     normalize_user,
     public_user,
+    register_user,
+    reject_user,
     remove_user_avatar,
     save_current_user_profile,
     save_user,
@@ -298,6 +301,8 @@ class SessionStore:
 SESSIONS = SessionStore()
 LOGIN_ATTEMPTS = defaultdict(deque)
 LOGIN_LOCK = threading.Lock()
+REGISTRATION_ATTEMPTS = defaultdict(deque)
+REGISTRATION_LOCK = threading.Lock()
 RECOVERY_LOCK = threading.Lock()
 RECOVERY_ATTEMPTS = defaultdict(deque)
 
@@ -1987,6 +1992,7 @@ class Handler(BaseHTTPRequestHandler):
         path=self.path.partition("?")[0]
         if path=="/api/setup/test-client": return self.setup_test_client()
         if path=="/api/setup/complete": return self.setup_complete()
+        if path=="/api/register": return self.register_route()
         if path=="/api/login": return self.login_route()
         if path=="/api/recovery/login": return self.recovery_login_route()
         if path=="/api/logout":
@@ -2096,6 +2102,16 @@ class Handler(BaseHTTPRequestHandler):
                     raise RuntimeError("Jellyfin scheduled task action must be start or stop")
                 HISTORY.event("dashboard",f"jellyfin_scheduled_task_{action}",task_id,"",{"client_ip":self.client_ip(),"integration_id":item.get("id","")})
                 return self.send_json(200,result,new_cookie)
+            if path=="/api/users/approve":
+                data=parse_json_body(self,10000); uid=str(data.get("id") or "")
+                updated,user=mutate_config(lambda current: approve_user(current,uid))
+                HISTORY.event("dashboard","user_registration_approved",user.get("username",""),"",{"client_ip":self.client_ip(),"user_id":uid,"approved_by":sess.get("username","")})
+                return self.send_json(200,{"ok":True,"user":public_user(user)},new_cookie)
+            if path=="/api/users/reject":
+                data=parse_json_body(self,10000); uid=str(data.get("id") or "")
+                updated,user=mutate_config(lambda current: reject_user(current,uid)); delete_user_avatar_files(uid); SESSIONS.remove_user(uid)
+                HISTORY.event("dashboard","user_registration_rejected",user.get("username",""),"",{"client_ip":self.client_ip(),"user_id":uid,"rejected_by":sess.get("username","")})
+                return self.send_json(200,{"ok":True},new_cookie)
             if path=="/api/users":
                 data=parse_json_body(self,20000); updated,user=mutate_config(lambda current: save_user(current,data)); SESSIONS.update_user(user)
                 if data.get("password"):
@@ -2264,6 +2280,28 @@ class Handler(BaseHTTPRequestHandler):
         except Exception as e:
             return self.send_json(400,{"error":str(e)})
 
+    def register_route(self):
+        cfg=load_config(); ip=self.client_ip(); now=time.time()
+        if not cfg.get("setup",{}).get("complete"):
+            return self.send_json(409,{"error":"Finish dashboard setup before registering an account"})
+        if str((cfg.get("auth") or {}).get("mode") or "required") == "disabled":
+            return self.send_json(409,{"error":"Account registration is unavailable while authentication is disabled"})
+        with REGISTRATION_LOCK:
+            q=REGISTRATION_ATTEMPTS[ip]
+            while q and q[0]<now-3600: q.popleft()
+            if len(q)>=5: return self.send_json(429,{"error":"Too many registration attempts. Try again later."})
+            q.append(now)
+        try: data=parse_json_body(self,20000)
+        except Exception as e: return self.send_json(400,{"error":str(e)})
+        if str(data.get("password") or "") != str(data.get("password2") or ""):
+            return self.send_json(400,{"error":"Passwords do not match"})
+        try:
+            updated,user=mutate_config(lambda current: register_user(current,data))
+            HISTORY.event("dashboard","user_registration_pending",user.get("username",""),"",{"client_ip":ip,"user_id":user.get("id","")})
+            return self.send_json(202,{"ok":True,"status":"pending","message":"Registration submitted. Your account is pending administrator approval."})
+        except Exception as e:
+            return self.send_json(400,{"error":str(e)})
+
     def login_route(self):
         cfg=load_config(); a=cfg["auth"]; ip=self.client_ip(); now=time.time(); limit=max(1,int(a.get("max_login_attempts_per_10m",20)))
         with LOGIN_LOCK:
@@ -2279,6 +2317,9 @@ class Handler(BaseHTTPRequestHandler):
         if not user or not encoded or not verify_password(str(data.get("password","")),encoded):
             HISTORY.event("dashboard", "login_failed", username[:128], "", {"client_ip": ip})
             return self.send_json(401,{"error":"Invalid username or password"})
+        if user.get("status") == "pending":
+            HISTORY.event("dashboard", "login_pending_approval", username[:128], "", {"client_ip": ip, "user_id": user.get("id", "")})
+            return self.send_json(403,{"error":"Your account is pending administrator approval."})
         token,sess=SESSIONS.create(user["username"],a.get("session_hours",24),"password",group=user.get("group","standard"),user_id=user.get("id",""),display_name=user_display_name(user))
         HISTORY.event("dashboard", "login_success", user["username"], "", {"client_ip": ip,"group":user.get("group")})
         return self.send_json(200,{"ok":True,"csrf":sess["csrf"],"group":user.get("group")},token)

@@ -6,21 +6,22 @@
 
 ## Current baseline
 
-- Latest documented build: **v0.5.159** (prerelease)
+- Latest documented build: **v0.5.160** (prerelease)
 - Canonical upstream: `CynicaGaming/TorrentDashboard`
 
 ### Latest release summary
 
-Removes the standalone System health settings category and its dedicated API because it duplicates status already available in the settings areas where users can act on it.
+Adds public account registration while keeping access administrator-controlled: new accounts remain pending until approved from Settings → Users.
 
 ## Architecture state
 
-- Operational status is surfaced through actionable domain pages and notifications rather than a standalone aggregate System health page.
+- User lifecycle now distinguishes approved active accounts from public pending registrations while preserving the existing Administrator/Standard authorization model.
 
 ## Current engineering decisions
 
-- Do not keep a separate System settings category solely for passive health summaries.
-- Remove the unused health API and aggregation helpers together with the UI to avoid dead maintenance surface.
+- Self-registration never grants Administrator access; approval always activates the account as a Standard user.
+- Pending status is revealed only after valid credentials are supplied, avoiding account-status disclosure to unauthenticated guesses.
+- Rejected registrations are removed rather than retained as long-lived rejected identities.
 
 ## Development principles
 
@@ -32,6 +33,15 @@ Removes the standalone System health settings category and its dedicated API bec
 - Keep public development continuity portable across forks; label canonical repository/branch/PR references as upstream context rather than local identity.
 
 ## Recent work
+
+### v0.5.160 — Self-registration with administrator approval
+
+Adds public account registration while keeping access administrator-controlled: new accounts remain pending until approved from Settings → Users.
+
+- Adds a Register tab beside Sign in and Recovery with username, optional profile details, and password fields.
+- New registrations are stored as Standard users in Pending approval state and cannot create sessions.
+- Settings → Users now shows a Pending registrations queue with Approve and Reject actions.
+- A pending user who enters the correct credentials is told that the account is waiting for administrator approval.
 
 ### v0.5.159 — Remove the System health settings page
 
@@ -66,19 +76,9 @@ Fixes the v0.5.155 System settings navigation so the new operational settings pa
 - Makes System a first-class settings page in the main settings controller.
 - Keeps the v0.5.155 System health, encrypted-backup, scheduling, automatic-update, audit, and retention controls accessible through the normal settings navigation.
 
-### v0.5.155 — Operations reliability, encrypted backups, and system health
-
-Adds updater-ready release fallback, authenticated portable-backup encryption, scheduled maintenance, security auditing, system health, and centralized retention while keeping automation opt-in.
-
-- Keeps auto-update usable while a new release is still assembling by skipping incomplete distribution assets and retaining the previous complete prerelease until both source and Windows packages are verified.
-- Adds AES-256-GCM portable-backup encryption with password-derived keys, encrypted import/restore support, scheduled backups, and local-only handling of the backup encryption password.
-- Adds opt-in automatic updates with local maintenance windows, pre-update backups, and the existing verified staging/rollback path.
-- Adds a dedicated redacted security audit database plus an administrator-only System settings page for health, audit review, backup scheduling, update policy, and retention.
-- Centralizes retention for history, stale torrent records, security-audit events, backup count, and staged update artifacts.
-
 ## What to do next
 
-1. **Verify Settings navigation after update** — Confirm System health no longer appears on desktop or mobile and that Backups and Updates retain their reorganized operational controls.
+1. **Verify registration and approval** — Register a test account from the login page, confirm pending login messaging, approve it from Users, and verify Standard-user access.
 
 ## Known issues
 

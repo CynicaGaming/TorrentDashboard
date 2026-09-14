@@ -946,15 +946,33 @@ window.TDSettings = (() => {
     return full || user.username || 'User';
   }
 
+  function renderPendingUsers() {
+    const list=document.querySelector('#pendingUserList');
+    if(!list)return;
+    const pending=users.filter(user=>user.status==='pending');
+    if(!pending.length){list.innerHTML='<div class="settings-empty"><b>No pending registrations</b><span>New registration requests will appear here for approval.</span></div>';return}
+    list.innerHTML='';
+    pending.forEach((user,index)=>{
+      const card=document.createElement('article');card.className='settings-accordion user-item';card.dataset.id=user.id||'';
+      const display=userName(user),username=user.username||'User',showUsername=display!==username;
+      card.innerHTML=`<button class="accordion-summary" type="button" aria-expanded="${index===0?'true':'false'}"><span><span class="user-name-line"><b>${esc(display)}</b></span>${showUsername?`<small>${esc(username)}</small>`:''}</span><span class="user-group-badge pending">Pending approval</span><span class="accordion-chevron">⌄</span></button><div class="accordion-body ${index===0?'':'hidden'}"><div class="settings-form-grid two-col"><label>Username<input value="${esc(user.username||'')}" readonly></label><label>Email<input value="${esc(user.email||'')}" readonly></label><label>First name<input value="${esc(user.first_name||'')}" readonly></label><label>Last name<input value="${esc(user.last_name||'')}" readonly></label></div><div class="settings-inline-actions"><button class="primary pending-user-approve" type="button">Approve</button><button class="danger pending-user-reject" type="button">Reject</button></div></div>`;
+      const summary=card.querySelector('.accordion-summary');summary.addEventListener('click',()=>{const body=card.querySelector('.accordion-body');const open=body.classList.contains('hidden');body.classList.toggle('hidden',!open);summary.setAttribute('aria-expanded',String(open))});
+      card.querySelector('.pending-user-approve').addEventListener('click',()=>approvePendingUser(user));
+      card.querySelector('.pending-user-reject').addEventListener('click',()=>rejectPendingUser(user));
+      list.appendChild(card);applySentenceCaseUi(card);
+    });
+  }
+
   function renderUsers() {
     const list = document.querySelector('#userList');
     if (!list) return;
-    if (!users.length) {
+    const approvedUsers=users.filter(user=>user.status!=='pending');
+    if (!approvedUsers.length) {
       list.innerHTML='<div class="settings-empty"><b>No users found</b><span>Add an administrator account to manage Torrent Dashboard.</span></div>';
       return;
     }
     list.innerHTML='';
-    users.forEach((user,index) => {
+    approvedUsers.forEach((user,index) => {
       const card=document.createElement('article');
       card.className='settings-accordion user-item';
       card.dataset.id=user.id||'';
@@ -974,11 +992,15 @@ window.TDSettings = (() => {
     });
   }
 
+  async function approvePendingUser(user){try{await post('/api/users/approve',{id:user.id});toast('Registration approved');await loadUsers()}catch(e){toast(e.message,'error')}}
+  async function rejectPendingUser(user){try{await post('/api/users/reject',{id:user.id});toast('Registration rejected');await loadUsers()}catch(e){toast(e.message,'error')}}
+
   async function loadUsers() {
     try {
       const d = await api('/api/users');
       users = d.users || [];
       currentUserId = d.current_user_id || state.me?.user_id || '';
+      renderPendingUsers();
       renderUsers();
     } catch(e) {
       toast(e.message,'error');
